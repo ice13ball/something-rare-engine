@@ -1,0 +1,75 @@
+{
+  "actions": {
+    "all": "Alle",
+    "cancel": "Abbrechen",
+    "clear": "Löschen",
+    "close": "Schließen",
+    "loading": "Wird geladen…",
+    "none": "Keine",
+    "reset": "Zurücksetzen",
+    "retry": "Erneut versuchen",
+    "save": "Speichern",
+    "search": "Suchen",
+    "undo": "Rückgängig"
+  },
+  "search": {
+    "placeholder": "Konzessionen, Quellen, Arten suchen…",
+    "noResults": "Keine Ergebnisse für „{{query}}“",
+    "noResultsSimple": "Keine Ergebnisse",
+    "mobileTitle": "Suchen",
+    "coordinateLabel": "Koordinaten",
+    "coordinateAction": "Zu diesem Ort springen",
+    "groupHeader": {
+      "claims": "Bergbaukonzessionen",
+      "vents": "Hydrothermale Quellen",
+      "seamounts": "Tiefseeberge",
+      "contractors": "Auftragnehmer",
+      "stations": "Überwachungsstationen"
+    }
+  },
+  "tooltips": {
+    "clearFilters": "Filter löschen",
+    "closeLayersPanel": "Ebenenpanel schließen",
+    "collapseFilters": "Filter einklappen",
+    "expandFilters": "Filter ausklappen",
+    "flyToLayer": "Zur Ebene fliegen",
+    "hideAllPlumes": "Alle aktuell verfolgten Sedimentfahnen ausblenden",
+    "infoAbout": "Informationen zu {{label}}",
+    "resetAllFilters": "Alle Filter zurücksetzen",
+    "toggleLayer": "Ebenensichtbarkeit umschalten",
+    "toggleSection": "Abschnitt {{label}} ein-/ausblenden",
+    "toggleSubSection": "Unterabschnitt {{label}} ein-/ausblenden",
+    "turnOffAllLayers": "Alle aktiven Ebenen deaktivieren",
+    "undoFilterReset": "Filter-Zurücksetzung rückgängig machen",
+    "zoomTo": "Auf {{label}} zoomen",
+    "featureDetails": "Objektdetails",
+    "zoomIn": "Hineinzoomen",
+    "zoomOut": "Herauszoomen",
+    "dataReference": "Datenverweis",
+    "dismiss": "Schließen"
+  },
+  "map": {
+    "ariaLabel": "Interaktive 3D-Karte der Tiefsee-Bergbaukonzessionen. Verwenden Sie die Pfeiltasten zum Bewegen, +/− zum Zoomen.",
+    "loadingOceanData": "Ozeandaten werden geladen…",
+    "tracingPlume": "Sedimentfahne wird verfolgt…",
+    "referenceButton": "Referenz"
+  },
+  "layerUnavailable": {
+    "title": "Einige Ebenen nicht verfügbar",
+    "titleFull": "Einige Ebenen sind vorübergehend nicht verfügbar",
+    "body": "Diese Datenquellen konnten nicht geladen werden: {{layers}}. Versuchen Sie die Seite zu aktualisieren oder prüfen Sie die Registerkarte „Daten & Aktualität“ in der Legende.",
+    "otherLayersOperational": "Andere Ebenen funktionieren ordnungsgemäß"
+  },
+  "seafloorDepthLabel": "Meeresbodentiefe",
+  "belowSeaLevel": "unter dem Meeresspiegel",
+  "statusStrip": {
+    "ariaLabel": "Systemstatus",
+    "tracking": "ÜBERWACHUNG",
+    "degraded": "EINGESCHRÄNKT",
+    "sync": "SYNC",
+    "layers": "EBENEN",
+    "minutesShort": "vor {{n}} Min.",
+    "hoursShort": "vor {{n}} Std.",
+    "daysShort": "vor {{n}} T."
+  }
+}

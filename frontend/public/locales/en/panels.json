@@ -1,0 +1,1305 @@
+{
+  "controls": {
+    "hexValueHint": "Switch to Hexagons, then click a cell to read exact values.",
+    "fieldLayer": {
+      "display": "Display",
+      "field": "Field",
+      "hexagons": "Hexagons",
+      "variable": "Variable",
+      "depth": "Depth",
+      "decade": "Decade",
+      "view": "View",
+      "scale": "Scale ({{units}})",
+      "stations": "Stations"
+    },
+    "layersHeading": "Layers",
+    "filtersHeading": "Filters",
+    "groups": {
+      "ocean": "Ocean",
+      "land": "Land",
+      "monitoring": "Monitoring",
+      "analysis": "Analysis"
+    },
+    "seaData": "Sea Data",
+    "landData": "Land Data",
+    "subgroups": {
+      "claimsZones": "Claims & Zones",
+      "lifeGeology": "Life & Geology",
+      "analysis": "Analysis",
+      "sensorsMonitoring": "Sensors & Monitoring",
+      "infrastructure": "Infrastructure",
+      "underwaterNoise": "Underwater Noise",
+      "landCore": "Mining & Protected Areas",
+      "hazardsMonitoring": "Hazards & Monitoring",
+      "waterCarbon": "Water & Carbon",
+      "oceanClimatology": "Ocean Climatology"
+    },
+    "header": {
+      "layersOff": "Layers off",
+      "plumesOff": "Plumes off",
+      "openLayers": "☰ Layers",
+      "filtersReset": "Filters reset",
+      "views": "Views"
+    },
+    "layers": {
+      "hydrophoneStations": "Hydrophone Stations",
+      "oceanCurrents": "Ocean Currents",
+      "currentsSurface": "Surface",
+      "currents1000m": "1000 m",
+      "currentsDate": "Date",
+      "currentsPlay": "Play time-lapse",
+      "currentsPause": "Pause",
+      "currentsLatest": "latest",
+      "currentsSlider": "Select date"
+    },
+    "hydrophone": {
+      "source": "Source",
+      "status": "Status",
+      "depth": "Depth band",
+      "active": "Active",
+      "retired": "Retired",
+      "shallow": "Shallow (<200 m)",
+      "slope": "Slope (200–2000 m)",
+      "abyssal": "Abyssal (>2000 m)"
+    },
+    "featureType": "Feature type",
+    "sios": {
+      "viewCore": "Core Data",
+      "viewAll": "All datasets",
+      "viewStation": "By station"
+    },
+    "source": "Source",
+    "thawType": "Thaw type",
+    "featureCategory": "Feature category"
+  },
+  "layers": {
+    "contracts": {
+      "toggle": "Mining Concessions"
+    },
+    "reservedAreas": {
+      "toggle": "Reserved Areas"
+    },
+    "relinquishedAreas": {
+      "toggle": "Relinquished Areas"
+    },
+    "apeis": {
+      "toggle": "Protected Areas (APEIs)"
+    },
+    "protectedMarineSites": {
+      "toggle": "UNESCO Marine Heritage"
+    },
+    "eez": {
+      "toggle": "EEZ Boundaries"
+    },
+    "offshoreActivities": {
+      "toggle": "Offshore Activities"
+    },
+    "biodiversityHotspots": {
+      "toggle": "OBIS Species (Deep)"
+    },
+    "hydrothermalVents": {
+      "toggle": "Hydrothermal Vents"
+    },
+    "chess": {
+      "toggle": "Chemosynthetic Sites"
+    },
+    "seamounts": {
+      "toggle": "Seamounts"
+    },
+    "tectonicPlates": {
+      "toggle": "Tectonic Plates"
+    },
+    "monitoringDensity": {
+      "toggle": "Baseline Monitoring Density"
+    },
+    "deepdataStations": {
+      "toggle": "Contractor Sampling Stations"
+    },
+    "argo": {
+      "toggle": "Argo Floats"
+    },
+    "oceansites": {
+      "toggle": "OceanSITES Moorings"
+    },
+    "onc": {
+      "toggle": "ONC Observatories"
+    },
+    "oncInstruments": {
+      "toggle": "ONC Instruments"
+    },
+    "submarineCables": {
+      "toggle": "Submarine Cables"
+    },
+    "ports": {
+      "toggle": "Port Locations"
+    },
+    "noiseRisk": {
+      "toggle": "Noise Risk Grid"
+    },
+    "miningFootprints": {
+      "toggle": "Global Mining Footprints"
+    },
+    "kbas": {
+      "toggle": "Key Biodiversity Areas"
+    },
+    "forestLoss": {
+      "toggle": "Tree Cover Loss"
+    },
+    "tailings": {
+      "toggle": "Tailings Dams"
+    },
+    "fires": {
+      "toggle": "Active Fires (FIRMS)"
+    },
+    "airQuality": {
+      "toggle": "Air Quality Stations"
+    },
+    "landslides": {
+      "toggle": "Landslide Catalog"
+    },
+    "surfaceWater": {
+      "toggle": "Global Surface Water"
+    },
+    "dams": {
+      "toggle": "Global Dams"
+    },
+    "arcticRivers": {
+      "toggle": "Arctic River Inputs"
+    },
+    "carbonFlux": {
+      "toggle": "Forest Carbon Flux"
+    },
+    "soilCarbon": {
+      "toggle": "Soil Organic Carbon"
+    },
+    "waterRisk": {
+      "toggle": "Water Risk (Aqueduct)"
+    },
+    "bathymetry": {
+      "toggle": "Seafloor Bathymetry"
+    },
+    "memento": {
+      "toggle": "Marine CH₄ / N₂O (MEMENTO)",
+      "gas": "Gas",
+      "ch4": "CH₄",
+      "n2o": "N₂O",
+      "display": "Display",
+      "dots": "Dots",
+      "hexes": "Hexagons"
+    },
+    "geotraces": {
+      "toggle": "Trace Metals (GEOTRACES)",
+      "elementLabel": "Element",
+      "elements": {
+        "mn": "Mn",
+        "fe": "Fe",
+        "co": "Co",
+        "ni": "Ni",
+        "cu": "Cu"
+      },
+      "display": "Display",
+      "dots": "Dots",
+      "hexes": "Hexagons",
+      "decade": "Decade"
+    },
+    "woaClimatology": {
+      "toggle": "Ocean Climatology (WOA)"
+    },
+    "oceanCarbon": {
+      "toggle": "Ocean Carbon (GLODAP)"
+    },
+    "oceanCo2Surface": {
+      "toggle": "Surface Ocean CO₂ (SOCAT)"
+    },
+    "marineCarbon": {
+      "toggle": "Marine Carbon (unified)",
+      "var": {
+        "fco2": "Surface fCO₂",
+        "dic": "Interior DIC",
+        "o2": "Dissolved O₂",
+        "temp": "Temperature"
+      }
+    },
+    "vmeSuitability": {
+      "toggle": "VME Suitability (modeled)",
+      "view": {
+        "suitability": "Suitability",
+        "uncertainty": "Uncertainty"
+      }
+    },
+    "oceanAcidification": {
+      "toggle": "Ocean Acidification (modeled)"
+    },
+    "coralAcidExposure": {
+      "toggle": "Coral Acidification Exposure (modeled)"
+    },
+    "cumulativeHumanImpact": {
+      "toggle": "Cumulative Human Impact (modelled)"
+    },
+    "wodOxygen": {
+      "toggle": "Historical Oxygen Profiles (WOD)"
+    },
+    "oxygenDeox": {
+      "toggle": "Ocean Oxygen & Deoxygenation"
+    },
+    "methaneSeeps": {
+      "toggle": "Methane Seeps (SEAFLEA)"
+    },
+    "siosSvalbard": {
+      "toggle": "SIOS Svalbard (Arctic)"
+    },
+    "arcticCatchments": {
+      "toggle": "Arctic Catchments",
+      "var": {
+        "ocs": "Soil carbon stock (t/ha)",
+        "octot": "Total organic carbon (Gt)",
+        "runoff": "Runoff",
+        "pf": "Permafrost extent",
+        "temp": "Air temperature"
+      }
+    },
+    "seabedSubstrate": {
+      "toggle": "Seabed Substrate"
+    },
+    "arcticSedimentCarbon": {
+      "toggle": "Arctic Sediment Carbon",
+      "stations": "Stations",
+      "decade": "Decade",
+      "var": {
+        "oc": "Organic carbon (%)",
+        "tn": "Total nitrogen (%)",
+        "d13c": "δ¹³C (‰)",
+        "d14c": "Δ¹⁴C (‰)"
+      }
+    },
+    "permafrostThaw": {
+      "toggle": "Permafrost Thaw"
+    },
+    "mosaicSediment": {
+      "toggle": "Marine Sediment Carbon",
+      "variableLabel": "Variable",
+      "variables": {
+        "toc": "TOC",
+        "tn": "Total N",
+        "d13c": "δ¹³C",
+        "d14c": "Δ¹⁴C"
+      },
+      "dots": "Dots",
+      "hexes": "Hexes",
+      "view": "View",
+      "decade": "Decade"
+    },
+    "aisLive": {
+      "toggle": "Live Vessels (AIS)"
+    },
+    "vesselEvents": {
+      "toggle": "Dark Vessels"
+    }
+  },
+  "filters": {
+    "contracts": {
+      "riskFiltersHeading": "Risk filters",
+      "contractorsHeading": "Contractors ({{visible}}/{{total}})",
+      "risk": {
+        "biodiversity": "Biodiversity overlap",
+        "argo": "Argo float nearby",
+        "vents": "Vent conflict",
+        "unesco": "UNESCO proximity"
+      }
+    },
+    "offshoreActivities": {
+      "activityTypeHeading": "Activity type:",
+      "countryHeading": "Country:",
+      "clearCount": "Clear ({{count}})",
+      "sourcesNote": "Government-issued concessions inside national EEZs. Sources: EMODnet, BOEM, Crown Estate (England/Wales/NI + Scotland), Sodir (Norway), NSTA (UK oil/gas), CNH/PEMEX (Mexico), NOPTA, NZP&M, ANP Brazil, MRA PNG, MME Namibia, SBMA Cook Islands, ESDM (Indonesia), PASA (South Africa), CNSOPB (Canada NS), C-NLOPB (Canada NL), GEUS/DEA (Denmark).",
+      "activityTypes": {
+        "oil_gas": "Oil & Gas",
+        "offshore_wind": "Offshore Wind",
+        "seabed_mining": "Seabed Mining",
+        "ccs_storage": "CCS Storage"
+      }
+    },
+    "biodiversityHotspots": {
+      "iucnStatusHeading": "IUCN Status",
+      "clearLabel": "Clear IUCN filters",
+      "iucn": {
+        "CR": "Critically Endangered",
+        "EN": "Endangered",
+        "VU": "Vulnerable",
+        "NT": "Near Threatened",
+        "LC": "Least Concern"
+      }
+    },
+    "hydrothermalVents": {
+      "statusOptions": {
+        "Active": "Active",
+        "Inactive": "Inactive",
+        "Extinct": "Extinct"
+      }
+    },
+    "chess": {
+      "habitatTypeHeading": "Habitat Type",
+      "phylumHeading": "Phylum",
+      "clearHabitatLabel": "Clear habitat filters",
+      "clearPhylumLabel": "Clear phylum filters",
+      "habitats": {
+        "seep": "Cold Seep",
+        "whale_fall": "Whale Fall",
+        "omz": "OMZ / Other"
+      }
+    },
+    "argo": {
+      "showOnlyFloatsWith": "Show only floats with:",
+      "clearLabel": "Clear alarms"
+    },
+    "onc": {
+      "eovFilterHint": "Filter both layers by Essential Ocean Variable"
+    },
+    "submarineCables": {
+      "dataSourcesHeading": "Data sources:",
+      "sourcesNote": "EMODnet shows global telecom routes; NOAA Marine Cadastre adds US cable corridor protection zones (anchoring-prohibited polygon footprints, including ~371 freshwater Great Lakes cables); LINZ adds chart-symbology cable lines in NZ EEZ; ACMA adds three federal cable protection zones off Sydney and Perth; ONC shows the NEPTUNE/VENUS fibre-optic cables off British Columbia; OOI shows the Regional Cabled Array off Oregon (approximate routes — segments connect published node coordinates).",
+      "sources": {
+        "emodnet": "EMODnet (global telecom)",
+        "noaa": "NOAA Marine Cadastre",
+        "onc": "ONC (NE Pacific observatory)",
+        "ooi": "OOI RCA (Oregon observatory)",
+        "nz": "LINZ (NZ Hydrographic)",
+        "au": "ACMA (AU protection zones)"
+      }
+    },
+    "noiseRisk": {
+      "riskLevelHeading": "Risk Level",
+      "clearLabel": "Clear noise filters",
+      "levels": {
+        "critical": "Critical (≥0.8)",
+        "high": "High (0.6–0.8)",
+        "moderate": "Moderate (0.4–0.6)",
+        "low": "Low (0.2–0.4)",
+        "data_gap": "Data gap",
+        "minimal": "Minimal (<0.2)"
+      }
+    },
+    "tailings": {
+      "riskLevelHeading": "Risk Level",
+      "statusHeading": "Status",
+      "riskLevels": {
+        "Extreme": "Extreme",
+        "Very High": "Very High",
+        "High": "High",
+        "Significant": "Significant",
+        "Medium": "Medium",
+        "Low": "Low",
+        "Unclassified": "Unclassified"
+      },
+      "statusOptions": {
+        "Active": "Active",
+        "Inactive": "Inactive",
+        "Closed": "Closed"
+      }
+    },
+    "fires": {
+      "nearMiningOnly": "Near mining only (≤25 km)",
+      "confidenceLevels": {
+        "High": "High",
+        "Nominal": "Nominal",
+        "Low": "Low"
+      }
+    },
+    "deepdataStations": {
+      "contractorHeading": "Contractor (only show selected)",
+      "clearLabel": "Show all contractors"
+    }
+  },
+  "tooltip": {
+    "sourceLabel": "Source:",
+    "pairsWellWith": "Pairs well with",
+    "descriptions": {
+      "contracts": "ISA-granted mining exploration contracts in international waters. 31 contracts covering >1.3M km² targeting polymetallic nodules, sulphides, and cobalt crusts.",
+      "hydrothermal-vents": "Active and inactive deep-sea vents supporting unique chemosynthetic ecosystems. Many sit inside mining concession boundaries.",
+      "argo": "Autonomous ocean profiling floats measuring temperature, salinity, and oxygen. Use Plume Tracing to simulate sediment dispersal from mining operations.",
+      "biodiversity-hotspots": "OBIS species observation density at 1° grid resolution. Higher counts indicate better-surveyed and biologically richer areas.",
+      "noise-risk": "Modelled underwater noise impact zones from mining activities. Shows potential disruption radius for marine fauna communication and navigation.",
+      "seamounts": "30,000+ underwater mountains that act as biodiversity magnets and current deflectors. Critical habitats often targeted by cobalt crust miners.",
+      "reserved-areas": "ISA-designated zones reserved for developing nations. Typically adjacent to active mining concessions in the Clarion-Clipperton Zone.",
+      "relinquished-areas": "Former mining exploration areas returned to the ISA. May still contain environmental impacts from survey activities.",
+      "apeis": "Areas of Particular Environmental Interest — the only ISA-designated no-mining zones. Just 9 exist in the CCZ, covering a fraction of the concession area.",
+      "eez": "Exclusive Economic Zones — 200 nautical mile national maritime boundaries. Mining concessions exist only beyond EEZ limits in international waters.",
+      "protected-marine-sites": "UNESCO World Heritage marine sites and other internationally recognised marine protected areas. Shows the gap between what's protected and what's at risk from mining.",
+      "oceansites": "Fixed deep-ocean monitoring stations with continuous time-series data. Closest instruments to potential mining operations for impact detection.",
+      "onc": "Ocean Networks Canada cabled observatories providing real-time seafloor data including seismicity, currents, and biological activity.",
+      "chess": "Locations of known chemosynthetic ecosystems — hydrothermal vents, cold seeps, whale falls. These fragile habitats take decades to centuries to recover.",
+      "submarine-cables": "Six aggregated submarine cable datasets (~4,200 features). EMODnet's 7 contributor layers (~1,255 features: Norway NVE power, German BSH telecom + power, Dutch Rijkswaterstaat telecom + power, UK fibre, Spain IGN — includes NORNED and Baltic Cable). NOAA Marine Cadastre (2,816 US polygon corridors). NZ LINZ (30 chart-derived polylines). AU ACMA (16 protection zones). ONC (NEPTUNE/VENUS scientific cables off BC). OOI Regional Cabled Array (Pacific City → Axial Seamount). Overlap with mining areas signals infrastructure risk. Toggle each source independently via the chevron.",
+      "onc-instruments": "Individual scientific instruments deployed on the Ocean Networks Canada cabled observatory — CTDs, hydrophones, cameras, junction boxes, oxygen sensors and more. Each point is one device with live power and data via the ONC fibre-optic cable network.",
+      "ports": "Global port facilities relevant to mining logistics and ore transport routes.",
+      "tectonic-plates": "Major tectonic plate boundaries — divergent, convergent, and transform faults. Hydrothermal vents and sulphide deposits concentrate along these boundaries.",
+      "monitoring-density": "Equal-area hexagonal grid (~48,760 km² per cell) showing density of baseline scientific monitoring records. Color scale: pale cream = < 5 records (monitoring gap) → yellow → orange → dark red = 200+ records (well-observed); more records = darker. Toggle alongside Mining Concessions to identify exploitation frontlines with little environmental data.",
+      "deepdata-stations": "Platform-derived analysis: ~2,400 physical sampling deployments aggregated from ISA contractor DwC archives via OBIS. Each dot = one Multi-Corer / Box-Corer / Epibenthic Sledge / ROV / Tow camera station, color-coded by contractor. Toggle individual contractors with the filter chevron — selected = visible. Click a dot for full station data, top species, citation and license.",
+      "mining-footprints": "74,548 mine polygons (pits, tailings, dumps, processing) mapped at 10m from Sentinel-2. The true spatial extent of mining that corporate reporting rarely shows.",
+      "kbas": "16,000+ sites identified as the most important places on Earth for species and ecosystems. Overlap with mining footprints reveals direct biodiversity conflict.",
+      "forest-loss": "Annual deforestation at 30m (2001–2024) + weekly alerts. Roads from mines radiate outward and deforestation follows — the mine's footprint extends far beyond the pit.",
+      "tailings": "11,800+ tailings facilities globally, ~1,500 with hazard classification. Color-coded by risk: dark red (Extreme) to green (Low). Upstream-raised dams are historically most failure-prone.",
+      "fires": "Near-real-time fire detections from MODIS & VIIRS satellites, updated within 3 hours. Filter by confidence level. Fire season often overlaps with mining land-clearing.",
+      "air-quality": "Real-time PM2.5, SO₂, NO₂, O₃, CO readings from government monitoring stations worldwide. Mining and fire smoke create pollution hotspots.",
+      "landslides": "Rainfall-triggered landslides since 2007. Tailings dams in landslide-prone terrain are a red flag for structural failure risk.",
+      "surface-water": "Surface water occurrence and change 1984–2021 at 30m. Shows whether mines have created artificial water bodies or destroyed natural ones.",
+      "dams": "41,145 river barriers + 35,295 reservoir polygons. Mines upstream of drinking water reservoirs create contamination pathways.",
+      "carbon-flux": "CO₂ emissions and removals per hectare at 30m (2001–2024). Deforestation from mining turns carbon sinks into carbon sources.",
+      "soil-carbon": "Global soil organic carbon in the top 0–5 cm at 250 m (ISRIC SoilGrids). Mining disturbs soil carbon stores that took millennia to accumulate.",
+      "water-risk": "Global water risk at sub-basin level — stress, depletion, drought, flood. Mining-weighted scores highlight basins where extraction competes with communities for water.",
+      "offshore-activities": "Government-issued offshore concessions inside national EEZs — oil & gas blocks, offshore wind farms, seabed mining licences, and CCS (carbon capture & storage) licences. Filter by activity type and country to see who is licensed where.",
+      "ocean-currents": "Animated surface (or 1000 m) ocean currents from Copernicus Marine. Particles flow along the live current field; the depth toggle switches between surface drift and the deeper layer that carries deep-sea mining sediment plumes.",
+      "woa-climatology": "Gridded ocean climatology (long-term average) from the World Ocean Atlas 2023 — temperature, salinity, oxygen, AOU, O₂ saturation and nutrients at 8 standard depths. Pick a variable and depth; the colour shows the average value there (read it off the scale below the selector). 1° resolution; the baseline period differs by variable (T/S 1991–2020, O₂ 1971–2000, nutrients 1965–2022).",
+      "oxygen-deox": "Ocean dissolved oxygen from ISAS BGC-Argo floats. ‘Recent O₂’ shows the 2014–2018 average at the chosen depth (blue = high, red = low / oxygen-minimum zones). ‘Deoxygenation Δ’ shows the change versus the ~1980s World Ocean Atlas baseline (red = O₂ loss, blue = gain). Indicative regional pattern, not a calibrated trend — the recent Argo-optode field and the ship-based 1980s baseline differ in method.",
+      "wod-oxygen": "Raw historical dissolved-oxygen profiles from the NOAA World Ocean Database (global). Each dot is one ship/float cast, coloured by decade; click to see the actual depth–oxygen profile. Inspectable raw evidence spanning ~a century — heterogeneous methods and QC, shown as published. Thinned to a sample at wide zoom; zoom in for every cast.",
+      "arctic-rivers": "Observed discharge and biogeochemistry at the great Arctic river mouths (ArcticGRO 6 rivers + PANGAEA Canada). Each dot = a monitoring station; click for the period of record and time series of dissolved organic carbon, nutrients, and sampling-date discharge. Published measurements, ~6×/year sampling, shown at monthly resolution.",
+      "memento": "GEOMAR MEMENTO database of surface-ocean methane (CH₄) and nitrous oxide (N₂O) from research cruises worldwide. Each dot is one cast; colour scales by the selected gas surface concentration (teal = low, magenta = high). Use the gas selector to switch between CH₄ and N₂O. Caveat: measurement density is uneven — open-ocean transects are well-covered, coastal and polar regions less so.",
+      "geotraces": "GEOTRACES IDP2025 water-column profiles of dissolved trace metals (Mn, Fe, Co, Ni, Cu) — the metals concentrated in seafloor nodules and crusts. Pick an element; each dot is a station coloured by its peak concentration. Click for the concentration-vs-depth profile. Research-grade, sparse coverage.",
+      "methane-seeps": "Global inventory of seafloor methane seep sites from the SEAFLEA observed database (NRL / NOAA NCEI), compiled by Phrampus et al. (2020). Each dot is a confirmed seep location coloured by feature type (gas bubbles, gas hydrate, mound, pockmark, chemosynthetic community, carbonate hardground). Caveat: frozen Feb-2019 compilation — no new seep discoveries after that date are included. Coverage is survey-biased: 59% of records come from one Gulf of Mexico survey and the central North Sea has none — a blank area means no survey, not no seeps.",
+      "ocean-carbon": "Seawater dissolved inorganic carbon system (DIC, Total Alkalinity, pH, anthropogenic CO₂) from the GLODAPv2.2016b 1° climatology. Select a variable and depth (0–4000 m); the colour field shows the global distribution. Switch to Hexagons to read exact values on click. Static product — pre-2016 cruise data only.",
+      "ocean-co2-surface": "Surface ocean fugacity of CO₂ (fCO₂), observation density, sea-surface temperature, and salinity from the SOCATv2026 quality-controlled ship-track database, binned onto a 1° decadal grid. Use the variable selector to switch between fCO₂, density, SST, and salinity; use the decade selector to step through the 1970s–2020s. Switch to Hexagons to read exact values on click. Caveat: non-gap-filled product — roughly 21% of 1° cells have data, concentrated along ship tracks.",
+      "sios-svalbard": "In-situ observing datasets from the SIOS (Svalbard Integrated Arctic Earth Observing System) catalogue — oceanographic, atmospheric, cryospheric, and biological measurements collected around Svalbard and the wider Arctic. Each point links to the dataset landing page. Discovery layer only: metadata and links, not the measurements themselves. Coverage is in-situ; remote-sensing and modelled products are outside this layer's scope.",
+      "marine-carbon": "One hexagon grid uniting every carbon-related ocean field — click a cell to see surface CO₂, interior carbon, oxygen and physical climatology together, each labelled by source. A co-located readout, not a single combined value.",
+      "vme-suitability": "MODELED habitat suitability for reef-forming deep-sea corals (MaxEnt/elapid) from NOAA DSCRTP occurrences and GEBCO/WOA/ISAS/GLODAP predictors. Not observed data — relative suitability, not evidence of presence. Color scale: dark purple = 0 (least suitable) → blue → teal → green → yellow = 1 (most similar to known VME habitat); more suitable = brighter. The Uncertainty view reuses the same ramp, rescaled to its own range: dark = more confident, yellow = less confident.",
+      "arctic-catchments": "Pan-Arctic catchment polygons (ARCADE v1) coloured by selected variable — soil organic carbon stock, total organic carbon, runoff, permafrost extent, or mean air temperature. These catchments are the land-side source areas that feed the Arctic rivers monitored by the Arctic Rivers layer. Click a catchment for the full variable profile. Source: ARCADE v1, DataVerse NL (doi:10.34894/U9HSPV). Caveat: catchment polygons reprojected from EASE-Grid; climate variables are ERA5-Land-derived long-term means.",
+      "seabed-substrate": "Global seafloor sediment type (Dutkiewicz et al. 2015) — 13 lithology classes (clay, calcareous/siliceous oozes, sand, etc.) interpolated from ~14,500 samples at 0.1°. Switch to Hexagons to read the class on click. A model, not a per-site assay; CC-BY-NC.",
+      "arctic-sediment-carbon": "Circum-Arctic seafloor organic carbon (CASCADE): an interpolated carbon field (organic carbon, nitrogen, δ¹³C, Δ¹⁴C) plus ~4,500 raw surface-sediment stations. The seafloor sink of terrestrial carbon delivered by Arctic rivers.",
+      "permafrost-thaw": "Observed permafrost thaw features across Alaska (Webb et al. 2026) plus circumpolar retrogressive thaw slumps from the ARTS inventory (whrc/ARTS v6.0.0) — thermokarst lakes, retrogressive thaw slumps, active-layer detachments and more. Colour = feature category; click a point for source, method and imagery. Observed occurrences only, unevenly sampled; absence of points is not absence of thaw. Full 9-category detail remains Alaska-only.",
+      "mosaic-sediment": "Global compilation of continental-margin sediment cores from the MOSAIC database (ETH Zürich), reporting organic carbon, total nitrogen, and stable/radiocarbon isotopes (δ¹³C, Δ¹⁴C) used to trace the age and origin of buried marine carbon. Each value links back to its original source paper via DOI; radiocarbon (Δ¹⁴C) coverage is much sparser than the other three variables.",
+      "ocean-acidification": "Modeled ocean acidification field — aragonite (ΩA) and calcite (ΩC) saturation state from GLODAPv2.2016b, plus a platform-derived saturation-horizon depth. Ω < 1 is corrosive to aragonite-shelled organisms. Diverging colour ramp: red (<1, corrosive) → white (≈1) → blue (>1, supersaturated). Static climatology, not real-time.",
+      "coral-acid-exposure": "MODELED exposure of suitable coral habitat to undersaturated (corrosive) water — crosses our own VME MaxEnt suitability model with reconstructed aragonite saturation horizons (GLODAP v2.2016b, via PyCO2SYS). Exposure, not loss: cold-water corals are documented living below the saturation horizon, calcifying at a metabolic cost. Four states: newly corrosive since preindustrial, corrosive before industrialisation, supersaturated, no data. \"Today\" is GLODAP's mapped reference year, nominally ~2002 — this compares two climatology snapshots, not a rate or trend.",
+      "cumulative-human-impact": "Modelled dimensionless index of total human pressure on marine ecosystems (NCEAS / Halpern et al. 2025) — the sum of ~10 anthropogenic stressors across six categories, present-state only. Seabed mining is only a minor component, and ISA claim areas sit in relatively low-impact abyssal zones. Context, not accusation: a concession polygon is not a causal source of this impact. A modelled index, not a measurement.",
+      "ais-live": "Live ship positions (AIS), last ~60 min. Coastal coverage only on the free tier.",
+      "vessel-events": "SAR×AIS dark-vessel detection: radar contacts with no matching AIS. Coastal watchboxes only."
+    },
+    "densityScaleLabel": "Records per cell",
+    "argoReadingHeading": "How to read the readings",
+    "argoOxygenGuide": "Oxygen flagged low below ≥150 (above 200 m) / ≥90 (200–1000 m) / ≥60 µmol/kg (deeper). Oxygen-minimum zones sit naturally lower, so a low value can be normal for the location.",
+    "argoPhGuide": "pH below the depth threshold (~7.95 / 7.75 / 7.60) shows as \"below expected\" — can be a genuine signal (vents, OMZ water), not a fault. Above 8.6 is physically impossible in seawater and is marked a sensor fault: an amber ring around the float on the map, and a red \"sensor fault\" tag next to the value in its popup.",
+    "methodologyLink": "Methodology & sources →",
+    "vmeScaleLabel": "Suitability (0–1)",
+    "acidScaleLabel": "Saturation scale",
+    "coralExposureScaleLabel": "Exposure state"
+  },
+  "airQuality": {
+    "activeSinceLabel": "Active since",
+    "blackCarbonLabel": "Black Carbon",
+    "cityLabel": "City",
+    "countryLabel": "Country",
+    "coverageLabel": "Coverage",
+    "dataQualitySectionTitle": "Data Quality",
+    "gasesSectionTitle": "Gases",
+    "humidityLabel": "Humidity",
+    "localityLabel": "Locality",
+    "locationSectionTitle": "Location",
+    "meterologicalSectionTitle": "Meteorological",
+    "mobilityLabel": "Mobility",
+    "ownerLabel": "Owner",
+    "panelTitle": "Air Quality Station",
+    "particulatesSectionTitle": "Particulates",
+    "providerLabel": "Provider",
+    "readingTimeLabel": "Reading time",
+    "stationSectionTitle": "Station",
+    "temperatureLabel": "Temperature",
+    "timezoneLabel": "Timezone",
+    "typeLabel": "Type"
+  },
+  "apei": {
+    "areaLabel": "Area",
+    "body": "Area of Particular Environmental Interest. Mining activities are prohibited to protect representative deep-sea ecosystems and maintain biodiversity.",
+    "detailsSectionTitle": "Details",
+    "panelBadge": "Environmental Protection",
+    "statusLabel": "Status"
+  },
+  "argo": {
+    "aboutBody": "Argo floats drift freely at depth and surface every ~10 days to transmit measurements via satellite. The trail shows up to 180 days of recorded positions. Each dot is one surfacing event. \"Track all drift plumes\" back-traces ocean currents from every recorded position to estimate where water masses originated 7 days before each measurement — useful for identifying potential mining sediment plume sources.",
+    "aboutSectionTitle": "About this data",
+    "dateLabel": "Date",
+    "deepPressureLabel": "Deep pressure",
+    "deepSalinityLabel": "Deep salinity",
+    "deepTempLabel": "Deep temp",
+    "maxDepthLabel": "Max depth",
+    "nearMiningWarning": "Near mining zone",
+    "oceanPropertiesSectionTitle": "Ocean Properties",
+    "oxygenLabel": "Oxygen",
+    "panelTitle": "Argo Float",
+    "phLabel": "pH",
+    "platformLabel": "Platform ID",
+    "profileIdLabel": "Profile ID",
+    "profileSectionTitle": "Profile",
+    "surfaceSalinityLabel": "Surface salinity",
+    "surfaceTempLabel": "Surface temp",
+    "trackPlumesButton": "Track all drift plumes",
+    "tracingPlumesButton": "Tracing drift plumes…",
+    "generateReportButton": "Generate Impact Report",
+    "qcFaultPh": "Sensor likely faulty — pH of {{phVal}} would require direct volcanic-vent contact, but deep temperature ({{deepTemp}} °C) is normal for this depth. Flagged QC=bad by Argo; shown for transparency.",
+    "qcFaultFlagged_one": "Sensor reading flagged QC=bad by Argo: {{sensors}}. Value shown as reported — do not treat as valid measurement.",
+    "qcFaultFlagged_other": "Sensor readings flagged QC=bad by Argo: {{sensors}}. Value shown as reported — do not treat as valid measurement.",
+    "sensorFaultChip": "sensor fault",
+    "oxygenHint": "Flagged when below {{threshold}} µmol/kg at this depth (~{{depth}} m). Thresholds: ≥150 above 200 m, ≥90 from 200–1000 m, ≥60 deeper. Regional oxygen-minimum zones sit naturally lower, so a low value can be normal for the location — it flags \"below typical\", not \"faulty\".",
+    "phHint": "Normal seawater pH is ~7.4–8.4. Below {{threshold}} at this depth is flagged \"below expected\" — this can be a genuine signal (hydrothermal plumes, oxygen-minimum water), not necessarily a fault. A value above 8.6 is physically impossible in seawater and is marked a sensor fault.",
+    "sensorFaultPh": "pH sensor fault — the reported value of {{phVal}} exceeds the maximum pH attainable in seawater (≈ 8.6). This indicates a failed or drifting pH sensor; the profile carried no Argo quality flag, so we flag it here. Temperature, salinity and oxygen come from separate sensors and remain valid.",
+    "woaAnomalyTitle": "Observed vs climatology (anomaly)",
+    "woaAnomalyNote": "Difference from the WOA 1991–2020 normal (O₂: 1971–2000). Positive = above normal.",
+    "woaContextTitle": "Regional climatology (WOA)",
+    "woaContextNote": "World Ocean Atlas means for this region — context, not this float's measurement. NCEI Accession 0270533.",
+    "woaSeasonalTitle": "Seasonal climatology (WOA)",
+    "woaSeasonalMonthLabel": "Month",
+    "woaSeasonalNote": "Monthly average for temperature, salinity & oxygen above ~1500 m; nutrients and deeper levels are annual means.",
+    "woaSeasonalLoading": "Loading…",
+    "woaSeasonalNoData": "No monthly climatology at this location/depth.",
+    "o2satLabel": "O₂ saturation",
+    "phosphateLabel": "Phosphate",
+    "silicateLabel": "Silicate",
+    "nitrateLabel": "Nitrate"
+  },
+  "plumes": {
+    "activeDriftHeading": "Active drift plumes",
+    "clearAll": "Clear all",
+    "segments": "{{n}} seg.",
+    "removeOne": "Remove drift plume for float {{id}}"
+  },
+  "biodiversity": {
+    "classLabel": "Class",
+    "depthLabel": "Depth",
+    "endangeredWarning": "Endangered species",
+    "familyLabel": "Family",
+    "observationSectionTitle": "Observation",
+    "orderLabel": "Order",
+    "phylumLabel": "Phylum",
+    "taxonomySectionTitle": "Taxonomy",
+    "verifyOnObis": "Verify on OBIS",
+    "wormsSectionTitle": "WoRMS verified",
+    "wormsValidNameLabel": "Accepted name",
+    "wormsEnvLabel": "Environment",
+    "wormsMarine": "Marine",
+    "wormsLink": "View on WoRMS ↗",
+    "wormsCitation": "Source: WoRMS Editorial Board (2026), World Register of Marine Species, doi:10.14284/170"
+  },
+  "biodiversityGrid": {
+    "crEnLabel": "CR / EN",
+    "observationsLabel": "Observations",
+    "panelTitle": "Biodiversity Grid Cell",
+    "speciesLabel": "Species",
+    "summarySectionTitle": "Summary",
+    "threatenedLabel": "Threatened",
+    "topSpeciesSectionTitle": "Top species",
+    "zoomToSpeciesButton": "Zoom to species"
+  },
+  "cable": {
+    "cableTypeLabel": "Cable type",
+    "contributorLabel": "Source contributor",
+    "detailsSectionTitle": "Details",
+    "installedLabel": "Installed",
+    "lengthLabel": "Length",
+    "locationLabel": "Location",
+    "operatorLabel": "Operator",
+    "panelBadge": "Submarine Cable",
+    "statusLabel": "Status",
+    "voltageLabel": "Voltage"
+  },
+  "chess": {
+    "depthLabel": "Depth",
+    "generateReportButton": "Generate Site Report",
+    "phylaLabel": "Phyla",
+    "siteSectionTitle": "Site",
+    "speciesLabel": "Species",
+    "topPhylaLabel": "Top phyla"
+  },
+  "concession": {
+    "affectedSpeciesToggle": "Affected species ({{count}})",
+    "argoFloatsBody": "Active ocean sensors recording water conditions within 200 km of this concession.",
+    "argoFloatsCount_one": "{{count}} Argo float monitoring this zone",
+    "argoFloatsCount_other": "{{count}} Argo floats monitoring this zone",
+    "argoFloatsToggle": "Float readings",
+    "areaLabel": "Area",
+    "awardedLabel": "Awarded",
+    "biodiversityOverlapConfirmed": "Deep-sea biodiversity recorded in this area",
+    "biodiversityOverlapGeneric": "Deep-sea biodiversity records overlap this area.",
+    "biodiversitySpeciesCount_one": "{{count}} deep-sea species inside this area",
+    "biodiversitySpeciesCount_other": "{{count}} deep-sea species inside this area",
+    "contractSectionTitle": "Contract",
+    "coordinatesSectionTitle": "Coordinates",
+    "eezDistanceLabel": "EEZ distance",
+    "expiresLabel": "Expires",
+    "generateReportButton": "Generate Claim Report",
+    "highRiskWarning": "High environmental risk area",
+    "isaIdLabel": "ISA ID",
+    "issuedLabel": "Issued",
+    "jurisdictionSectionTitle": "Jurisdiction",
+    "jurisdictionZoneLabel": "Zone",
+    "latLabel": "Lat",
+    "lonLabel": "Lon",
+    "nearestEezLabel": "Nearest EEZ",
+    "noiseCellsBody": "Underwater noise index for this area, combining ICES/EMODnet acoustic measurements with OBIS cetacean density and IUCN species weights.",
+    "noiseCellsCount_one": "{{count}} noise cell within 200 km",
+    "noiseCellsCount_other": "{{count}} noise cells within 200 km",
+    "noiseCellsToggle": "Risk cells",
+    "oceansitesMooringsBody": "Long-term mooring stations collecting baseline climate data in this ocean basin. Multi-year temperature, salinity, and current records would be compromised if mining disturbs the water column.",
+    "oceansitesMooringsCount_one": "{{count}} OceanSITES mooring within 500 km",
+    "oceansitesMooringsCount_other": "{{count}} OceanSITES moorings within 500 km",
+    "oceansitesMooringsToggle": "Mooring stations",
+    "oncStationsBody": "Ocean Networks Canada cabled stations provide continuous real-time seismic, pressure, and chemistry data — any seafloor disturbance from mining would be recorded.",
+    "oncStationsCount_one": "{{count}} ONC observatory node within 200 km",
+    "oncStationsCount_other": "{{count}} ONC observatory nodes within 200 km",
+    "oncStationsToggle": "Observatory nodes",
+    "operatorLabel": "Operator",
+    "panelTitle": "ISA Mining Concession",
+    "plumeHistoryLoaded_one": "Plume history loaded ({{count}} origin)",
+    "plumeHistoryLoaded_other": "Plume history loaded ({{count}} origins)",
+    "plumeHistoryTrack": "Track historical plumes",
+    "plumeHistoryTracing": "Tracing historical plumes…",
+    "plumeHistoryWarning_one": "{{count}} plume origin in history",
+    "plumeHistoryWarning_other": "{{count}} plume origins in history",
+    "resourceTypeLabel": "Resource Type",
+    "riskContributionLabel": "Habitat sensitivity weight",
+    "sponsoringStateLabel": "Sponsoring State",
+    "statusLabel": "Status",
+    "chemosynthetProximitySectionTitle": "Chemosynthetic Ecosystem Proximity",
+    "unescoHeritageSectionTitle": "UNESCO Heritage",
+    "unescoDistanceLabel": "Distance",
+    "unescoHighSensitivityWarning": "Within {{dist}} km of a UNESCO World Heritage marine site",
+    "unescoSiteLabel": "Site",
+    "ventConflictsBody": "Hydrothermal vent ecosystems are present within this area.",
+    "ventConflictsCount_one": "{{count}} hydrothermal vent inside this claim",
+    "ventConflictsCount_other": "{{count}} hydrothermal vents inside this claim"
+  },
+  "dam": {
+    "countryLabel": "Country",
+    "detailsSectionTitle": "Details",
+    "heightLabel": "Height",
+    "panelBadge": "Dam",
+    "purposeLabel": "Purpose",
+    "riverLabel": "River",
+    "volumeLabel": "Volume",
+    "yearBuiltLabel": "Year Built"
+  },
+  "deepDataStation": {
+    "auditTrailSectionTitle": "Audit trail",
+    "citationSectionTitle": "Citation",
+    "contractorLabel": "Contractor",
+    "depthLabel": "Depth",
+    "distinctSpeciesLabel": "Distinct species",
+    "licenseLabel": "License",
+    "locationIdLabel": "Location ID",
+    "occurrencesLabel": "Occurrences (raw)",
+    "panelBadge": "Contractor Sampling Station",
+    "panelTitle": "DeepData Sampling Station",
+    "phylaObservedSectionTitle": "Phyla observed",
+    "publishedLabel": "Published",
+    "rightsHolderLabel": "Rights holder",
+    "sampledLabel": "Sampled",
+    "samplingGearLabel": "Sampling gear",
+    "sedimentHorizonsSectionTitle": "Sediment horizons",
+    "stationSectionTitle": "Station",
+    "warningBanner": "Platform-derived analysis. We aggregated this station from the contractor's raw records — it is not the contractor's own analysis. See citation below."
+  },
+  "eez": {
+    "areaLabel": "Area",
+    "body": "Exclusive Economic Zone extending 200 nautical miles from the baseline. Mining activities within an EEZ require approval from the coastal state — not the ISA.",
+    "detailsSectionTitle": "Details",
+    "isoCodeLabel": "ISO Code",
+    "panelBadge": "EEZ Boundary",
+    "sovereignStateLabel": "Sovereign State"
+  },
+  "fire": {
+    "brightnessLabel": "Brightness",
+    "confidenceLabel": "Confidence",
+    "dateLabel": "Date",
+    "detailsSectionTitle": "Details",
+    "frpLabel": "Fire Radiative Power",
+    "instrumentLabel": "Instrument",
+    "panelBadge": "Active Fire",
+    "panelTitle": "Fire Detection"
+  },
+  "kba": {
+    "areaLabel": "Area",
+    "countryLabel": "Country",
+    "criteriaLabel": "Criteria",
+    "detailsSectionTitle": "Details",
+    "panelBadge": "Key Biodiversity Area",
+    "statusLabel": "Status"
+  },
+  "landslide": {
+    "countryLabel": "Country",
+    "dateLabel": "Date",
+    "detailsSectionTitle": "Details",
+    "fatalitiesLabel": "Fatalities",
+    "locationLabel": "Location",
+    "panelBadge": "Landslide Event",
+    "sourceLabel": "Source",
+    "triggerLabel": "Trigger"
+  },
+  "miningFootprint": {
+    "areaLabel": "Area",
+    "countryLabel": "Country",
+    "detailsSectionTitle": "Details",
+    "featureTypeLabel": "Feature Type",
+    "panelBadge": "Mining Footprint",
+    "sourceLabel": "Source"
+  },
+  "monitoringDensity": {
+    "cellSectionTitle": "Cell",
+    "cellSizeLabel": "Cell size",
+    "cellSizeValue": "Equal-area hex cell (~48,760 km²)",
+    "centroidLabel": "Centroid",
+    "noBreakdownText": "No breakdown available",
+    "panelBadge": "Baseline Monitoring Density",
+    "portalLinkTitle": "Search this cell in the source's native portal",
+    "positionLabel": "Position",
+    "sourceBreakdownSectionTitle": "Source breakdown",
+    "sourcesContributingLabel": "Sources contributing",
+    "totalRecordsLabel": "Total records",
+    "distinctSpeciesLabel": "Distinct species (WoRMS-resolved)",
+    "warningBanner": "Blank cells and absent sources = not in these databases, not confirmed unmonitored. Contractor-held baseline data is not publicly available."
+  },
+  "noiseRisk": {
+    "cetaceanCountLabel": "Sightings in cell",
+    "cetaceansSectionTitle": "Cetaceans",
+    "dataGapWarning": "High noise detected but no cetacean survey data available for this cell. Absence of records ≠ absence of animals.",
+    "dataSourceLabel": "Data source",
+    "derivedModelBanner": "MODELED, not observed. This risk index is computed by this platform from independent pulse-block-day and continuous-SPL noise datasets plus cetacean sightings — it is not a measurement from any single source.",
+    "impactRiskIndexLabel": "Impact Risk Index",
+    "noiseCetaceanNormLabel": "Cetacean norm",
+    "pbdNormLabel": "Pulse-block days norm",
+    "splNormLabel": "Continuous SPL norm",
+    "noiseSourceSectionTitle": "Noise Source",
+    "noneRecorded": "None recorded",
+    "panelBadge": "Noise Impact Risk",
+    "riskIndexSectionTitle": "Risk Index",
+    "speciesWeightLabel": "Species weight",
+    "threatenedSpeciesLabel": "Threatened species"
+  },
+  "oceansites": {
+    "airTempLabel": "Air temp",
+    "body": "Fixed deep-ocean mooring station measuring temperature, salinity, and currents over multi-year periods. Part of the OceanSITES global network operated via OceanOPS.",
+    "deployedLabel": "Deployed",
+    "latestObservationsSectionTitle": "Latest Observations",
+    "networkLabel": "Network",
+    "noObservationsText": "No live observations from NDBC, PMEL, or OceanSITES GDAC for this station",
+    "obsTimeLabel": "Obs time (UTC)",
+    "panelBadge": "OceanSITES Mooring",
+    "pressureLabel": "Pressure",
+    "referenceLabel": "Reference",
+    "salinityLabel": "Sea surface salinity",
+    "seaTempLabel": "Sea temp",
+    "sourceLabel": "Source",
+    "staleWarning": "Last reading is {{days}} days old.",
+    "stationSectionTitle": "Station",
+    "statusLabel": "Status",
+    "waveHeightLabel": "Wave height",
+    "windLabel": "Wind"
+  },
+  "offshore": {
+    "areaLabel": "Area",
+    "awardedLabel": "Awarded",
+    "basinLabel": "Basin",
+    "concessionDetailsSectionTitle": "Concession Details",
+    "depthClassLabel": "Depth class",
+    "expiresLabel": "Expires",
+    "jurisdictionLabel": "Jurisdiction",
+    "licenceHolderLabel": "Licence holder",
+    "licenceTypeLabel": "Licence type",
+    "operatorLabel": "Operator",
+    "panelTitle": "Offshore Concession",
+    "registryIdLabel": "Registry ID",
+    "roundLabel": "Round",
+    "statusLabel": "Status",
+    "waterDepthLabel": "Water depth"
+  },
+  "onc": {
+    "body": "Ocean Networks Canada cabled seafloor observatory providing real-time seismic, pressure, and chemistry data (CC BY 4.0).",
+    "adcpSectionTitle": "ADCP Backscatter (24h)",
+    "ctdSectionTitle": "CTD Cast Profile",
+    "depthLabel": "Depth",
+    "earthquakesSectionTitle": "Earthquakes ≥M3 (200 km, 30d)",
+    "latestReadingsSectionTitle": "Latest Readings",
+    "locationCodeLabel": "Location Code",
+    "noReadingsText": "No cached readings.",
+    "panelBadge": "ONC Observatory",
+    "stationSectionTitle": "Station"
+  },
+  "noaaCable": {
+    "detailsSectionTitle": "Cable corridor details",
+    "ownerLabel": "Owner",
+    "panelBadge": "NOAA cable corridor",
+    "regionLabel": "Region",
+    "shortNameLabel": "Identifier",
+    "statusLabel": "Status"
+  },
+  "oncCable": {
+    "detailsSectionTitle": "Details",
+    "lengthLabel": "Length",
+    "notesLabel": "Notes",
+    "panelBadge": "ONC Cable",
+    "statusLabel": "Status"
+  },
+  "oncInstrument": {
+    "categoryLabel": "Category",
+    "codeLabel": "Code",
+    "dataProductsSectionTitle": "Data Products",
+    "deployedLabel": "Deployed",
+    "deploySectionTitle": "Deployment",
+    "deviceIdLabel": "Device ID",
+    "deviceSectionTitle": "Device",
+    "endedLabel": "Ended",
+    "locationCodeLabel": "Code",
+    "locationSectionTitle": "Location",
+    "noReadingsText": "No environmental sensor readings available for this device.",
+    "panelBadge": "ONC Instrument",
+    "siteLabel": "Site"
+  },
+  "ooiCable": {
+    "cableSectionTitle": "Cable",
+    "nodePrimaryLabel": "Primary nodes",
+    "observatoryLabel": "Operated by",
+    "observatorySectionTitle": "Observatory",
+    "onlineSinceLabel": "Online since",
+    "panelBadge": "OOI Cable",
+    "routeLengthLabel": "Route length (approx.)",
+    "seafloorDepthLabel": "Seafloor depth range"
+  },
+  "plume": {
+    "backtrackSectionTitle": "Backtrack",
+    "contractorLabel": "Contractor",
+    "coordinatesSectionTitle": "Origin Coordinates",
+    "dateLabel": "Date",
+    "latLabel": "Lat",
+    "lonLabel": "Lon",
+    "panelTitle": "Plume Origin",
+    "platformLabel": "Platform",
+    "speedLabel": "Speed",
+    "stepsLabel": "Steps",
+    "unknownContractor": "Unknown"
+  },
+  "port": {
+    "countryLabel": "Country",
+    "detailsSectionTitle": "Details",
+    "panelBadge": "Port",
+    "stateLabel": "State / Region"
+  },
+  "protectedSite": {
+    "areaLabel": "Area",
+    "body": "UNESCO World Heritage Marine Programme site. Mining activities within 200 km require additional environmental scrutiny.",
+    "countryLabel": "Country",
+    "detailsSectionTitle": "Details",
+    "panelBadge": "UNESCO Marine Heritage"
+  },
+  "relinquished": {
+    "areaLabel": "Area",
+    "body": "This area was returned to ISA after exploration. Relinquishment may indicate unfavourable resource grades, regulatory changes, or contractor strategy shifts.",
+    "detailsSectionTitle": "Details",
+    "panelBadge": "Relinquished",
+    "relinquishedByLabel": "Relinquished by",
+    "statusLabel": "Status",
+    "typeLabel": "Type",
+    "unknownFallback": "Unknown"
+  },
+  "reservedArea": {
+    "areaLabel": "Area",
+    "body": "Area reserved for developing states under ISA regulations. These regions are set aside to ensure equitable access to deep-sea resources.",
+    "detailsSectionTitle": "Details",
+    "panelBadge": "Reserved Area",
+    "statusLabel": "Status",
+    "typeLabel": "Type"
+  },
+  "seamount": {
+    "baseAreaLabel": "Base area",
+    "baseOverlapLabel": "Base overlap",
+    "baseOverlapNo": "No",
+    "baseOverlapYes": "Yes — overlaps neighbouring seamount base",
+    "bathymetryLabel": "Bathymetry",
+    "bodyInConcession": "This seamount lies within an active ISA mining concession. Cobalt-rich ferromanganese crusts on seamount flanks are primary targets for deep-sea mining.",
+    "bodyOutside": "Underwater mountain rising ≥1,000 m from the seafloor. Seamounts are biodiversity hotspots — their slopes concentrate nutrients and support unique communities of corals, sponges, and fish.",
+    "catalogueSectionTitle": "Dataset metadata",
+    "catalogueLabel": "Catalogue",
+    "catalogueValueBoth": "Present in 2011 + 2020 catalogues",
+    "catalogueValueNew": "New in 2020 update",
+    "heightLabel": "Height",
+    "panelTitle": "Seamount",
+    "panelTitleWithId": "Seamount #{{peakId}}",
+    "peakIdLabel": "Peak ID",
+    "physicalSectionTitle": "Physical characteristics",
+    "sizeClassLabel": "Size class",
+    "subtitleOutsideConcession": "{{size}} seamount · Outside concession",
+    "subtitleWithinConcession": "{{size}} seamount · Within mining concession",
+    "summitDepthLabel": "Summit depth",
+    "summitDepthValue": "{{depth}} m below sea level"
+  },
+  "surfaceWater": {
+    "aboutSectionTitle": "About",
+    "panelBadge": "Surface Water",
+    "panelTitle": "Global Surface Water"
+  },
+  "tailings": {
+    "builtLabel": "Built",
+    "constructionLabel": "Construction",
+    "coordinatesLabel": "Coordinates",
+    "countryLabel": "Country",
+    "damSpecsSectionTitle": "Dam Specifications",
+    "detailsSectionTitle": "Details",
+    "hazardAssessmentSectionTitle": "Hazard Assessment",
+    "heightLabel": "Height",
+    "locationSectionTitle": "Location",
+    "mineLabel": "Mine",
+    "operatorLabel": "Operator",
+    "originalRatingLabel": "Original Rating",
+    "ownerLabel": "Owner",
+    "panelBadge": "Tailings Dam",
+    "riskLevelLabel": "Risk Level",
+    "statusLabel": "Status",
+    "storageLabel": "Storage",
+    "waphaCaveat": "WAPHA base record. The source publishes only a name and a coordinate for this facility — no owner, volume, height or hazard rating exists upstream. The country label is platform-derived. WAPHA is a literature and registry compilation, so a small number of non-mining dams are present."
+  },
+  "tectonic": {
+    "boundaryTypeLabel": "Boundary Type",
+    "detailsSectionTitle": "Details",
+    "panelBadge": "Tectonic Plate",
+    "plateALabel": "Plate A",
+    "plateBLabel": "Plate B",
+    "plateLabel": "Plate"
+  },
+  "trailDot": {
+    "historicalHint": "Historical surfacing event from this float's drift trail.",
+    "panelTitle": "Historical Position"
+  },
+  "vent": {
+    "biologySectionTitle": "Biology",
+    "contextSectionTitle": "Context",
+    "depthLabel": "Depth",
+    "discoveredLabel": "Discovered",
+    "generateReportButton": "Generate Vent Report",
+    "jurisdictionLabel": "Jurisdiction",
+    "latLabel": "Latitude",
+    "lonLabel": "Longitude",
+    "maxTempLabel": "Max Temp",
+    "pangaeaLinkTitle": "Open the InterRidge / PANGAEA dataset DOI",
+    "panelTitle": "Hydrothermal Vent",
+    "physicalSectionTitle": "Physical",
+    "sourceSectionTitle": "Source",
+    "sourceLabel": "Source",
+    "statusLabel": "Status",
+    "tectonicLabel": "Tectonic"
+  },
+  "waterRisk": {
+    "droughtRiskLabel": "Drought Risk",
+    "floodRiskLabel": "Flood Risk",
+    "geographySectionTitle": "Geography",
+    "areaLabel": "Area",
+    "keyIndicatorsSectionTitle": "Key Indicators",
+    "overallRiskLabel": "Overall Risk",
+    "panelBadge": "Water Risk Zone",
+    "riskScoreLabel": "Risk Score",
+    "riskSectionTitle": "Mining-Weighted Water Risk",
+    "waterDepletionLabel": "Water Depletion",
+    "waterStressLabel": "Water Stress"
+  },
+  "resourceImpact": {
+    "nodules": "Nodule collection uses seafloor collector vehicles that operate across the sediment surface and generate sediment plumes that can travel considerable distances.",
+    "crusts": "Crust extraction mechanically removes the surface layer of seamounts, where corals, sponges, and invertebrates grow.",
+    "sulphides": "Sulphide extraction targets hydrothermal vent sites, which host endemic species communities."
+  },
+  "discovery": {
+    "openButton": "Discover",
+    "closeButton": "× Close",
+    "headerLabel": "Discover",
+    "tryNextLabel": "Try next",
+    "modeOcean": "Ocean",
+    "modeLand": "Land",
+    "layersCountSuffix_one": "{{count}} layer",
+    "layersCountSuffix_other": "{{count}} layers",
+    "ariaCloseStory": "Close story",
+    "ariaCloseMenu": "Close discovery menu",
+    "ariaOpenMenu": "Open discovery presets",
+    "presets": {
+      "ventMiningClash": {
+        "title": "Vent–Mining Clash",
+        "story": "Active hydrothermal vent ecosystems sit directly inside ISA mining concessions along the Mid-Atlantic Ridge. These vents harbour species found nowhere else on Earth — yet they're in the path of planned sulphide extraction.",
+        "nextSteps": [
+          "Enable Seamounts to see the underwater mountains nearby",
+          "Click a vent to see which species have been recorded",
+          "Toggle GBIF Species to find threatened deep-sea species in the area"
+        ],
+        "finding": "Vent species found nowhere else on Earth sit inside active mining concessions"
+      },
+      "cczScale": {
+        "title": "Clarion-Clipperton Scale",
+        "story": "The Clarion-Clipperton Zone in the Pacific holds 17 mining contracts covering over 1 million km² — an area larger than France and Germany combined. The thin green strips between them are reserved for developing nations; the blue patches are the only protected areas.",
+        "nextSteps": [
+          "Zoom in to see individual contract boundaries",
+          "Enable OBIS Biodiversity to see where species have been recorded",
+          "Enable Argo Floats to see real-time ocean monitoring nearby"
+        ],
+        "finding": "17 contracts, 1M+ km² — larger than France and Germany combined"
+      },
+      "plumeRisk": {
+        "title": "Deep-Sea Plume Risk",
+        "story": "Nodule mining would stir up sediment plumes that can travel hundreds of kilometres and settle over abyssal ecosystems. Argo floats in this area record the ocean currents that would carry those plumes. Click any float and try Plume Tracing.",
+        "nextSteps": [
+          "Click an Argo float near a contract and select \"Trace Plume\"",
+          "Enable Seamounts to see what the plume could reach",
+          "Filter Argo floats by Alarm to find anomalous readings"
+        ],
+        "finding": "Sediment plumes could travel hundreds of km — Argo floats track the currents that would carry them"
+      },
+      "monitoringGaps": {
+        "title": "Mining Without a Baseline",
+        "story": "The ISA grants mining contracts expecting contractors to conduct baseline environmental studies — but the public record of scientific monitoring across the CCZ is thin. Warm orange cells show equal-area hex cells (~48,760 km²) with fewer than 5 records pooled from 13 global databases. These aren't data-collection failures: they show where extraction permits are outpacing the science needed to understand what would be lost.",
+        "nextSteps": [
+          "Click any orange cell to see which of the 13 sources contributed data — and which didn't",
+          "Toggle Argo Floats or ONC Observatories to see what active monitoring exists nearby",
+          "Enable Protected Areas (APEIs) to compare mining pressure against the thin protected strips"
+        ],
+        "finding": "Where extraction permits are outpacing science — hex cells with fewer than 5 records"
+      },
+      "northSeaDensity": {
+        "title": "North Sea — Wind, Oil & Gas",
+        "story": "Europe's most industrialised sea. Hundreds of oil/gas platforms (amber) sit metres from new offshore wind farms (blue), threaded with telecom cables and crisscrossed by some of the world's busiest shipping lanes. The North Sea is the test case for whether decommissioning, marine spatial planning, and the energy transition can coexist.",
+        "nextSteps": [
+          "Filter to 'Offshore Wind' to see the Round 5/6 expansion zones",
+          "Toggle Submarine Cables to see how dense the seabed infrastructure is",
+          "Click any block to see operator and lease dates"
+        ],
+        "finding": "Platforms, wind farms, cables and shipping lanes packed metres apart"
+      },
+      "deforestationRing": {
+        "title": "Deforestation Ring",
+        "story": "In Pará, Brazil, mining operations punch into the Amazon and roads radiate outward. Deforestation follows those roads — the red patches of tree cover loss form a ring around each mine complex. The footprint of a mine extends far beyond the pit itself.",
+        "nextSteps": [
+          "Zoom in to see individual mine footprints in red",
+          "Enable Key Biodiversity Areas to see ecological overlap",
+          "Toggle Water Risk to check downstream water stress"
+        ],
+        "finding": "Tree-cover loss forms a ring around each Amazon mine complex"
+      },
+      "waterStressMines": {
+        "title": "Water Stress Mines",
+        "story": "Chile and Peru host some of the world's largest copper mines in the driest regions on Earth. WRI Aqueduct rates many of these basins as \"Extremely High\" water risk — yet mining operations here consume vast quantities of water, competing directly with agriculture and communities.",
+        "nextSteps": [
+          "Click a water risk polygon to see the detailed risk breakdown",
+          "Enable Surface Water to see reservoir levels",
+          "Enable Air Quality Stations to check pollution near mines"
+        ],
+        "finding": "The world's largest copper mines operate in 'Extremely High' water-risk basins"
+      },
+      "tailingsDanger": {
+        "title": "Tailings Dam Danger",
+        "story": "Brazil's Minas Gerais state has hundreds of tailings dams storing billions of tonnes of mine waste. After the Brumadinho disaster in 2019, which killed 270 people, many remain classified as high risk. Some sit disturbingly close to protected areas and towns.",
+        "nextSteps": [
+          "Click a tailings dam to see its risk classification",
+          "Enable Key Biodiversity Areas to see ecological overlap",
+          "Zoom out and enable Landslide Catalog to see terrain instability"
+        ],
+        "finding": "Billions of tonnes of mine waste — some dams sit close to towns and protected areas"
+      },
+      "fireSeason": {
+        "title": "Fire Season",
+        "story": "Indonesia's fire season overlaps directly with mining regions. NASA VIIRS fire detections show active burning within and around mine footprints — often linked to land clearing for mining expansion or illegal burning near concessions.",
+        "nextSteps": [
+          "Switch the view to Australia to see seasonal fire patterns",
+          "Enable Air Quality Stations to see pollution from these fires",
+          "Toggle Forest Carbon Flux to see the carbon impact"
+        ],
+        "finding": "Active burning within and around mine footprints during fire season"
+      }
+    }
+  },
+  "nzCable": {
+    "panelBadge": "NZ submarine cable (LINZ)",
+    "fallbackHeader": "Submarine cable",
+    "detailsSectionTitle": "Cable details",
+    "cableTypeLabel": "Cable type",
+    "statusLabel": "Status",
+    "conditionLabel": "Condition",
+    "burialDepthLabel": "Burial depth",
+    "installedLabel": "Installed",
+    "retiredLabel": "Retired",
+    "notesLabel": "Notes",
+    "dataNoteBody": "Sourced from LINZ Hydrographic chart symbology. Cable operator names, system identifiers, and route metadata are not encoded in chart data — most clicks show only the chart feature ID. This layer's value is showing where cables run in NZ EEZ, not identifying which company owns each one. For operator-level metadata, consult commercial industry sources."
+  },
+  "auCable": {
+    "panelBadge": "AU cable protection zone (ACMA)",
+    "detailsSectionTitle": "Protection zone details",
+    "abbrevLabel": "Zone"
+  },
+  "hydrophone": {
+    "detailsTitle": "Station details",
+    "soundscapeTitle": "Soundscape (last 90 days, daily)",
+    "operatorLabel": "Operator",
+    "depthLabel": "Depth",
+    "modelLabel": "Model",
+    "rangeLabel": "Frequency range",
+    "deployedLabel": "Deployed",
+    "meanBroadband": "Mean broadband",
+    "active": "Active",
+    "retired": "Retired",
+    "shallow": "shallow",
+    "slope": "slope",
+    "abyssal": "abyssal",
+    "loading": "Loading soundscape data…",
+    "noData": "No soundscape data yet — station registered, monitoring not yet published.",
+    "fetchError": "Soundscape data temporarily unavailable. Try again in a few minutes.",
+    "dataNoteBody": "ISO 18405 third-octave bands. Soundscape data is aggregated daily and may lag 1–8 weeks depending on the network.",
+    "openPortal": "View raw data at source portal →",
+    "licenseLabel": "License"
+  },
+  "oxygen": {
+    "viewRecent": "Recent O₂",
+    "viewChange": "Deoxygenation Δ",
+    "depthLabel": "Depth"
+  },
+  "siosSvalbard": {
+    "panelBadge": "SIOS Dataset",
+    "platformSectionTitle": "Platform & contact",
+    "platformLabel": "Platform",
+    "institutionLabel": "Institution",
+    "piLabel": "Principal investigator",
+    "activityLabel": "Activity type",
+    "isoTopicLabel": "ISO topic",
+    "timeSectionTitle": "Time coverage",
+    "timeSpanLabel": "Period",
+    "variablesSectionTitle": "Variables / keywords",
+    "abstractSectionTitle": "Abstract",
+    "datasetsSectionTitle": "Datasets at this station",
+    "datasetsCount": "datasets",
+    "measurementsSectionTitle": "Measurements",
+    "accessSectionTitle": "Data access",
+    "landingLink": "Dataset landing page →",
+    "opendapLink": "OPeNDAP →",
+    "httpLink": "Direct download (HTTP) →",
+    "wmsLink": "WMS map service →",
+    "licenseLabel": "License",
+    "provenanceLine": "via SIOS data management portal · sios-svalbard.org",
+    "statLatest": "Latest",
+    "statMean": "Average",
+    "statMin": "Minimum",
+    "statMax": "Maximum",
+    "statSamples": "Samples (downsampled)"
+  },
+  "export": {
+    "opener": "Export",
+    "title": "Export data",
+    "box": "□ Box",
+    "polygon": "✎ Polygon",
+    "hexes": "⬢ Hexes",
+    "clear": "✕ Clear",
+    "forgetKey": "Forget key",
+    "noAoiHint": "⚠ Use the toolbar above to draw an area first.",
+    "noKeyHint": "No API key stored — click a download button to add one.",
+    "aoiLabel": "AOI:",
+    "aoiBox": "Bounding box",
+    "aoiPolygon": "Polygon",
+    "hexCell": "hex cell",
+    "hexCells": "hex cells",
+    "aoiCustom": "Custom area",
+    "drawAreaToCount": "Draw an area to preview count.",
+    "enterKeyToCount": "Enter key to preview count.",
+    "counting": "Counting…",
+    "countUnavailable": "Count unavailable",
+    "features": "features",
+    "featuresAcrossSources": "{{total}} features across {{sources}} sources",
+    "cappedAt": "⚠ capped at {{n}}",
+    "downloading": "Downloading…",
+    "verifyAtSource": "verify at source ↗",
+    "copied": "✓ Copied",
+    "curl": "curl",
+    "enterKey": "Enter your API key to download",
+    "keyModalSubtitle": "Downloads use your own key (subject to your quota). It's stored only in this browser.",
+    "saveAndDownload": "Save & download",
+    "requestKey": "Don't have an API key? Request one →",
+    "footer": "Downloads go directly to apiv2.something-rare.com with your key — your quota applies.",
+    "err401": "API key invalid",
+    "err403": "Key expired or quota exceeded",
+    "err429": "Rate limit reached — try again later",
+    "errFailed": "Download failed ({{code}})",
+    "errNetwork": "Download failed — network error",
+    "hintBox": "Drag to draw a bounding box",
+    "hintPolygon": "Click to add vertices · double-click or Enter to close · Esc to cancel",
+    "hintHexes": "Click cells to select / deselect",
+    "formatLabel": "Format",
+    "downloadZip": "↓ Download selected (ZIP)",
+    "families": {
+      "isaSeabed": "ISA & seabed",
+      "lifeGeology": "Life & geology",
+      "sensors": "Sensors",
+      "infrastructure": "Infrastructure",
+      "carbonFields": "Carbon fields",
+      "oceanFields": "Ocean fields",
+      "land": "Land",
+      "arcticCarbon": "Arctic & carbon"
+    },
+    "noActiveLayers": "Enable layers on the map to export them.",
+    "noDataInArea": "No data in this area",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all"
+  },
+  "seabed": {
+    "noData": "No seabed data here",
+    "licenseBadge": "License: CC-BY-NC 4.0 — non-commercial use only. Dutkiewicz et al. 2015.",
+    "caveat": "0.1° SVM-interpolated model from ~14,500 samples — not a per-site assay.",
+    "citation": "Dutkiewicz et al. 2015, Geology, doi:10.1130/G36883.1.",
+    "gloss": {
+      "gravel": "Coarse gravel and pebbles — typically high-energy or ice-rafted settings.",
+      "sand": "Sandy seabed — shelves, currents, or volcaniclastic input.",
+      "silt": "Silty sediment — intermediate grain size, often near margins.",
+      "clay": "Abyssal clay — the dominant deep-ocean sediment; polymetallic-nodule terrain.",
+      "calcareous_ooze": "Biogenic carbonate ooze — above the carbonate compensation depth.",
+      "radiolarian_ooze": "Siliceous ooze of radiolarians — high-productivity equatorial belts.",
+      "diatom_ooze": "Siliceous diatom ooze — cold, nutrient-rich high-latitude waters.",
+      "sponge_spicules": "Sediment rich in siliceous sponge spicules.",
+      "mixed_ooze": "Mixed calcareous/siliceous biogenic ooze.",
+      "shells_coral": "Shell hash and coral fragments — reefs and carbonate banks.",
+      "ash_volcanic": "Volcanic ash and sand/gravel — near arcs and seamounts.",
+      "siliceous_mud": "Siliceous mud — mixed biogenic silica and fine detritus.",
+      "fine_calcareous": "Fine-grained calcareous sediment."
+    }
+  },
+  "bathyConfidence": {
+    "title": "Bathymetry & mapping confidence",
+    "loading": "Checking bathymetry…",
+    "rating": {
+      "high": "Well-mapped",
+      "medium": "Partly mapped",
+      "low": "Mostly predicted"
+    },
+    "measured": "Directly measured",
+    "multibeam": "Multibeam",
+    "predicted": "Satellite-predicted",
+    "depth": "Depth",
+    "slope": "Median slope",
+    "gmrt": "Best measured resolution nearby",
+    "caveat": "'Predicted' depths are satellite-gravity estimates, not direct measurements. GEBCO_2024 / GMRT — not for navigation."
+  },
+  "arcticSedimentCarbon": {
+    "fieldCaveat": "Interpolated 5 km surface — modelled, not a raw measurement."
+  },
+  "samplingContext": {
+    "notInterpolationInputs": "Nearby samples from our own holdings within 50 km. These are not the points the interpolation itself was built from."
+  },
+  "sections": {
+    "measurements": "Measurements"
+  },
+  "vme": {
+    "fullMethodology": "Full methodology & data sources →"
+  },
+  "acid": {
+    "horizonShift": "Horizon shift since preindustrial",
+    "shiftCaveat": "Platform-derived. Aragonite saturation was reconstructed with PyCO2SYS from GLODAP's present-day and preindustrial dissolved inorganic carbon using one identical configuration, then differenced. \"Today\" is GLODAP's mapped reference year, nominally ~2002 — this compares two climatology snapshots and is not a rate or trend. The reconstruction reproduces GLODAP's own published aragonite saturation to within {{median}} units."
+  },
+  "coralExposure": {
+    "caveat": "Exposure, not loss. A corrosive reading means the seafloor sits in water undersaturated with respect to aragonite — cold-water corals are documented living below the saturation horizon, calcifying at a metabolic cost. This is not a prediction of habitat loss. Both inputs are modeled: our own MaxEnt coral-suitability model and a 1°×1° saturation climatology. \"Today\" is GLODAP's mapped reference year, nominally ~2002, so this compares two climatology snapshots — it is not a rate or trend.",
+    "state": {
+      "newly_corrosive": "Newly corrosive (since preindustrial)",
+      "corrosive_preindustrial": "Corrosive before industrialisation",
+      "supersaturated": "Supersaturated",
+      "no_data": "No data"
+    }
+  },
+  "unifiedCarbon": {
+    "depthInvariantNote": "{{fields}} — fixed values; do not change with the depth selector.",
+    "nearestObs": {
+      "title": "Nearest measurements",
+      "caption": "Nearest real in-situ measurement per source — not necessarily representative of this exact point.",
+      "unavailable": "Measurements unavailable."
+    }
+  }
+}

@@ -1,0 +1,9 @@
+Dataset {
+    Float64 time[time = 2196990];
+    Grid {
+      Array:
+        Float64 shrtRad[time = 2196990];
+      Maps:
+        Float64 time[time = 2196990];
+    } shrtRad;
+} IG_PAS_SIOS_SCD_1_5_SHORTWAVE_RADIATION_PT1M_211110.nc;

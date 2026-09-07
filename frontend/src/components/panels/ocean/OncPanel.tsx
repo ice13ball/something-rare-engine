@@ -1,0 +1,219 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
+
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { sourceLinkFor } from "../../../utils/sourceUrl";
+
+import { Sparkline } from "../../charts/Sparkline";
+import { AdcpHeatmap } from "../../charts/AdcpHeatmap";
+import { ProfilePlot } from "../../charts/ProfilePlot";
+import type { ProfileVariable } from "../../charts/ProfilePlot";
+
+import { API } from "../shared/tokens";
+import { latLonFromProps } from "../shared/format";
+import { Row, Section, Badge, PanelHeader, BodyText, SourceAttribution } from "../shared/primitives";
+import { SeafloorDepthRow } from "../shared/chips";
+
+interface OncSensor { value: number; unit: string; label: string; time: string | null }
+
+const SENSOR_ORDER = ["temperature", "salinity", "pressure", "oxygen", "density", "conductivity", "turbidity", "fluorescence", "chlorophyll"];
+
+interface SparklineData { unit: string; samples: [number, number][] }
+interface AdcpData {
+  device_code: string;
+  bin_count: number;
+  window_start: string;
+  window_end: string;
+  variable: string | null;
+  units: string | null;
+  depths: number[];
+  strip: (number | null)[][];
+}
+interface CtdCast { device_code: string; cast_time: string; profile: Record<string, (number | null)[]> }
+
+interface EarthquakeRow {
+  usgs_id: string;
+  occurred_at: string;
+  magnitude: number | null;
+  depth_km: number | null;
+  place: string;
+  distance_km: number;
+}
+
+function magColor(m: number | null) {
+  if (m == null) return "text-white/65";
+  if (m >= 5) return "text-red-400";
+  if (m >= 4) return "text-amber-400";
+  return "text-white/70";
+}
+
+export function OncPanel({ properties: p }: { properties: Record<string, unknown> }) {
+  const { t } = useTranslation("panels");
+  const locationCode = String(p.location_code ?? "");
+  const sensors = (p.latest_sensors ?? {}) as Record<string, OncSensor>;
+  const fetchedAt = p.sensors_fetched_at ? String(p.sensors_fetched_at) : null;
+
+  const sensorKeys = SENSOR_ORDER.filter(k => k in sensors)
+    .concat(Object.keys(sensors).filter(k => !SENSOR_ORDER.includes(k)));
+  const latestTime = sensorKeys.map(k => sensors[k]?.time).filter(Boolean)[0] ?? fetchedAt;
+
+  // Lazy-fetch enrichment data when panel opens
+  const [sparklines, setSparklines] = useState<Record<string, SparklineData> | null>(null);
+  const [adcp, setAdcp] = useState<AdcpData | null>(null);
+  const [adcpLoaded, setAdcpLoaded] = useState(false);
+  const [ctdCasts, setCtdCasts] = useState<CtdCast[] | null>(null);
+  const [earthquakes, setEarthquakes] = useState<EarthquakeRow[] | null>(null);
+
+  useEffect(() => {
+    if (!locationCode) return;
+
+    Promise.all([
+      fetch(`${API}/api/v1/onc/sparkline/${encodeURIComponent(locationCode)}`)
+        .then(r => r.ok ? r.json() : {}).then(setSparklines).catch(() => setSparklines({})),
+      fetch(`${API}/api/v1/onc/adcp-strip/${encodeURIComponent(locationCode)}`)
+        .then(r => r.ok ? r.json() : null).then(d => { setAdcp(d ?? null); setAdcpLoaded(true); }).catch(() => setAdcpLoaded(true)),
+      fetch(`${API}/api/v1/onc/ctd/${encodeURIComponent(locationCode)}`)
+        .then(r => r.ok ? r.json() : []).then(setCtdCasts).catch(() => setCtdCasts([])),
+      fetch(`${API}/api/v1/onc/earthquakes-near/${encodeURIComponent(locationCode)}?radius_km=200&days=30`)
+        .then(r => r.ok ? r.json() : []).then(setEarthquakes).catch(() => setEarthquakes([])),
+    ]);
+  }, [locationCode]);
+
+  // Build sparkline samples per sensor key
+  const sparklineBySensor = useMemo(() => {
+    if (!sparklines) return {} as Record<string, SparklineData>;
+    return sparklines;
+  }, [sparklines]);
+
+  // Build CTD ProfilePlot variables from most recent cast
+  const ctdVariables: ProfileVariable[] = useMemo(() => {
+    const cast = ctdCasts?.[0];
+    if (!cast?.profile) return [];
+    const VARIABLE_CONFIGS: Record<string, { label: string; unit: string; color: string }> = {
+      temperature: { label: "Temp",     unit: "°C",   color: "#f97316" },
+      salinity:    { label: "Salinity", unit: "PSU",  color: "#38bdf8" },
+      oxygen:      { label: "O₂",       unit: "mL/L", color: "#4ade80" },
+    };
+    return Object.entries(VARIABLE_CONFIGS)
+      .filter(([key]) => Array.isArray(cast.profile[key]) && cast.profile[key].length > 0)
+      .map(([key, cfg]) => ({
+        key,
+        label:  cfg.label,
+        unit:   cfg.unit,
+        color:  cfg.color,
+        values: (cast.profile[key] as (number | null)[]).map(v => v ?? 0),
+      }));
+  }, [ctdCasts]);
+
+  const ctdDepths = useMemo(() => {
+    const cast = ctdCasts?.[0];
+    return (cast?.profile?.depth ?? []) as number[];
+  }, [ctdCasts]);
+
+  return (
+    <>
+      <Badge label={t("onc.panelBadge")} color="text-teal-300 border-teal-500/40" />
+      <PanelHeader>{String(p.name ?? locationCode ?? "—")}</PanelHeader>
+      <Section title={t("onc.stationSectionTitle")}>
+        <Row label={t("onc.locationCodeLabel")} value={locationCode} />
+        {p.depth_m != null && <Row label={t("onc.depthLabel")} value={`${Math.round(Number(p.depth_m)).toLocaleString()} m`} />}
+        {(() => { const c = latLonFromProps(p); return c && <SeafloorDepthRow lat={c[0]} lon={c[1]} />; })()}
+      </Section>
+
+      <Section title={t("onc.latestReadingsSectionTitle")}>
+        {sensorKeys.length === 0 ? (
+          <p className="text-xs text-white/65 italic">
+            {t("onc.noReadingsText")}{" "}
+            <a href={`https://data.oceannetworks.ca/DataSearch?locationCode=${locationCode}`}
+               target="_blank" rel="noopener noreferrer"
+               className="text-teal-400 underline">ONC portal ↗</a>
+          </p>
+        ) : (
+          <>
+            {sensorKeys.map(key => {
+              const s = sensors[key];
+              const decimals = key === "pressure" ? 1 : 2;
+              const sl = sparklineBySensor[key];
+              const slSamples = Array.isArray(sl?.samples)
+                ? sl.samples.map(([t, v]: [number, number]) => ({ t, v }))
+                : [];
+              return (
+                <div key={key} className="flex items-center justify-between py-0.5">
+                  <span className="text-[12px] text-white/70">{s.label}</span>
+                  <div className="flex items-center gap-2">
+                    {slSamples.length > 1 && (
+                      <Sparkline samples={slSamples} color="#2dd4bf" width={80} height={24} />
+                    )}
+                    <span className="text-[12px] text-white/90 font-mono">
+                      {s.value.toFixed(decimals)} {s.unit}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            {latestTime && (
+              <p className="text-xs text-white/60 mt-1">
+                As of {latestTime.slice(0, 16).replace("T", " ")} UTC
+              </p>
+            )}
+            {sparklines === null && (
+              <p className="text-[10px] text-white/50 mt-1 italic">Loading trends…</p>
+            )}
+          </>
+        )}
+      </Section>
+
+      {/* ADCP backscatter */}
+      {adcpLoaded && adcp !== null && (
+        <Section title={t("onc.adcpSectionTitle")}>
+          <p className="text-[10px] text-white/60 mb-1">
+            {adcp.bin_count} depth bins · mean backscatter{adcp.units ? ` (${adcp.units})` : ""}
+          </p>
+          <AdcpHeatmap
+            strip={adcp.strip}
+            depths={adcp.depths}
+            units={adcp.units ?? undefined}
+            windowStart={adcp.window_start}
+            windowEnd={adcp.window_end}
+          />
+        </Section>
+      )}
+
+      {/* CTD profile */}
+      {ctdCasts !== null && ctdCasts.length > 0 && ctdVariables.length > 0 && (
+        <Section title={t("onc.ctdSectionTitle")}>
+          <ProfilePlot
+            depths={ctdDepths}
+            variables={ctdVariables}
+            castTime={ctdCasts[0].cast_time}
+          />
+        </Section>
+      )}
+
+      {/* Earthquakes */}
+      {earthquakes !== null && earthquakes.length > 0 && (
+        <Section title={t("onc.earthquakesSectionTitle")}>
+          <div className="space-y-1">
+            {earthquakes.slice(0, 8).map(eq => (
+              <div key={eq.usgs_id} className="flex items-center justify-between text-[11px]">
+                <span className={`font-mono font-bold ${magColor(eq.magnitude)}`}>
+                  M{eq.magnitude?.toFixed(1) ?? "?"}
+                </span>
+                <span className="text-white/70 flex-1 mx-2 truncate">{eq.place}</span>
+                <span className="text-white/60 shrink-0">{eq.distance_km} km</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-white/50 mt-1">
+            {earthquakes.length} event{earthquakes.length !== 1 ? "s" : ""} total
+          </p>
+        </Section>
+      )}
+
+      <BodyText>{t("onc.body")}</BodyText>
+      <SourceAttribution link={sourceLinkFor("onc-location", p)} />
+    </>
+  );
+}
+

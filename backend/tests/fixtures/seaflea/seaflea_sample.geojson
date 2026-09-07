@@ -1,0 +1,28 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-69.8706429599999, 40.5697872700001] },
+      "properties": { "Data_Base_ID": "1.1", "Depth__m_": "58.6", "YYYY": 2012, "LocUncert__m_": null,
+        "Gas_Bubbles": "Bubbles", "Pockmark": "", "Mound": "", "Hydrate": "", "Hardground": "", "ChemCommunity": "", "Shallow_Gas": "",
+        "SourceRef": "Skarke, A., Ruppel, C., Kodis, M., Brothers, D., & Lobecker, E. (2014). Widespread methane leakage from the sea floor on the northern US Atlantic margin. Nature Geoscience, 7(9), 657-661. https://doi.org/10.1038/ngeo2232",
+        "SourceRef_url": "https://www.nature.com/articles/ngeo2232" } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-122, 36.5] },
+      "properties": { "Data_Base_ID": "14.4", "Depth__m_": "", "YYYY": null, "LocUncert__m_": null,
+        "Gas_Bubbles": "Bubbles", "Pockmark": "Pockmarks", "Mound": "", "Hydrate": "", "Hardground": "", "ChemCommunity": "Chemosynthetic Community", "Shallow_Gas": "",
+        "SourceRef": "MBARI", "SourceRef_url": "" } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-125.075684, 43.9109940000001] },
+      "properties": { "Data_Base_ID": "2.37", "Depth__m_": "1224.9", "YYYY": 2016, "LocUncert__m_": null,
+        "Gas_Bubbles": "", "Pockmark": "", "Mound": "", "Hydrate": "", "Hardground": "", "ChemCommunity": "U(mat/biofuzz on clams?)", "Shallow_Gas": "",
+        "SourceRef": "", "SourceRef_url": "" } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-124.65658, 46.2224570000001] },
+      "properties": { "Data_Base_ID": "2.27", "Depth__m_": "497", "YYYY": 2016, "LocUncert__m_": null,
+        "Gas_Bubbles": "", "Pockmark": "", "Mound": "", "Hydrate": "", "Hardground": "U(consolidated carbonate?)", "ChemCommunity": "", "Shallow_Gas": "",
+        "SourceRef": "", "SourceRef_url": "" } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-2.27609288999997, 44.2908385900001] },
+      "properties": { "Data_Base_ID": "5.1", "Depth__m_": "998", "YYYY": 2013, "LocUncert__m_": null,
+        "Gas_Bubbles": "", "Pockmark": "Pockmarks", "Mound": "", "Hydrate": "", "Hardground": "", "ChemCommunity": "", "Shallow_Gas": "",
+        "PM_Depth__m_": -3, "PM_Radius__m_": 106,
+        "SourceRef": "Michel, G., Dupré, S., Baltzer, A., Ehrhold, A., Imbert, P., Pitel, M., et al. (2017). Pockmarks on the South Aquitaine Margin continental slope: The seabed expression of past fluid circulation and former bottom currents. Comptes Rendus Geoscience, 349(8), 391-401. https://doi.org/10.1016/j.crte.2017.10.003",
+        "SourceRef_url": "https://www.sciencedirect.com/science/article/pii/S1631071317301281#ec-research-data" } }
+  ]
+}

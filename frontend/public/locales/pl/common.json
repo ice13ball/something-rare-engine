@@ -1,0 +1,75 @@
+{
+  "actions": {
+    "all": "Wszystkie",
+    "cancel": "Anuluj",
+    "clear": "Wyczyść",
+    "close": "Zamknij",
+    "loading": "Wczytywanie…",
+    "none": "Brak",
+    "reset": "Resetuj",
+    "retry": "Ponów",
+    "save": "Zapisz",
+    "search": "Szukaj",
+    "undo": "Cofnij"
+  },
+  "search": {
+    "placeholder": "Szukaj koncesji, kominów, gatunków…",
+    "noResults": "Brak wyników dla „{{query}}”",
+    "noResultsSimple": "Brak wyników",
+    "mobileTitle": "Szukaj",
+    "coordinateLabel": "Współrzędne",
+    "coordinateAction": "Przejdź do tej lokalizacji",
+    "groupHeader": {
+      "claims": "Koncesje górnicze",
+      "vents": "Kominy hydrotermalne",
+      "seamounts": "Góry podwodne",
+      "contractors": "Wykonawcy",
+      "stations": "Stacje monitoringu"
+    }
+  },
+  "tooltips": {
+    "clearFilters": "Wyczyść filtry",
+    "closeLayersPanel": "Zamknij panel warstw",
+    "collapseFilters": "Zwiń filtry",
+    "expandFilters": "Rozwiń filtry",
+    "flyToLayer": "Przejdź do warstwy",
+    "hideAllPlumes": "Ukryj wszystkie śledzone smugi",
+    "infoAbout": "Informacje o {{label}}",
+    "resetAllFilters": "Resetuj wszystkie filtry",
+    "toggleLayer": "Przełącz widoczność warstwy",
+    "toggleSection": "Przełącz sekcję {{label}}",
+    "toggleSubSection": "Przełącz podsekcję {{label}}",
+    "turnOffAllLayers": "Wyłącz wszystkie aktywne warstwy",
+    "undoFilterReset": "Cofnij reset filtrów",
+    "zoomTo": "Przybliż do {{label}}",
+    "featureDetails": "Szczegóły obiektu",
+    "zoomIn": "Powiększ",
+    "zoomOut": "Pomniejsz",
+    "dataReference": "Odniesienie do danych",
+    "dismiss": "Odrzuć"
+  },
+  "map": {
+    "ariaLabel": "Interaktywna mapa 3D koncesji na głębinowe wydobycie. Przesuń strzałkami, przybliżaj klawiszami +/−.",
+    "loadingOceanData": "Wczytywanie danych oceanicznych…",
+    "tracingPlume": "Śledzenie smugi…",
+    "referenceButton": "Odniesienie"
+  },
+  "layerUnavailable": {
+    "title": "Niektóre warstwy niedostępne",
+    "titleFull": "Niektóre warstwy są tymczasowo niedostępne",
+    "body": "Następujące źródła danych nie zostały wczytane: {{layers}}. Odśwież stronę lub sprawdź zakładkę Daty i świeżość w legendzie.",
+    "otherLayersOperational": "Pozostałe warstwy działają poprawnie"
+  },
+  "seafloorDepthLabel": "Głębokość dna",
+  "belowSeaLevel": "pod poziomem morza",
+  "statusStrip": {
+    "ariaLabel": "Status systemu",
+    "tracking": "MONITORING",
+    "degraded": "AWARIA WARSTWY",
+    "sync": "SYNC",
+    "layers": "WARSTWY",
+    "minutesShort": "{{n}} min temu",
+    "hoursShort": "{{n}} godz. temu",
+    "daysShort": "{{n}} dni temu"
+  }
+}

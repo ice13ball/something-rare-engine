@@ -1,0 +1,1130 @@
+{
+  "tabs": {
+    "layers": "Couches cartographiques",
+    "inventory": "Inventaire des données",
+    "howto": "Comment utiliser",
+    "alarms": "Filtres d'alarme",
+    "dates": "Dates et fraîcheur",
+    "verify": "Vérifier les données"
+  },
+  "layers": {
+    "arcticSedimentCarbon": {
+      "fieldHasNoDecadeFilter": "Le champ interpolé est fourni tel quel par CASCADE et ne comporte aucun axe temporel, un filtre par décennie ne peut donc pas s'y appliquer. Passez en mode Stations pour filtrer par décennie."
+    },
+    "miningConcessions": {
+      "label": "Concessions minières",
+      "source": "ISA DeepData (isa.org.jm/deepdata)",
+      "updateFreq": "Mis à jour lorsque l'ISA publie de nouveaux contrats — généralement annuellement",
+      "description": "Zones de contrat d'exploration ISA actives accordées à des États et des entreprises. Chaque polygone représente un bloc contractuel. En cliquant sur un bloc, vous obtenez le contractant, le type de ressource, la superficie du contrat et la date d'expiration.",
+      "reading": "Cyan = concession active. La limite du bloc correspond à la zone d'exploration approuvée par l'ISA. La superficie (km²) et la date d'expiration dans la fenêtre contextuelle indiquent si un contrat est encore valide.",
+      "colorStandard": "Contour cyan = convention de la plateforme (ne pas modifier). Les remplissages des ressources suivent les couleurs de produits FGDC (USGS NGMDB)."
+    },
+    "relinquishedAreas": {
+      "label": "Zones restituées",
+      "source": "ISA DeepData",
+      "updateFreq": "Mis à jour lors de la résiliation ou de l'expiration des contrats",
+      "description": "Anciens blocs contractuels restitués à l'ISA — la société minière les a abandonnés ou le contrat a expiré. Ces zones peuvent encore contenir des gisements de valeur.",
+      "reading": "Contour rouge en pointillé = n'est plus sous contrat. La note « Restitué par » dans la fenêtre contextuelle indique qui détenait le contrat."
+    },
+    "reservedAreas": {
+      "label": "Zones réservées",
+      "source": "ISA — Zones réservées aux États en développement",
+      "updateFreq": "Change rarement ; défini par le Conseil de l'ISA",
+      "description": "Sections des fonds marins réservées par l'ISA dans le cadre du « système parallèle », où les pays en développement peuvent demander des contrats. Pas encore en exploitation active.",
+      "reading": "Vert = réservé mais sans contrat. Aucune exploitation minière active prévue."
+    },
+    "apeis": {
+      "label": "Zones protégées (APEI)",
+      "source": "Plan de gestion environnementale de l'ISA",
+      "updateFreq": "Statique — défini par la réglementation ISA",
+      "description": "Zones d'intérêt environnemental particulier : 9 zones dans la Zone Clarion-Clipperton et désignations similaires ailleurs où l'exploitation minière est définitivement interdite pour protéger les écosystèmes représentatifs.",
+      "reading": "Violet = aucune exploitation minière autorisée. Ce sont les protections juridiques les plus fortes disponibles pour les écosystèmes des grands fonds marins."
+    },
+    "obisSpecies": {
+      "label": "Espèces OBIS (profondeur)",
+      "source": "Ocean Biodiversity Information System (OBIS) (25 March 2025) OBIS Occurrence Data. Intergovernmental Oceanographic Commission of UNESCO. https://doi.org/10.25607/obis.occurrence.b89117cd. Loaded from the OBIS Open Data parquet archive on AWS (s3://obis-open-data/occurrence/, GeoParquet, ~50 GB, ~6,900 files). Conservation status from IUCN Red List via GBIF.",
+      "updateFreq": "Instantané complet des grands fonds marins intégré depuis OBIS Open Data ; catégories UICN enrichies via GBIF",
+      "description": "Chaque occurrence d'espèce de grands fonds marins contrôlée en qualité dans l'archive OBIS Open Data — sans liste d'espèces sélectionnée ni exclusion taxonomique. À faible zoom, les points représentent des cellules de grille résumant des centaines ou des milliers d'observations, colorées selon le niveau de menace de conservation. À fort zoom (8+), les points individuels des espèces sont affichés. La couleur du point indique le statut de la Liste rouge de l'UICN : rouge = En danger critique ou En danger, orange = Vulnérable, vert = non menacé.",
+      "reading": "Point rouge = zone avec des espèces CR ou EN. Point orange = présence d'espèces Vulnérables. Point vert = aucune espèce menacée par l'UICN. À fort zoom, cliquez sur un point pour voir le nom de l'espèce, le statut UICN, la taxonomie et l'image. Le badge « RISQUE » sur les concessions minières se déclenche lorsque des espèces menacées chevauchent la zone de la concession.",
+      "colorStandard": "Palette de la Liste rouge de l'UICN — CR/EN cramoisi, VU ambre, NT jaune, LC bleu (iucnredlist.org).",
+      "selectionCriteria": "Nous incluons une occurrence si et seulement si : (1) profondeur ≥ 50 m — un seuil qui exclut le bruit intertidal/de surface tout en conservant les enregistrements du plateau continental (50–500 m, pertinents pour les concessions offshore) et des grands fonds ; la sélection des taxons pertinents pour les grands fonds se fait au niveau de la liste d'espèces, et non par le seuil de profondeur ; (2) les indicateurs de qualité OBIS sont satisfaits — `dropped` IS NOT TRUE et `absence` IS NOT TRUE, donc les enregistrements retirés et les lignes « l'espèce a été recherchée et NOT trouvée » sont exclus ; (3) géoréférencé — `interpreted.decimalLatitude` et `interpreted.decimalLongitude` sont présents ; (4) dispose d'un `interpreted.scientificName` validé par WoRMS et d'un `_id` OBIS stable. Tout le reste est inclus. Nous ne filtrons délibérément PAS par taxon, jeu de données, pays ou année.",
+      "limitations": "La profondeur provient de `interpreted.minimumDepthInMeters` — les enregistrements sans profondeur déclarée sont exclus même s'ils ont été collectés en eau profonde. La précision des coordonnées varie selon les jeux de données. Le statut UICN n'est disponible que pour le petit sous-ensemble d'espèces formellement évaluées par la Liste rouge ; la plupart des taxons des grands fonds sont Données insuffisantes ou non évalués."
+    },
+    "seamounts": {
+      "label": "Monts sous-marins",
+      "source": "Yesson, C. et al. (2020) List of seamounts in the world oceans — An update [dataset]. PANGAEA, https://doi.org/10.1594/PANGAEA.921688 (37,889 seamounts, SRTM v.11 bathymetry).",
+      "updateFreq": "Jeu de données statique de 2020 — importé depuis PANGAEA à la demande",
+      "description": "37 889 montagnes sous-marines (hauteur ≥ 1 000 m) identifiées à partir de la bathymétrie mondiale SRTM v.11. Mis à jour à partir du catalogue de 2011 avec ~4 400 monts sous-marins nouvellement découverts. Ils concentrent la biodiversité et sont des cibles pour l'exploitation minière des croûtes ferrimanganésifères riches en cobalt. Les colonnes jaunes signalent les entités situées à l'intérieur des zones de concession.",
+      "reading": "Colonne bleue = hors de tout contrat. Colonne jaune = dans une concession minière. Cliquez sur un mont sous-marin pour voir : hauteur, profondeur du sommet, superficie de la base, classe de taille, et si le mont a été nouvellement découvert dans la mise à jour de 2020.",
+      "limitations": "Basé sur la bathymétrie SRTM à 15 secondes d'arc. Certaines entités le long des dorsales peuvent être des artefacts de la topographie complexe. Seulement ~20 % du fond océanique a été cartographié par levé sonar direct."
+    },
+    "argoFloats": {
+      "label": "Flotteurs Argo",
+      "source": "Programme Argo / ArgoVis API (argovis.colorado.edu)",
+      "updateFreq": "Synchronisé quotidiennement ; profils généralement transmis toutes les 10 jours par flotteur",
+      "description": "Flotteurs océanographiques autonomes mesurant la température, la salinité et l'oxygène dissous de la surface à 2 000 m. Les flotteurs rouges ont au moins une lecture de capteur anormale — faible oxygène, faible pH, ou température/salinité hors de la plage normale du jeu de données. Utilisez l'onglet Filtres d'alarme pour afficher uniquement les flotteurs avec des types d'anomalies spécifiques.",
+      "reading": "Colonne 3D cyan = flotteur Argo avec des lectures normales. Colonne rouge = flotteur avec au moins une alarme (faible oxygène, faible pH, ou anomalie de température/salinité). Anneau ambre autour d'un flotteur = pH supérieur à 8,6, physiquement impossible dans l'eau de mer et signalé comme une probable défaillance du capteur — sa fenêtre contextuelle affiche la valeur barrée avec une étiquette rouge « défaillance du capteur ». La hauteur de la colonne encode la profondeur de plongée maximale du flotteur — plus haute = profil plus profond. Trace vert citron = trajet normal du flotteur ; trace rouge = trajet du flotteur en alarme. Après le suivi des panaches, les points de trace deviennent cliquables — appuyez sur l'un d'eux pour voir la profondeur, la température et la salinité à cette position historique."
+    },
+    "hydrothermalVents": {
+      "label": "Cheminées hydrothermales",
+      "source": "Beaulieu, S.E. & Szafrański, K.M. (2020) InterRidge Global Database of Active Submarine Hydrothermal Vent Fields Version 3.4 [dataset]. PANGAEA, https://doi.org/10.1594/PANGAEA.917894",
+      "updateFreq": "Jeu de données statique — publié en 2020 ; nouvelles découvertes ajoutées au fur et à mesure",
+      "description": "Champs de cheminées de la base de données mondiale InterRidge. Les cheminées actives sont des systèmes hydrothermaux confirmés affichés sous forme de grandes pointes 3D rouges avec un halo lumineux rouge. Les cheminées inactives et éteintes apparaissent sous forme de colonnes grises plus courtes. Les cheminées situées à l'intérieur des zones de concession de sulfures polymétalliques sont signalées comme conflits dans la fenêtre contextuelle de la concession.",
+      "reading": "Grande pointe rouge + halo rouge = cheminée active. Petite colonne grise = inactive ou éteinte. La taille des pointes et des colonnes s'adapte au zoom. Cliquez sur une cheminée pour voir : plage de profondeur, température maximale, océan et région, contexte tectonique, juridiction nationale, année de découverte et notes biologiques. Les espèces ChEssBase dans un rayon de 5 km sont listées si disponibles. Les conflits cheminée-exploitation minière sont listés dans la fenêtre contextuelle de la concession minière."
+    },
+    "eezBoundaries": {
+      "label": "Limites des ZEE",
+      "source": "Marine Regions — ZEE mondiale v12 (Institut flamand des sciences de la mer, 2023)",
+      "updateFreq": "Resynchronisé tous les 30 jours ; les limites ne changent que lorsque les États renégocient ou qu'une résolution de différend intervient",
+      "description": "Zones économiques exclusives — les juridictions maritimes de 200 milles nautiques (370 km) s'étendant depuis la ligne de base de chaque État côtier. Dans une ZEE, l'État côtier dispose de droits souverains sur toutes les ressources naturelles, y compris les minéraux des fonds marins. Les contrats ISA ne peuvent fonctionner que dans des zones au-delà de la juridiction nationale (la « Zone »), de sorte que les limites des ZEE définissent où l'autorité ISA s'arrête et où commence le droit national.",
+      "reading": "Contour doré en pointillé = limite de ZEE. En cliquant n'importe où à l'intérieur d'une zone, vous obtenez le nom du pays, l'État souverain, le code ISO et la superficie de la zone. Le champ « Juridiction » dans les fenêtres contextuelles des concessions minières indiquera « Dans la ZEE de [Pays] » si la concession est dans une zone nationale, ou « Eaux internationales / ISA » si elle se trouve dans la Zone. Tous les contrats ISA actuels devraient être hors des zones ZEE ; tout chevauchement constituerait une anomalie juridique."
+    },
+    "unescoMarineHeritage": {
+      "label": "Patrimoine marin UNESCO",
+      "source": "Marine Regions — Programme du patrimoine marin mondial de l'UNESCO (via MarineRegions.org WFS)",
+      "updateFreq": "Resynchronisé tous les 30 jours ; les désignations UNESCO changent rarement",
+      "description": "Sites du Programme du patrimoine marin mondial de l'UNESCO — zones marines protégées reconnues internationalement d'une valeur universelle exceptionnelle. Ces sites bénéficient du plus haut niveau de reconnaissance internationale dans le cadre de la Convention du patrimoine mondial de 1972. Les concessions minières situées dans un rayon de 200 km d'un site UNESCO sont signalées par un badge « Haute sensibilité » dans la fenêtre contextuelle de la concession.",
+      "reading": "Contour vert = site du patrimoine marin mondial de l'UNESCO. En cliquant sur le polygone, vous obtenez le nom du site et le pays. Le seuil de proximité de 200 km utilisé pour l'avertissement « Haute sensibilité » est un tampon de précaution — les sites UNESCO ne s'étendent pas eux-mêmes sur 200 km, mais les panaches sédimentaires potentiels et les perturbations transportées par les courants provenant de l'exploitation minière en eaux profondes peuvent parcourir cette distance."
+    },
+    "noiseRiskGrid": {
+      "label": "Grille de risque sonore",
+      "source": "Registre ICES (gis.ices.dk) — PBD de bruit impulsif ; EMODnet Physics (funded by EC DG MARE, CC BY 4.0) — SPL continu ; OBIS-SEAMAP (seamap.env.duke.edu) — observations de cétacés",
+      "updateFreq": "Recalculé lors de l'exécution des scripts d'ingestion (objectif trimestriel)",
+      "description": "Indice de risque d'impact par cellule combinant l'intensité du bruit sous-marin avec la présence de cétacés et le statut de conservation UICN. MODÉLISÉ, non observé. Formule : (pbd_norm ou spl_norm) × cetacean_norm × species_weight, plafonné à 1,0 (méthodologie MSFD Descripteur 11). pbd_norm (jours de bruit impulsif, ICES/EMODnet INER) et spl_norm (SPL continu, EMODnet) sont deux mesures de bruit indépendantes qui ne sont jamais fusionnées en un seul chiffre — chaque cellule porte celle que sa source a mesurée. Couvre les régions OSPAR/HELCOM/Baltique (ICES) et les stations de surveillance mondiales (EMODnet). Les cellules avec des données de bruit mais sans couverture de recensement des cétacés sont marquées « données manquantes » — l'absence de données ne signifie pas l'absence d'animaux.",
+      "reading": "Rouge = Critique (≥0,8). Orange = Élevé (0,6–0,8). Jaune = Modéré (0,4–0,6). Vert = Faible (0,2–0,4). Gris = Minimal. Violet = Données manquantes (bruit élevé, pas de recensement de cétacés). La taille du point s'adapte à l'indice de risque. Cliquez sur n'importe quel point pour obtenir la ventilation complète de l'indice.",
+      "colorStandard": "Rampe séquentielle ColorBrewer 2.0 YlOrRd + violet neutre pour les données manquantes (colorbrewer2.org)."
+    },
+    "oceansitesMoorings": {
+      "label": "Mouillages OceanSITES",
+      "source": "API REST OceanOPS (oceanops.org, CC-BY) · réseau de bouées NDBC (NOAA, domaine public)",
+      "updateFreq": "Positions des stations synchronisées hebdomadairement depuis OceanOPS ; observations NDBC mises en cache quotidiennement — seules les stations avec des données de bouées vérifiées sont affichées",
+      "description": "Stations de mouillage fixes en haute mer du réseau international OceanSITES. Les stations mesurent la température, la salinité, les courants et la biogéochimie sur des échelles de temps pluriannuelles — l'épine dorsale de la surveillance climatique des grands fonds marins. Seules les ~20 stations avec des flux de bouées NDBC actifs sont affichées ; de nombreux mouillages OceanSITES sont européens ou complètent des réseaux non couverts par NDBC. Les mouillages situés à moins de 500 km d'une concession minière apparaissent dans la fenêtre contextuelle de la concession.",
+      "reading": "Anneau cyan = mouillage OceanSITES avec observations NDBC vérifiées. Cliquez pour le code de la station, le réseau, la date de déploiement et les relevés de bouées mis en cache. Les observations sont actualisées quotidiennement. La proximité avec les concessions minières indique que des lignes de base scientifiques à long terme pourraient être perturbées par des panaches sédimentaires ou du bruit sismique."
+    },
+    "oceanCurrents": {
+      "label": "Courants océaniques",
+      "source": "Copernicus Marine Service — GLOBAL_ANALYSISFORECAST_PHY_001_024 (cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m) · data.marine.copernicus.eu",
+      "updateFreq": "Généré quotidiennement depuis Copernicus Marine ; ~6 mois d'historique journalier conservés",
+      "description": "Flux animé des courants océaniques issu de l'analyse/prévision physique mondiale de Copernicus Marine. Le sélecteur de profondeur bascule entre la surface et 1000 m — la couche à 1000 m est la masse d'eau qui transporte les panaches de sédiments de l'exploitation minière en eaux profondes. Un curseur de date avec lecture affiche le champ de courant quotidien pour n'importe quel jour des ~6 derniers mois.",
+      "reading": "Les traînées de particules suivent la direction du courant ; des traînées plus claires/chaudes indiquent un flux plus rapide. Utilisez le sélecteur de profondeur pour comparer la dérive de surface à la couche plus profonde porteuse de panaches. Lorsque le mode mouvement réduit est activé, le champ s'affiche sous forme de flèches statiques.",
+      "limitations": "Instantané quotidien, sous-échantillonné à ~0,5° — ni en temps réel ni résolvant les tourbillons. Direction et vitesse indicatives, non destinées à la navigation. Les jours historiques sont des moyennes journalières ; les ~6 derniers mois proviennent de l'analyse CMEMS en temps quasi réel."
+    },
+    "oncObservatories": {
+      "label": "Observatoires ONC",
+      "source": "Ocean Networks Canada — API Oceans 3.0 (data.oceannetworks.ca, CC BY 4.0)",
+      "updateFreq": "Emplacements synchronisés hebdomadairement depuis l'API ONC ; lectures des capteurs CTD/oxygène mises en cache quotidiennement — seules les 195 stations avec des lectures vérifiées au cours de l'année écoulée sont affichées",
+      "description": "Nœuds d'observatoire câblé des fonds marins d'Ocean Networks Canada — infrastructure sous-marine permanente transmettant en temps réel des données sismiques, de pression, de température, de salinité et de chimie via câble sous-marin. ONC exploite les réseaux NEPTUNE (NE Pacifique, profondeurs jusqu'à 2 660 m) et VENUS (côte de la Colombie-Britannique), ainsi que des nœuds arctiques et atlantiques. Contrairement aux flotteurs Argo, ceux-ci sont fixes. Seules les stations ayant au moins une lecture de capteur CTD ou d'oxygène au cours des 12 derniers mois apparaissent sur la carte.",
+      "reading": "Point lumineux bleu-vert = observatoire ONC avec données de capteur vérifiées. Cliquez pour le nom de la station, la profondeur et les lectures quotidiennes mises en cache. Utilisez le filtre VOE (+) pour limiter cette couche et ONC Instruments à une variable océanique essentielle spécifique."
+    },
+    "chemosynthenticSites": {
+      "label": "Sites chémosynthétiques",
+      "source": "Ramirez-Llodra E (2025). ChEssBase. Version 1.0. Flanders Marine Institute. Occurrence dataset https://doi.org/10.15468/6v6ug8 accessed via GBIF.org.",
+      "updateFreq": "Synchronisé hebdomadairement depuis le jeu de données ChEssBase sur GBIF (datasetKey : dc5abc9f-84d5-4046-a3ef-9ab24ae53756).",
+      "description": "Suintements froids, chutes de baleines et zones de minimum d'oxygène de ChEssBase — la base de données mondiale des espèces des écosystèmes chémosynthétiques. Ces habitats soutiennent la vie par l'énergie chimique plutôt que par la lumière solaire. Les points sont regroupés par localité nommée ; un point = un site, qui peut avoir des dizaines d'enregistrements d'espèces.",
+      "reading": "Point bleu-vert = suintement froid. Point rose = chute de baleine. Point bleuet = ZMO / Autre. Cliquez sur n'importe quel point pour le nom du site, la plage de profondeur, le nombre d'espèces, la répartition des embranchements et la liste des espèces extensible.",
+      "colorStandard": "Palette qualitative ColorBrewer 2.0 Set2 — les couleurs ne classent pas (colorbrewer2.org)."
+    },
+    "contractorStations": {
+      "label": "Stations d'échantillonnage des contractants",
+      "source": "Analyse dérivée de la plateforme à partir de ISA DeepData via les archives DwC hébergées par OBIS (datasets.obis.org/hosted/isa/)",
+      "updateFreq": "Synchronisé hebdomadairement via des sondes HEAD incrémentielles (ETag/Last-Modified). Bande passante en régime permanent ≈ 0.",
+      "description": "Déploiements d'échantillonnage physique agrégés à partir des 140 archives DwC des contractants que l'ISA reflète via OBIS. Chaque point = une station Multi-Carotter / Box-Carotter / Traîneau épibenthique / CTD, codée par couleur selon le contractant.",
+      "reading": "Point rose = NORI (parrainé par Nauru). Point magenta = TOML (Tonga). Ambre = BGR (Allemagne). Bleu = IFREMER (France). Ciel = UKSRL. Rouge = COMRA (Chine). Cyan = Corée. Violet = JOGMEC (Japon). Cliquez sur n'importe quel point pour le protocole d'échantillonnage, la profondeur, les horizons sédimentaires, le nombre d'occurrences, le nombre d'espèces distinctes et la citation verbatim du contractant.",
+      "limitations": "Analyse agrégée par la plateforme, pas des enregistrements bruts du contractant. L'eventID verbatim est affiché dans chaque panneau pour une traçabilité complète d'audit. ~1 400 occurrences sur 21 archives ne portent aucun code contractant analysable — elles apparaissent sous la puce « (non analysé) ».",
+      "colorStandard": "Teintes distinctes par contractant, choisies à la main pour la séparabilité aux personnes daltoniennes et (lorsque c'est intuitif) l'association avec l'État sponsor."
+    },
+    "submarineCables": {
+      "label": "Câbles sous-marins",
+      "source": "EMODnet Human Activities (funded by EC DG MARE, CC BY 4.0) + Ocean Networks Canada + OOI (NSF) + NOAA Marine Cadastre (coast.noaa.gov/arcgis/rest/services/Hosted/SubmarineCables/FeatureServer/0)",
+      "updateFreq": "EMODnet hebdomadaire, ONC mensuel, OOI trimestriel, NOAA trimestriel",
+      "description": "Six jeux de données câbles complémentaires dans une seule couche. **EMODnet** = 7 couches de contributeurs agrégées (~1 260 entités dans les eaux européennes) : câbles électriques de Norvège (NVE, 918), télécoms et électriques des Pays-Bas (Rijkswaterstaat, 135 au total), télécoms et électriques d'Allemagne (BSH, 117 au total), fibre optique du Royaume-Uni (30), Espagne (IGN) et terminaisons atlantiques (60). Inclut des interconnexions nommées comme NORNED (Norvège↔Pays-Bas) et Baltic Cable (Allemagne↔Suède) ; les noms d'opérateurs, les tensions (le cas échéant) et les années d'installation sont disponibles pour la plupart des câbles électriques. **Cadastre marin de la NOAA** (portail conjoint NOAA/BOEM) = 2 816 couloirs de câbles américains sous forme de contours polygonaux (zones d'interdiction de mouillage protégées, et non lignes centrales ; inclut ~371 câbles d'eau douce dans les Grands Lacs). **LINZ** = tracés de câbles issus de la symbologie cartographique dans la ZEE néo-zélandaise, provenant des cartes hydrographiques de Land Information New Zealand ; les géométries des routes sont présentes, mais les noms des opérateurs et les identifiants de systèmes ne sont pas encodés dans les données cartographiques. **ACMA** = trois zones fédérales de protection des câbles sous-marins (Sydney Nord, Sydney Sud, Perth) où le mouillage, le chalutage et toute perturbation du fond marin sont interdits par la loi australienne. **ONC** = épine dorsale d'observatoire à fibre optique (NEPTUNE + VENUS) alimentant les capteurs de fond marin au large de la Colombie-Britannique. **OOI** = Regional Cabled Array (Pacific City, OR → mont sous-marin Axial + boucle de Newport), le seul observatoire câblé d'eau profonde américain — routes approximatives à partir des coordonnées des nœuds. Développez la ligne pour activer/désactiver les sources indépendamment.\\n\\nLà où la couche reste silencieuse — eaux côtières de l'Atlantique canadien, Atlantique central profond, la lacune baltique restante (eaux intérieures suédoises, finlandaises, danoises, polonaises et des États baltes ; BSH allemand et NVE norvégien couvrent désormais une grande partie de la Baltique occidentale/septentrionale), et la plupart des ZEE hydrographiques non anglophones — il s'agit d'une lacune institutionnelle, non de câbles manquants. Le Service hydrographique du Canada (CHS) détient les droits d'auteur de la Couronne sur ses données cartographiques et licencie leur distribution par jeu de données, ces données ne sont donc pas republiées ici ; les eaux internationales profondes n'ont pas de registre gouvernemental car UNCLOS accorde le droit de poser des câbles sans obligation d'enregistrement ; la plupart des services hydrographiques non anglophones restreignent la redistribution ou ne publient que des cartes papier. L'Initiative pour la résilience des câbles sous-marins ITU/ICPC de 2024 est le premier effort multilatéral pour combler ce vide — actuellement axée sur les politiques, pas encore une couche de données publique.",
+      "reading": "Ligne ambre = câble télécom EMODnet ou contour de couloir du Cadastre marin de la NOAA (USA). Ligne cyan = câble d'observatoire ONC. Ligne magenta = épine dorsale OOI RCA (approximative). Cliquez sur n'importe quel câble pour le nom/statut/longueur. Les câbles près des concessions minières signalent un risque pour l'infrastructure."
+    },
+    "oncInstruments": {
+      "label": "Instruments ONC",
+      "source": "Ocean Networks Canada (Oceans 3.0 / ArcGIS WFS)",
+      "updateFreq": "Synchronisé hebdomadairement",
+      "description": "Instruments scientifiques individuels déployés sur l'observatoire câblé d'Ocean Networks Canada au large de la côte ouest du Canada. Chaque point est un appareil — CTD, hydrophones, caméras, capteurs d'oxygène, accéléromètres, boîtes de jonction — avec alimentation et données en direct via la fibre optique ONC.",
+      "reading": "Point violet = un instrument. Cliquez pour la catégorie de l'appareil, le modèle, le code, l'emplacement hôte, la profondeur et l'image si disponible."
+    },
+    "portLocations": {
+      "label": "Ports",
+      "source": "tayljordan/ports (GitHub) — 3 898 ports mondiaux dans 175 pays",
+      "updateFreq": "Synchronisé mensuellement depuis GitHub (jeu de données statique)",
+      "description": "Infrastructure portuaire mondiale. Les ports sont l'épine dorsale logistique de toute opération minière offshore — la mise en place des équipements, le transport du minerai et le routage de la chaîne d'approvisionnement passent tous par les installations portuaires.",
+      "reading": "⚓ bleu = port. Cliquez pour la ville, l'État/région et le pays."
+    },
+    "tectonicPlates": {
+      "label": "Plaques tectoniques",
+      "source": "Peter Bird (2003) via PANGAEA — domaine public",
+      "updateFreq": "Jeu de données statique — aucune synchronisation nécessaire",
+      "description": "Limites et polygones de plaques tectoniques mondiales du modèle 2003 de Peter Bird. Les limites de plaques sont là où se concentrent les cheminées hydrothermales, où la croûte océanique se forme et où le risque sismique se concentre — directement pertinent pour la sélection des sites miniers et l'évaluation des risques.",
+      "reading": "Remplissage grès subtil = zone de plaque. Ligne cuivrée = limite de plaque. Cliquez pour le nom de la plaque ou le type de frontière (divergente, convergente, transformante)."
+    },
+    "monitoringDensity": {
+      "label": "Densité de surveillance de référence",
+      "source": "Dérivée de 15 sources : OBIS (hotspot_grid), ChEssBase, flotteurs Argo, mouillages OceanSITES, instruments ONC, WOD/NOAA (coordonnées des stations CTD + bouteilles), PANGAEA (jeux de données de croisières de recherche), BCO-DMO (croisières de chimie océanique + biologie NSF américaine), NOAA DataCite (jeux de données de relevés océaniques), OBIS-SEAMAP (occurrences de cétacés et de pinnipèdes), CCHDO / GO-SHIP (pistes de croisières d'hydrographie répétée), Collection d'invertébrés benthiques SIO (Scripps Institution of Oceanography, UC San Diego), ISA DeepData (rapports environnementaux des contractants via OBIS), MBARI VARS (Institut de recherche de l'Aquarium de la Baie de Monterey, observations ROV en eaux profondes via OBIS) et NOAA Deep-Sea Coral & Sponge (NOAA DSCRTP — coraux + éponges via NOAA ArcGIS, ~1,5 M d'enregistrements, principalement >200 m) — agrégées en interne",
+      "updateFreq": "Agrégée toutes les 12 h ; les tables sources sous-jacentes se rafraîchissent selon leur propre cadence (Argo 12 h, ONC quotidien, la plupart des autres hebdomadaire).",
+      "description": "Chaque cellule est un hexagone à surface égale (~48 760 km², EPSG:6933) coloré selon le nombre d'enregistrements de surveillance scientifique de référence qu'il contient, tirés de quinze sources de données. Échelle de couleurs selon le nombre d'enregistrements par cellule : rouge foncé = 0–4 (lacune de surveillance), rouge = 5–19 (clairsemé), orange = 20–59 (modéré), jaune = 60–199 (bonne couverture), crème = 200+ (bien observé). Moins d'enregistrements = rouge plus foncé = une lacune potentielle de surveillance. Inspiré par les retours d'un scientifique ONC (Dwight, avril 2026) : activez en parallèle avec les concessions minières, les zones réservées et les zones restituées pour identifier les zones d'exploitation en première ligne où la science environnementale de référence est mince.",
+      "reading": "Orange chaud = moins d'enregistrements = lacune de surveillance. Crème pâle = meilleure couverture de référence. Cliquez sur n'importe quelle cellule pour obtenir une ventilation par source. Les cellules vides = non présent dans ces quinze bases de données, non confirmé comme non surveillé — les données de référence détenues par les contractants ne sont pas accessibles au public.",
+      "colorRamp": [
+        {
+          "label": "0–4 enregistrements — lacune de surveillance"
+        },
+        {
+          "label": "5–19 — clairsemé"
+        },
+        {
+          "label": "20–59 — modéré"
+        },
+        {
+          "label": "60–199 — bonne couverture"
+        },
+        {
+          "label": "200+ — bien observé"
+        }
+      ]
+    },
+    "miningFootprints": {
+      "label": "Empreintes minières mondiales",
+      "source": "Maus, V. et al. (2022) Global-scale mining polygons (Version 2) [dataset]. PANGAEA, https://doi.org/10.1594/PANGAEA.942325. CC BY 4.0. Derived from Sentinel-2 multispectral imagery at 10m resolution.",
+      "updateFreq": "Jeu de données statique — dérivé de Sentinel-2 ; aucune synchronisation en direct (importé une fois depuis PANGAEA)",
+      "description": "74 548 polygones de mines (fosses à ciel ouvert, bassins de résidus, déchets rocheux, remblais de lixiviation et usines de traitement) cartographiés mondialement à partir d'images satellites Sentinel-2. Il s'agit du jeu de données ouvert le plus complet sur l'étendue de l'exploitation minière de surface — couvrant le charbon, les métaux, les minéraux industriels et les granulats. Chaque polygone inclut le pays, la principale marchandise (si connue) et la superficie en km².",
+      "reading": "Polygone rouge = empreinte minière. Cliquez pour le pays, le type d'entité (fosse/résidus/traitement), la marchandise et la superficie en km². Activez la couche KBA pour identifier les mines opérant à l'intérieur de zones clés pour la biodiversité.",
+      "limitations": "La classification est automatisée à partir d'images satellites — des faux positifs existent dans les zones arides ou urbaines. Seule l'exploitation minière de surface est capturée ; les mines souterraines sont invisibles. La résolution temporelle est un instantané unique (composite 2019–2022).",
+      "colorStandard": "Magenta chaud #DC267F — aucune norme FGDC pour les polygones d'empreinte d'exploitation minière de surface."
+    },
+    "keyBiodiversityAreas": {
+      "label": "Zones clés pour la biodiversité",
+      "source": "BirdLife International / KBA Partnership — World Database of Key Biodiversity Areas (keybiodiversityareas.org). Identified using the IUCN KBA Standard (2016).",
+      "updateFreq": "Resynchronisé tous les 6 mois depuis le KBA Partnership ; les limites des sites sont périodiquement révisées",
+      "description": "Plus de 16 800 sites identifiés selon des critères normalisés mondialement comme les endroits les plus importants sur Terre pour la persistance de la biodiversité. Contrairement aux zones protégées (WDPA), la désignation KBA est purement scientifique — elle ne confère pas de protection juridique. De nombreuses KBA se chevauchent avec des empreintes minières, révélant une extraction dans des zones d'une valeur biologique exceptionnelle.",
+      "reading": "Polygone magenta = limite KBA. Cliquez pour le nom du site, le pays, le statut KBA, les critères remplis, la superficie en km² et l'année de désignation.",
+      "limitations": "La couverture des évaluations KBA est inégale — bien évaluée en Europe et dans les Amériques ; lacunes importantes en Asie centrale et dans certains États insulaires du Pacifique.",
+      "colorStandard": "Convention BirdLife / KBA Partnership — magenta #C2185B (keybiodiversityareas.org)."
+    },
+    "tailingsDams": {
+      "label": "Digues de résidus",
+      "source": "Hudson-Edwards, K. et al. (2023) WAPHA global metal mines database (Dryad, doi:10.5061/dryad.j3tx95xmg) — 11 587 installations de stockage de résidus compilées à partir d'ICOLD/UNEP, WISE Uranium, World Mine Tailings Failures et du Global Tailings Portal. Enrichi avec la classification des risques, les spécifications des digues et la propriété du portail mondial des résidus GRID-Arendal (~2 100 installations divulguées par des sociétés minières).",
+      "updateFreq": "Jeu de données de base statique (Zenodo 2023) ; l'enrichissement GRID-Arendal ajoute des données de risque pour ~2 100 digues",
+      "description": "Plus de 11 587 sites d'installations de stockage de résidus cartographiés dans le monde. Les digues de résidus retiennent la boue laissée après le traitement du minerai — elles font partie des structures d'ingénierie les plus dangereuses sur Terre. ~2 100 installations sont enrichies avec la classification des risques, la hauteur de la digue, le volume de stockage, le type de construction et la propriété.",
+      "reading": "Les points sont colorés selon la classification des risques : rouge foncé (Extrême) jusqu'au vert (Faible). Les points rouge terne n'ont pas de données de risque. Cliquez pour le propriétaire, l'opérateur, le nom de la mine, la hauteur, le volume, le type de construction et l'évaluation des risques.",
+      "limitations": "Seulement ~2 100 des 11 587 digues ont des données de risque (de GRID-Arendal). Les ~9 400+ digues restantes de WAPHA n'ont que l'emplacement et le nom. Le jeu de données WAPHA est une compilation de littérature et de registres, pas un relevé satellitaire. Il hérite des registres nationaux de barrages un petit nombre de structures non minières — cinq enregistrements par leur nom, p. ex. « ELK NECK STATE PARK DAM » et « COLUMBIA LNG MAIN DAM ». Les libellés de pays des enregistrements WAPHA sont dérivés de la plateforme : le shapefile source ne publie qu'un nom et un point.",
+      "colorStandard": "Rampe de risque alignée WRI Aqueduct 4.0 (jaune → rouge foncé) ; Non classifié = gris neutre pour éviter d'impliquer un faible risque."
+    },
+    "activeFires": {
+      "label": "Incendies actifs (FIRMS)",
+      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. MODIS (résolution 1 km, satellites Aqua+Terra) et VIIRS (375 m, Suomi-NPP + NOAA-20).",
+      "updateFreq": "Synchronisé toutes les 6 heures ; NASA traite les passages satellites dans les 3 heures suivant le survol",
+      "description": "Détections d'anomalies thermiques quasi en temps réel de deux familles d'instruments satellitaires. MODIS fournit une couverture mondiale biquotidienne à 1 km ; VIIRS ajoute quatre passages quotidiens à 375 m de résolution avec une meilleure détection des incendies petits et de faible intensité. Chaque détection comprend la température de luminosité, la puissance radiative du feu (FRP — un indicateur de l'intensité du feu), la date/heure d'acquisition, le niveau de confiance et le type d'instrument.",
+      "reading": "Point jaune = détection à faible confiance. Point orange = confiance nominale. Point rouge = haute confiance. Cliquez pour la date/heure exacte, la température de luminosité en Kelvin, le FRP en MW, l'instrument (MODIS/VIIRS) et le nom du satellite.",
+      "limitations": "La couverture nuageuse bloque la détection satellitaire — les incendies sous les nuages épais sont totalement manqués. Les pixels MODIS à 1 km peuvent signaler des grandes sources de chaleur industrielles comme des faux positifs.",
+      "colorStandard": "Convention de confiance NASA FIRMS — jaune (faible) → orange (nominal) → rouge (élevé)."
+    },
+    "airQualityStations": {
+      "label": "Stations de qualité de l'air",
+      "source": "OpenAQ (openaq.org) — API v3. Agrège les stations de surveillance de niveau référence gérées par les gouvernements. CC BY 4.0.",
+      "updateFreq": "Emplacements des stations synchronisés quotidiennement ; lectures des capteurs actualisées toutes les 2 heures depuis l'API de capteurs OpenAQ",
+      "description": "Stations de qualité de l'air gouvernementales mesurant PM2,5, PM10, SO₂, NO₂, O₃ et CO. Il s'agit d'instruments de niveau référence — pas de capteurs à faible coût — fournissant des mesures juridiquement admissibles utilisées pour la conformité réglementaire.",
+      "reading": "La couleur du point = IQA EPA américain pour la dernière lecture à cette station. Vert = Bon (0–50), Jaune = Modéré (51–100), Orange = Mauvais pour les groupes sensibles (101–150), Rouge = Mauvais (151–200), Violet = Très mauvais (201–300), Marron = Dangereux (301+), Gris = aucune concentration analysable.",
+      "limitations": "La densité des stations varie énormément selon les pays — l'Europe et l'Amérique du Nord sont bien couvertes ; l'Afrique subsaharienne et l'Asie centrale ont de grandes lacunes de surveillance.",
+      "colorStandard": "Palette IQA EPA américain verbatim (airnow.gov/aqi)."
+    },
+    "landslideCatalog": {
+      "label": "Catalogue de glissements de terrain",
+      "source": "NASA COOLR — Cooperative Open Online Landslide Repository (coolr.sci.gsfc.nasa.gov).",
+      "updateFreq": "Jeu de données mis à jour périodiquement par NASA ; notre synchronisation capture les ajouts cumulatifs",
+      "description": "Inventaire mondial des glissements de terrain déclenchés par les pluies compilé depuis 2007, combinant des événements détectés par satellite, des rapports d'actualité, des agences gouvernementales de catastrophes et des observations de sciences citoyennes. Chaque enregistrement inclut la date de l'événement, le type de glissement, le mécanisme déclencheur, la précision géographique, le nombre de victimes (si connu) et le rapport source.",
+      "reading": "Point brun = événement de glissement de terrain. Cliquez pour la date, le type, le mécanisme déclencheur, le pays/description du lieu, le nombre de victimes et la confiance dans la source.",
+      "limitations": "La détection est fortement biaisée vers les zones peuplées — les glissements de terrain éloignés dans les régions inhabitées sont sous-déclarés. Les événements antérieurs à 2007 sont peu nombreux. Les glissements de terrain sous-marins ne sont pas inclus."
+    },
+    "globalDams": {
+      "label": "Barrages mondiaux",
+      "source": "Global Dam Watch (www.globaldamwatch.org) — GDW v1.1. CC BY 4.0.",
+      "updateFreq": "Jeu de données statique (instantané v1.1) ; sources originales mises à jour à intervalles variables",
+      "description": "41 145 ouvrages fluviaux dans le monde, comprenant des barrages hydroélectriques, des barrages d'irrigation, des ouvrages de contrôle des crues, des réservoirs d'approvisionnement en eau et des barrages de traitement de l'eau des mines. Chaque enregistrement comprend le nom du barrage, la rivière, le pays, la hauteur (mètres), l'usage, l'année d'achèvement, le volume du réservoir et le type de barrage.",
+      "reading": "Point indigo = barrage. Cliquez pour le nom du barrage, la rivière, le pays, la hauteur, l'usage, l'année de construction et le volume du réservoir en millions de m³.",
+      "limitations": "Les coordonnées des barrages sont des emplacements ponctuels (centroïdes), pas des empreintes précises de la crête du barrage."
+    },
+    "globalSurfaceWater": {
+      "label": "Eaux de surface mondiales",
+      "source": "JRC / Commission européenne — Global Surface Water Explorer (global-surface-water.appspot.com). Pekel et al. 2016, Nature.",
+      "updateFreq": "Tuiles raster statiques (composite 1984–2021) ; jeu de données mis à jour par JRC tous les 1–2 ans",
+      "description": "Chaque plan d'eau de surface sur Terre suivi de 1984 à 2021 à une résolution de 30 m — le record satellitaire continu le plus long des eaux de surface mondiales. Affiche la fréquence d'occurrence : combien de fois chaque pixel de 30 m a été couvert par de l'eau au cours de 37 années d'observation.",
+      "reading": "Bleu foncé = eau permanente (présente >90 % du temps). Bleu plus clair = saisonnière ou intermittente (présente 10–90 %). Superposition raster — aucun détail de clic par pixel.",
+      "limitations": "La résolution de 30 m signifie que les petits ruisseaux et étangs inférieurs à ~900 m² sont invisibles. Le point final de 2021 signifie que les changements très récents peuvent ne pas encore être reflétés."
+    },
+    "treeCoverLoss": {
+      "label": "Perte de couvert forestier",
+      "source": "Université du Maryland / WRI (Hansen et al. 2013, mise à jour annuelle)",
+      "updateFreq": "En attente — configuration du serveur de tuiles requise",
+      "description": "Déforestation annuelle à une résolution de 30 m (2001–2024). Détecte la suppression complète de la canopée de toute cause : exploitation forestière, agriculture, feu, exploitation minière ou urbanisation.",
+      "reading": "Couche disponible dans le menu mais tuiles non encore connectées. Lorsqu'elle sera active, chaque pixel affichera l'année de la perte du couvert forestier."
+    },
+    "forestCarbonFlux": {
+      "label": "Flux de carbone forestier",
+      "source": "WRI / Global Forest Watch — Harris et al. 2021",
+      "updateFreq": "En attente — configuration du serveur de tuiles requise",
+      "description": "Émissions et absorptions nettes de CO₂ par hectare à une résolution de 30 m (2001–2024). Quantifie les conséquences carboniques de la déforestation.",
+      "reading": "Couche disponible dans le menu mais tuiles non encore connectées. Lorsqu'elle sera active, les pixels rouges afficheront les émissions nettes (déforestation), les pixels verts l'absorption nette (repousse)."
+    },
+    "soilOrganicCarbon": {
+      "label": "Carbone organique du sol",
+      "source": "ISRIC — SoilGrids, soc_0-5cm_mean. CC BY 4.0.",
+      "updateFreq": "En attente — configuration du serveur de tuiles requise",
+      "description": "Carbone organique du sol mondial, 0–5 cm supérieurs à une résolution de ~250 m. Le carbone organique du sol est le plus grand réservoir de carbone terrestre.",
+      "reading": "Couche disponible dans le menu mais tuiles non encore connectées. Lorsqu'elle sera active, plus foncé = densité de carbone plus élevée (tonnes C/ha)."
+    },
+    "waterRisk": {
+      "label": "Risque hydrique (Aqueduct)",
+      "source": "WRI Aqueduct 4.0 — Kuzma et al. 2023. CC BY 4.0. 68 506 polygones de sous-bassins mondiaux.",
+      "updateFreq": "Jeu de données statique (Aqueduct 4.0, publié août 2023)",
+      "description": "Risque hydrique mondial évalué au niveau des sous-bassins à l'aide de 13 indicateurs : stress hydrique, épuisement, variabilité, risque de sécheresse, risque d'inondation et risque réglementaire/réputationnel. Chaque polygone est l'intersection d'un sous-bassin HydroBASIN Niveau 6, d'une province administrative et d'un aquifère souterrain. Les scores utilisent le schéma de pondération de l'industrie minière.",
+      "reading": "Polygones colorés selon le risque hydrique global pondéré par l'industrie minière : jaune pâle = Faible, or = Faible-Moyen, orange = Moyen-Élevé, rouge = Élevé, rouge foncé = Extrêmement élevé, gris neutre = Aucune donnée.",
+      "colorStandard": "Palette officielle à 5 classes WRI Aqueduct 4.0 (wri.org/aqueduct)."
+    },
+    "offshoreActivities": {
+      "label": "Activités offshore",
+      "source": "Extrait en direct depuis le registre faisant autorité de chaque juridiction :\n• ZEE de l'UE (pétrole/gaz, éolien, exploitation minière des fonds marins) — EMODnet Human Activities WFS : ows.emodnet-humanactivities.eu/wfs (funded by EC DG MARE, CC BY 4.0)\n• USA OCS — BOEM/BSEE ArcGIS : gis.boem.gov/arcgis/rest/services/BOEM_BSEE/{GOA,POC,ATL,AK}_Layers/MapServer\n• Royaume-Uni (Angleterre/Pays de Galles/NI) — The Crown Estate ArcGIS\n• Écosse (ScotWind/INTOG) — Crown Estate Scotland ArcGIS\n• UK pétrole/gaz — NSTA ArcGIS\n• Norvège — Sodir/NPD FactMaps REST\n• Colombie — ANH GeoVisor ArcGIS FeatureServer\n• Danemark — GEUS SAMBA WFS 2.0\n• Canada Nouvelle-Écosse — NRCan/CNSOPB ArcGIS\n• Canada Terre-Neuve-et-Labrador — C-NLOPB ArcGIS Online\n• Mexique — CNH/SIGSA ArcGIS\n• Brésil — ANP ArcGIS Online\n• Australie — NOPTA ArcGIS\n• Nouvelle-Zélande — NZP&M ArcGIS Online\n• Indonésie — ESDM Migas Geoportal ArcGIS\n• Afrique du Sud — PASA Geoportal ArcGIS\n• Papouasie-Nouvelle-Guinée — MRA ArcGIS\n• Namibie — MME via Landfolio ArcGIS\n• Îles Cook — SBMA via Landfolio ArcGIS\n• Trinité-et-Tobago — MEEI/IMA ArcGIS Online\n• Ghana — GNPC ArcGIS Online\n• Guyane — Programme de gestion pétrolière (PMP)\n• Irlande — IPAS / GSI ArcGIS\n• Pérou — PERUPETRO via INGEMMET ArcGIS Hub",
+      "updateFreq": "Synchronisé hebdomadairement depuis les registres gouvernementaux faisant autorité ; synchronisations exécutées 45 min après le démarrage du service puis hebdomadairement",
+      "description": "Concessions émises par les gouvernements pour la production offshore de pétrole et de gaz, les parcs éoliens offshore, l'exploitation minière des fonds marins et le captage et stockage du carbone (CSC) à l'intérieur des juridictions nationales de ZEE et de plateau continental étendu. Couvre ~70 % de l'exploitation mondiale des ZEE. La « Zone » de l'ISA (eaux internationales au-delà de la ZEE) est couverte par la couche des concessions minières, pas par celle-ci.",
+      "reading": "Ambre/rouge = concession pétrolière et gazière ; bleu ciel = bail éolien offshore ; magenta = licence d'exploitation minière des fonds marins ; émeraude = licence CSC. Cliquez sur n'importe quel bloc pour le nom de l'opérateur, le pays souverain, le statut, les dates du bail et un lien direct vers le registre gouvernemental faisant autorité.",
+      "limitations": "~70 % de couverture mondiale. La Russie, la Chine, l'Arabie saoudite, le Qatar/EAU, le Nigéria, l'Angola et la majeure partie de l'Afrique subsaharienne ont des registres disponibles uniquement en PDF, pas encore lisibles par machine."
+    },
+    "hydrophone-stations": {
+      "label": "Stations hydrophones",
+      "description": "Stations de surveillance acoustique passive issues de vingt-trois réseaux d’observatoires officiels : Ocean Observatories Initiative (nord-ouest du Pacifique américain), Integrated Marine Observing System (Australie), MBARI MARS (baie de Monterey), AWI PALAOA (océan Austral), AWI HAUSGARTEN / FRAM Observatory (7 hydrophones amarrés dans le détroit de Fram, CC BY 4.0, via PANGAEA), SAMBAH — Static Acoustic Monitoring of the Baltic Sea Harbour Porpoise (~298 stations C-POD dans tous les pays riverains de la Baltique, 2011–2013, CC0 1.0, via Dryad), CTBTO IMS — Réseau hydroacoustique du Système de surveillance international (11 stations mondiales, positions divulguées par traité, Commission préparatoire de l’OTICE), OBSEA (plateau méditerranéen espagnol), KM3NeT (sites du télescope à neutrinos en Méditerranée profonde), ainsi que l’intégralité du NOAA Passive Acoustic Archive — NRS (stations de référence mondiales), SanctSound (sanctuaires marins nationaux américains), NEFSC (Northeast Fisheries Science Center, incluant le réseau Cornell MARU de Stellwagen Bank), PIFSC (HARP des îles du Pacifique), SEFSC (HARP du golfe du Mexique), ONMS (téléchargements de sanctuaires plus récents), ADEON (Atlantic Deepwater Ecosystem Observation Network), BOEM (PAM éolien offshore, Atlantique et Golfe), AEON (Atlantic Ecosystem Observation Network), US Navy (MBARC LMR + USWTR), National Park Service (Glacier Bay), JASCO (ESRF Atlantique canadien), FRAM (Alfred Wegener Institute, détroit de Fram, Arctique), Coastal Studies Institute (NCROEP, Hatteras) et IOOS ESONS (paysage sonore estuarien). La phase 1 ne présente que les métadonnées des stations — les produits SPL nécessitent les travaux de la phase 3 pour être calculés à partir de l’audio source NetCDF.",
+      "reading": "Cliquez sur une station pour voir son matériel, sa profondeur, sa fenêtre de déploiement et un lien vers les enregistrements audio bruts sur le portail de l’opérateur. Lors du déploiement de la phase 3, la zone de courbe affichera la tendance SPL large bande et la décomposition par tiers d’octave ISO 18405 (10 Hz / 63 Hz / 100 Hz / 125 Hz / 1 kHz / 10 kHz) ainsi que les statistiques percentiles L50/L95.",
+      "limitations": "La phase 1 n’affiche pas de données numériques de paysage sonore — aucun des vingt-trois réseaux ne publie de produits SPL journaliers pré-agrégés via une API REST publique. Les enregistrements bruts sont disponibles via le lien du portail (et via le bucket Google Cloud Storage public noaa-passive-bioacoustic pour les quinze programmes de l’archive NOAA). Les hydrophones ONC dans le Pacifique de la Colombie-Britannique sont sur une couche distincte. PALAOA a été désaffecté fin 2017 après l’endommagement du câble de Neumayer III. Les Cornell MARU de Stellwagen Bank sont des déploiements historiques 2007-2010 ; ADEON 2017-2019 ; AEON 2022-2024 ; Navy MBARC 2006-2014 ; NPS Glacier Bay depuis 2011 (câblé). Les données C-POD SAMBAH sont un projet achevé 2011–2013 (données historiques). Les déploiements dérivants/planeurs SWFSC et les enregistrements sonobouée AFSC sont exclus car ils n’ont pas de position statique à afficher sur la carte."
+    },
+    "bathymetry": {
+      "label": "Bathymétrie du fond marin",
+      "source": "GEBCO Compilation Group · grille GEBCO_2025 via wms.gebco.net (publique, CC0)",
+      "updateFreq": "GEBCO publie une nouvelle grille chaque année en milieu d'année",
+      "description": "Carte de profondeur en relief ombragé de tout le fond océanique — bathymétrie globale à 15 arc-secondes de GEBCO (General Bathymetric Chart of the Oceans), le produit canonique IHO/IOC. Gratuite, sans contrainte d'attribution au-delà du badge affiché. Fournit le contexte physique pour toutes les autres couches marines : quels flotteurs Argo dérivent au-dessus d'une plaine abyssale ou d'un mont sous-marin, quelles concessions ISA chevauchent des dorsales médio-océaniques, quels évents se regroupent sur des limites de plaques.",
+      "reading": "Teintes claires = moins profond. Teintes sombres = plus profond. Les transitions abruptes gris→clair tracent monts sous-marins, dorsales, fosses et plateaux continentaux. Couche désactivée par défaut — activez-la pour ajouter le contexte du fond marin à ce que vous consultez.",
+      "limitations": "Environ 25 % du fond océanique a été directement cartographié (objectif Seabed 2030). Le reste est interpolé à partir de gravimétrie satellitaire et de traces de navires voisines. La résolution réelle en un point donné peut être bien plus grossière que ce que suggère la grille à 15 arc-secondes, surtout dans les bassins océaniques reculés."
+    },
+    "woa-climatology": {
+      "label": "Climatologie océanique (WOA)",
+      "source": "NOAA National Centers for Environmental Information — World Ocean Atlas 2023 (WOA23). ncei.noaa.gov/data/oceans/woa/WOA23/DATA/ · NCEI Accession 0270533",
+      "updateFreq": "Statique (édition WOA23 — 2023)",
+      "description": "Climatologie océanique maillée et analysée objectivement issue du World Ocean Atlas 2023. Un raster en champ de couleur est superposé au globe pour la variable et la profondeur choisies. À 0 m / 50 m, on voit les eaux de surface chaudes s'accumuler dans les tropiques, les gyres subpolaires froids et les langues d'upwelling équatorial. À 500–1000 m, les zones de minimum d'oxygène (OMZ) apparaissent comme des bandes sombres dans le Pacifique est et la mer d'Arabie — précisément les profondeurs visées par l'extraction de nodules. Les systèmes d'upwelling riches en nutriments et les tourbillons à cœur chaud ressortent dans les champs de nutriments dissous.",
+      "reading": "La couleur code la valeur de la variable sélectionnée à la profondeur choisie. Utilisez le sélecteur de Variable pour basculer entre oxygène dissous (µmol/kg), température (°C), salinité (PSS-78), utilisation apparente de l'oxygène (AOU), saturation en O₂ (%), phosphate, silicate et nitrate. Le sélecteur de Profondeur parcourt les huit niveaux standard (0, 50, 100, 200, 500, 1000, 1500, 2000 m). L'échelle de couleurs (CMAP) est propre à chaque variable et définie dans le produit WOA23 — voir NCEI pour la légende par variable.",
+      "limitations": "Résolution horizontale de 1° ; uniquement la moyenne climatologique annuelle — le cycle saisonnier et la variabilité interannuelle ne sont pas représentés. Les périodes de référence diffèrent selon la variable : température et salinité utilisent 1991–2020, oxygène dissous / AOU / saturation utilisent 1971–2000, et phosphate / silicate / nitrate utilisent 1965–2022. Les observations in situ rares dans l'océan Austral et l'Arctique peuvent réduire la fiabilité en profondeur. Le champ de couleur PNG est une texture RGBA pré-générée ; les valeurs numériques ne sont pas disponibles au clic."
+    },
+    "oxygen-deox": {
+      "label": "Oxygène océanique et désoxygénation",
+      "description": "Oxygène dissous récent issu des flotteurs BGC-Argo ISAS (2014–2018), avec une vue du changement (Δ) le comparant à la référence World Ocean Atlas des années ~1980.",
+      "reading": "Vue récente : bleu = O₂ élevé, rouge = faible (zones de minimum d'oxygène). Vue Δ : rouge = perte d'oxygène depuis les années 1980, bleu = gain.",
+      "limitations": "Schéma régional indicatif du changement d'oxygène, et non une tendance calibrée. Le champ récent (optodes Argo, 2014–2018) et la référence des années ~1980 (Winkler/CTD sur navire) diffèrent par l'instrument et la méthode, de sorte qu'une partie du changement apparent reflète cette différence. Les valeurs numériques ne sont pas disponibles au clic (image pré-générée).",
+      "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk et al. 2024, SEANOE 10.17882/52367 (CC-BY 4.0) ; référence WOA23, NOAA NCEI.",
+      "updateFreq": "Statique (édition ISAS20)",
+      "colorRamp": [
+        {
+          "label": "Faible (récent) / Perte (Δ)"
+        },
+        {
+          "label": ""
+        },
+        {
+          "label": "Moyen"
+        },
+        {
+          "label": ""
+        },
+        {
+          "label": ""
+        },
+        {
+          "label": ""
+        },
+        {
+          "label": "Élevé (récent) / Gain (Δ)"
+        }
+      ]
+    },
+    "wod-oxygen": {
+      "label": "Profils d'oxygène historiques (WOD)",
+      "description": "Profils verticaux bruts d'oxygène dissous issus de la NOAA World Ocean Database 2023, couverture mondiale. Chaque point correspond à un sondage océanographique (cast) — une station de navire ou un flotteur profileur ayant descendu un capteur en profondeur et mesuré l'O₂ à plusieurs niveaux. Les points sont colorés selon la décennie de collecte, ce qui permet de voir comment la couverture d'échantillonnage a évolué des années 1900 aux années 2020. À faible zoom, les points sont réduits à un échantillon représentatif pour les performances ; zoomez pour le détail complet.",
+      "reading": "points = sondages d'O₂ individuels, couleur = décennie ; cliquez pour le profil complet profondeur–O₂",
+      "limitations": "« Échantillon le plus profond » indique jusqu'où est descendu le prélèvement, pas la profondeur de la mer — c'est le niveau le plus profond avec une mesure d'O₂ valide. Ne filtrez pas dessus pour isoler le plateau continental : 480 822 des 978 476 prélèvements ne sont pas descendus au-delà de 150 m, et ils se répartissent de 78° S à 89° N, y compris des prélèvements de surface en plein océan. Un tel filtre renvoie des valeurs de saturation de surface et fait paraître saine chaque zone morte connue. La profondeur réelle du fond est affichée séparément dans le panneau, échantillonnée depuis GEBCO. Méthodes brutes hétérogènes et contrôle qualité (QC) : les sondages anciens (avant les années 1960) utilisaient le titrage de Winkler ; les sondages plus récents emploient des capteurs électrochimiques ou des optodes. Les indicateurs QC sont ceux publiés par la NOAA NCEI — ils n'ont pas été réévalués ici. La couverture reflète la distribution historique des expéditions navales — dense dans l'Atlantique Nord et le Pacifique Nord, clairsemée dans l'océan Austral et les premières décennies. Les unités sont celles publiées (généralement µmol kg⁻¹ ou ml l⁻¹) ; aucune conversion d'unité n'est appliquée.",
+      "source": "NOAA NCEI — World Ocean Database 2023",
+      "updateFreq": "Statique (édition WOD23)",
+      "colorRamp": [
+        {
+          "label": "années 1920"
+        },
+        {
+          "label": "années 1930"
+        },
+        {
+          "label": "années 1940"
+        },
+        {
+          "label": "années 1950"
+        },
+        {
+          "label": "années 1960"
+        },
+        {
+          "label": "années 1970"
+        },
+        {
+          "label": "années 1980"
+        },
+        {
+          "label": "années 1990"
+        },
+        {
+          "label": "années 2000"
+        },
+        {
+          "label": "années 2010"
+        }
+      ]
+    },
+    "arctic-rivers": {
+      "label": "Apports des fleuves arctiques",
+      "description": "Débit et biogéochimie aux embouchures des grands fleuves arctiques — le transfert terre-océan d'eau douce, de carbone et de nutriments vers l'océan Arctique. Deux sous-sources, chacune activable indépendamment : ArcticGRO (Arctic Great Rivers Observatory) suit les 6 plus grands fleuves arctiques (Ob, Ienisseï, Léna, Kolyma, Yukon, Mackenzie) — carbone organique dissous, nutriments, ions majeurs et le débit du fleuve mesuré à chaque date de prélèvement, ~6 fois par an depuis ~2003 ; le jeu de données PANGAEA.945702 (Brown et al. 2022) ajoute les rivières de l'archipel Arctique canadien (COD, nutriments, isotopes de l'eau). Ensemble, ils capturent les apports biogéochimiques observés dominants vers l'océan Arctique — une condition aux limites essentielle pour comprendre comment le dégel du pergélisol et les changements d'usage des terres atteignent la mer.",
+      "reading": "Chaque point est une station de suivi de fleuve, colorée par source de données (ArcticGRO / PANGAEA Canada). Cliquez pour la période d'observation et les séries temporelles observées : concentrations de carbone organique dissous et de nutriments, ainsi que le débit du fleuve à chaque date de prélèvement pour les fleuves ArcticGRO. Les valeurs sont les mesures publiées par les contributeurs ; les séries sont affichées à résolution mensuelle.",
+      "limitations": "Les méthodes sont hétérogènes selon les sources et les époques (fréquence d'échantillonnage, protocoles de laboratoire). La biogéochimie et le débit ne sont échantillonnés qu'environ 6 fois par an aux stations ArcticGRO, ce qui peut manquer des événements épisodiques (impulsions de fonte des glaces, ruissellement de tempête) ; l'affichage mensuel les lisse encore. Le débit affiché est la valeur à la date de prélèvement, et non une série journalière continue — les volumes annuels réels de débit et les charges intégrées d'export de carbone/nutriments ne sont donc pas calculés dans cette version (amélioration prévue à partir des enregistrements journaliers complets de débit). PANGAEA.913197 (biogéochimie haute fréquence Léna/Samoylov) est une collection PANGAEA sans fichier unique lisible par machine et n'est pas encore intégrée. ArcticGRO ne couvre que les 6 plus grands fleuves ; des centaines de fleuves arctiques plus petits ne sont pas représentés.",
+      "source": "ArcticGRO — Arctic Great Rivers Observatory (arcticgreatrivers.org/data), libre d'utilisation, créditer ArcticGRO ; jeu de données PANGAEA.945702 (Brown et al. 2022, rivières de l'archipel Arctique canadien), CC-BY-4.0.",
+      "updateFreq": "ArcticGRO — publications périodiques ; jeu de données PANGAEA — statique (versionné par DOI)"
+    },
+    "memento": {
+      "label": "MEMENTO (CH₄/N₂O marin)",
+      "description": "Research cruise casts of dissolved methane (CH₄) and nitrous oxide (N₂O) from the GEOMAR MEMENTO portal — a frozen community archive of ~12,000 surface and near-surface measurements collected between the 1980s and ~2020. Each dot is one cruise cast; colour indicates CH₄ or N₂O surface concentration relative to cruise-biased global coverage.",
+      "reading": "dots = individual casts, colour = selected gas surface concentration (teal low → magenta high); click for the full depth profile and sample table; switch to Hexagons for density overview",
+      "limitations": "Les valeurs -999 sont des sentinelles d'absence de donnée, pas des mesures. Les indicateurs de qualité figurent dans l'objet params (convention WOCE : 2 = bon, 4 = douteux ; 9 = manquant, enregistré comme 0,00). MEMENTO publie le gaz dissous et le gaz atmosphérique sous le même nom de colonne — CH₄ correspond à la fois à Methane_Ocean [nmol/l] et à Methane_Atmosphere [ppb] — et l'export CSV omet cette distinction. Lorsque le contributeur n'a pas étiqueté un échantillon _Air, cette plateforme a déduit les valeurs atmosphériques à partir de la médiane de la campagne et les signale par « air » ; cette déduction est la nôtre, pas celle de MEMENTO. Aucune valeur n'est modifiée ni supprimée — les valeurs signalées restent dans le panneau et dans l'export de zone. La couverture dépend des campagnes : dense dans l'Atlantique Nord et la mer du Nord, rare dans le Pacifique Sud et l'océan Austral. Certaines campagnes ont fourni des données non publiées — avant toute publication, contactez le scientifique contributeur.",
+      "sources": "GEOMAR MEMENTO — memento.geomar.de (data portal: portal.geomar.de/memento). Database citation required by MEMENTO's terms of use: Kock, A. and Bange, H. W. (2015) Counting the ocean's greenhouse gas emissions, Eos 96(3), 10-13, doi:10.1029/2015EO023665. Their terms also require this acknowledgement: “The MEMENTO database is administered by the Kiel Data Management Team at GEOMAR Helmholtz Centre for Ocean Research and supported by the German BMBF project SOPRAN (Surface Ocean Processes in the Anthropocene, http://sopran.pangaea.de). The database is accessible through the MEMENTO webpage: https://memento.geomar.de.” Cite the original publications too if you use fewer than 10 individual data submissions. Project paper: Bange et al. (2009) MEMENTO: a proposal to develop a database of marine nitrous oxide and methane measurements, Environ. Chem. doi:10.1071/en09033."
+    },
+    "methane-seeps": {
+      "label": "Émissions de méthane (SEAFLEA)",
+      "description": "Inventaire mondial des sites connus d'émissions de méthane du fond marin issu de la base SEAFLEA Observed Database, compilé par Phrampus et al. (2020) à partir des archives NRL (Naval Research Laboratory) et NOAA NCEI. Chaque point représente un site confirmé avec un ou plusieurs types classifiés : bulles de gaz / torchères, hydrates de gaz, monticules, pockmarks, communautés chimiosynthétiques ou substrat carbonaté. Il s'agit d'une compilation d'études publiées, et non d'un relevé mondial systématique — la couverture reflète l'effort de recherche, pas l'abondance des émissions. ~10 386 enregistrements.",
+      "reading": "points = sites d'émission individuels, couleur = type principal (rouge = bulles de gaz, cyan = hydrate, ambre = monticule, bleu = pockmark, vert = communauté chimiosynthétique, violet = substrat carbonaté, gris = non classifié) ; cliquer pour voir tous les types confirmés, la profondeur, l'année d'observation et la référence source ; utiliser le filtre de types pour se concentrer sur un seul type",
+      "limitations": "La couverture est biaisée par l'effort de recherche, et c'est la limite la plus importante de cette couche. Les 10 385 enregistrements proviennent de seulement 32 études publiées, et un unique relevé sismique du BOEM dans le golfe du Mexique en fournit 6 126 (59 %). Des régions entières sont vides faute d'avoir été explorées : la mer du Nord centrale ne compte aucune émission cartographiée, et la plus proche se situe à 418 km. Un point absent signifie un relevé absent, pas une émission absente — ne lisez jamais cette couche comme la preuve qu'une région est dépourvue de source naturelle de méthane. Compilation figée en février 2019 — les émissions découvertes après cette date ne sont pas incluses. 72 % des enregistrements n'ont pas d'année d'observation (profondeur et année affichées comme '—' ou 'non enregistré'). L'incertitude de localisation peut atteindre plusieurs km pour les émissions détectées acoustiquement. Un site peut porter plusieurs indicateurs de type — cliquer pour les voir tous ; la couleur de la carte reflète le type prioritaire. Les identifications incertaines marquées U(…) dans la source sont conservées et signalées.",
+      "source": "Phrampus, B.J. et al. (2020). A Global Probabilistic Prediction of Cold Seeps and Associated SEAfloor FLuid Expulsion Anomalies (SEAFLEAs). Geochemistry, Geophysics, Geosystems, 21. doi:10.1029/2019GC008747. Archivé au NOAA NCEI / NRL SEAFLEA, couche 6 ArcGIS FeatureServer.",
+      "updateFreq": "Statique (SEAFLEA fév. 2019)",
+      "colorRamp": [
+        {
+          "label": "Bulles de gaz / torchères"
+        },
+        {
+          "label": "Hydrate de gaz"
+        },
+        {
+          "label": "Monticule"
+        },
+        {
+          "label": "Pockmark"
+        },
+        {
+          "label": "Communauté chimiosynthétique"
+        },
+        {
+          "label": "Substrat carbonaté"
+        }
+      ]
+    },
+    "geotraces": {
+      "label": "Métaux traces (GEOTRACES)",
+      "description": "Profils verticaux de concentrations en éléments traces dissous — manganèse (Mn), fer (Fe), cobalt (Co), nickel (Ni) et cuivre (Cu) — dans la colonne d'eau, issus du produit de données intermédiaires GEOTRACES 2025 (IDP2025). Ces cinq éléments sont les principaux métaux concentrés dans les nodules polymétalliques et les encroûtements cobaltifères des fonds marins, cibles de l'exploitation minière en eaux profondes. GEOTRACES est un programme international coordonnant des mesures de haute précision des éléments traces et des isotopes le long de transects océaniques mondiaux ; IDP2025 couvre la période ~2003–2023.",
+      "reading": "Sélectionnez un élément dans les commandes de la couche. Chaque point sur la carte correspond à une station d'échantillonnage GEOTRACES, colorée selon la concentration maximale mesurée dans toute la colonne d'eau. Cliquez sur une station pour afficher le profil complet concentration/profondeur. Un enrichissement près du fond — un pic dans le profil aux niveaux les plus profonds — est le signal le plus pertinent pour l'exploitation minière en eaux profondes : il peut indiquer une mobilisation de métaux à partir de sédiments perturbés ou de matériau de nodules en suspension. Les unités varient selon l'élément : Co est mesuré en pmol/kg ; Mn, Fe, Ni, Cu en nmol/kg. Les indicateurs de qualité SeaDataNet sont affichés dans le profil ; les valeurs inférieures à la limite de détection sont signalées.",
+      "limitations": "Données de recherche, non destinées à la surveillance environnementale continue. La couverture spatiale est limitée et orientée par les transects — dense le long des transects atlantiques, pacifiques et antarctiques, mais absente de nombreuses mers côtières et marginales. IDP2025 est une archive statique (sans mise à jour en direct) ; certains métaux, notamment Co, sont moins bien échantillonnés que Fe ou Mn. Les indicateurs de qualité suivent la convention SeaDataNet (1 = bonne, 2 = probablement bonne, 4 = mauvaise, 9 = manquante). L'interprétation liée à l'exploitation minière (enrichissement près du fond) est contextuelle — cet enrichissement peut aussi se produire naturellement près des sources hydrothermales et des zones de minimum d'oxygène.",
+      "sources": "GEOTRACES Intermediate Data Product 2025 (IDP2025), NERC EDS British Oceanographic Data Centre (BODC). doi:10.5285/42c92148-8d03-8be6-e063-7086abc09f0c. Licence : CC-BY 4.0."
+    },
+    "ocean-carbon": {
+      "label": "Carbone océanique (GLODAP)",
+      "source": "Key, R.M. et al. (2015) Global Ocean Data Analysis Project Version 2 (GLODAPv2) — produit maillé. CDIAC, https://doi.org/10.3334/CDIAC/OTG.NDP093_GLODAPv2 · glodap.info/index.php/mapped-data-product/",
+      "updateFreq": "Statique (version GLODAPv2.2016b)",
+      "description": "Climatologie mondiale du système carbonaté océanique basée sur des mesures embarquées validées, compilées par le consortium GLODAP. Quatre variables sont cartographiées sur une grille à 1° pour 33 niveaux de profondeur par la méthode DIVA : carbone inorganique dissous (CID), alcalinité totale (AT), pH et CO₂ anthropique (Cant). Ce sont les grandeurs fondamentales qui déterminent l'acidification des océans et la capacité de l'océan à absorber le CO₂ atmosphérique — y compris dans les eaux profondes visées par l'exploitation minière des fonds marins.",
+      "reading": "La couleur encode la valeur de la variable sélectionnée à la profondeur choisie. Utilisez le sélecteur de Variable pour basculer entre CID (µmol/kg), alcalinité totale (µmol/kg), pH et CO₂ anthropique Cant (µmol/kg). Utilisez le sélecteur de Profondeur pour parcourir les niveaux de 0 à 4000 m. Les valeurs numériques exactes ne sont disponibles qu'en vue Hexagones — passez en Hexagones et cliquez sur une cellule.",
+      "limitations": "Résolution horizontale de 1° ; l'interpolation DIVA lisse les gradients à fine échelle et introduit des artefacts dans les régions peu documentées (Océan Austral, Arctique). Le produit maillé est figé à la version GLODAPv2.2016b — il ne reflète pas les observations postérieures à 2016 ni la tendance accélérée d'acidification de la dernière décennie. Le champ de couleur PNG est une texture RGBA pré-calculée ; les valeurs numériques ne sont pas accessibles par clic en vue champ."
+    },
+    "ocean-co2-surface": {
+      "label": "CO₂ océanique de surface (SOCAT)",
+      "source": "Bakker, D.C.E. et al. / communauté SOCAT (2025) Surface Ocean CO₂ Atlas (SOCAT) version 2026. NCEI Accession 0315110, https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system-portal/ · socat.info",
+      "updateFreq": "Statique (version SOCATv2026)",
+      "description": "Grille climatologique décennale à 1° de la fugacité du CO₂ à la surface de l'océan (fCO₂), dérivée de la base de données SOCAT v2026 de trajectoires de navires validées. Quatre variables par décennie : fugacité du CO₂ (fCO₂, µatm), densité d'observation (nombre de tranches d'une minute), température de surface de la mer (SST, °C) et salinité (psu). Couvre les décennies 1970–2020. Les observations proviennent de navires de recherche, de navires de commerce et de capteurs autonomes du monde entier — la plus grande collection publique de mesures de CO₂ à la surface de l'océan.",
+      "reading": "Sélecteur de variable : fCO₂ / densité d'observation / SST / salinité ; sélecteur de décennie : années 1970–2020. Le champ de couleur affiche la distribution mondiale pour la variable et la décennie choisies. Les valeurs numériques exactes ne sont disponibles qu'en vue Hexagones — passez en Hexagones et cliquez sur une cellule.",
+      "limitations": "Produit non interpolé — environ 21 % des cellules à 1° contiennent des données, concentrées le long des routes des navires ; de vastes régions de l'Océan Austral, de l'Arctique et des zones côtières ne sont pas couvertes dans les premières décennies. Texture RGBA pré-calculée en vue champ — valeurs exactes uniquement en vue Hexagones. Produit statique SOCATv2026 — ne comprend pas les campagnes soumises après la date limite 2026."
+    },
+    "marine-carbon": {
+      "label": "Carbone marin (unifié)",
+      "source": "Lecture co-localisée combinant GLODAP v2.2016b (DIC/TAlk/pH/Cant), SOCAT v2026 (fCO₂ de surface), ISAS20 (oxygène) et WOA23 (température/salinité/nutriments). glodap.info · socat.info · ncei.noaa.gov/products/world-ocean-atlas",
+      "updateFreq": "Statique (versions GLODAPv2.2016b · SOCATv2026 · ISAS20 · WOA23)",
+      "description": "Une grille hexagonale unique qui réunit en un seul endroit tous les champs océaniques liés au carbone. Cliquez sur n'importe quelle cellule pour lire : le CO₂ de surface (SOCAT), le carbone intérieur — CID, alcalinité totale, pH, CO₂ anthropique (GLODAP) —, l'oxygène dissous et sa variation par rapport à la valeur de référence historique (ISAS/WOA), ainsi que la climatologie physique — température, salinité, nutriments (WOA) —, chacun affiché côte à côte avec sa propre source et ses unités. Conçu pour lire en un seul endroit le tableau du carbone entre la terre et l'océan, sans jongler entre six couches séparées.",
+      "reading": "La couleur encode la variable sélectionnée dans le sélecteur de Variable (fCO₂ de surface, CID intérieur, oxygène dissous ou température) à la profondeur choisie. Cliquez sur une cellule pour ouvrir la lecture complète : la valeur de chaque source à cet emplacement, regroupée par source, avec « aucune donnée ici » là où une source ne couvre pas la cellule. Le fCO₂ de surface est toujours échantillonné en surface (dernière décennie), quelle que soit la profondeur sélectionnée, car il s'agit d'une grandeur d'échange air–mer.",
+      "limitations": "Lecture co-localisée, PAS une métrique fusionnée — les valeurs proviennent de quatre climatologies indépendantes ayant des résolutions, des périodes et des profondeurs différentes et ne doivent pas être combinées en un seul chiffre. GLODAP et WOA sont des climatologies interpolées à 1° qui lissent les gradients à fine échelle ; le fCO₂ de surface SOCAT est épars (~21 % des cellules, principalement des routes de navires) ; l'oxygène ISAS reflète une moyenne 2014–2018. Les quatre produits sont des versions statiques et ne reflètent pas les années les plus récentes."
+    },
+    "vme-suitability": {
+      "label": "Adéquation d'habitat VME (modélisée)",
+      "source": "Occurrences NOAA Deep-Sea Coral & Sponge (DSCRTP) de coraux profonds constructeurs de récifs, modélisées avec les prédicteurs GEBCO 2024 (bathymétrie/pente), substrat du fond (Dutkiewicz et al. 2015), WOA23 (température/salinité/nutriments), ISAS20 (oxygène) et GLODAPv2.2016b (chimie du carbone) via un modèle de distribution d'espèces MaxEnt (elapid). services2.arcgis.com/C8EMgrsFcRFL6LrL/arcgis/rest/services/DSCRTP_NatDB",
+      "updateFreq": "Recalcul périodique du modèle (processus externe)",
+      "description": "Adéquation d'habitat modélisée pour deux espèces de coraux profonds constructeurs de récifs, Desmophyllum pertusum (anciennement Lophelia pertusa) et Solenosmilia variabilis, sur la grille hexagonale. Le modèle apprend les conditions environnementales aux emplacements d'occurrences connues de coraux, puis note chaque cellule selon la similarité de son environnement, à partir de prédicteurs échantillonnés à la profondeur du fond marin de chaque cellule.",
+      "reading": "La vue Adéquation colore chaque hexagone de 0 (le moins semblable) à 1 (le plus semblable à un habitat VME connu) — un score de similarité environnementale relative, non une probabilité de présence. La vue Incertitude montre la dispersion d'un ensemble de validation croisée d'exécutions du modèle pour la même cellule ; une dispersion plus élevée signifie une confiance moindre du modèle, typiquement dans les zones peu échantillonnées ou aux conditions environnementales inhabituelles. Les couleurs vont du violet foncé (faible) au bleu, turquoise, vert puis jaune (élevé). La vue Incertitude réutilise la même échelle, redimensionnée à sa propre plage : foncé = faible dispersion (plus fiable), jaune = forte dispersion (moins fiable).",
+      "limitations": "Il s'agit d'une couche MODÉLISÉE, non de données observées — l'absence de point sur cette couche ne signifie pas qu'aucun corail n'y a été observé. Le score est un indice relatif de similarité environnementale, PAS une probabilité de présence de l'espèce et PAS une preuve qu'un écosystème marin vulnérable existe à cet endroit. Les occurrences d'entraînement proviennent de l'effort d'échantillonnage DSCRTP, géographiquement inégal (concentré là où des campagnes ont eu lieu, par ex. les eaux des États-Unis et de l'Atlantique Nord-Est) — le modèle ne peut être meilleur que les exemples qui lui ont été montrés. Le modèle utilise un fond de type « target-group » (d'autres enregistrements de coraux/éponges DSCRTP comme pseudo-absences), qui ne corrige pas entièrement ce biais d'échantillonnage. Les prédictions dans des environnements très éloignés de la plage échantillonnée (par ex. combinaisons inhabituellement peu profondes, chaudes ou pauvres en oxygène) sont des extrapolations et sont moins fiables — la vue Incertitude est le meilleur indicateur de ces cas. Les prédicteurs sont échantillonnés à la profondeur du fond marin par cellule, en approximation, non une véritable correspondance sur toute la colonne d'eau. Cette couche ne doit pas être utilisée pour une inférence causale ou d'impact — elle décrit une similarité environnementale avec un habitat connu, non un impact écologique mesuré.",
+      "method": "Comment cette couche est construite — un modèle de distribution d'espèces (SDM) MaxEnt, et non des données observées.\n\nDonnées de réponse : occurrences de deux coraux profonds constructeurs de récifs — Desmophyllum pertusum (anciennement Lophelia pertusa) et Solenosmilia variabilis — issues de la base NOAA Deep-Sea Coral & Sponge (DSCRTP), résolues en identifiants WoRMS AphiaID et sous-échantillonnées spatialement à un enregistrement par hexagone et par espèce afin de réduire l'effet de regroupement de l'échantillonnage (167 présences utilisables dans le calcul actuel).\n\nFond (background) : les données de présence seule n'ont pas de véritables absences, le modèle tire donc des points de fond de type « target-group background » à partir de tous les sites d'observation de coraux DSCRTP — corrigeant l'endroit où l'effort d'échantillonnage a réellement porté, plutôt que de traiter l'océan non prospecté comme inadapté.\n\nPrédicteurs (6), chacun échantillonné au fond marin (mis en correspondance avec la profondeur du fond GEBCO sous chaque point, jamais la surface) : profondeur et relief du fond (GEBCO 2024) ; température et salinité (WOA23) ; oxygène dissous (ISAS20) ; substrat du fond (Dutkiewicz et al. 2015) ; et état de saturation en aragonite Ω, dérivé du carbone inorganique dissous et de l'alcalinité totale de GLODAPv2.2016b via le solveur du système carbonaté PyCO2SYS (les coraux calcifiants suivent Ω).\n\nModèle et évaluation : un modèle MaxEnt (elapid) est ajusté avec une validation croisée par blocs spatiaux (une validation croisée aléatoire ordinaire gonfle la performance sur des occurrences regroupées). Les modèles de chaque pli forment un ensemble — la prédiction moyenne est le score d'adéquation, la dispersion entre les plis est l'incertitude. La performance est rapportée sous forme d'AUC et d'indice de Boyce continu ; une espèce n'est publiée que si l'AUC ≥ 0,70, l'indice de Boyce > 0 et ≥ 50 occurrences sous-échantillonnées. Le modèle actuel obtient un AUC de 0,89 / Boyce de 0,51.\n\nLecture du résultat : l'adéquation est un score RELATIF de 0 à 1 — à quel point une cellule est environnementalement similaire à un habitat VME connu — et non une probabilité de présence des coraux, ni une preuve qu'ils y sont présents. La vue Incertitude montre la dispersion de l'ensemble de validation croisée ; les cellules dont les prédicteurs sortent de la plage échantillonnée sont signalées comme extrapolées.\n\nLimites : la couverture est limitée aux cellules où chaque prédicteur existe au fond marin (~3 800 hexagones dans le calcul actuel) ; les données d'occurrence portent un biais d'effort d'échantillonnage ; la correspondance de profondeur du fond marin est une approximation ; et cette couche ne doit jamais être utilisée pour une inférence causale ou d'impact.",
+      "dataSources": [
+        {
+          "name": "NOAA DSCRTP — occurrences de coraux",
+          "url": "https://deepseacoraldata.noaa.gov/"
+        },
+        {
+          "name": "GEBCO 2024 — bathymétrie",
+          "url": "https://www.gebco.net/data_and_products/gridded_bathymetry_data/"
+        },
+        {
+          "name": "World Ocean Atlas 2023 — température/salinité",
+          "url": "https://www.ncei.noaa.gov/products/world-ocean-atlas"
+        },
+        {
+          "name": "ISAS20 — oxygène dissous",
+          "url": "https://doi.org/10.17882/52367"
+        },
+        {
+          "name": "Dutkiewicz et al. 2015 — substrat du fond",
+          "url": "https://www.earthbyte.org/seafloor-lithology-of-the-ocean-basins/"
+        },
+        {
+          "name": "GLODAPv2.2016b — chimie du carbone",
+          "url": "https://glodap.info/index.php/mapped-data-product/"
+        },
+        {
+          "name": "WoRMS — taxonomie",
+          "url": "https://www.marinespecies.org/"
+        },
+        {
+          "name": "MaxEnt / elapid — modèle",
+          "url": "https://earth-chris.github.io/elapid/"
+        },
+        {
+          "name": "PyCO2SYS — système carbonaté",
+          "url": "https://pyco2sys.readthedocs.io/"
+        }
+      ],
+      "colorRamp": [
+        {
+          "label": "0.00 — le moins favorable"
+        },
+        {
+          "label": "0.25 — faible"
+        },
+        {
+          "label": "0.50 — intermédiaire"
+        },
+        {
+          "label": "0.75 — élevé"
+        },
+        {
+          "label": "1.00 — le plus favorable (le plus proche des habitats VME connus)"
+        }
+      ]
+    },
+    "sios-svalbard": {
+      "label": "SIOS Svalbard – observatoires",
+      "description": "Couche de découverte de jeux de données d'observation in situ au Svalbard et à proximité, issus du catalogue SIOS (Svalbard Integrated Arctic Earth Observing System) via l'interface Station REST. Chaque point est un jeu de données ; dans la vue « Par station », une plateforme d'observation. Chacun renvoie aux données sources (OPeNDAP / HTTP / WMS). La couverture est actuellement centrée sur la Station polaire polonaise de Hornsund (Institut de géophysique, Académie polonaise des sciences) et ses séries Core Data, et s'élargit automatiquement à mesure que SIOS ajoute les métadonnées de plateforme d'autres stations.",
+      "reading": "points = stations/plateformes d'observation individuelles ; couleur par catégorie de jeu de données ; cliquer pour voir le nom de la station, l'institution, le responsable scientifique, le type d'activité, la couverture temporelle, les variables, le résumé et les liens directs vers OPeNDAP, le téléchargement HTTP, le service cartographique WMS et la page d'accueil du jeu de données ; les liens sont servis en direct depuis le catalogue SIOS METSIS",
+      "limitations": "Couche de découverte / métadonnées uniquement — les mesures sont fournies par l'institution d'origine via les liens du panneau. La couverture est restreinte et actuellement dominée par les Core Data de Hornsund (IGF PAS) (~25 jeux de données) : seuls les jeux dotés de métadonnées de plateforme in situ dans le SIOS Station REST apparaissent ici. La majeure partie du catalogue SIOS / METSIS est constituée de données satellitaires ou modélisées couvrant le Svalbard plutôt que d'observations in situ, hors périmètre. Les positions des points correspondent au centroïde du rectangle d'emprise (et non à un relevé GPS) ; les jeux couvrant une zone peuvent être décalés de quelques km.",
+      "source": "Point d'accès REST du catalogue SIOS METSIS : sios-svalbard.org/rest/stations/data.json · Naviguer : sios-svalbard.org/metsis/search · Licences par jeu de données : CC-BY ou CC-BY-SA (indiquées sur chaque page d'accueil)",
+      "updateFreq": "Hebdomadaire (catalogue SIOS METSIS)"
+    },
+    "arctic-catchments": {
+      "label": "Bassins versants arctiques (ARCADE)",
+      "description": "Polygones de bassins versants pan-arctiques issus d'ARCADE v1 (Arctic Catchment database for River Discharge and Ecology), chacun renseigné par des valeurs modélisées de stock de carbone organique du sol, de carbone organique total, de ruissellement, d'étendue du pergélisol et de température moyenne de l'air dérivée d'ERA5-Land. Ces bassins versants constituent les zones sources terrestres alimentant les fleuves suivis par la couche « Apports des fleuves arctiques » — le maillon essentiel du couplage carbone et eau continent-océan dans le système arctique.",
+      "reading": "Le sélecteur de variable recolorie le choroplèthe selon l'attribut choisi (stock de carbone du sol, ruissellement, étendue du pergélisol ou température moyenne de l'air en °C). Cliquez sur un polygone pour afficher le profil complet des attributs dans le panneau. Les polygones ont été définis à l'origine dans la projection EASE-Grid 2.0 et reprojetés en WGS 84 pour l'affichage.",
+      "limitations": "Les limites des bassins versants sont reprojetées depuis EASE-Grid 2.0 ; centroïdes et contours présentent une incertitude de position de l'ordre du kilomètre due à la conversion cellule de grille – polygone. Les valeurs climatiques (température, ruissellement) sont des moyennes à long terme issues de la réanalyse ERA5-Land, non des mesures in situ. Les valeurs de carbone organique sont des estimations modélisées du stock de sol à partir de SoilGrids, non des données de flux mesurées. Le ruissellement est exprimé dans les unités sources (environ 0–2,8) ; l'unité physique exacte (mm/an ou équivalent) n'est pas assurée. Certains bassins versants n'ont pas de nom. Données statiques (version ARCADE v1). Les bassins versants traversant l'antiméridien (~10 petits bassins du détroit de Béring) sont omis — la projection polaire déforme leur géométrie.",
+      "source": "ARCADE v1 — Arctic Catchment database for River Discharge and Ecology. DataVerse NL. doi:10.34894/U9HSPV. Licence : CC-BY 4.0."
+    },
+    "area-export": {
+      "label": "Export de zone",
+      "description": "Outil de téléchargement — sélectionnez une zone d'intérêt (rectangle, polygone ou ensemble de cellules hexagonales) et téléchargez des enregistrements bruts d'une ou plusieurs couches au format GeoJSON ou CSV. Le panneau Export regroupe ~30 couches en sept familles : ISA & fonds marins, Vie & géologie, Capteurs, Infrastructure, Champs carbonés, Terre et Arctique & carbone. Cochez n'importe quelle combinaison de couches, choisissez GeoJSON ou CSV avec le sélecteur de format, puis cliquez sur ↓ Télécharger la sélection (ZIP) pour obtenir une archive ZIP unique — un fichier par couche sélectionnée. Les couches composites se déploient en sous-dossiers : marine-carbon produit quatre fichiers (GLODAP DIC/TAlk/pH/Cant, SOCAT fCO₂, ISAS O₂, climatologie WOA) ; submarine-cables produit un fichier par sous-source (EMODnet, NOAA, NZ LINZ, AU ACMA, ONC, OOI). Un fichier MANIFEST.txt à la racine de l'archive liste chaque fichier inclus avec son identifiant de couche, la source amont et le nombre d'enregistrements. Chaque fichier contient des métadonnées de provenance (nom de la source, URL, citation, licence). Une clé API est requise.",
+      "reading": "Ouvrez le panneau Export (pied de page → Export), utilisez la barre d'outils pour dessiner une zone, cochez des couches dans la liste groupée, choisissez le format avec le sélecteur, puis cliquez sur ↓ Télécharger la sélection (ZIP). Les clés sont émises aux organisations approuvées via apiv2.something-rare.com/org-ui/. Le point de terminaison /v2/export/bundle accepte une liste layers= séparée par des virgules avec les mêmes paramètres bbox/polygon/cell_ids.",
+      "limitations": "Chaque couche a un plafond dur de records par requête (visible sous '⚠ plafonné à N') ; il n'y a pas de pagination. Les couches dérivées/agrégées ne sont pas exportables. Les couches uniquement côté client (ports, plaques tectoniques) n'ont pas de table Postgres et ne sont pas exportables. Les clés API sont accordées uniquement aux organisations approuvées.",
+      "source": "La provenance des données varie selon la couche — chaque téléchargement contient les champs 'source', 'source_url' et 'citation'. Vérifiez les enregistrements à la source indiquée. Bundle ZIP : apiv2.something-rare.com/v2/export/bundle · Couche unique : apiv2.something-rare.com/v2/export/{layer}"
+    },
+    "seabed-substrate": {
+      "label": "Substrat du fond marin",
+      "source": "Dutkiewicz et al. 2015, Geology (doi:10.1130/G36883.1) · earthbyte.org/.../seabed_lithology_v1.nc",
+      "updateFreq": "Statique (publication Dutkiewicz 2015)",
+      "description": "Carte mondiale du type de sédiments marins — 13 classes lithologiques interpolées par machine à vecteurs de support (SVM) à partir de descriptions de ~14 500 échantillons de fonds marins, à une résolution de 0,1°.",
+      "reading": "Couleur = classe lithologique dominante. Le mode Champ affiche le choroplèthe pleine résolution ; le mode Hexagones est cliquable et indique la classe pour chaque cellule. L'argile domine les plaines abyssales (terrain à nodules polymétalliques) ; les boues calcaires se trouvent au-dessus de la profondeur de compensation des carbonates.",
+      "limitations": "Modèle, non un test ponctuel : la résolution de 0,1° lisse les variations locales et les limites de classe sont interpolées. Licence CC-BY-NC (non commerciale)."
+    },
+    "arctic-sediment-carbon": {
+      "label": "Carbone des sédiments arctiques",
+      "source": "CASCADE v2 — Martens et al. 2021, ESSD 13:2561 ; Bolin Centre Database (bolin.su.se/data/cascade)",
+      "updateFreq": "Statique (publication CASCADE v2)",
+      "description": "Carbone organique des sédiments de surface de l'océan Arctique, issu de la Circum-Arctic Sediment Carbon Database. Vue Champ : rasters interpolés à 5 km (carbone organique, azote total, δ¹³C, Δ¹⁴C). Vue Stations : environ 4 500 stations d'échantillonnage brutes.",
+      "reading": "Un carbone organique plus élevé et des valeurs δ¹³C/Δ¹⁴C plus négatives indiquent un carbone d'origine terrestre déposé sur le fond marin — le puits du carbone exporté par les fleuves arctiques et l'érosion des côtes à pergélisol.",
+      "limitations": "La vue Champ est interpolée (modélisée), pas mesurée. Sédiments de surface uniquement (0–5 cm). Tous les paramètres ne sont pas disponibles pour chaque station. Licence CC-BY 4.0.",
+      "sources": "CASCADE v2, DOI 10.17043/cascade-2"
+    },
+    "permafrost-thaw": {
+      "label": "Dégel du pergélisol",
+      "description": "19 540 emplacements observés d'objets de dégel du pergélisol à travers l'Alaska (Webb et al. 2026, ESSD) — lacs thermokarstiques, glissements de dégel rétrogressifs, décollements de la couche active, zones humides thermokarstiques, ravins thermo-érosifs, dégel induit par les feux de forêt et mares de dégel — ainsi qu'environ 40 102 points circumpolaires de glissements de dégel rétrogressifs issus de l'inventaire ARTS (whrc/ARTS v6.0.0, Yang, Rodenhizer, Rogers et al. 2025, Sci. Data 12:18, CC0), couvrant la Sibérie, le Canada et l'ensemble de l'Arctique eurasien. Le signal terrestre du dégel abrupt qui mobilise le carbone vers les fleuves et les côtes arctiques.",
+      "reading": "Chaque point est un objet de dégel observé, coloré selon sa catégorie. Cliquez pour voir la publication source (avec DOI), la méthode d'observation (terrain ou télédétection) et l'imagerie utilisée. Filtrez par dégel abrupt/non abrupt, par catégorie d'objet ou par source (Base Alaska / Glissements circumpolaires).",
+      "limitations": "La sous-source Alaska n'est pas circumpolaire ; la sous-source ARTS élargit la couverture géographique à l'échelle circumpolaire (Sibérie, Canada, Eurasie) mais ne couvre que les glissements de dégel rétrogressifs — la richesse des 9 catégories reste propre à l'Alaska. Les points ARTS sont des centroïdes de polygones de glissements numérisés, pas leur emprise d'origine. Les échantillons négatifs/d'arrière-plan d'ARTS (sites sans glissement) sont exclus — seules les détections positives confirmées sont affichées. Les occurrences observées sont échantillonnées de manière inégale (plus denses près des routes, des sites d'étude de long terme et des régions accessibles) ; l'absence de points ne signifie pas l'absence de dégel. La résolution temporelle varie (imagerie couvrant environ 70 ans).",
+      "source": "Zenodo doi:10.5281/zenodo.16996415 (Webb et al. 2026, ESSD 18:3147, CC-BY 4.0); whrc/ARTS v6.0.0, Zenodo doi:10.5281/zenodo.10535025 (CC0)",
+      "updateFreq": "Statique (édition Webb et al. 2026)",
+      "colorRamp": [
+        {
+          "label": "Lac thermokarstique"
+        },
+        {
+          "label": "Décollement de la couche active"
+        },
+        {
+          "label": "Glissement de dégel rétrogressif"
+        },
+        {
+          "label": "Thermokarst (générique)"
+        },
+        {
+          "label": "Dégel induit par les feux de forêt"
+        },
+        {
+          "label": "Zone humide thermokarstique"
+        },
+        {
+          "label": "Ravin thermo-érosif"
+        },
+        {
+          "label": "Mare de dégel"
+        },
+        {
+          "label": "Non abrupt"
+        }
+      ]
+    },
+    "mosaic-sediment": {
+      "label": "Carbone des sédiments marins (MOSAIC)",
+      "description": "Synthèse mondiale de carottes de sédiments de surface des marges continentales, compilée par la base MOSAIC (ETH Zurich), couvrant le carbone organique total (TOC), l'azote total (TN), les isotopes stables du carbone (δ¹³C) et l'âge radiocarbone (Δ¹⁴C). Complète la couche CASCADE (Arctique uniquement) avec une couverture mondiale, hors zones polaires.",
+      "reading": "Sélectionnez une variable dans les contrôles de la couche ; chaque point ou cellule hexagonale est coloré selon sa valeur. Le δ¹³C indique si le carbone est d'origine marine ou terrestre ; le Δ¹⁴C indique son âge (plus négatif = carbone plus ancien). Cliquez sur un point pour voir l'ensemble des valeurs mesurées et un lien vers la publication source d'origine — chaque valeur est individuellement traçable via un DOI.",
+      "limitations": "Marges continentales uniquement — la plaine abyssale profonde et l'océan Arctique ne sont pas l'objet de cette compilation (voir la couche CASCADE distincte pour le carbone des sédiments arctiques). Les mesures de radiocarbone (Δ¹⁴C) sont bien plus rares que celles des trois autres variables car plus coûteuses à réaliser. Compilé à partir de nombreuses études originales aux méthodes et années d'échantillonnage différentes ; ce n'est pas une série de suivi continu.",
+      "source": "MOSAIC (Modern Ocean Sediment Archive and Inventory of Carbon), Van der Voort et al. 2021, Earth System Science Data 13:2135–2146. ETH Zurich. doi:10.5168/mosaic019.1. Licence : CC-BY 4.0."
+    },
+    "ocean-acidification": {
+      "label": "Acidification de l'océan (modélisée)",
+      "description": "Champ mondial de l'état de saturation en aragonite (ΩA) et en calcite (ΩC) de l'eau de mer, sur la même grille hexagonale que les autres couches de chimie du carbone. Les champs Ω eux-mêmes proviennent directement de la climatologie cartographiée officielle du GLODAP — ce n'est pas un modèle de la plateforme. Ce qui EST dérivé par la plateforme, c'est la profondeur de l'horizon de saturation en aragonite : la profondeur la moins profonde à laquelle ΩA passe sous 1, calculée ici à partir de la grille OmegaA à 33 profondeurs du GLODAP. En dessous de Ω = 1, l'eau de mer est corrosive pour l'aragonite, la forme la plus soluble du carbonate de calcium dont dépendent de nombreux organismes à coquille ou à squelette — ptéropodes, coraux, une partie du plancton. Cet horizon revêt une importance particulière en Arctique : l'eau arctique froide et peu alcaline fait remonter l'horizon plus vite que partout ailleurs, ce qui signifie que des conditions corrosives peuvent déjà y apparaître à des profondeurs plus faibles. Une variable associée, le décalage de l'horizon de saturation en aragonite, indique de combien de mètres cet horizon s'est rapproché de la surface depuis l'époque préindustrielle. Elle est entièrement dérivée par la plateforme : la saturation en aragonite est reconstruite avec PyCO2SYS à partir du carbone inorganique dissous actuel (TCO2) et préindustriel (PI_TCO2) du GLODAP, passés par une seule et même configuration CO2SYS pour les deux époques, puis les deux profondeurs d'horizon obtenues sont soustraites l'une de l'autre. « Actuel » désigne ici l'année de référence propre à la cartographie du GLODAP (nominalement vers 2002), et non l'année civile en cours — il s'agit d'une comparaison entre deux instantanés climatologiques, pas d'une tendance continue.",
+      "reading": "Cliquez sur une cellule pour voir ΩA et ΩC à la profondeur sélectionnée, ainsi que la profondeur d'horizon de saturation dérivée et son état (remontée/typique/profond, ou « toujours sursaturé » lorsque l'horizon n'existe pas dans la colonne d'eau). L'échelle de couleurs divergente se lit : rouge (<1, corrosif pour l'aragonite) → blanc (≈1, seuil de saturation) → bleu (>1, sursaturé). La variable de profondeur d'horizon est une carte distincte allant du peu profond au profond, sans sélecteur de profondeur propre — elle représente déjà une seule profondeur par cellule. Lorsque la variable de décalage de l'horizon de saturation est sélectionnée, chaque cellule affiche à la place une seule valeur de remontée en mètres — une valeur positive signifie que l'horizon s'est rapproché de la surface depuis l'époque préindustrielle, c'est-à-dire que la zone corrosive s'est étendue vers le haut — là aussi sans sélecteur de profondeur, puisqu'il s'agit déjà d'une seule valeur par cellule.",
+      "limitations": "GLODAPv2.2016b est une climatologie cartographiée statique, pas une mesure en temps réel — elle reflète une synthèse historique de la chimie du carbone de l'eau de mer, pas les conditions actuelles. La profondeur de l'horizon de saturation est interpolée linéairement entre les 33 profondeurs standard du GLODAP, c'est donc une approximation entre les niveaux échantillonnés, pas un profil continu. Les cellules dont toute la colonne d'eau reste sursaturée (ΩA ne passe jamais sous 1) ne comportent volontairement aucune valeur d'horizon — ce n'est pas une donnée manquante. La couverture suit le domaine océanique cartographié de GLODAP : le nombre de cellules renseignées diminue avec la profondeur (d'environ 89% des cellules océaniques en surface à environ 58% à 3000 m), car moins de lieux atteignent ces profondeurs — cela reflète la bathymétrie de l'océan, pas une lacune de données. Le décalage de l'horizon de saturation est une différence entre deux reconstructions statiques, pas un taux ou une tendance observés — ne jamais le lire comme des mètres par an. Les cellules où l'horizon reconstruit de l'une ou l'autre époque n'est pas défini (aucun passage sous 1 trouvé, ou une donnée d'entrée manquante) ne comportent aucune valeur de décalage et restent vides ; une cellule vide signifie « aucune valeur de décalage disponible », jamais « décalage nul ».",
+      "method": "L'horizon de saturation est une grandeur dérivée, pas une donnée source directe : pour chaque cellule hexagonale, l'OmegaA du GLODAP est lu aux 33 profondeurs standard, et la profondeur la moins profonde à laquelle la valeur passe pour la première fois sous 1 est localisée par interpolation linéaire entre la dernière profondeur sursaturée et la première profondeur sous-saturée. Les cellules où l'OmegaA ne passe jamais sous 1 sur toute la plage de profondeur sont marquées « toujours sursaturé » et n'ont pas de profondeur d'horizon. ΩA et ΩC eux-mêmes sont lus directement dans la climatologie cartographiée GLODAPv2.2016b sans aucune modification côté plateforme. Le décalage de l'horizon de saturation est une dérivation de second ordre construite sur l'horizon lui-même : pour l'époque actuelle comme pour l'époque préindustrielle, l'état de saturation en aragonite est reconstruit avec PyCO2SYS à partir du carbone inorganique dissous du GLODAP (TCO2 pour l'époque actuelle, PI_TCO2 pour l'époque préindustrielle) en utilisant une seule et même configuration CO2SYS ; chaque grille Ω reconstruite est ensuite parcourue pour obtenir une profondeur d'horizon de saturation exactement comme ci-dessus, puis la profondeur d'horizon préindustrielle est soustraite de la profondeur d'horizon actuelle. L'époque « actuelle » correspond à l'année de référence propre à la cartographie du GLODAP (nominalement vers 2002), et non à l'année civile en cours, si bien que le décalage est la différence entre deux instantanés climatologiques fixes, pas un taux annuel.",
+      "dataSources": [
+        {
+          "name": "GLODAP v2.2016b — Climatologie cartographiée",
+          "url": "https://glodap.info"
+        },
+        {
+          "name": "Lauvset et al. 2016 — ESSD 8:325",
+          "url": "https://doi.org/10.5194/essd-8-325-2016"
+        },
+        {
+          "name": "Key et al. 2015 — NDP-093",
+          "url": "https://doi.org/10.3334/CDIAC/OTG.NDP093_GLODAPv2"
+        }
+      ],
+      "source": "GLODAP v2.2016b Mapped Climatology (OmegaA/OmegaC). Profondeur d'horizon dérivée par la plateforme. Décalage de l'horizon de saturation également reconstruit via PyCO2SYS à partir des champs TCO2/PI_TCO2 du GLODAP ; dérivé par la plateforme, rapporté à l'année de référence cartographiée du GLODAP (~2002).",
+      "colorRamp": [
+        {
+          "label": "< 1 — corrosif (l'aragonite se dissout)"
+        },
+        {
+          "label": "1 — seuil de saturation"
+        },
+        {
+          "label": "> 1 — sursaturé"
+        }
+      ]
+    },
+    "coral-acid-exposure": {
+      "label": "Exposition des coraux à l'acidification (modélisée)",
+      "description": "Croise notre propre modèle d'adéquation d'habitat VME pour les coraux avec l'horizon de saturation en aragonite de la couche Acidification de l'océan, sur la même grille hexagonale utilisée par toutes les couches de chimie du carbone. Pour chaque cellule déjà évaluée par le modèle VME, cette couche récupère la profondeur du fond marin issue de GEBCO 2024 et lit deux profondeurs d'horizon de saturation en aragonite reconstruites — actuelle et préindustrielle — puis classe la cellule selon la position du fond marin par rapport aux deux horizons. Quatre états, du plus alarmant au moins alarmant : nouvellement corrosif (le fond se trouvait au-dessus de l'horizon, donc en eau sursaturée, avant l'industrialisation, mais se trouve en dessous aujourd'hui), corrosif avant l'industrialisation (le fond était déjà en dessous de l'horizon avant 1850), sursaturé (le fond se trouve au-dessus des deux horizons), et aucune donnée (profondeur du fond, un des deux horizons, ou score d'adéquation corallienne manquant pour cette cellule). Il s'agit d'une EXPOSITION, pas d'une perte : une lecture corrosive signifie que l'eau à ce fond est sous-saturée en aragonite. Les coraux d'eau froide sont documentés vivant sous l'horizon de saturation et se calcifiant à un coût métabolique — une cellule corrosive n'est pas une preuve que le corail y est mort, absent ou condamné.",
+      "reading": "Cliquez sur une cellule pour voir son état d'exposition, la profondeur du fond marin (GEBCO), les deux profondeurs d'horizon aragonitique reconstruites (actuelle et préindustrielle), et le score d'adéquation VME à cet endroit. Sous la lecture par cellule, un résumé régional indique la part, pondérée par l'adéquation, de l'habitat corallien modélisé exposée à une eau corrosive quelconque, ainsi que la part devenue corrosive uniquement depuis l'époque préindustrielle, accompagnés d'un tableau de sensibilité au seuil montrant comment ces parts évoluent à des seuils d'adéquation croissants (≥0,3, ≥0,5, ≥0,7) — de sorte que le chiffre principal n'est jamais la réponse d'un seul seuil choisi arbitrairement. Les couleurs suivent les quatre états, du plus alarmant au moins alarmant : magenta (nouvellement corrosif), violet atténué (corrosif avant l'industrialisation), bleu (sursaturé), ardoise (aucune donnée).",
+      "limitations": "Les deux entrées alimentant cette couche sont modélisées, pas observées. L'habitat corallien provient de notre propre modèle d'adéquation VME MaxEnt (performance publiée actuelle : AUC 0,875, Boyce 0,518) — ses propres biais (effort d'échantillonnage DSCRTP inégal, extrapolation hors de la plage environnementale échantillonnée) se répercutent ici ; voir les limitations de la couche Adéquation d'habitat VME pour le détail. Les horizons de saturation en aragonite proviennent d'une climatologie GLODAPv2.2016b à 1°×1°, interpolée linéairement entre 33 profondeurs standard — une approximation entre niveaux échantillonnés, pas un profil continu. « Aujourd'hui » désigne l'année de référence propre à la cartographie du GLODAP, nominalement vers 2002, et non l'année civile en cours : cette couche compare deux instantanés climatologiques fixes, actuel et préindustriel, et n'est JAMAIS un taux ou une tendance — « nouvellement corrosif » signifie « corrosif vers 2002 mais pas avant 1850 », jamais « corrosif cette année ». Il s'agit d'exposition, jamais de perte : une classification corrosive signifie que le fond se trouve en eau sous-saturée, pas que le corail y est mort, absent ou condamné — les coraux d'eau froide sont documentés se calcifiant sous l'horizon de saturation à un coût métabolique. Une part significative des cellules hexagonales porte le statut aucune donnée (profondeur du fond, un des horizons, ou score d'adéquation manquant) et est exclue de chaque statistique de synthèse — jamais comptée comme exposée ni comme non exposée. Le substrat du fond marin (Dutkiewicz et al. 2015, CC-BY-NC) n'entre dans cette couche qu'INDIRECTEMENT, comme l'un des six prédicteurs du modèle d'adéquation VME en amont — il n'est ni lu ni affiché directement ici.",
+      "method": "Pour chaque cellule hexagonale déjà évaluée par le modèle d'adéquation VME, cette couche récupère la profondeur du fond marin GEBCO 2024 et les deux profondeurs d'horizon de saturation en aragonite reconstruites (actuelle et préindustrielle, issues de la propre reconstruction PyCO2SYS de la couche Acidification de l'océan) au centroïde de la cellule, puis classe la cellule uniquement selon la position du fond par rapport aux deux horizons : au niveau ou au-dessus de l'horizon actuel → sursaturé ; en dessous de l'horizon actuel mais au niveau ou au-dessus de l'horizon préindustriel → nouvellement corrosif ; en dessous des deux → corrosif avant l'industrialisation. Un horizon qui « ne passe jamais sous Ω=1 » (colonne d'eau toujours sursaturée) est traité comme infiniment profond, de sorte qu'un fond ne peut jamais être classé nouvellement corrosif par rapport à lui. Toute entrée manquante — profondeur du fond, un des horizons, ou score d'adéquation VME pour la cellule — donne aucune donnée plutôt qu'une supposition. Le résumé régional pondère chaque cellule classée par son propre score continu d'adéquation VME (jamais un seuil binaire habitat/non-habitat) pour calculer les parts exposées et nouvellement exposées, puis répète le calcul en le restreignant aux cellules à des seuils d'adéquation croissants pour montrer la sensibilité du chiffre principal à ce choix.",
+      "dataSources": [
+        {
+          "name": "NOAA DSCRTP — occurrences coralliennes (entraînement du modèle VME)",
+          "url": "https://deepseacoraldata.noaa.gov/"
+        },
+        {
+          "name": "GLODAP v2.2016b — Climatologie cartographiée (horizons aragonitiques)",
+          "url": "https://glodap.info"
+        },
+        {
+          "name": "Lauvset et al. 2016 — ESSD 8:325",
+          "url": "https://doi.org/10.5194/essd-8-325-2016"
+        },
+        {
+          "name": "Key et al. 2015 — NDP-093",
+          "url": "https://doi.org/10.3334/CDIAC/OTG.NDP093_GLODAPv2"
+        },
+        {
+          "name": "PyCO2SYS — reconstruction du système carbonaté",
+          "url": "https://pyco2sys.readthedocs.io/"
+        },
+        {
+          "name": "GEBCO 2024 — profondeur du fond marin",
+          "url": "https://www.gebco.net/data_and_products/gridded_bathymetry_data/"
+        },
+        {
+          "name": "Dutkiewicz et al. 2015 — substrat du fond marin (prédicteur VME indirect)",
+          "url": "https://www.earthbyte.org/seafloor-lithology-of-the-ocean-basins/"
+        }
+      ],
+      "source": "Analyse dérivée par la plateforme, croisant notre propre modèle d'adéquation corallienne VME MaxEnt (modélisé, non observé) avec des horizons de saturation en aragonite reconstruits via PyCO2SYS à partir du carbone inorganique dissous actuel et préindustriel du GLODAP v2.2016b. Le substrat du fond marin (Dutkiewicz et al. 2015, CC-BY-NC) entre indirectement comme l'un des prédicteurs VME. Exposition à une eau sous-saturée — PAS une prévision de perte d'habitat.",
+      "colorRamp": [
+        {
+          "label": "Nouvellement corrosif (ère industrielle)"
+        },
+        {
+          "label": "Corrosif avant l'industrialisation"
+        },
+        {
+          "label": "Fond marin en eau sursaturée"
+        },
+        {
+          "label": "Aucune donnée"
+        }
+      ]
+    },
+    "cumulative-human-impact": {
+      "label": "Impact humain cumulé (modélisé)",
+      "description": "Un indice modélisé et sans dimension de la pression humaine totale sur les écosystèmes marins (NCEAS / Halpern et al. 2025) — la somme, à l'état actuel, d'une dizaine de facteurs de stress anthropiques répartis en six catégories (climat, pêche, pollution d'origine terrestre, transport maritime, etc.), rendue sur la même grille hexagonale que les autres couches de champs océaniques. C'est un indice de synthèse, pas la mesure d'une activité isolée. Point essentiel : l'exploitation minière des fonds marins n'en est qu'une composante mineure, et les zones de contrat d'exploration de l'AIFM se situent dans des zones abyssales à impact relativement faible. Cette couche est un contexte, pas une accusation : un polygone de concession n'est pas une source causale de cet impact. État actuel uniquement — aucune projection future dans cette version. Les données sources sont dans le domaine public (CC0 1.0).",
+      "reading": "Cliquez sur une cellule pour lire sa valeur d'impact cumulé sans dimension. Des valeurs plus élevées traduisent une pression humaine totale plus forte. L'échelle de couleurs séquentielle va d'un vert-sarcelle profond et calme (faible pression, la majeure partie du large) au cyan, à l'ambre chaud, puis au rouge profond (points chauds côtiers et à fort trafic). Basculez entre la vue Champ (un raster continu) et la vue Hexagones (une grille cliquable qui renvoie la valeur exacte). Aucun sélecteur de profondeur ou de variable — il s'agit d'un indice de surface unique par cellule.",
+      "limitations": "Un indice modélisé, pas une observation. Il combine des couches de facteurs de stress de résolution, d'ancienneté et de certitude différentes en un seul nombre sans dimension ; les valeurs absolues n'ont donc de sens qu'en termes relatifs — lisez les motifs, pas les décimales. Il reflète l'état de référence de l'étude, pas l'année en cours, et ne porte aucune information de tendance ou de taux. L'exploitation minière des fonds marins ne contribue que marginalement au total ; ne lisez PAS une valeur élevée ou faible sur une zone de contrat de l'AIFM comme une preuve concernant l'exploitation minière. Un polygone de concession n'est pas une source causale de cet impact, et une valeur absente signifie terre ou absence de données, pas une pression nulle.",
+      "source": "NCEAS / Halpern et al. 2025, « Cumulative impacts to global marine ecosystems » (Science, doi:10.1126/science.adv2906). Données archivées sur le dépôt KNB (doi:10.5063/F18K77KZ), domaine public CC0 1.0. Indice d'impact cumulé pour l'état actuel ; une synthèse modélisée, pas une mesure. L'exploitation minière des fonds marins en est une composante mineure — contexte, pas accusation.",
+      "dataSources": [
+        {
+          "name": "NCEAS / Halpern et al. 2025 — Science",
+          "url": "https://doi.org/10.1126/science.adv2906"
+        },
+        {
+          "name": "KNB data archive (cumulative_impact) — CC0 1.0",
+          "url": "https://doi.org/10.5063/F18K77KZ"
+        }
+      ],
+      "colorRamp": [
+        {
+          "label": "Faible — pression humaine minimale"
+        },
+        {
+          "label": "Modéré"
+        },
+        {
+          "label": "Élevé"
+        },
+        {
+          "label": "Très élevé — pression maximale"
+        }
+      ]
+    },
+    "ais-live": {
+      "label": "Navires en direct (AIS)",
+      "description": "Positions AIS brutes diffusées par les navires, via AISStream.io — les ~60 dernières minutes. Chaque point représente un navire ; cliquez pour voir le nom, le pavillon, le type, la vitesse et la destination.",
+      "reading": "La couleur indique la classe générale du navire. Un flux dense le long des côtes est normal ; des zones vides en haute mer sont attendues avec l'offre gratuite.",
+      "limitations": "La couverture AIS de l'offre gratuite est limitée aux zones côtières — les zones de haute mer, y compris les eaux des contrats de l'AIFM, sont hors de portée de l'AIS. Les positions sont telles que diffusées ; un navire dont l'AIS est éteint est invisible ici (voir la couche Navires furtifs).",
+      "source": "AISStream.io (WebSocket AIS en direct)"
+    },
+    "vessel-events": {
+      "label": "Navires furtifs",
+      "description": "Détections SAR×AIS : navires observés dans l'imagerie radar Sentinel-1 et comparés aux données AIS. Rouge = furtif (détection radar sans AIS), vert = correspondance confirmée, ambre = ambigu.",
+      "reading": "Un marqueur rouge est un contact radar sans diffusion AIS correspondante dans la fenêtre de corrélation — un navire « furtif » potentiel, pas une preuve d'infraction.",
+      "limitations": "La couverture est uniquement côtière et dépend d'un passage récent de Sentinel-1. Une détection n'est marquée « furtive » que si l'AIS d'autres navires a été reçu dans un rayon de 50 km et ±1 h ; sinon elle est marquée « ambiguë » (lacune de couverture). L'absence de marqueurs signifie qu'aucune scène récente n'est disponible, pas que la mer est vide.",
+      "source": "Copernicus Sentinel-1 (CDSE) × AISStream.io"
+    },
+    "methodHeading": "Méthodologie",
+    "dataSourcesHeading": "Sources de données"
+  },
+  "header": {
+    "title": "Référence des données",
+    "subtitle": "sources · méthodologie · guide de lecture"
+  },
+  "inventory": {
+    "loading": "Chargement…",
+    "error": "Inventaire indisponible. Le serveur est peut-être en cours de redémarrage — réessayez dans une minute.",
+    "objectsAcross": "objets",
+    "acrossLayers": "sur {{count}} couches",
+    "description": "Dénombrements en direct de chaque enregistrement stocké et affiché sur la carte. Provenant de {{count}} jeux de données scientifiques et réglementaires. Les dénombrements sont actualisés toutes les 10 minutes.",
+    "tableLayer": "Couche",
+    "tableRecords": "Enregistrements",
+    "tableSource": "Source",
+    "tableSynced": "Synchronisé",
+    "footer": "Généré le {{date}}. Les dénombrements sont exacts (count(*) en direct sur PostgreSQL) ; les dates de synchronisation correspondent au dernier rafraîchissement de notre copie par la source. « — » signifie que la couche est en direct ou ne suit pas les horodatages de synchronisation par source."
+  },
+  "howto": {
+    "navigationTitle": "Navigation",
+    "nav_drag": "déplacer la carte",
+    "nav_scroll": "zoom avant et arrière",
+    "nav_rightdrag": "incliner et faire pivoter (vue 3D)",
+    "nav_clickClaim": "ouvrir une fenêtre contextuelle détaillée avec les informations sur le contractant, les espèces, les flotteurs Argo et les conflits de cheminées",
+    "nav_clickDot": "ouvrir une fenêtre contextuelle spécifique à la couche",
+    "nav_shiftclick": "épingler une seconde fenêtre contextuelle près du clic sans fermer la fenêtre actuelle ; répétez pour comparer plusieurs emplacements côte à côte",
+    "nav_clickOcean": "fermer toutes les fenêtres contextuelles ouvertes",
+    "sidebarTitle": "Barre latérale gauche (panneau des couches)",
+    "sidebar_toggles": "afficher ou masquer chaque couche de données ; les couches désactivées sont grisées. Les choix persistent d'une session à l'autre.",
+    "sidebar_locate": "déplace la carte vers les données de cette couche, en parcourant les entités une par une. Respecte les filtres actifs.",
+    "sidebar_claimRisk": "filtrer les concessions minières par type de risque (chevauchement biodiversité, Argo à proximité, conflit cheminée, proximité UNESCO) ; réduit par défaut",
+    "sidebar_ventStatus": "afficher ou masquer les cheminées actives, inactives et éteintes indépendamment ; réduit par défaut",
+    "sidebar_iucnFilter": "développer OBIS Espèces (profondeur) pour filtrer par catégorie de la Liste rouge UICN (CR, EN, VU, NT, LC). Seules les observations correspondant aux catégories sélectionnées sont affichées.",
+    "sidebar_alarmFilter": "afficher uniquement les flotteurs Argo correspondant à un ou plusieurs types d'alarme ; réduit par défaut. Un badge affiche le nombre d'alarmes actives.",
+    "sidebar_contractors": "activer/désactiver les opérateurs individuels ; réduit par défaut",
+    "sidebar_reset": "apparaît dans l'en-tête du panneau chaque fois qu'un filtre est actif ; efface tous les filtres en un seul appui",
+    "sidebar_mobile": "appuyez sur la carte ou ouvrez une fenêtre contextuelle de détail pour fermer automatiquement la barre latérale",
+    "iucnTitle": "Légende des couleurs de biodiversité (UICN)",
+    "iucn_red": "En danger critique ou En danger (UICN CR/EN)",
+    "iucn_orange": "Vulnérable (UICN VU)",
+    "iucn_green": "Non menacé ou pas encore évalué",
+    "iucn_yellow": "Quasi menacé (UICN NT)",
+    "iucn_note": "À faible zoom, chaque point résume une cellule géographique. À fort zoom (zoom 8+), chaque point représente une observation d'espèce. Utilisez le filtre UICN dans le panneau des couches pour afficher uniquement les espèces d'un niveau de menace spécifique.",
+    "riskTitle": "Niveaux de risque et de conflit",
+    "risk_high": "cheminée active à l'intérieur d'une concession active de sulfures polymétalliques",
+    "risk_conflict": "cheminée active à l'intérieur de toute concession active",
+    "risk_dormant": "cheminée inactive à l'intérieur d'une concession (peut encore abriter une faune endémique)",
+    "risk_historical": "cheminée éteinte, concession inactive ou restituée",
+    "noiseTitle": "Grille de risque sonore",
+    "noise_intro": "Activez la couche Grille de risque sonore pour voir les cellules d'impact acoustique sous-marin dans la région OSPAR/HELCOM/Baltique et les stations de surveillance mondiales EMODnet. Chaque cellule représente un carré de grille de 1° × 1° (~111 km de côté).",
+    "noise_critical": "bruit sévère combiné à une haute densité de cétacés et/ou une pondération élevée des espèces menacées",
+    "noise_high": "bruit élevé avec présence significative de cétacés",
+    "noise_moderate": "bruit mesurable et activité de cétacés",
+    "noise_low": "bruit mesuré mais impact limité sur les cétacés",
+    "noise_datagap": "bruit élevé détecté mais aucune donnée de recensement des cétacés disponible pour cette cellule",
+    "noise_filter": "Utilisez le filtre Niveau de risque (+) dans la barre latérale pour afficher uniquement les cellules au-dessus d'un seuil spécifique.",
+    "noise_mining": "Lorsque vous ouvrez une fenêtre contextuelle de concession minière, les cellules de risque sonore proches (dans un rayon de 200 km) sont listées dans le panneau.",
+    "chessTitle": "Sites chémosynthétiques",
+    "chess_intro": "Activez la couche Sites chémosynthétiques pour voir les suintements froids, les chutes de baleines et les communautés de zones de minimum d'oxygène du jeu de données ChEssBase.",
+    "chess_seep": "Suintement froid",
+    "chess_whaleFall": "Chute de baleine",
+    "chess_omz": "ZMO / Autre",
+    "chess_filter": "Filtrez par type d'habitat (suintement / chute de baleine / ZMO) ou par embranchement (Annélida, Mollusca, etc.) en utilisant le bouton + dans le menu des couches.",
+    "chess_vents": "Les cheminées hydrothermales avec des enregistrements ChEssBase à proximité affichent un badge de nombre d'espèces dans leur fenêtre contextuelle.",
+    "argoTitle": "Filtres d'alarme Argo",
+    "argo_intro": "Activez la couche Argo, puis développez-la dans la barre latérale pour révéler quatre cases à cocher d'alarme. L'activation d'une ou de plusieurs masque tous les flotteurs ne correspondant à aucune alarme sélectionnée.",
+    "argo_oxygen": "O₂ en dessous du seuil adaptatif à la profondeur (voir l'onglet Filtres d'alarme pour les valeurs exactes)",
+    "argo_ph": "pH en dessous du seuil adaptatif à la profondeur",
+    "argo_temp": "température de surface à plus de 2 écarts-types de la moyenne actuelle du jeu de données",
+    "argo_salinity": "salinité de surface à plus de 2 σ de la moyenne du jeu de données",
+    "argo_logic": "Les alarmes multiples utilisent la logique OU — un flotteur est affiché s'il déclenche l'une des alarmes sélectionnées.",
+    "driftTitle": "Traces de dérive et traçage des panaches",
+    "drift_trail": "Chaque flotteur Argo affiche une trace vert citron (ou rouge si une alarme de capteur est active) reliant jusqu'à 180 jours d'événements de surface. Les points marquent chaque position passée.",
+    "drift_track": "Cliquez sur n'importe quel flotteur Argo et appuyez sur « Suivre tous les panaches de dérive » pour retracer les courants océaniques depuis chaque position enregistrée en utilisant les données Copernicus Marine (CMEMS) à 1 000 m de profondeur.",
+    "drift_clickable": "Une fois les panaches suivis, les points de trace deviennent cliquables — appuyez sur un point pour voir la profondeur, la température, la salinité et l'oxygène mesurés à cette position historique.",
+    "landTitle": "Couches terrestres",
+    "land_intro": "La plateforme comprend un ensemble parallèle de couches environnementales terrestres pour analyser les impacts de l'exploitation minière continentale. Celles-ci sont désactivées par défaut.",
+    "land_footprints": "Plus de 74 000 polygones de mines issus d'images satellites. Activez en parallèle avec KBA pour voir les mines à l'intérieur de zones biodiversifiées.",
+    "land_kba": "Zones clés pour la biodiversité (désignation scientifique) et zones protégées (désignation juridique). La superposition des deux révèle quels sites critiques pour la biodiversité sont dépourvus de protection juridique.",
+    "land_tailings": "Plus de 11 587 installations de résidus, ~2 100 avec classification des risques de GRID-Arendal. Codé par couleur selon le risque.",
+    "land_fires": "Détections d'incendies quasi en temps réel et surveillance gouvernementale de l'air. Utilisez ensemble pour trouver des incendies près des mines.",
+    "land_dams": "Ouvrages fluviaux et plans d'eau suivis par satellite. Référencez croisé avec les empreintes minières pour tracer les voies de contamination.",
+    "land_note": "Les couches terrestres utilisent les mêmes modèles de clic pour inspecter, de basculement de couche et de localisation (⊙) que les couches océaniques."
+  },
+  "alarms": {
+    "intro": "Seuils adaptatifs à la profondeur — indépendants de la localisation, de la saison ou du jeu de données chargé.",
+    "lowOxygen": {
+      "title": "Faible oxygène (O₂)",
+      "description": "Oxygène dissous à la profondeur maximale de plongée. Les niveaux normaux dépendent de la profondeur — la ZMO est naturellement appauvrie.",
+      "tableHeaders": {
+        "depth": "Profondeur",
+        "threshold": "Seuil",
+        "note": "Note"
+      },
+      "rows": {
+        "shallow": {
+          "depth": "0–200 m",
+          "threshold": "< 150 µmol/kg",
+          "note": "Bonne oxygénation attendue"
+        },
+        "mid": {
+          "depth": "200–999 m",
+          "threshold": "< 90 µmol/kg",
+          "note": "< 90 = hypoxie"
+        },
+        "deep": {
+          "depth": "≥ 1000 m",
+          "threshold": "< 60 µmol/kg",
+          "note": "Préoccupant en profondeur"
+        }
+      }
+    },
+    "lowPh": {
+      "title": "pH faible (acidification)",
+      "description": "Les eaux profondes sont naturellement plus acides en raison de l'accumulation de CO₂. Seuils calibrés par zone de profondeur.",
+      "tableHeaders": {
+        "depth": "Profondeur",
+        "threshold": "Seuil",
+        "normal": "Normal"
+      },
+      "rows": {
+        "shallow": {
+          "depth": "0–200 m",
+          "threshold": "< 7,95",
+          "normal": "8,0–8,3"
+        },
+        "mid": {
+          "depth": "200–999 m",
+          "threshold": "< 7,75",
+          "normal": "Plus bas dû au CO₂"
+        },
+        "deep": {
+          "depth": "≥ 1000 m",
+          "threshold": "< 7,60",
+          "normal": "< 7,6 alarmant"
+        }
+      }
+    },
+    "usage": {
+      "title": "Utilisation",
+      "step1": "Activez la couche <1>Flotteurs Argo</1> dans le panneau latéral gauche.",
+      "step2": "Cliquez sur le bouton <1>Filtre d'alarme</1> sous Flotteurs Argo pour développer les cases à cocher.",
+      "step3": "Cochez une ou plusieurs alarmes. Les flotteurs ne correspondant à aucune alarme sélectionnée disparaissent de la carte.",
+      "step4": "Utilisez le bouton de localisation <1>⊙</1> pour parcourir uniquement les flotteurs visibles (filtrés).",
+      "step5": "Cliquez sur un flotteur pour voir les valeurs exactes d'O₂, pH, température et profondeur dans la fenêtre contextuelle.",
+      "step6": "Plusieurs types d'alarmes utilisent une <1>logique OU</1> — un flotteur est affiché s'il déclenche l'une des alarmes sélectionnées.",
+      "step7": "Note : les alarmes O₂ et pH ne signalent que les flotteurs équipés de ces capteurs (BGC Argo). La plupart des flotteurs de base n'ont pas ces capteurs, ces filtres peuvent donc afficher peu ou aucun résultat."
+    }
+  },
+  "dates": {
+    "whatMeansTitle": "Ce que signifient les dates",
+    "mining_expiry_title": "Concession minière — Expiration",
+    "mining_expiry": "La date de fin du contrat telle que publiée par l'ISA. Une date future signifie que le contrat est encore actif. Les contrats ISA sont généralement des licences d'exploration de 15 ans.",
+    "obis_obs_title": "OBIS Espèces (profondeur) — Date d'observation",
+    "obis_obs": "La date à laquelle l'espèce a été physiquement observée, tirée de l'enregistrement OBIS original. C'est la date à laquelle le relevé a eu lieu — pas la date à laquelle nous l'avons récupéré.",
+    "argo_profile_title": "Flotteurs Argo — Date de profil",
+    "argo_profile": "La date du dernier profil océanographique transmis. Les flotteurs Argo remontent à la surface tous les ~10 jours pour transmettre. Le flotteur peut avoir dérivé de manière significative depuis cette date.",
+    "vents_title": "Cheminées hydrothermales",
+    "vents": "Aucune date affichée — les données sur les cheminées proviennent du catalogue statique InterRidge 2020. Le statut (Actif/Inactif/Éteint) est celui du dernier relevé signalé à InterRidge.",
+    "eez_title": "Limites des ZEE",
+    "eez": "Aucune date affichée — les limites des ZEE sont des désignations politiques/juridiques. Elles ne changent que lorsque les États renégocient formellement des accords maritimes.",
+    "unesco_title": "Patrimoine marin UNESCO",
+    "unesco": "Aucune date affichée — les désignations UNESCO sont des reconnaissances internationales permanentes.",
+    "oceansites_title": "OceanSITES — Heure d'observation",
+    "oceansites": "L'« Heure d'observation » dans la fenêtre contextuelle est l'horodatage de la lecture de la bouée NDBC, pas l'heure à laquelle nous l'avons récupérée.",
+    "onc_title": "Observatoires ONC — Heure de lecture du capteur",
+    "onc": "L'horodatage affiché correspond au moment où la valeur a été enregistrée par l'instrument, et non à sa mise en cache. Les observatoires câblés d'ONC émettent en continu ; notre cache quotidien conserve la mesure la plus récente. Les nœuds abyssaux disposent généralement de données quelques heures après la mesure. Le panneau affiche également une courbe de tendance sur 72 heures par capteur, une carte thermique de rétrodiffusion moyenne ADCP résolue en profondeur (dernières 24 h, en dB, avec les profondeurs des cellules en mètres), le dernier profil CTD, ainsi que les séismes proches (M≥3, rayon de 200 km, 30 derniers jours) — le tout provenant de l'API ONC Oceans 3.0 et de l'USGS FDSN, actualisé toutes les 4 à 12 heures.",
+    "cables_title": "Câbles sous-marins — Aucune date affichée",
+    "cables": "Le jeu de données de routage des câbles est statique — il montre les routes planifiées/telles que construites, pas la santé du câble en temps réel.",
+    "oncInstruments_title": "Instruments ONC — Aucune date par appareil affichée",
+    "oncInstruments": "Le catalogue d'instruments enregistre les métadonnées de déploiement (catégorie de l'appareil, modèle, profondeur) et non une lecture en direct.",
+    "ports_title": "Ports — Aucune date affichée",
+    "ports": "L'infrastructure portuaire change lentement ; le jeu de données est un instantané compilé statique. Resynchronisé mensuellement.",
+    "tectonic_title": "Plaques tectoniques — Aucune date affichée",
+    "tectonic": "Le modèle de plaques de Peter Bird de 2003 est un jeu de données de référence géologique, pas une série temporelle.",
+    "chess_title": "Sites chémosynthétiques — Aucune date individuelle",
+    "chess": "Les enregistrements ChEssBase sont groupés par localité nommée ; aucune date par enregistrement n'est affichée.",
+    "worms_title": "Taxonomie WoRMS",
+    "worms": "Les noms d'espèces sont résolus en AphiaIDs canoniques de WoRMS ; actualisés chaque semaine et à chaque synchronisation des données d'espèces.",
+    "landDatesTitle": "Dates des couches terrestres",
+    "landMining_title": "Empreintes minières — Composite satellite",
+    "landMining": "Les polygones sont dérivés d'images Sentinel-2 collectées entre 2019 et 2022. Aucune date par entité.",
+    "kba_title": "Zones clés pour la biodiversité — Date d'évaluation",
+    "kba": "Les limites KBA reflètent la dernière évaluation publiée par BirdLife/KBA Partnership.",
+    "fires_title": "Incendies actifs (FIRMS) — Date/heure d'acquisition",
+    "fires": "La date et l'heure exactes (UTC) du passage satellite qui a détecté l'anomalie thermique.",
+    "airQuality_title": "Qualité de l'air — Horodatage de la mesure",
+    "airQuality": "Les mesures des polluants indiquent l'heure de la mesure la plus récente mise en cache. Les mesures sont actualisées toutes les 2 heures.",
+    "landslides_title": "Glissements de terrain — Date de l'événement",
+    "landslides": "La date à laquelle le glissement de terrain s'est produit (ou a été signalé).",
+    "staticDams_title": "Digues de résidus, barrages, eaux de surface — Aucune date en direct",
+    "staticDams": "Ce sont des jeux de données statiques ou mis à jour lentement.",
+    "freshnessTitle": "Fraîcheur des données",
+    "fresh_argo": "synchronisé toutes les 12 heures depuis ArgoVis",
+    "fresh_obis": "synchronisé hebdomadairement depuis OBIS",
+    "fresh_chess": "synchronisé hebdomadairement depuis le jeu de données GBIF ChEssBase",
+    "fresh_oceansites": "positions des stations hebdomadaire depuis OceanOPS ; observations NDBC actualisées quotidiennement",
+    "fresh_currents": "généré quotidiennement depuis Copernicus Marine (GLOBAL_ANALYSISFORECAST_PHY_001_024)",
+    "fresh_onc": "liste des stations chaque semaine ; relevés des capteurs chaque jour ; courbes de tendance toutes les 4 h ; rétrodiffusion ADCP toutes les 12 h ; CTD toutes les 12 h ; séismes toutes les 6 h",
+    "fresh_oncInstruments": "catalogue des appareils synchronisé quotidiennement à 00 h 15 ; enrichissement (images, spécifications) par lot glissant sur 3 jours",
+    "fresh_cables": "routes EMODnet synchronisées hebdomadairement ; câbles d'observatoire ONC mensuellement ; épine dorsale OOI RCA trimestriellement ; Cadastre marin de la NOAA trimestriellement",
+    "fresh_ports": "synchronisé mensuellement depuis la source",
+    "fresh_offshore": "23 registres gouvernementaux, chacun synchronisé hebdomadairement",
+    "fresh_offshore_emodnet": "EMODnet WFS — ows.emodnet-humanactivities.eu (ZEE de l'UE : pétrole/gaz, éolien, exploitation minière des fonds marins)",
+    "fresh_offshore_boem": "BOEM/BSEE ArcGIS — gis.boem.gov (USA OCS : Golfe d'Amérique, Pacifique, Atlantique, Alaska)",
+    "fresh_offshore_noaa": "NOAA CoastalScience ArcGIS — services2.coastalscience.noaa.gov (USA baux éoliens offshore)",
+    "fresh_offshore_crown": "Crown Estate ArcGIS — services2.arcgis.com/PZklK9Q45mfMFuZs (Royaume-Uni Angleterre/Pays de Galles/NI)",
+    "fresh_offshore_scotland": "Crown Estate Scotland ArcGIS — services3.arcgis.com/nGV4jiurzcahJ9LV (Écosse ScotWind/INTOG)",
+    "fresh_offshore_nsta": "NSTA ArcGIS — services-eu1.arcgis.com/OZMfUznmLTnWccBc (blocs pétroliers/gaziers britanniques)",
+    "fresh_offshore_sodir": "Sodir/NPD FactMaps REST — factmaps.sodir.no (licences pétrolières/gazières norvégiennes)",
+    "fresh_offshore_geus": "GEUS SAMBA WFS 2.0 — data.geus.dk/geusmap/ows/4326.jsp, typeName=samba_licences (Danemark)",
+    "fresh_offshore_cnsopb": "NRCan/CNSOPB ArcGIS — maps-cartes.services.geo.ca, couches Nova_Scotia_Offshore_Petroleum_en 4/5/6 (Canada Nouvelle-Écosse)",
+    "fresh_offshore_cnlopb": "C-NLOPB ArcGIS Online — services8.arcgis.com/jSziFisB3BeiveI9A (Canada Terre-Neuve-et-Labrador)",
+    "fresh_offshore_mexico": "CNH/SIGSA ArcGIS — agsserver.sigsa.info (contrats d'hydrocarbures mexicains)",
+    "fresh_offshore_brazil": "ANP ArcGIS Online — services2.arcgis.com/Az8bZXFPk4TfCJlZ (Brésil exploration & production)",
+    "fresh_offshore_australia": "NOPTA ArcGIS — arcgis.nopta.gov.au (pétrole offshore australien)",
+    "fresh_offshore_nz": "NZP&M ArcGIS Online — services3.arcgis.com/fp1tibNcN9mbExhG (permis néo-zélandais)",
+    "fresh_offshore_indonesia": "ESDM Migas Geoportal — geoportal.esdm.go.id/gis3/rest/services/DMEW (blocs pétroliers/gaziers indonésiens)",
+    "fresh_offshore_southafrica": "PASA Geoportal — geoportal.petroleumagencysa.com (pétrole offshore sud-africain)",
+    "fresh_offshore_png": "MRA ArcGIS — portal.mra.gov.pg, Mining_Tenements/MapServer/0 (exploitation minière des fonds marins en Papouasie-Nouvelle-Guinée)",
+    "fresh_offshore_namibia": "Landfolio ArcGIS — portals.landfolio.com/namibia (exploitation minière des fonds marins en Namibie via MME)",
+    "fresh_offshore_cookislands": "Landfolio ArcGIS — sbma.landfolio.com, Mining_Tenements/MapServer (exploitation minière des fonds marins aux Îles Cook via SBMA)",
+    "fresh_tectonic": "modèle statique Peter Bird (2003) ; importé une fois, aucune synchronisation en direct",
+    "fresh_pendingTiles": "configuration du serveur de tuiles en attente ; données pas encore affichées",
+    "fresh_mining": "synchronisé lorsque l'ISA publie des mises à jour (environ trimestriel)",
+    "fresh_relinquished": "synchronisé trimestriellement depuis ISA DeepData avec les contrats miniers",
+    "fresh_reserved": "désignation ISA statique ; resynchronisé trimestriellement",
+    "fresh_apeis": "désignation statique du Plan de gestion environnementale ISA ; resynchronisé trimestriellement",
+    "fresh_density": "recalculé toutes les 12 h à partir de 15 tables sources sous-jacentes : Argo, ChEssBase, OceanSITES, ONC Instruments, grille hotspot OBIS, WOD, PANGAEA, BCO-DMO, jeux de données NOAA, OBIS-SEAMAP, CCHDO, SIO-BIC, ISA DeepData, MBARI VARS et NOAA Deep-Sea Coral & Sponge",
+    "fresh_density_mbari": "Dernière synchronisation MBARI VARS",
+    "fresh_density_noaaCorals": "Dernière synchronisation NOAA Deep-Sea Coral",
+    "fresh_contractorStations": "synchronisé hebdomadairement via des sondes HEAD incrémentielles (ETag/Last-Modified) contre datasets.obis.org/hosted/isa/",
+    "fresh_seamounts": "jeu de données statique 2020 (Yesson et al., SRTM v.11) ; importé depuis PANGAEA",
+    "fresh_seamounts_prefix": "importé",
+    "fresh_vents": "jeu de données statique 2020, resynchronisé tous les 14 jours pour détecter les corrections en amont",
+    "fresh_noiseRisk": "recalculé trimestriellement à partir de ICES/EMODnet (bruit) + OBIS-SEAMAP (observations de cétacés)",
+    "fresh_eez": "resynchronisé tous les 30 jours depuis MarineRegions WFS",
+    "fresh_unesco": "resynchronisé tous les 30 jours depuis MarineRegions WFS",
+    "landLayersTitle": "Couches terrestres",
+    "fresh_miningFootprints": "composite Sentinel-2 statique (2019–2022) ; importé une fois depuis PANGAEA",
+    "fresh_kba": "resynchronisé tous les 6 mois depuis le KBA Partnership",
+    "fresh_tailings": "mises à jour périodiques de GRID-Arendal / PNUE",
+    "fresh_fires": "synchronisé toutes les 6 heures depuis NASA LANCE",
+    "fresh_airQuality": "stations synchronisées quotidiennement ; mesures toutes les 2 heures depuis OpenAQ",
+    "fresh_landslides": "synchronisation périodique depuis NASA COOLR",
+    "fresh_dams": "jeu de données statique (Global Dam Watch v1.1)",
+    "fresh_surfaceWater": "tuiles raster statiques (composite JRC 1984–2021)",
+    "fresh_waterRisk": "jeu de données statique (WRI Aqueduct 4.0 Baseline Annual)",
+    "generalTitle": "Général",
+    "fresh_apiResponses": "mis en cache côté serveur ; votre navigateur peut ajouter une couche supplémentaire de mise en cache"
+  },
+  "verify": {
+    "primaryTitle": "Sources primaires",
+    "isa_title": "Contrats et limites ISA",
+    "isa": "Vérifiez sur isa.org.jm/deepdata/ — le portail ISA DeepData publie les fichiers SIG faisant autorité. Nos limites sont dérivées de ces fichiers ; comparez les numéros d'ID ISA pour confirmer toute concession.",
+    "relinquished_title": "Zones ISA restituées",
+    "relinquished": "Zones où les contractants ont restitué des blocs à l'ISA. L'enregistrement faisant autorité se trouve dans le portail ISA DeepData sur isa.org.jm/deepdata/",
+    "reserved_title": "Zones ISA réservées",
+    "reserved": "Blocs réservés par des États côtiers dans le cadre du régime ISA. Vérifiez le statut actuel sur isa.org.jm/deepdata/",
+    "apeis_title": "Zones protégées (APEI)",
+    "apeis": "Désignations du Plan de gestion environnementale (PGE) établies par l'ISA. La documentation complète du PGE et les coordonnées des APEI se trouvent sur isa.org.jm/en/science/areas.",
+    "density_title": "Densité de surveillance de référence",
+    "density_intro": "Une grille hexagonale à surface égale (~48 760 km² par cellule, EPSG:6933) agrégée à partir de toutes les 11 tables sources sous-jacentes. Vérifiez chaque composant sur son portail faisant autorité :",
+    "contractorStations_title": "Stations d'échantillonnage des contractants",
+    "contractorStations_intro": "Agrégation dérivée de la plateforme des archives DwC des contractants que l'ISA reflète via OBIS. Le panneau de chaque station affiche l'eventID verbatim — copiez-le, ainsi que le slug de l'archive, pour vérifier directement :",
+    "contractorStations_footer": "Tous les dénombrements d'enregistrements, d'espèces et d'embranchements dans le panneau sont agrégés par la plateforme — pas l'analyse propre du contractant. Vérifiez les enregistrements sous-jacents, pas l'agrégation.",
+    "obis_title": "Observations d'espèces (OBIS)",
+    "obis_intro": "Chaque enregistrement OBIS porte un ID d'occurrence. Recherchez-le sur obis.org/occurrence/<id> pour voir l'événement de collecte original, l'institution et la méthodologie.",
+    "argo_title": "Flotteurs Argo",
+    "argo": "Les ID de plateforme affichés dans les fenêtres contextuelles peuvent être consultés sur argovis.colorado.edu.",
+    "vents_title": "Cheminées hydrothermales",
+    "vents": "Beaulieu, Stace E; Szafrański, Kamil M (2020): InterRidge Global Database of Active Submarine Hydrothermal Vent Fields Version 3.4 [dataset]. PANGAEA, <1>https://doi.org/10.1594/PANGAEA.917894</1>.",
+    "seamounts_title": "Monts sous-marins",
+    "seamounts": "Yesson, Chris; Letessier, Tom B; Nimmo-Smith, Alex; Hosegood, Phil; Brierley, Andrew S; Hardouin, Marie; Proud, Roland (2020): List of seamounts in the world oceans - An update [dataset]. PANGAEA, <1>https://doi.org/10.1594/PANGAEA.921688</1>. CC BY 4.0.",
+    "eez_title": "Limites des ZEE",
+    "eez": "La ZEE mondiale v12 est publiée par l'Institut flamand des sciences de la mer (VLIZ) et hébergée sur marineregions.org.",
+    "unesco_title": "Patrimoine marin UNESCO",
+    "unesco": "Limites des sites provenant de la couche du Programme du patrimoine marin mondial de l'UNESCO sur MarineRegions WFS. La liste faisant autorité de tous les sites marins du patrimoine mondial se trouve sur whc.unesco.org/en/marine-programme/",
+    "oceansites_title": "Mouillages OceanSITES",
+    "oceansites": "Métadonnées des stations depuis OceanOPS sur oceanops.org. Observations des bouées depuis NOAA NDBC.",
+    "currents_title": "Courants océaniques",
+    "currents": "Vérifiez la vitesse et la direction des courants dans la visionneuse Copernicus Marine (produit GLOBAL_ANALYSISFORECAST_PHY_001_024, jeu de données cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, variables uo/vo). Les fichiers netCDF sources sont téléchargeables via le Copernicus Marine Toolbox :",
+    "onc_title": "Observatoires ONC",
+    "onc": "Données issues de l'API Oceans 3.0 d'Ocean Networks Canada sur data.oceannetworks.ca. Le code de localisation affiché dans la fenêtre permet de retrouver l'historique complet du capteur et les indicateurs de qualité dans le portail ONC Data Search. Les courbes de tendance (72 h) et les profils CTD proviennent de la même API ; la carte thermique de rétrodiffusion ADCP (24 h) est construite à partir du produit de données RADCPTS d'ONC, la moyenne d'ensemble sur 15 minutes étant appliquée par ONC. Les données sismiques proviennent du service USGS FDSN Event Web Service à earthquake.usgs.gov/fdsnws/event/1/ — vérifiez tout événement à l'aide de l'identifiant USGS affiché dans la fenêtre.",
+    "oncInstruments_title": "Instruments ONC",
+    "oncInstruments": "Catalogue des appareils provenant du WFS d'instruments Oceans 3.0 d'ONC sur data.oceannetworks.ca.",
+    "cables_title": "Câbles sous-marins",
+    "cables": "Routes télécom commerciales provenant d'EMODnet Human Activities sur emodnet-humanactivities.eu. Couloirs du Cadastre marin de la NOAA sur marinecadastre.gov (utilisez Cable System ou Owner depuis le popup).",
+    "ports_title": "Ports",
+    "ports": "Jeu de données compilé à partir de registres portuaires publics.",
+    "tectonic_title": "Plaques tectoniques",
+    "tectonic": "Peter Bird (2003) « An updated digital model of plate boundaries. » Geochem. Geophys. Geosyst., 4(3). Domaine public.",
+    "offshore_title": "Activités offshore",
+    "offshore_intro": "Chaque fenêtre contextuelle comprend un lien direct vers le registre faisant autorité pour cette juridiction.",
+    "noiseRisk_title": "Grille de risque sonore",
+    "noiseRisk": "Bruit impulsif (Pulse Block Days) du registre ICES sur gis.ices.dk. SPL continu d'EMODnet Physics sur emodnet-physics.eu. Observations de cétacés d'OBIS-SEAMAP sur seamap.env.duke.edu. Formule de l'indice de risque : (pbd_norm ou spl_norm) × cetacean_norm × pondération d'espèce UICN, plafonné à 1,0 (méthodologie MSFD Descripteur 11). Un indice modélisé, pas une mesure.",
+    "chess_title": "Sites chémosynthétiques",
+    "chess": "Source : gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756.",
+    "worms_title": "Taxonomie WoRMS",
+    "worms": "Copiez l'AphiaID depuis tout panneau d'espèce vérifiée et recherchez-le sur marinespecies.org pour confirmer le nom accepté et la classification.",
+    "landTitle": "Sources des couches terrestres",
+    "landMining_title": "Empreintes minières",
+    "landMining": "Maus, Victor; da Silva, Dieison M; Gutschlhofer, Jakob; da Rosa, Robson; Giljum, Stefan; Gass, Sidnei L B; Luckeneder, Sebastian; Lieber, Mirko; McCallum, Ian (2022): Global-scale mining polygons (Version 2) [dataset]. PANGAEA, <1>https://doi.org/10.1594/PANGAEA.942325</1>. CC BY 4.0.",
+    "kba_title": "Zones clés pour la biodiversité",
+    "kba": "Base de données mondiale des zones clés pour la biodiversité sur keybiodiversityareas.org.",
+    "tailings_title": "Digues de résidus",
+    "tailings": "Localisations de base : Hudson-Edwards, K. et al. (2023) WAPHA global metal mines database sur doi.org/10.5061/dryad.j3tx95xmg, miroir sur zenodo.org/records/8324697. Enrichissement des risques : portail mondial des résidus GRID-Arendal sur tailing.grida.no.",
+    "fires_title": "Incendies actifs (FIRMS)",
+    "fires": "NASA LANCE FIRMS sur firms.modaps.eosdis.nasa.gov. Données du domaine public (travail du gouvernement américain).",
+    "airQuality_title": "Qualité de l'air",
+    "airQuality": "OpenAQ sur openaq.org. CC BY 4.0.",
+    "landslides_title": "Glissements de terrain",
+    "landslides": "NASA COOLR sur coolr.sci.gsfc.nasa.gov.",
+    "dams_title": "Barrages mondiaux",
+    "dams": "Global Dam Watch v1.1 sur www.globaldamwatch.org. CC BY 4.0.",
+    "surfaceWater_title": "Eaux de surface",
+    "surfaceWater": "JRC Global Surface Water sur global-surface-water.appspot.com. Pekel et al. (2016) Nature 540, 418–422. Domaine public (CE/JRC).",
+    "waterRisk_title": "Risque hydrique (Aqueduct)",
+    "waterRisk": "WRI Aqueduct 4.0 sur wri.org/aqueduct. CC BY 4.0.",
+    "treeCoverLoss_title": "Perte de couvert forestier",
+    "treeCoverLoss": "Global Forest Watch sur globalforestwatch.org/map. CC BY 4.0.",
+    "forestCarbon_title": "Flux de carbone forestier",
+    "forestCarbon": "Global Forest Watch Climate sur globalforestwatch.org/topics/climate. Harris et al. (2021) Nature Climate Change 11, 234–240. CC BY 4.0.",
+    "soilCarbon_title": "Carbone organique du sol",
+    "soilCarbon": "ISRIC — SoilGrids sur soilgrids.org. Carbone organique du sol, 0–5 cm supérieurs (soc_0-5cm_mean), résolution ~250 m. CC BY 4.0.",
+    "limitationsTitle": "Limites à prendre en compte",
+    "limOceanTitle": "Couches océaniques",
+    "lim_obis": "Les couches d'occurrences d'espèces (OBIS, ChEssBase) reflètent les observations signalées, pas la distribution totale — les zones non échantillonnées peuvent abriter des espèces non découvertes",
+    "lim_vents": "Le statut des cheminées (Actif/Inactif) reflète le dernier relevé publié ; les cheminées sont rarement revisitées",
+    "lim_argo": "Les positions des flotteurs Argo sont les derniers emplacements connus ; les flotteurs dérivent continuellement",
+    "lim_isa": "Les limites des blocs ISA sont des zones d'exploration, pas des empreintes minières garanties",
+    "lim_conflict": "Les niveaux de risque de conflit sont des évaluations de proximité spatiale, pas des déterminations juridiquement contraignantes",
+    "lim_oceansites": "OceanSITES n'affiche que les stations avec des flux de bouées NDBC actifs — de nombreux mouillages réels (notamment européens) ne sont pas dans NDBC",
+    "lim_onc": "ONC n'affiche que les stations avec des lectures au cours des 12 derniers mois — les nœuds déclassés ou hors ligne sont exclus",
+    "lim_noise": "Les cellules de la grille de risque sonore marquées « données manquantes » ont du bruit mesuré mais pas de couverture de recensement des cétacés — l'absence de données ne signifie pas l'absence d'animaux",
+    "lim_chess": "Le type d'habitat des sites chémosynthétiques est inféré par mot-clé à partir des noms de localités",
+    "limLandTitle": "Couches terrestres",
+    "lim_miningFootprints": "Les empreintes minières sont classifiées par satellite — des faux positifs existent dans les terrains arides/urbains ; les mines souterraines sont invisibles",
+    "lim_kba": "La couverture des évaluations KBA est inégale mondialement — bien évaluée en Europe/Amériques, lacunes importantes en Asie centrale",
+    "lim_tailings": "Les emplacements des digues de résidus sont des points identifiés par satellite. ~2 100 sont enrichis avec risque, hauteur, volume et propriété de GRID-Arendal ; les ~9 400 restants n'ont que le nom et l'emplacement",
+    "lim_fires": "La détection d'incendies FIRMS manque les incendies sous couverture nuageuse et peut signaler des sources de chaleur industrielles comme des faux positifs",
+    "lim_airQuality": "La densité des stations de qualité de l'air est très inégale — l'Europe et l'Amérique du Nord sont bien couvertes ; l'Afrique subsaharienne a de grandes lacunes",
+    "lim_landslides": "Le catalogue de glissements de terrain est biaisé vers les zones peuplées — les événements éloignés sont sous-déclarés",
+    "lim_dams": "Les coordonnées des barrages sont des centroïdes ponctuels, pas des empreintes précises",
+    "lim_surfaceWater": "Les eaux de surface forment un composite de 37 ans (1984–2021) — elles montrent la fréquence d'occurrence historique, pas le niveau d'eau actuel",
+    "obis_citation": "Citation : OBIS ({{year}}) Enregistrements d'occurrences d'espèces de grands fonds marins (profondeur ≥ 50 m). Disponible : Ocean Biodiversity Information System. Commission océanographique intergouvernementale de l'UNESCO. https://obis.org.",
+    "obis_citationAccessed": "Consulté le : {{date}}.",
+    "reportTitle": "Signaler une erreur",
+    "reportText": "Si vous trouvez une erreur factuelle ou des données périmées, les dépôts sources ci-dessus sont l'endroit approprié pour le signaler. Les corrections de données sont intégrées dans cette carte lors du prochain cycle de synchronisation.",
+    "sources": {
+      "argoFloats": "Flotteurs Argo",
+      "bcoDmo": "BCO-DMO",
+      "cchdo": "Stations hydrographiques CCHDO",
+      "chemosynthenticSites": "Sites chémosynthétiques ChEssBase",
+      "cs_allArchives": "Les 140 archives",
+      "cs_crossCheck": "Vérification croisée via OBIS REST",
+      "cs_isaPortal": "Portail ISA",
+      "cs_perArchive": "Page par archive",
+      "cs_sourceZip": "Archive DwC source (zip)",
+      "isaDeepData": "ISA DeepData (rapports environnementaux des contractants)",
+      "mbariVars": "MBARI VARS (observations ROV en eaux profondes)",
+      "noaaCorals": "NOAA Deep-Sea Coral & Sponge (DSCRTP — copiez le <1>CatalogNumber</1> depuis l'infobulle de l'échantillon de cellule)",
+      "noaaDatasets": "Jeux de données NOAA",
+      "obisSeamap": "Observations de cétacés OBIS-SEAMAP",
+      "obisSpecies": "Grille hotspot de biodiversité OBIS",
+      "oceansitesMoorings": "Mouillages OceanSITES",
+      "oncInstruments": "Instruments ONC",
+      "pangaea": "PANGAEA",
+      "sioBenthic": "Collection d'invertébrés benthiques SIO",
+      "wod": "Base de données mondiale des océans (WOD)",
+      "seabedSubstrate": "Substrat du fond marin (Dutkiewicz 2015)",
+      "arcticSedimentCarbon": "Carbone des sédiments arctiques : vérifiez les valeurs des stations dans le dépôt Bolin Centre CASCADE (doi.org/10.17043/cascade-2) à l'aide du nom de la station."
+    }
+  },
+  "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
+  "dataReference": {
+    "title": "Référence des données",
+    "subtitle": "sources · méthodologie · guide de lecture",
+    "closeAriaLabel": "Fermer",
+    "readingPrefix": "Lecture",
+    "colorStandardPrefix": "Standard de couleur",
+    "syncedPrefix": "synchronisé"
+  },
+  "sampleDate": {
+    "campaign": "campagne :",
+    "noDateAtSource": "aucune date à la source",
+    "undatedSuffix": "non datées",
+    "range": "Années d'échantillonnage",
+    "ofTotal": "sur {{total}}",
+    "decadesShown": "Décennies affichées"
+  }
+}

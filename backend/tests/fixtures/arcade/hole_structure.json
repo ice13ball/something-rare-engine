@@ -1,0 +1,21 @@
+{
+  "182": {
+    "nrings": 2,
+    "orient": [
+      "ext",
+      "hole"
+    ]
+  },
+  "33": {
+    "nrings": 7,
+    "orient": [
+      "ext",
+      "hole",
+      "hole",
+      "hole",
+      "hole",
+      "hole",
+      "hole"
+    ]
+  }
+}

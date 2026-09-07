@@ -1,0 +1,59 @@
+{
+  "welcome": {
+    "title": "Abyssal Claims",
+    "tagline": "Transparence environnementale mer et terre",
+    "description": "Une <bold>plateforme de transparence environnementale</bold> couvrant la mer et la terre. Plus de 50 couches de données — concessions minières en eaux profondes, carbone océanique et acidification, évolution terre-océan en Arctique, biodiversité et capteurs océaniques en direct — issues de bases de données scientifiques réelles. Cliquez sur une entité pour le détail, ou combinez les couches pour révéler les chevauchements et les changements.",
+    "subtitle": "Choisissez votre thématique",
+    "hint": {
+      "layers": "Activez les couches à gauche — concessions, espèces, cheminées, empreintes minières, incendies et plus encore",
+      "pin": "Cliquez sur n'importe quelle entité pour obtenir une analyse, des scores de risque et des rapports d'impact"
+    },
+    "footer": "Chaque mode charge un ensemble de couches sélectionné. Vous pouvez activer ou désactiver des couches supplémentaires depuis le panneau gauche. L'activation de nombreuses couches simultanément peut ralentir votre navigateur.",
+    "ocean": {
+      "title": "Couches océaniques",
+      "summary": "Concessions ISA, flotteurs Argo, cheminées, espèces, câbles, mouillages",
+      "ariaLabel": "Commencer avec les couches océaniques — concessions ISA, flotteurs Argo, cheminées, espèces, câbles, mouillages"
+    },
+    "land": {
+      "title": "Couches terrestres",
+      "summary": "Empreintes minières, zones de biodiversité, incendies actifs, qualité de l'air",
+      "ariaLabel": "Commencer avec les couches terrestres — empreintes minières, zones de biodiversité, incendies actifs, qualité de l'air"
+    },
+    "guided": {
+      "title": "Récits guidés",
+      "summary": "9 enquêtes — mines vs cheminées, risques liés aux résidus, saison des feux",
+      "ariaLabel": "Commencer avec des récits d'enquête guidés — combinaisons de couches organisées avec des narrations"
+    },
+    "continue": "Continuer où j'en étais",
+    "exploreAll": "Tout explorer",
+    "back": "Retour",
+    "allOcean": "Toutes les couches océan",
+    "allLand": "Toutes les couches terrestres",
+    "oceanCarbonArctic": {
+      "title": "Carbone océanique & Arctique",
+      "summary": "Carbone, gaz et métaux traces + les apports arctiques terre→océan",
+      "ariaLabel": "Afficher les couches carbone océanique et Arctique"
+    }
+  },
+  "coach": {
+    "next": "Suivant →",
+    "skip": "Passer",
+    "done": "Terminé",
+    "step1": {
+      "title": "Cliquez sur une entité",
+      "body": "Appuyez sur une concession, une cheminée ou un point sur la carte pour afficher ses détails"
+    },
+    "step2": {
+      "title": "Activez les couches",
+      "body": "Utilisez le panneau gauche pour afficher ou masquer les couches de données"
+    },
+    "step3": {
+      "title": "Accédez à une couche",
+      "body": "Cliquez sur ⊙ à côté d'une couche pour zoomer directement dessus"
+    },
+    "step4": {
+      "title": "Ouvrez la référence",
+      "body": "Documentation complète pour chaque couche, source de données et filtre"
+    }
+  }
+}

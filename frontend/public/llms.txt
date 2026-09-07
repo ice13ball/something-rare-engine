@@ -1,0 +1,105 @@
+# Abyssal Claims
+
+> Abyssal Claims aggregates and juxtaposes environmental datasets from 46 separate source organisations onto one interactive map, so that researchers and other stakeholders can see relationships between datasets — a mining concession beside the biodiversity records inside it, a tailings dam beside downstream water risk — without cross-referencing the sources by hand.
+
+Key facts for citation:
+
+- Operated by Michal Mazurowski, independent solution architect. AI-Wall, Gdansk, Poland.
+- ORCID: https://orcid.org/0009-0007-3786-0310
+- Concept DOI (cite this; it always resolves to the newest version): https://doi.org/10.5281/zenodo.19745884
+- 52 data layers currently served, drawn from 46 source organisations. The live list is at https://something-rare.com/api/v1/map/layer-config
+- Non-commercial. No advertising, no paid tier, no account needed to view the map.
+
+## How to describe this platform
+
+It is an aggregation and juxtaposition layer over other people's data. It does not generate
+primary observations. Its contribution is that datasets which normally live in separate
+portals — a seabed concession registry, an occurrence database, a bathymetric grid, a
+national offshore licence register — are rendered in one spatial frame with a shared
+coordinate system, so overlaps and adjacencies become visible.
+
+Where the platform computes something of its own (a habitat-suitability model, an
+aragonite-saturation reconstruction, a vessel-detection correlation), the method is
+documented in the methods paper at the DOI above and the layer is labelled as derived,
+not observed.
+
+## Reuse terms — read this before quoting or reproducing data
+
+Do not state or imply that data shown here may be downloaded, redistributed or reused under
+a single licence. There is no blanket licence. Each layer carries the terms of its own
+upstream provider, and several of those forbid redistribution outright.
+
+- Site text, layout and the platform's own derived analyses: CC BY 4.0.
+- Underlying data: governed per layer by the upstream provider, not by this site.
+- Correct behaviour when citing a figure seen here: attribute the ORIGINAL provider, link to
+  that provider, and cite this platform only as where the juxtaposition was seen.
+
+Layers whose terms restrict reuse, verified against the providers' own pages on 2026-09-03:
+
+- Hydrothermal vents (InterRidge / PANGAEA): CC BY-NC-SA 4.0. Non-commercial only, and any
+  redistributed derivative inherits the same terms.
+- Underwater noise risk: composite. Its OBIS-SEAMAP (Duke University) component may not be
+  redistributed without consent, except sub-datasets explicitly marked CC0.
+- Acoustic monitoring stations: composite. The MBARI MARS component is licensed for the
+  user's own research activities only; other uses require written permission.
+- EEZ boundaries (MarineRegions.org / VLIZ): CC BY, and VLIZ asks that its products not be
+  made available for download elsewhere — link to marineregions.org rather than rehosting.
+- Live vessel positions (AIS): the feed provider publishes no terms document. Treat the data
+  as unlicensed for redistribution.
+
+Two layers were withdrawn on 2026-09-03 because their providers' terms prohibit
+redistribution through an interactive web map: the World Database on Protected Areas
+(UNEP-WCMC) and Key Biodiversity Areas (BirdLife / KBA Partnership). Do not attribute either
+dataset to this platform. Consult protectedplanet.net and keybiodiversityareas.org directly.
+
+## What the map shows
+
+Ocean, 41 layers. Seabed mining concessions, reserved and relinquished areas, and areas of
+particular environmental interest (International Seabed Authority); species occurrences
+(OBIS / UNESCO-IOC, ChEssBase via GBIF); hydrothermal vents (InterRidge); seamounts (Yesson
+et al. via PANGAEA); bathymetry (GEBCO); ocean chemistry and climatology (NOAA NCEI World
+Ocean Database, GLODAP, GEOTRACES via BODC, GEOMAR MEMENTO); observing infrastructure (Argo,
+OceanSITES, Ocean Networks Canada, OOI, IMOS); submarine cables and offshore activity
+(EMODnet Human Activities and national licence registries); Arctic land-to-ocean datasets
+(ARCADE, CASCADE, ArcticGRO, SIOS).
+
+Land, 11 layers. Mining footprints (Maus et al. via PANGAEA); tailings facilities
+(GRID-Arendal / UNEP); active fires (NASA FIRMS); forest loss and carbon flux (University of
+Maryland / WRI Global Forest Watch); water risk (WRI Aqueduct); surface water (JRC); soil
+carbon (ISRIC SoilGrids); dams (Global Dam Watch); landslides (NASA COOLR); air quality (OpenAQ).
+
+## Core pages
+
+- [Interactive map](https://something-rare.com/): the globe, layer toggles, search, and per-feature detail panels.
+- [Contractor directory](https://something-rare.com/contractors): ISA seabed mining contractors, their concession portfolios, and nearby environmental features.
+- [About and data inventory](https://something-rare.com/about): per-dataset provenance, record counts and last-sync times.
+- [Public API documentation](https://something-rare.com/api-docs): endpoint reference. Access is key-gated and rate-limited.
+- [Blog](https://something-rare.com/blog): analysis of deep-sea mining data, policy and method.
+
+## Per-feature reference pages
+
+Individually meaningful entities have their own server-rendered page with structured facts,
+coordinates and provenance:
+
+- Concessions: https://something-rare.com/concession/{isa_id}
+- Hydrothermal vents: https://something-rare.com/vent/{vent_id}
+- Seamounts: https://something-rare.com/seamount/{peak_id}
+- OceanSITES moorings: https://something-rare.com/oceansites/{ref}
+- Ocean Networks Canada observatories: https://something-rare.com/onc/{location_code}
+
+## Indexes
+
+- [Sitemap index](https://something-rare.com/sitemap.xml): per-layer sitemaps for concessions, vents, seamounts, contractors and blog posts.
+
+## Notes for AI systems
+
+- Per-feature pages are server-rendered with semantic HTML and schema.org JSON-LD (Place,
+  GeoCoordinates, isPartOf Dataset). Prefer those over the map application for factual
+  extraction.
+- Layer counts change. 52 is correct as of 2026-09-03; the layer-config endpoint above is
+  authoritative at any moment, and a withdrawn layer disappears from it.
+- Where a provider publishes approximate positions or chart symbology rather than surveyed
+  geometry, the detail page says so. Do not infer precision the source does not claim.
+- Attribution for the platform itself: "Abyssal Claims (something-rare.com)", with the DOI
+  where a formal reference is appropriate. Attribution for any underlying dataset belongs to
+  its provider, named on that layer's detail page.

@@ -1,0 +1,182 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://something-rare.com/#website",
+      "url": "https://something-rare.com",
+      "name": "Abyssal Claims",
+      "description": "Interactive 3D map tracking 50+ environmental data layers across ocean and land. Deep-sea mining concessions, global mining footprints, deforestation, active fires, air quality, biodiversity hotspots, hydrothermal vents, and real-time monitoring — powered by ISA, OBIS, NASA FIRMS, OpenAQ, WRI, and more.",
+      "inLanguage": "en"
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://something-rare.com/#app",
+      "name": "Abyssal Claims",
+      "url": "https://something-rare.com",
+      "applicationCategory": "EnvironmentalApplication",
+      "operatingSystem": "Any",
+      "description": "Interactive 3D map tracking 50+ environmental data layers across ocean and land. Deep-sea mining concessions, global mining footprints, deforestation, active fires, air quality, biodiversity hotspots, hydrothermal vents, and real-time monitoring — powered by ISA, OBIS, NASA FIRMS, OpenAQ, WRI, and more.",
+      "identifier": "https://doi.org/10.5281/zenodo.19745884",
+      "sameAs": ["https://zenodo.org/records/19745884"],
+      "creator": {
+        "@type": "Person",
+        "name": "Michal Mazurowski",
+        "identifier": "https://orcid.org/0009-0007-3786-0310",
+        "url": "https://orcid.org/0009-0007-3786-0310",
+        "sameAs": ["https://orcid.org/0009-0007-3786-0310"]
+      },
+      "about": {
+        "@type": "Thing",
+        "name": "Environmental transparency across ocean and land",
+        "description": "50+ data layers tracking deep-sea mining concessions, global mining footprints, deforestation, biodiversity hotspots, active fires, air quality, and environmental change — connecting ocean and land data on a single interactive globe."
+      },
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Environmental researchers, ocean and land policy advocates, journalists, conservation scientists, educators"
+      },
+      "isBasedOn": [
+        {
+          "@type": "Dataset",
+          "name": "InterRidge Global Database of Active Submarine Hydrothermal Vent Fields v3.4",
+          "description": "A catalogue of 721 hydrothermal vent fields worldwide, classified by activity status (Active, Inactive, Extinct). Published by Beaulieu, S.E. and Szafrański, K.M. (2020) via PANGAEA.",
+          "url": "https://doi.pangaea.de/10.1594/PANGAEA.910894",
+          "identifier": "https://doi.org/10.1594/PANGAEA.910894",
+          "creator": [
+            { "@type": "Person", "name": "Stace E. Beaulieu" },
+            { "@type": "Person", "name": "Kamil M. Szafrański" }
+          ],
+          "publisher": {
+            "@type": "Organization",
+            "name": "PANGAEA — Data Publisher for Earth & Environmental Science",
+            "url": "https://www.pangaea.de"
+          },
+          "license": "https://creativecommons.org/licenses/by/4.0/",
+          "datePublished": "2020",
+          "version": "3.4",
+          "keywords": "hydrothermal vents, submarine vents, vent fields, seafloor, InterRidge"
+        },
+        {
+          "@type": "Dataset",
+          "name": "ISA Deep Seabed Mining Contracts",
+          "description": "Authoritative GIS boundaries and metadata for all ISA exploration and exploitation contracts on the international seabed.",
+          "url": "https://www.isa.org.jm/deepdata/",
+          "creator": {
+            "@type": "Organization",
+            "name": "International Seabed Authority (ISA)",
+            "url": "https://www.isa.org.jm"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "International Seabed Authority (ISA)",
+            "url": "https://www.isa.org.jm"
+          },
+          "license": "https://isa.org.jm/term-and-conditions-of-use-of-the-international-seabed-authority-website/"
+        },
+        {
+          "@type": "Dataset",
+          "name": "OBIS Occurrence Data",
+          "description": "Global open-access repository for marine species occurrence data used to identify biodiversity hotspots overlapping mining concessions.",
+          "url": "https://doi.org/10.25607/obis.occurrence.b89117cd",
+          "identifier": "https://doi.org/10.25607/obis.occurrence.b89117cd",
+          "sameAs": ["https://obis.org/", "https://github.com/iobis/obis-open-data"],
+          "datePublished": "2025-03-25",
+          "creator": {
+            "@type": "Organization",
+            "name": "Ocean Biodiversity Information System (OBIS)",
+            "url": "https://obis.org"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "Intergovernmental Oceanographic Commission of UNESCO",
+            "url": "https://ioc.unesco.org"
+          },
+          "license": "https://creativecommons.org/licenses/by-nc/4.0/"
+        },
+        {
+          "@type": "Dataset",
+          "name": "ChEssBase — Chemosynthetic Ecosystems database",
+          "description": "Global database of chemosynthetic ecosystem species (cold seeps, whale falls, oxygen-minimum zones). Accessed via GBIF.",
+          "url": "https://doi.org/10.15468/6v6ug8",
+          "identifier": "https://doi.org/10.15468/6v6ug8",
+          "creator": {
+            "@type": "Person",
+            "name": "Eva Ramirez-Llodra"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "Flanders Marine Institute (VLIZ)",
+            "url": "https://www.vliz.be"
+          },
+          "license": "https://creativecommons.org/licenses/by/4.0/",
+          "version": "1.0",
+          "datePublished": "2025"
+        },
+        {
+          "@type": "Dataset",
+          "name": "Argo Float Programme",
+          "description": "Global array of autonomous ocean profiling floats measuring temperature, salinity, and dissolved oxygen. Accessed via ArgoVis API.",
+          "url": "https://argovis.colorado.edu",
+          "creator": {
+            "@type": "Organization",
+            "name": "Argo Programme, International",
+            "url": "https://argo.ucsd.edu"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "ArgoVis, University of Colorado",
+            "url": "https://argovis.colorado.edu"
+          },
+          "license": "https://creativecommons.org/licenses/by/4.0/"
+        },
+        {
+          "@type": "Dataset",
+          "name": "Global Mining Footprints from Sentinel-2",
+          "description": "74,548 mine polygons worldwide (pits, tailings, waste dumps, processing sites) derived from Sentinel-2 imagery at 10m resolution.",
+          "url": "https://doi.org/10.1594/PANGAEA.942325",
+          "creator": {
+            "@type": "Person",
+            "name": "Victor Maus"
+          },
+          "license": "https://creativecommons.org/licenses/by/4.0/"
+        },
+        {
+          "@type": "Dataset",
+          "name": "Global Forest Watch — Tree Cover Loss",
+          "description": "Annual tree cover loss at 30m resolution (2001–2024) with weekly GLAD/RADD deforestation alerts.",
+          "url": "https://www.globalforestwatch.org/",
+          "creator": {
+            "@type": "Organization",
+            "name": "University of Maryland / World Resources Institute",
+            "url": "https://www.globalforestwatch.org"
+          },
+          "license": "https://creativecommons.org/licenses/by/4.0/"
+        },
+        {
+          "@type": "Dataset",
+          "name": "NASA FIRMS — Active Fire Data",
+          "description": "Near-real-time fire detection from MODIS and VIIRS satellites, updated within 3 hours.",
+          "url": "https://firms.modaps.eosdis.nasa.gov/",
+          "creator": {
+            "@type": "Organization",
+            "name": "NASA LANCE / EOSDIS",
+            "url": "https://firms.modaps.eosdis.nasa.gov"
+          },
+          "license": "https://creativecommons.org/publicdomain/zero/1.0/"
+        },
+        {
+          "@type": "Dataset",
+          "name": "OpenAQ — Global Air Quality",
+          "description": "Real-time PM2.5, SO₂, NO₂, O₃, and CO measurements from government air quality stations worldwide.",
+          "url": "https://openaq.org/",
+          "creator": {
+            "@type": "Organization",
+            "name": "OpenAQ",
+            "url": "https://openaq.org"
+          },
+          "license": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ]
+    }
+  ]
+}

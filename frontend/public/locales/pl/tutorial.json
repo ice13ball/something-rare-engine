@@ -1,0 +1,59 @@
+{
+  "welcome": {
+    "title": "Abyssal Claims",
+    "tagline": "Transparentność środowiskowa oceanu i lądu",
+    "description": "<bold>Platforma transparentności środowiskowej</bold> obejmująca ocean i ląd. Ponad 50 warstw danych — koncesje na wydobycie głębinowe, węgiel oceaniczny i zakwaszenie oceanów, zmiany na styku lądu i oceanu w Arktyce, różnorodność biologiczna oraz czujniki oceaniczne na żywo — z rzeczywistych baz naukowych. Kliknij dowolny obiekt, aby zobaczyć szczegóły, lub łącz warstwy, by odkrywać nakładanie się zjawisk i zmiany.",
+    "subtitle": "Wybierz swój obszar zainteresowań",
+    "hint": {
+      "layers": "Włączaj warstwy po lewej — koncesje, gatunki, kominy, ślady kopalni, pożary i więcej",
+      "pin": "Kliknij dowolny obiekt, aby uzyskać analizę, ocenę ryzyka i raport o oddziaływaniu"
+    },
+    "footer": "Każdy tryb wczytuje wyselekcjonowany zestaw warstw. Dodatkowe warstwy można włączać i wyłączać z panelu po lewej stronie. Włączenie wielu warstw jednocześnie może spowolnić przeglądarkę.",
+    "ocean": {
+      "title": "Warstwy oceaniczne",
+      "summary": "Koncesje ISA, boje Argo, kominy, gatunki, kable, kotwiczenia",
+      "ariaLabel": "Zacznij od warstw oceanicznych — koncesje ISA, boje Argo, kominy, gatunki, kable, kotwiczenia"
+    },
+    "land": {
+      "title": "Warstwy lądowe",
+      "summary": "Ślady kopalni, obszary bioróżnorodności, aktywne pożary, jakość powietrza",
+      "ariaLabel": "Zacznij od warstw lądowych — ślady kopalni, obszary bioróżnorodności, aktywne pożary, jakość powietrza"
+    },
+    "guided": {
+      "title": "Przewodniki tematyczne",
+      "summary": "9 reportaży śledczych — górnictwo a kominy, ryzyko hałd, sezon pożarów",
+      "ariaLabel": "Zacznij od przewodników tematycznych — wyselekcjonowane kombinacje warstw z komentarzem narracyjnym"
+    },
+    "continue": "Kontynuuj od miejsca, w którym skończyłem",
+    "exploreAll": "Zobacz wszystko",
+    "back": "Wstecz",
+    "allOcean": "Wszystkie warstwy morskie",
+    "allLand": "Wszystkie warstwy lądowe",
+    "oceanCarbonArctic": {
+      "title": "Węgiel oceaniczny i Arktyka",
+      "summary": "Węgiel, gazy i metale śladowe + arktyczny dopływ ląd→ocean",
+      "ariaLabel": "Pokaż warstwy węgla oceanicznego i Arktyki"
+    }
+  },
+  "coach": {
+    "next": "Dalej →",
+    "skip": "Pomiń",
+    "done": "Gotowe",
+    "step1": {
+      "title": "Kliknij dowolny obiekt",
+      "body": "Dotknij koncesji, komina lub punktu na mapie, aby zobaczyć jego szczegóły"
+    },
+    "step2": {
+      "title": "Przełączaj warstwy",
+      "body": "Używaj panelu po lewej stronie, aby pokazywać lub ukrywać warstwy danych"
+    },
+    "step3": {
+      "title": "Przejdź do warstwy",
+      "body": "Kliknij ⊙ obok dowolnej warstwy, aby od razu do niej przejść"
+    },
+    "step4": {
+      "title": "Otwórz odniesienie",
+      "body": "Pełna dokumentacja każdej warstwy, źródła danych i filtru"
+    }
+  }
+}

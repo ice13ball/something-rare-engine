@@ -1,0 +1,60 @@
+{
+  "status": {
+    "Active": "Aktywne",
+    "Inactive": "Nieaktywne",
+    "Extinct": "Wymarłe",
+    "Pending": "Oczekujące",
+    "Suspended": "Zawieszone",
+    "Expired": "Wygasłe",
+    "Relinquished": "Zrzeczone",
+    "Reserved": "Zarezerwowane",
+    "Approved": "Zatwierdzone",
+    "Submitted": "Złożone"
+  },
+  "resourceType": {
+    "Polymetallic Nodules": "Konkrecje polimetaliczne",
+    "Polymetallic Sulphides": "Siarczki polimetaliczne",
+    "Cobalt-rich Crusts": "Skorupy bogate w kobalt",
+    "Cobalt-Rich Crusts": "Skorupy bogate w kobalt",
+    "Reserved Area": "Obszar zarezerwowany"
+  },
+  "oceanBasin": {
+    "Pacific": "Pacyfik",
+    "Atlantic": "Atlantyk",
+    "Indian": "Ocean Indyjski",
+    "Arctic": "Ocean Arktyczny",
+    "Southern": "Ocean Południowy"
+  },
+  "offshoreType": {
+    "oil_gas": "Ropa i gaz",
+    "offshore_wind": "Morska energetyka wiatrowa",
+    "seabed_mining": "Wydobycie z dna morskiego"
+  },
+  "seamountSize": {
+    "Major": "Główny",
+    "Large": "Duży",
+    "Medium": "Średni",
+    "Small": "Mały"
+  },
+  "iso_topic": {
+    "oceans": "Oceany",
+    "climatologyMeteorologyAtmosphere": "Klimatologia / Atmosfera",
+    "environment": "Środowisko",
+    "biota": "Biota"
+  },
+  "seabedSubstrate": {
+    "gravel": "Żwir i grubszy",
+    "sand": "Piasek",
+    "silt": "Muł",
+    "clay": "Ił",
+    "calcareous_ooze": "Osad wapienny",
+    "radiolarian_ooze": "Osad radiolariowy",
+    "diatom_ooze": "Osad okrzemkowy",
+    "sponge_spicules": "Spikule gąbek",
+    "mixed_ooze": "Mieszany osad wapienny/krzemionkowy",
+    "shells_coral": "Muszle i fragmenty koralowców",
+    "ash_volcanic": "Popiół i piasek/żwir wulkaniczny",
+    "siliceous_mud": "Muł krzemionkowy",
+    "fine_calcareous": "Drobnoziarnisty osad wapienny"
+  }
+}

@@ -1,0 +1,340 @@
+SET lock_timeout = '10s'
+CREATE TABLE IF NOT EXISTS isa_contract_lookup ( contract_id TEXT PRIMARY KEY, contractor_name TEXT NOT NULL )
+CREATE TABLE IF NOT EXISTS sync_log ( source TEXT PRIMARY KEY, last_synced_at TIMESTAMPTZ, records_added INTEGER NOT NULL DEFAULT 0, total_records INTEGER NOT NULL DEFAULT 0 )
+CREATE TABLE IF NOT EXISTS paused_syncs ( action TEXT PRIMARY KEY, paused_at TIMESTAMPTZ DEFAULT NOW(), reason TEXT )
+CREATE TABLE IF NOT EXISTS admin_audit ( id BIGSERIAL PRIMARY KEY, ts TIMESTAMPTZ NOT NULL DEFAULT now(), actor TEXT NOT NULL, action TEXT NOT NULL, target TEXT, detail JSONB )
+CREATE INDEX IF NOT EXISTS admin_audit_ts_idx ON admin_audit (ts DESC)
+CREATE TABLE IF NOT EXISTS reserved_areas ( arcgis_id INTEGER PRIMARY KEY, contract_id TEXT, area_type TEXT, area_km2 DOUBLE PRECISION, status TEXT, remarks TEXT, geom GEOMETRY(GEOMETRY, 4326), synced_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS reserved_areas_geom_idx ON reserved_areas USING GIST(geom)
+CREATE TABLE IF NOT EXISTS isa_apeis ( arcgis_id INTEGER PRIMARY KEY, area_km2 DOUBLE PRECISION, status TEXT, remarks TEXT, geom GEOMETRY(GEOMETRY, 4326), synced_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS isa_apeis_geom_idx ON isa_apeis USING GIST(geom)
+CREATE TABLE IF NOT EXISTS argo_profiles ( profile_id TEXT PRIMARY KEY, platform_id TEXT, profile_date TIMESTAMPTZ NOT NULL, max_depth_m DOUBLE PRECISION, surface_temp_c DOUBLE PRECISION, surface_salinity DOUBLE PRECISION, deep_temp_c DOUBLE PRECISION, deep_salinity DOUBLE PRECISION, deep_pressure_m DOUBLE PRECISION, oxygen_umol_kg DOUBLE PRECISION, ph DOUBLE PRECISION, temp_qc SMALLINT, sal_qc SMALLINT, oxygen_qc SMALLINT, ph_qc SMALLINT, near_mining BOOLEAN NOT NULL DEFAULT FALSE, mining_zone TEXT, mining_dist_km FLOAT, nearest_contract_lon FLOAT, nearest_contract_lat FLOAT, mining_zones JSONB DEFAULT '[]'::jsonb, geom GEOMETRY(Point, 4326) NOT NULL, synced_at TIMESTAMPTZ DEFAULT NOW() )
+COMMENT ON COLUMN argo_profiles.max_depth_m IS 'Max of the Argo profile''s PRES (pressure, dbar) readings, taken as metres. ' 'The Argo GDAC format documents PRES as sea pressure, conventionally positive ' 'and increasing with depth, but we have not confirmed this column''s sign in ' 'production - treat "positive down" here as unverified, not a claim.'
+CREATE INDEX IF NOT EXISTS argo_profiles_geom_idx ON argo_profiles USING GIST(geom)
+CREATE INDEX IF NOT EXISTS argo_profiles_date_idx ON argo_profiles (profile_date)
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS temp_qc SMALLINT
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS sal_qc SMALLINT
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS oxygen_qc SMALLINT
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS ph_qc SMALLINT
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_surface_temp_c DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_surface_sal DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_temp_c DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_sal DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_oxygen_umol_kg DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_aou DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_o2sat DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_phosphate DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_silicate DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_nitrate DOUBLE PRECISION
+CREATE TABLE IF NOT EXISTS hydrothermal_vents ( id SERIAL PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL CHECK (status IN ('Active', 'Inactive', 'Extinct')), depth_m FLOAT, latitude FLOAT NOT NULL, longitude FLOAT NOT NULL, geom GEOGRAPHY(POINT, 4326) NOT NULL, source_url TEXT, created_at TIMESTAMPTZ DEFAULT now(), UNIQUE (name, latitude, longitude) )
+COMMENT ON COLUMN hydrothermal_vents.depth_m IS 'Pass-through of the InterRidge Vents Database v3.4 "Maximum or Single Reported ' 'Depth" column (Beaulieu & Szafranski 2020, doi:10.1594/PANGAEA.917894). That ' 'source''s own column-header definitions file was not checked for a stated sign ' 'convention, and production values have not been range-checked here - treat ' '"positive down" as unverified, not a claim.'
+CREATE INDEX IF NOT EXISTS hydrothermal_vents_geom_idx ON hydrothermal_vents USING GIST(geom)
+CREATE INDEX IF NOT EXISTS hydrothermal_vents_status_idx ON hydrothermal_vents (status)
+CREATE TABLE IF NOT EXISTS relinquished_areas ( arcgis_id INTEGER PRIMARY KEY, contract_id TEXT, area_type TEXT, area_km2 DOUBLE PRECISION, act_date TIMESTAMPTZ, status TEXT, geom GEOMETRY(GEOMETRY, 4326), synced_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS relinquished_areas_geom_idx ON relinquished_areas USING GIST(geom)
+CREATE TABLE IF NOT EXISTS maritime_boundaries ( mrgid INTEGER PRIMARY KEY, geoname TEXT NOT NULL, sovereign1 TEXT, iso_ter1 TEXT, area_km2 DOUBLE PRECISION, geom GEOMETRY(MULTIPOLYGON, 4326) NOT NULL, synced_at TIMESTAMPTZ DEFAULT now() )
+CREATE INDEX IF NOT EXISTS maritime_boundaries_geom_idx ON maritime_boundaries USING GIST(geom)
+CREATE TABLE IF NOT EXISTS protected_marine_sites ( site_id INTEGER PRIMARY KEY, name TEXT NOT NULL, country TEXT, lat_whc DOUBLE PRECISION, lon_whc DOUBLE PRECISION, area_km2 DOUBLE PRECISION, geom GEOMETRY(MULTIPOLYGON, 4326), synced_at TIMESTAMPTZ DEFAULT now() )
+CREATE INDEX IF NOT EXISTS protected_marine_sites_geom_idx ON protected_marine_sites USING GIST(geom)
+CREATE TABLE IF NOT EXISTS mining_contracts ( id SERIAL PRIMARY KEY, isa_id TEXT UNIQUE, contractor_name TEXT, resource_type TEXT, area_km2 DOUBLE PRECISION, expiry_date TIMESTAMPTZ, region TEXT, is_high_risk BOOLEAN DEFAULT FALSE, geom geometry(MultiPolygon, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, act_date TIMESTAMPTZ )
+CREATE INDEX IF NOT EXISTS idx_mining_contracts_geom ON mining_contracts USING GIST(geom)
+CREATE TABLE IF NOT EXISTS biodiversity_hotspots ( id SERIAL PRIMARY KEY, obis_id TEXT UNIQUE, scientific_name TEXT, vernacular_name TEXT, category TEXT, is_endangered BOOLEAN DEFAULT FALSE, geom geometry(Point, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, phylum TEXT, class_name TEXT, order_name TEXT, family TEXT, depth NUMERIC, description TEXT, image_url TEXT, iucn_category TEXT DEFAULT 'NE' )
+CREATE INDEX IF NOT EXISTS idx_biodiversity_hotspots_geom ON biodiversity_hotspots USING GIST(geom)
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS jurisdiction_text TEXT DEFAULT 'International Waters / ISA'
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearest_eez_country TEXT
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearest_eez_dist_km DOUBLE PRECISION
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearest_unesco_site TEXT
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearest_unesco_dist_km DOUBLE PRECISION
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS vent_conflicts INTEGER
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearby_species INTEGER
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearby_argo_floats INTEGER
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearby_onc_stations INTEGER
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS nearby_oceansites_moorings INTEGER
+ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS seo_enriched_at TIMESTAMPTZ
+INSERT INTO isa_contract_lookup (contract_id, contractor_name) VALUES ($1, $2) ON CONFLICT (contract_id) DO UPDATE SET contractor_name = EXCLUDED.contractor_name
+ALTER TABLE isa_contract_lookup OWNER TO abyssal_user
+ALTER TABLE reserved_areas OWNER TO abyssal_user
+ALTER TABLE isa_apeis OWNER TO abyssal_user
+ALTER TABLE relinquished_areas OWNER TO abyssal_user
+ALTER TABLE argo_profiles OWNER TO abyssal_user
+ALTER TABLE sync_log OWNER TO abyssal_user
+ALTER TABLE hydrothermal_vents OWNER TO abyssal_user
+ALTER TABLE maritime_boundaries OWNER TO abyssal_user
+ALTER TABLE protected_marine_sites OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS plume_paths ( id SERIAL PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES argo_profiles(profile_id) ON DELETE CASCADE, platform_id TEXT NOT NULL, profile_date TIMESTAMPTZ NOT NULL, origin_lon DOUBLE PRECISION NOT NULL, origin_lat DOUBLE PRECISION NOT NULL, path_coords JSONB NOT NULL, speed_cms DOUBLE PRECISION, steps_completed INTEGER, source_dataset TEXT, contractor_name TEXT, computed_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(profile_id) )
+CREATE INDEX IF NOT EXISTS plume_paths_contractor_idx ON plume_paths(contractor_name)
+CREATE INDEX IF NOT EXISTS plume_paths_profile_date_idx ON plume_paths(profile_date DESC)
+ALTER TABLE plume_paths OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS wod_oxygen_profiles ( id SERIAL PRIMARY KEY, wod_cast_id TEXT UNIQUE, lat DOUBLE PRECISION, lon DOUBLE PRECISION, geom geometry(Point, 4326), profile_date DATE, decade SMALLINT, cruise TEXT, dataset TEXT, country TEXT, probe_type TEXT, max_depth_m DOUBLE PRECISION, n_levels SMALLINT, o2_profile JSONB, o2_units TEXT, qc_flag SMALLINT, qc_note TEXT )
+CREATE INDEX IF NOT EXISTS wod_oxygen_geom_gix ON wod_oxygen_profiles USING GIST (geom)
+CREATE INDEX IF NOT EXISTS wod_oxygen_decade_idx ON wod_oxygen_profiles (decade)
+CREATE INDEX IF NOT EXISTS wod_oxygen_date_idx ON wod_oxygen_profiles (profile_date)
+ALTER TABLE wod_oxygen_profiles OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS memento_samples ( id BIGSERIAL PRIMARY KEY, cast_id TEXT NOT NULL, set_name TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, label TEXT, decade INTEGER, ch4 DOUBLE PRECISION, n2o DOUBLE PRECISION, n2o_perc DOUBLE PRECISION, o2 DOUBLE PRECISION, temp DOUBLE PRECISION, sal DOUBLE PRECISION, params JSONB, geom geometry(Point, 4326) )
+CREATE TABLE IF NOT EXISTS memento_casts ( cast_id TEXT PRIMARY KEY, set_name TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, decade INTEGER, n_samples INTEGER, min_depth_m DOUBLE PRECISION, max_depth_m DOUBLE PRECISION, has_ch4 BOOLEAN, has_n2o BOOLEAN, ch4_surf DOUBLE PRECISION, n2o_surf DOUBLE PRECISION, geom geometry(Point, 4326) )
+CREATE INDEX IF NOT EXISTS memento_samples_cast_idx ON memento_samples (cast_id)
+CREATE INDEX IF NOT EXISTS memento_samples_geom_gix ON memento_samples USING GIST (geom)
+CREATE INDEX IF NOT EXISTS memento_casts_geom_gix ON memento_casts USING GIST (geom)
+CREATE INDEX IF NOT EXISTS memento_casts_decade_idx ON memento_casts (decade)
+ALTER TABLE memento_samples ADD COLUMN IF NOT EXISTS ch4_is_atmospheric BOOLEAN, ADD COLUMN IF NOT EXISTS n2o_is_atmospheric BOOLEAN
+CREATE INDEX IF NOT EXISTS memento_samples_atm_idx ON memento_samples (ch4_is_atmospheric, n2o_is_atmospheric)
+ALTER TABLE memento_samples OWNER TO abyssal_user
+ALTER TABLE memento_casts OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS geotraces_stations ( station_id TEXT PRIMARY KEY, cruise TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, decade INTEGER, n_samples INTEGER, min_depth_m DOUBLE PRECISION, max_depth_m DOUBLE PRECISION, bottom_depth_m DOUBLE PRECISION, has_mn BOOLEAN, has_fe BOOLEAN, has_co BOOLEAN, has_ni BOOLEAN, has_cu BOOLEAN, mn_max DOUBLE PRECISION, fe_max DOUBLE PRECISION, co_max DOUBLE PRECISION, ni_max DOUBLE PRECISION, cu_max DOUBLE PRECISION, geom geometry(Point, 4326) )
+CREATE TABLE IF NOT EXISTS geotraces_samples ( sample_id BIGSERIAL PRIMARY KEY, station_id TEXT NOT NULL, cruise TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, bottom_depth_m DOUBLE PRECISION, mn_d DOUBLE PRECISION, fe_d DOUBLE PRECISION, co_d DOUBLE PRECISION, ni_d DOUBLE PRECISION, cu_d DOUBLE PRECISION, mn_d_qc SMALLINT, fe_d_qc SMALLINT, co_d_qc SMALLINT, ni_d_qc SMALLINT, cu_d_qc SMALLINT, params JSONB, geom geometry(Point, 4326) )
+CREATE TABLE IF NOT EXISTS geotraces_param_units ( param TEXT PRIMARY KEY, unit TEXT )
+CREATE INDEX IF NOT EXISTS geotraces_stations_geom_gix ON geotraces_stations USING GIST (geom)
+CREATE INDEX IF NOT EXISTS geotraces_samples_geom_gix ON geotraces_samples USING GIST (geom)
+CREATE INDEX IF NOT EXISTS geotraces_samples_station_idx ON geotraces_samples (station_id)
+CREATE INDEX IF NOT EXISTS geotraces_stations_decade_idx ON geotraces_stations (decade)
+CREATE TABLE IF NOT EXISTS mosaic_cores ( core_id INTEGER PRIMARY KEY, core_name TEXT, latitude DOUBLE PRECISION NOT NULL, longitude DOUBLE PRECISION NOT NULL, water_depth_m DOUBLE PRECISION, sampling_year INTEGER, decade INTEGER, sampling_date DATE, sampling_month SMALLINT, sampling_day SMALLINT, campaign_name TEXT, campaign_start DATE, campaign_end DATE, core_comment TEXT, date_precision TEXT, sampling_method TEXT, research_vessel TEXT, seas TEXT, eez TEXT, longhurst TEXT, has_toc BOOLEAN, has_tn BOOLEAN, has_d13c BOOLEAN, has_d14c BOOLEAN, toc_surf DOUBLE PRECISION, tn_surf DOUBLE PRECISION, d13c_surf DOUBLE PRECISION, d14c_surf DOUBLE PRECISION, geom geometry(Point, 4326), synced_at TIMESTAMPTZ DEFAULT now() )
+CREATE TABLE IF NOT EXISTS mosaic_samples ( sample_id INTEGER PRIMARY KEY, core_id INTEGER NOT NULL, depth_upper_cm DOUBLE PRECISION, depth_bottom_cm DOUBLE PRECISION, depth_avg_cm DOUBLE PRECISION, material_analyzed TEXT, replicate INTEGER, toc DOUBLE PRECISION, tn DOUBLE PRECISION, d13c DOUBLE PRECISION, d14c DOUBLE PRECISION, fm14c DOUBLE PRECISION, provenance JSONB, geom geometry(Point, 4326) )
+CREATE INDEX IF NOT EXISTS mosaic_cores_geom_gix ON mosaic_cores USING GIST (geom)
+CREATE INDEX IF NOT EXISTS mosaic_cores_decade_idx ON mosaic_cores (decade)
+CREATE INDEX IF NOT EXISTS mosaic_samples_core_idx ON mosaic_samples (core_id)
+ALTER TABLE mosaic_cores OWNER TO abyssal_user
+ALTER TABLE mosaic_samples OWNER TO abyssal_user
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS sampling_date DATE
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS sampling_month SMALLINT
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS sampling_day SMALLINT
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS campaign_name TEXT
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS campaign_start DATE
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS campaign_end DATE
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS core_comment TEXT
+ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS date_precision TEXT
+CREATE TABLE IF NOT EXISTS seaflea_seeps ( id SERIAL PRIMARY KEY, ext_id TEXT UNIQUE, lat DOUBLE PRECISION, lon DOUBLE PRECISION, depth_m DOUBLE PRECISION, obs_year INTEGER, loc_uncert_m DOUBLE PRECISION, feature_types TEXT[], primary_type TEXT, type_raw JSONB, source_ref TEXT, source_url TEXT, pockmark_depth_m DOUBLE PRECISION, pockmark_radius_m DOUBLE PRECISION, geom GEOMETRY(Point, 4326), synced_at TIMESTAMPTZ DEFAULT NOW() )
+ALTER TABLE seaflea_seeps ADD COLUMN IF NOT EXISTS pockmark_depth_m DOUBLE PRECISION
+ALTER TABLE seaflea_seeps ADD COLUMN IF NOT EXISTS pockmark_radius_m DOUBLE PRECISION
+CREATE INDEX IF NOT EXISTS seaflea_seeps_geom_idx ON seaflea_seeps USING GIST(geom)
+ALTER TABLE seaflea_seeps OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS cascade_stations ( id INTEGER PRIMARY KEY, station TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, water_depth_m DOUBLE PRECISION, expedition TEXT, year INTEGER, decade INTEGER, oc_pct DOUBLE PRECISION, tn_pct DOUBLE PRECISION, oc_tn DOUBLE PRECISION, d13c DOUBLE PRECISION, d14c DOUBLE PRECISION, hmw_alkanes DOUBLE PRECISION, hmw_acids DOUBLE PRECISION, lignin DOUBLE PRECISION, params JSONB, geom geometry(Point, 4326) )
+CREATE INDEX IF NOT EXISTS cascade_stations_geom_gix ON cascade_stations USING GIST(geom)
+CREATE INDEX IF NOT EXISTS cascade_stations_decade_idx ON cascade_stations(decade)
+ALTER TABLE cascade_stations OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS sios_datasets ( id SERIAL PRIMARY KEY, metadata_id TEXT UNIQUE NOT NULL, title TEXT, abstract TEXT, is_core_data BOOLEAN NOT NULL DEFAULT FALSE, collections TEXT[], activity_type TEXT, iso_topic TEXT, keywords TEXT[], platform_short TEXT, platform_long TEXT, platform_url TEXT, institution TEXT, pi_name TEXT, time_start TIMESTAMPTZ, time_end TIMESTAMPTZ, license TEXT, license_url TEXT, url_http TEXT, url_opendap TEXT, url_wms TEXT, url_landing TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, geom geometry(Point, 4326), synced_at TIMESTAMPTZ DEFAULT now(), series JSONB, series_var TEXT, series_units TEXT, series_long_name TEXT )
+CREATE INDEX IF NOT EXISTS sios_datasets_geom_gix ON sios_datasets USING GIST (geom)
+CREATE INDEX IF NOT EXISTS sios_datasets_core_idx ON sios_datasets (is_core_data)
+ALTER TABLE sios_datasets OWNER TO abyssal_user
+ALTER TABLE sios_datasets ADD COLUMN IF NOT EXISTS series JSONB
+ALTER TABLE sios_datasets ADD COLUMN IF NOT EXISTS series_var TEXT
+ALTER TABLE sios_datasets ADD COLUMN IF NOT EXISTS series_units TEXT
+ALTER TABLE sios_datasets ADD COLUMN IF NOT EXISTS series_long_name TEXT
+CREATE TABLE IF NOT EXISTS report_cache ( platform_id TEXT PRIMARY KEY, report_json JSONB NOT NULL, risk_rating TEXT NOT NULL DEFAULT 'Low', headline TEXT NOT NULL DEFAULT '', finding_count INTEGER NOT NULL DEFAULT 0, claim_count INTEGER NOT NULL DEFAULT 0, generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+ALTER TABLE report_cache OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS report_cache_v2 ( platform_id TEXT PRIMARY KEY, report_json JSONB NOT NULL, headline TEXT NOT NULL DEFAULT '', measurement_count INTEGER NOT NULL DEFAULT 0, concession_count INTEGER NOT NULL DEFAULT 0, generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+ALTER TABLE report_cache_v2 OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS report_jobs_v2 ( platform_id TEXT PRIMARY KEY, status TEXT NOT NULL CHECK (status IN ('generating','ready','failed')), started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), finished_at TIMESTAMPTZ, worker_id TEXT, error TEXT )
+ALTER TABLE report_jobs_v2 OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS report_cache_v2_concession ( isa_id TEXT PRIMARY KEY, report_json JSONB NOT NULL, headline TEXT, seamount_count INTEGER, species_count INTEGER, vent_count INTEGER, generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+CREATE TABLE IF NOT EXISTS report_jobs_v2_concession ( isa_id TEXT PRIMARY KEY, status TEXT NOT NULL CHECK (status IN ('generating','ready','failed')), started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), finished_at TIMESTAMPTZ, worker_id TEXT, error TEXT )
+ALTER TABLE report_cache_v2_concession OWNER TO abyssal_user
+ALTER TABLE report_jobs_v2_concession OWNER TO abyssal_user
+ALTER TABLE biodiversity_hotspots ADD COLUMN iucn_category TEXT DEFAULT 'NE'
+ALTER TABLE biodiversity_hotspots ADD COLUMN IF NOT EXISTS dataset_id TEXT, ADD COLUMN IF NOT EXISTS occurrence_id TEXT
+CREATE INDEX IF NOT EXISTS bh_cr_en_geom_gix ON biodiversity_hotspots USING GIST(geom) WHERE iucn_category IN ('CR','EN')
+CREATE INDEX IF NOT EXISTS idx_bh_scientific_name ON biodiversity_hotspots (scientific_name)
+CREATE EXTENSION IF NOT EXISTS pg_trgm
+CREATE INDEX IF NOT EXISTS idx_bh_scientific_name_trgm ON biodiversity_hotspots USING gin (lower(scientific_name) gin_trgm_ops)
+CREATE TABLE IF NOT EXISTS obis_species_check ( scientific_name TEXT PRIMARY KEY, last_check_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_remote_count INTEGER )
+ALTER TABLE obis_species_check OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS hotspot_grid ( id SERIAL PRIMARY KEY, resolution TEXT NOT NULL, cell_lon DOUBLE PRECISION NOT NULL, cell_lat DOUBLE PRECISION NOT NULL, total_count INT NOT NULL, species_count INT NOT NULL, endangered_count INT DEFAULT 0, cr_en_count INT DEFAULT 0, top_species JSONB, geom GEOMETRY(Point, 4326) )
+CREATE INDEX IF NOT EXISTS idx_hotspot_grid_res ON hotspot_grid(resolution)
+CREATE INDEX IF NOT EXISTS idx_hotspot_grid_geom ON hotspot_grid USING GIST(geom)
+CREATE TABLE IF NOT EXISTS noise_cells ( id SERIAL PRIMARY KEY, geom GEOMETRY(Point, 4326) NOT NULL, lon FLOAT NOT NULL, lat FLOAT NOT NULL, cell_key TEXT NOT NULL UNIQUE, impulsive_pbd FLOAT, continuous_spl FLOAT, pbd_norm FLOAT, spl_norm FLOAT, source TEXT NOT NULL, region TEXT, updated_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS noise_cells_geom_idx ON noise_cells USING GIST(geom)
+ALTER TABLE noise_cells OWNER TO abyssal_user
+ALTER TABLE noise_cells ADD COLUMN IF NOT EXISTS pbd_norm FLOAT
+ALTER TABLE noise_cells ADD COLUMN IF NOT EXISTS spl_norm FLOAT
+ALTER TABLE noise_cells DROP COLUMN IF EXISTS noise_norm
+CREATE TABLE IF NOT EXISTS cetacean_cells ( id SERIAL PRIMARY KEY, geom GEOMETRY(Point, 4326) NOT NULL, cell_lon FLOAT NOT NULL, cell_lat FLOAT NOT NULL, cell_key TEXT NOT NULL UNIQUE, sighting_count INTEGER NOT NULL DEFAULT 0, max_iucn_weight FLOAT NOT NULL DEFAULT 1.0, max_iucn_cat TEXT, top_species TEXT, source TEXT NOT NULL DEFAULT 'obis_seamap', updated_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS cetacean_cells_geom_idx ON cetacean_cells USING GIST(geom)
+ALTER TABLE cetacean_cells OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS noise_risk_grid ( id SERIAL PRIMARY KEY, geom GEOMETRY(Point, 4326) NOT NULL, lon FLOAT NOT NULL, lat FLOAT NOT NULL, cell_key TEXT NOT NULL UNIQUE, pbd_norm FLOAT, spl_norm FLOAT, cetacean_norm FLOAT, species_weight FLOAT NOT NULL DEFAULT 1.0, risk_index FLOAT NOT NULL, risk_level TEXT NOT NULL, data_gap BOOLEAN NOT NULL DEFAULT FALSE, noise_source TEXT, cetacean_count INTEGER, max_species TEXT, computed_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS noise_risk_geom_idx ON noise_risk_grid USING GIST(geom)
+ALTER TABLE noise_risk_grid OWNER TO abyssal_user
+ALTER TABLE noise_risk_grid ADD COLUMN IF NOT EXISTS pbd_norm FLOAT
+ALTER TABLE noise_risk_grid ADD COLUMN IF NOT EXISTS spl_norm FLOAT
+ALTER TABLE noise_risk_grid DROP COLUMN IF EXISTS noise_norm
+CREATE TABLE IF NOT EXISTS pageviews ( date DATE NOT NULL, path TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (date, path) )
+ALTER TABLE pageviews OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS feedback_submissions ( id SERIAL PRIMARY KEY, submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(), kind TEXT NOT NULL CHECK (kind IN ('positive', 'bug', 'suggestion', 'api_key')), message TEXT NOT NULL, contact TEXT, user_agent TEXT, ip_hash TEXT, page_url TEXT, resolved BOOLEAN NOT NULL DEFAULT FALSE )
+CREATE INDEX IF NOT EXISTS feedback_submissions_submitted_idx ON feedback_submissions (submitted_at DESC)
+ALTER TABLE feedback_submissions OWNER TO abyssal_user
+ALTER TABLE feedback_submissions DROP CONSTRAINT IF EXISTS feedback_submissions_kind_check
+ALTER TABLE feedback_submissions ADD CONSTRAINT feedback_submissions_kind_check CHECK (kind IN ('positive', 'bug', 'suggestion', 'api_key'))
+CREATE TABLE IF NOT EXISTS blog_articles ( id SERIAL PRIMARY KEY, slug TEXT UNIQUE NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, content_md TEXT NOT NULL, tags TEXT[] DEFAULT '{}', reading_time_min INTEGER DEFAULT 5, published BOOLEAN DEFAULT FALSE, published_at DATE, ai_generated BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS blog_articles_slug_idx ON blog_articles (slug)
+CREATE INDEX IF NOT EXISTS blog_articles_published_idx ON blog_articles (published, published_at DESC)
+ALTER TABLE blog_articles OWNER TO abyssal_user
+ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS ai_generated BOOLEAN DEFAULT FALSE
+ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS cover_image TEXT
+INSERT INTO blog_articles (slug, title, description, content_md, tags, reading_time_min, published, published_at, ai_generated) VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, TRUE) ON CONFLICT (slug) DO NOTHING
+CREATE TABLE IF NOT EXISTS oceansites_stations ( ref TEXT PRIMARY KEY, name TEXT NOT NULL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, status TEXT DEFAULT 'OPERATIONAL', network TEXT DEFAULT '', deploy_date TEXT, geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(), latest_obs JSONB, obs_fetched_at TIMESTAMPTZ )
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS latest_obs JSONB
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS obs_fetched_at TIMESTAMPTZ
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS age_days DOUBLE PRECISION
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS model TEXT
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS obs_source TEXT
+CREATE INDEX IF NOT EXISTS oceansites_geom_idx ON oceansites_stations USING GIST(geom)
+ALTER TABLE oceansites_stations OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS onc_locations ( location_code TEXT PRIMARY KEY, name TEXT NOT NULL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, description TEXT DEFAULT '', geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(), latest_sensors JSONB, sensors_fetched_at TIMESTAMPTZ )
+ALTER TABLE onc_locations ADD COLUMN IF NOT EXISTS latest_sensors JSONB
+ALTER TABLE onc_locations ADD COLUMN IF NOT EXISTS sensors_fetched_at TIMESTAMPTZ
+CREATE INDEX IF NOT EXISTS onc_locations_geom_idx ON onc_locations USING GIST(geom)
+ALTER TABLE onc_locations OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS onc_sparklines ( location_code TEXT, property_code TEXT, unit TEXT, samples JSONB, window_start TIMESTAMPTZ, window_end TIMESTAMPTZ, updated_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (location_code, property_code) )
+DROP TABLE IF EXISTS onc_acoustic_events
+CREATE TABLE IF NOT EXISTS onc_adcp_strips ( location_code TEXT, device_code TEXT, beam_count INT, bin_count INT, window_start TIMESTAMPTZ, window_end TIMESTAMPTZ, strip JSONB, updated_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (location_code, device_code) )
+ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS depths JSONB
+ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS variable TEXT
+ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS units TEXT
+CREATE TABLE IF NOT EXISTS onc_ctd_profiles ( location_code TEXT, device_code TEXT, cast_time TIMESTAMPTZ, profile JSONB, updated_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (location_code, device_code, cast_time) )
+CREATE TABLE IF NOT EXISTS usgs_earthquakes ( usgs_id TEXT PRIMARY KEY, occurred_at TIMESTAMPTZ NOT NULL, magnitude REAL, depth_km REAL, place TEXT, geom GEOGRAPHY(POINT, 4326) )
+COMMENT ON COLUMN usgs_earthquakes.depth_km IS 'Kilometres below sea level. NEGATIVE values are correct - USGS reports events ' 'above sea level that way. Not a defect.'
+CREATE INDEX IF NOT EXISTS usgs_earthquakes_geom_gix ON usgs_earthquakes USING GIST (geom)
+CREATE INDEX IF NOT EXISTS usgs_earthquakes_time ON usgs_earthquakes (occurred_at DESC)
+CREATE TABLE IF NOT EXISTS acoustic_stations ( station_id TEXT PRIMARY KEY, source TEXT NOT NULL CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims')), name TEXT, operator TEXT, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m REAL, deploy_start DATE, deploy_end DATE, model TEXT, hz_range_lo REAL, hz_range_hi REAL, portal_url TEXT, license TEXT, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED )
+CREATE INDEX IF NOT EXISTS acoustic_stations_geom_gix ON acoustic_stations USING GIST(geom)
+CREATE INDEX IF NOT EXISTS acoustic_stations_source_idx ON acoustic_stations (source)
+ALTER TABLE acoustic_stations OWNER TO abyssal_user
+ALTER TABLE acoustic_stations ADD COLUMN IF NOT EXISTS license TEXT
+ALTER TABLE acoustic_stations DROP CONSTRAINT IF EXISTS acoustic_stations_source_check
+ALTER TABLE acoustic_stations ADD CONSTRAINT acoustic_stations_source_check CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims'))
+CREATE TABLE IF NOT EXISTS acoustic_soundscape ( station_id TEXT NOT NULL REFERENCES acoustic_stations(station_id) ON DELETE CASCADE, day DATE NOT NULL, broadband_spl_db REAL, spl_10hz_db REAL, spl_63hz_db REAL, spl_100hz_db REAL, spl_125hz_db REAL, spl_1khz_db REAL, spl_10khz_db REAL, l50_db REAL, l95_db REAL, n_minutes_recorded INTEGER, source_url TEXT, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (station_id, day) )
+CREATE INDEX IF NOT EXISTS acoustic_soundscape_day_idx ON acoustic_soundscape (day DESC)
+ALTER TABLE acoustic_soundscape OWNER TO abyssal_user
+ALTER TABLE onc_sparklines OWNER TO abyssal_user
+ALTER TABLE onc_adcp_strips OWNER TO abyssal_user
+ALTER TABLE onc_ctd_profiles OWNER TO abyssal_user
+ALTER TABLE usgs_earthquakes OWNER TO abyssal_user
+DROP TABLE IF EXISTS gbif_occurrences CASCADE
+CREATE TABLE IF NOT EXISTS chess_occurrences ( id SERIAL PRIMARY KEY, occurrence_id TEXT UNIQUE NOT NULL, species TEXT, phylum TEXT, class_name TEXT, family TEXT, depth_m DOUBLE PRECISION, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, locality TEXT, institution_code TEXT, habitat_type TEXT NOT NULL, geom GEOMETRY(Point, 4326) )
+CREATE INDEX IF NOT EXISTS chess_habitat_idx ON chess_occurrences (habitat_type)
+CREATE INDEX IF NOT EXISTS chess_occurrences_geom_idx ON chess_occurrences USING GIST(geom)
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS max_temp_c FLOAT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS temp_category TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS min_depth_m FLOAT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS ocean TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS region TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS jurisdiction TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS tectonic_setting TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS discovery_year TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS biology_notes TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS description_notes TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS chess_count INTEGER DEFAULT 0
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS chess_species JSONB DEFAULT '[]'
+ALTER TABLE chess_occurrences OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS sio_bic_records ( catalog_id BIGINT PRIMARY KEY, higher_taxa_code TEXT, catalog_no TEXT, phylum TEXT, class_ TEXT, order_ TEXT, family TEXT, genus TEXT, species TEXT, authority TEXT, identifier TEXT, type_status TEXT, count INTEGER, collection_type_raw TEXT, specimen_type TEXT, fixative TEXT, preservative TEXT, storage_location TEXT, reference_id TEXT, loan_id TEXT, gift_id TEXT, catalog_notes TEXT, genbank TEXT, accession_no TEXT, accession_id TEXT, accession_date DATE, station TEXT, locality TEXT, country TEXT, ocean TEXT, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, end_lat DOUBLE PRECISION, end_lon DOUBLE PRECISION, begin_depth_m REAL, end_depth_m REAL, depth_unit TEXT, collection_date DATE, collection_time TEXT, gear TEXT, ship TEXT, collector TEXT, remarks TEXT, geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS sio_bic_records_geom_idx ON sio_bic_records USING GIST (geom)
+ALTER TABLE sio_bic_records OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS deepdata_occurrences ( obis_id UUID PRIMARY KEY, occurrence_id TEXT, dataset_id UUID, dataset_title TEXT, contractor_code TEXT, rights_holder TEXT, scientific_name TEXT, phylum TEXT, class_ TEXT, order_ TEXT, family TEXT, genus TEXT, species TEXT, basis_of_record TEXT, depth_m REAL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, event_date TIMESTAMPTZ, locality TEXT, geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS deepdata_occurrences_geom_gix ON deepdata_occurrences USING GIST (geom)
+CREATE INDEX IF NOT EXISTS deepdata_occurrences_contractor_idx ON deepdata_occurrences (contractor_code)
+CREATE INDEX IF NOT EXISTS deepdata_occurrences_dataset_idx ON deepdata_occurrences (dataset_id)
+ALTER TABLE deepdata_occurrences OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS deepdata_dwc_archives ( slug TEXT PRIMARY KEY, title TEXT, citation TEXT, license TEXT, rights_holder TEXT, pub_date DATE, last_modified TIMESTAMPTZ, etag TEXT, content_length BIGINT, occurrence_count INTEGER, station_count INTEGER, last_fetched_at TIMESTAMPTZ, last_parsed_at TIMESTAMPTZ, parse_error TEXT )
+CREATE TABLE IF NOT EXISTS deepdata_stations ( station_id TEXT PRIMARY KEY, archive_slug TEXT NOT NULL REFERENCES deepdata_dwc_archives(slug) ON DELETE CASCADE, contractor_code TEXT, event_id_raw TEXT, location_id TEXT, sampling_protocol TEXT, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m_min REAL, depth_m_max REAL, coord_uncertainty_m REAL, first_event_date TIMESTAMPTZ, last_event_date TIMESTAMPTZ, occurrence_count INTEGER NOT NULL, species_count INTEGER, top_species TEXT[], top_phyla TEXT[], sediment_horizons TEXT[], geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED, derived_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS deepdata_stations_geom_gix ON deepdata_stations USING GIST (geom)
+CREATE INDEX IF NOT EXISTS deepdata_stations_contractor_idx ON deepdata_stations (contractor_code)
+CREATE INDEX IF NOT EXISTS deepdata_stations_archive_idx ON deepdata_stations (archive_slug)
+ALTER TABLE deepdata_stations ADD COLUMN IF NOT EXISTS top_species TEXT[]
+ALTER TABLE deepdata_stations ADD COLUMN IF NOT EXISTS top_phyla TEXT[]
+ALTER TABLE deepdata_dwc_archives OWNER TO abyssal_user
+ALTER TABLE deepdata_stations OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS mbari_vars_records ( obis_id UUID PRIMARY KEY, occurrence_id TEXT, dataset_id UUID, scientific_name TEXT, phylum TEXT, class_ TEXT, order_ TEXT, family TEXT, genus TEXT, species TEXT, basis_of_record TEXT, depth_m REAL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, event_date TIMESTAMPTZ, locality TEXT, geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS mbari_vars_records_geom_gix ON mbari_vars_records USING GIST (geom)
+ALTER TABLE mbari_vars_records OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS noaa_corals_records ( catalog_number TEXT PRIMARY KEY, object_id BIGINT, sample_id TEXT, event_id TEXT, dataset_id TEXT, data_provider TEXT, scientific_name TEXT, verbatim_scientific_name TEXT, synonyms TEXT, vernacular_name_category TEXT, identification_qualifier TEXT, phylum TEXT, class_ TEXT, order_ TEXT, family TEXT, genus TEXT, aphia_id INTEGER, taxon_rank TEXT, depth_m REAL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, locality TEXT, ocean_code TEXT, fish_council_region TEXT, vessel TEXT, sampling_equipment TEXT, pi TEXT, survey_id TEXT, image_url TEXT, highlight_image_url TEXT, temperature REAL, salinity REAL, oxygen REAL, observation_year INTEGER, event_date TIMESTAMPTZ, geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS noaa_corals_records_geom_gix ON noaa_corals_records USING GIST (geom)
+CREATE INDEX IF NOT EXISTS noaa_corals_records_event_date_idx ON noaa_corals_records (event_date)
+ALTER TABLE noaa_corals_records OWNER TO abyssal_user
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='noaa_corals_records' AND column_name='oxygen_ml_l') AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='noaa_corals_records' AND column_name='oxygen') THEN ALTER TABLE noaa_corals_records RENAME COLUMN oxygen_ml_l TO oxygen
+END IF
+END $$
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='noaa_corals_records' AND column_name='salinity_psu') AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='noaa_corals_records' AND column_name='salinity') THEN ALTER TABLE noaa_corals_records RENAME COLUMN salinity_psu TO salinity
+END IF
+END $$
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='noaa_corals_records' AND column_name='temperature_c') AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='noaa_corals_records' AND column_name='temperature') THEN ALTER TABLE noaa_corals_records RENAME COLUMN temperature_c TO temperature
+END IF
+END $$
+CREATE TABLE IF NOT EXISTS submarine_cables ( id SERIAL PRIMARY KEY, name TEXT, status TEXT, inst_year INTEGER, length_km DOUBLE PRECISION, location TEXT, geom geometry(MultiLineString, 4326), created_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_submarine_cables_geom ON submarine_cables USING GIST (geom)
+ALTER TABLE submarine_cables ADD COLUMN IF NOT EXISTS operator TEXT
+ALTER TABLE submarine_cables ADD COLUMN IF NOT EXISTS cable_type TEXT
+ALTER TABLE submarine_cables ADD COLUMN IF NOT EXISTS voltage_kv REAL
+ALTER TABLE submarine_cables ADD COLUMN IF NOT EXISTS source_layer TEXT
+ALTER TABLE submarine_cables ADD COLUMN IF NOT EXISTS source_id TEXT
+ALTER TABLE submarine_cables DROP CONSTRAINT IF EXISTS submarine_cables_name_status_key
+DROP INDEX IF EXISTS idx_submarine_cables_name_status
+CREATE UNIQUE INDEX IF NOT EXISTS submarine_cables_source_unique ON submarine_cables (source_layer, source_id)
+CREATE TABLE IF NOT EXISTS onc_cables ( id SERIAL PRIMARY KEY, ext_id TEXT, status TEXT, length_m DOUBLE PRECISION, comments TEXT, geom geometry(MultiLineString, 4326), created_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_onc_cables_geom ON onc_cables USING GIST (geom)
+ALTER TABLE onc_cables OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS ooi_cables ( id SERIAL PRIMARY KEY, ext_id TEXT, line_name TEXT, length_m DOUBLE PRECISION, comments TEXT, geom geometry(MultiLineString, 4326), created_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_ooi_cables_geom ON ooi_cables USING GIST (geom)
+ALTER TABLE ooi_cables ADD COLUMN IF NOT EXISTS deepest_node_m INT
+ALTER TABLE ooi_cables ADD COLUMN IF NOT EXISTS shallowest_node_m INT
+ALTER TABLE ooi_cables ADD COLUMN IF NOT EXISTS node_count INT
+ALTER TABLE ooi_cables OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS noaa_cables ( id SERIAL PRIMARY KEY, object_id INTEGER UNIQUE, short_name TEXT, cable_system TEXT, owner TEXT, status TEXT, region TEXT, shape_length DOUBLE PRECISION, geom geometry(MultiPolygon, 4326) NOT NULL, fetched_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_noaa_cables_geom ON noaa_cables USING GIST (geom)
+ALTER TABLE noaa_cables OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS nz_cables ( id SERIAL PRIMARY KEY, fidn TEXT UNIQUE NOT NULL, catcbl TEXT, catcbl_raw INTEGER, status TEXT, status_raw INTEGER, condtn TEXT, condtn_raw INTEGER, objnam TEXT, inform TEXT, txtdsc TEXT, burdep REAL, datsta DATE, datend DATE, geom geometry(MultiLineString, 4326) NOT NULL, fetched_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_nz_cables_geom ON nz_cables USING GIST (geom)
+ALTER TABLE nz_cables OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS au_cables ( id SERIAL PRIMARY KEY, object_id INTEGER UNIQUE NOT NULL, cable TEXT, abbrev TEXT, geom geometry(MultiLineString, 4326) NOT NULL, fetched_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_au_cables_geom ON au_cables USING GIST (geom)
+ALTER TABLE au_cables OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS onc_instruments ( id SERIAL PRIMARY KEY, device_id BIGINT UNIQUE, device_code TEXT, device_name TEXT, device_category TEXT, location_code TEXT, location_name TEXT, site_name TEXT, depth_m DOUBLE PRECISION, image_url TEXT, geom geometry(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_onc_instruments_geom ON onc_instruments USING GIST (geom)
+CREATE INDEX IF NOT EXISTS idx_onc_instruments_category ON onc_instruments (device_category)
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS deployment_start TIMESTAMPTZ
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS deployment_end TIMESTAMPTZ
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS status TEXT
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS description TEXT
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS data_products JSONB
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS device_link TEXT
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS location_link TEXT
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS enriched_at TIMESTAMPTZ
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS latest_readings JSONB
+ALTER TABLE onc_instruments ADD COLUMN IF NOT EXISTS readings_at TIMESTAMPTZ
+ALTER TABLE onc_instruments OWNER TO abyssal_user
+ALTER TABLE submarine_cables OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS port_locations ( id SERIAL PRIMARY KEY, city TEXT, state TEXT, country TEXT, geom geometry(Point, 4326), created_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS idx_port_locations_geom ON port_locations USING GIST (geom)
+ALTER TABLE port_locations OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS offshore_activities ( id SERIAL PRIMARY KEY, source TEXT NOT NULL, source_id TEXT, activity_type TEXT NOT NULL, name TEXT, operator TEXT, country TEXT, sovereign TEXT, status TEXT, awarded_date DATE, expires_date DATE, jurisdiction TEXT, portal_url TEXT, attributes JSONB, geom GEOMETRY(MultiPolygon, 4326) NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(source, source_id) )
+CREATE INDEX IF NOT EXISTS offshore_activities_geom_gix ON offshore_activities USING GIST(geom)
+CREATE INDEX IF NOT EXISTS offshore_activities_type_idx ON offshore_activities(activity_type)
+CREATE INDEX IF NOT EXISTS offshore_activities_country_idx ON offshore_activities(sovereign)
+ALTER TABLE offshore_activities ADD COLUMN IF NOT EXISTS geom_3857 GEOMETRY GENERATED ALWAYS AS (ST_Transform(geom, 3857)) STORED
+ALTER TABLE offshore_activities OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS bathymetry_cache ( lat_round NUMERIC(4,2) NOT NULL, lon_round NUMERIC(5,2) NOT NULL, depth_m DOUBLE PRECISION, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (lat_round, lon_round) )
+COMMENT ON COLUMN bathymetry_cache.depth_m IS 'GEBCO elevation in metres: NEGATIVE below sea level. Despite the column name ' 'this is not a depth - 184 of 2,160 production rows are positive land heights.'
+CREATE TABLE IF NOT EXISTS worms_taxa ( aphia_id INTEGER PRIMARY KEY, scientificname TEXT, authority TEXT, rank TEXT, status TEXT, kingdom TEXT, phylum TEXT, class_name TEXT, order_name TEXT, family TEXT, genus TEXT, is_marine SMALLINT, is_brackish SMALLINT, is_freshwater SMALLINT, is_terrestrial SMALLINT, citation TEXT, url TEXT, worms_modified TIMESTAMPTZ, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+ALTER TABLE worms_taxa OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS taxon_name_map ( raw_name TEXT PRIMARY KEY, matched_aphia_id INTEGER REFERENCES worms_taxa(aphia_id) ON DELETE SET NULL, match_type TEXT NOT NULL DEFAULT 'none', verified BOOLEAN NOT NULL DEFAULT FALSE, first_source TEXT, resolved_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS taxon_name_map_aphia_idx ON taxon_name_map(matched_aphia_id) WHERE verified
+ALTER TABLE taxon_name_map OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS arctic_catchments ( gid INTEGER PRIMARY KEY, name TEXT, stream_order INTEGER, continent TEXT, area_km2 DOUBLE PRECISION, center_lat DOUBLE PRECISION, center_lon DOUBLE PRECISION, ocs_mean DOUBLE PRECISION, oc_tot DOUBLE PRECISION, runoff_mean DOUBLE PRECISION, pf_frac DOUBLE PRECISION, t_2m_mean DOUBLE PRECISION, params JSONB, geom geometry(MultiPolygon, 4326), geom_3857 geometry GENERATED ALWAYS AS (ST_Transform(geom, 3857)) STORED )
+CREATE INDEX IF NOT EXISTS arctic_catchments_geom_gix ON arctic_catchments USING GIST (geom)
+CREATE INDEX IF NOT EXISTS arctic_catchments_geom3857_gix ON arctic_catchments USING GIST (geom_3857)
+ALTER TABLE arctic_catchments OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS bathymetry_stats ( feature_type TEXT NOT NULL, feature_id TEXT NOT NULL, gebco_version TEXT NOT NULL, n_cells INT, pct_measured DOUBLE PRECISION, pct_indirect DOUBLE PRECISION, pct_unknown DOUBLE PRECISION, pct_multibeam DOUBLE PRECISION, mapped_confidence TEXT, depth_min_m DOUBLE PRECISION, depth_median_m DOUBLE PRECISION, depth_max_m DOUBLE PRECISION, slope_median_deg DOUBLE PRECISION, ruggedness DOUBLE PRECISION, computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (feature_type, feature_id) )
+COMMENT ON COLUMN bathymetry_stats.depth_min_m IS 'Metres below sea level, positive down. Verified from services/bathymetry_stats.py ' 'summarize(): land cells are dropped via the TID mask, then depth = -elevation, ' 'filtered to >0 (ocean only).'
+COMMENT ON COLUMN bathymetry_stats.depth_median_m IS 'Metres below sea level, positive down. Same computation as depth_min_m.'
+COMMENT ON COLUMN bathymetry_stats.depth_max_m IS 'Metres below sea level, positive down. Same computation as depth_min_m.'
+CREATE TABLE IF NOT EXISTS gmrt_area_cache ( area_hash TEXT PRIMARY KEY, bbox DOUBLE PRECISION[], meters_per_node DOUBLE PRECISION, nodes BIGINT, gmrt_version TEXT, raw JSONB, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+ALTER TABLE bathymetry_stats OWNER TO abyssal_user
+ALTER TABLE gmrt_area_cache OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS vme_cells ( cell_id TEXT, taxon_set TEXT, suitability DOUBLE PRECISION, uncertainty DOUBLE PRECISION, extrapolated BOOLEAN, top_predictors JSONB, PRIMARY KEY (taxon_set, cell_id) )
+ALTER TABLE vme_cells OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS vme_models ( id SERIAL PRIMARY KEY, taxon_set TEXT, model TEXT, n_occurrences INT, auc DOUBLE PRECISION, boyce DOUBLE PRECISION, var_importance JSONB, aphia_ids INT[], published BOOLEAN, trained_at TIMESTAMPTZ DEFAULT now() )
+ALTER TABLE vme_models OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS vme_bake_control ( id BOOLEAN PRIMARY KEY DEFAULT TRUE, force_requested BOOLEAN DEFAULT FALSE, requested_at TIMESTAMPTZ, CONSTRAINT vme_bake_control_singleton CHECK (id) )
+ALTER TABLE vme_bake_control OWNER TO abyssal_user
+INSERT INTO vme_bake_control (id) VALUES (TRUE) ON CONFLICT (id) DO NOTHING
+CREATE TABLE IF NOT EXISTS vme_exposure_cells ( cell_id TEXT PRIMARY KEY, taxon_set TEXT, suitability DOUBLE PRECISION, uncertainty DOUBLE PRECISION, lat DOUBLE PRECISION, lon DOUBLE PRECISION, seafloor_m DOUBLE PRECISION, horizon_today_m DOUBLE PRECISION, horizon_pi_m DOUBLE PRECISION, state TEXT NOT NULL, geom geometry(Polygon, 4326) )
+CREATE INDEX IF NOT EXISTS vme_exposure_cells_gix ON vme_exposure_cells USING GIST (geom)
+CREATE INDEX IF NOT EXISTS vme_exposure_cells_state_idx ON vme_exposure_cells (state)
+ALTER TABLE vme_exposure_cells OWNER TO abyssal_user

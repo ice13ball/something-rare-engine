@@ -1,0 +1,60 @@
+{
+  "status": {
+    "Active": "Actif",
+    "Inactive": "Inactif",
+    "Extinct": "Éteint",
+    "Pending": "En attente",
+    "Suspended": "Suspendu",
+    "Expired": "Expiré",
+    "Relinquished": "Restitué",
+    "Reserved": "Réservé",
+    "Approved": "Approuvé",
+    "Submitted": "Soumis"
+  },
+  "resourceType": {
+    "Polymetallic Nodules": "Nodules polymétalliques",
+    "Polymetallic Sulphides": "Sulfures polymétalliques",
+    "Cobalt-rich Crusts": "Croûtes cobaltifères",
+    "Cobalt-Rich Crusts": "Croûtes cobaltifères",
+    "Reserved Area": "Zone réservée"
+  },
+  "oceanBasin": {
+    "Pacific": "Pacifique",
+    "Atlantic": "Atlantique",
+    "Indian": "Indien",
+    "Arctic": "Arctique",
+    "Southern": "Austral"
+  },
+  "offshoreType": {
+    "oil_gas": "Pétrole et gaz",
+    "offshore_wind": "Éolien en mer",
+    "seabed_mining": "Extraction des fonds marins"
+  },
+  "seamountSize": {
+    "Major": "Majeur",
+    "Large": "Grand",
+    "Medium": "Moyen",
+    "Small": "Petit"
+  },
+  "iso_topic": {
+    "oceans": "Océans",
+    "climatologyMeteorologyAtmosphere": "Climatologie / Atmosphère",
+    "environment": "Environnement",
+    "biota": "Biota"
+  },
+  "seabedSubstrate": {
+    "gravel": "Gravier et plus grossier",
+    "sand": "Sable",
+    "silt": "Silt",
+    "clay": "Argile",
+    "calcareous_ooze": "Boue calcaire",
+    "radiolarian_ooze": "Boue à radiolaires",
+    "diatom_ooze": "Boue à diatomées",
+    "sponge_spicules": "Spicules d'éponges",
+    "mixed_ooze": "Boue mixte calcaire/siliceuse",
+    "shells_coral": "Coquilles et fragments de coraux",
+    "ash_volcanic": "Cendres et sable/gravier volcanique",
+    "siliceous_mud": "Vase siliceuse",
+    "fine_calcareous": "Sédiment calcaire fin"
+  }
+}

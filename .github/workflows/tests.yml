@@ -1,0 +1,168 @@
+name: Tests
+
+# The gate. Called by both deploy workflows (so nothing reaches Cloud Run without
+# passing) and run on its own for pushes that deploy does not cover.
+#
+# ⛔ NO `paths:` FILTER HERE, deliberately. The deploy workflows filter on
+# `frontend/**`, which is exactly why every backend change has so far reached
+# production without a single automated check — not even a type check. A gate that
+# inherits the deploy filter reproduces the hole it exists to close.
+#
+# Duplication note: a push touching frontend/ triggers the deploy workflow, which
+# calls this one; `paths-ignore` below keeps this workflow's own push trigger from
+# firing for the same commit. A push touching BOTH trees runs it twice. That waste
+# is accepted — the alternative is a filter that can silently skip the backend.
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+    paths-ignore:
+      - "frontend/**"
+  workflow_call:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend — typecheck + vitest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22          # matches frontend/Dockerfile (node:22-alpine)
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      # tsc runs inside `npm run build` in the Dockerfile, so a type error already
+      # blocks the frontend deploy today. It runs here too so a pull request sees it
+      # before merge rather than at deploy time.
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+  backend:
+    name: Backend — pytest against a fresh PostGIS
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # 33 references in the suite gate on TEST_DATABASE_URL, 15 on DATABASE_URL.
+      # Setting only one leaves a large part of the suite silently skipped.
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/test
+      DATABASE_URL: postgresql://test:test@localhost:5432/test
+      ABYSSAL_API_KEY: ci-test-key
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"    # production venv is 3.12.13
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      # Insurance, not a diagnosis. rasterio's manylinux wheel dlopens libexpat at
+      # import time; on python:3.12-slim and on base ubuntu:24.04 that library is
+      # absent and `import rasterio` dies with ImportError even though pip reported
+      # success — verified locally on linux/amd64. GitHub's ubuntu-latest ships a
+      # preinstalled Python that links libexpat, so this step is very likely a
+      # no-op there; it costs seconds and removes the one way this gate could go
+      # red on its first run for a reason unrelated to the code.
+      - name: System libraries for the geo wheels
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libexpat1
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-dev.txt
+
+      # Building the schema from nothing IS a test. A fresh database that cannot
+      # boot has shipped here before (99534ad: "the two core tables had no CREATE,
+      # so a fresh DB could not boot"). This step fails the job if any ensure_*
+      # step fails, so that class of defect can never reach production again.
+      - name: Create schema in the empty database
+        run: python backend/scripts/ci_bootstrap_db.py
+
+      # ⛔ Run from the REPOSITORY ROOT. 49 test files do `from backend.x import y`;
+      # starting pytest inside backend/ produces 50 collection errors.
+      #
+      # The four --deselect entries and one --ignore below are PRE-EXISTING failures
+      # against a fresh database, measured 2026-08-21, NOT regressions introduced by
+      # this workflow. They are named individually rather than hidden behind a marker
+      # so that this list stays visible and shrinks. Do not add to it to make a red
+      # build green — a new failure here is the gate doing its job.
+      #
+      #   test_admin_flags::test_flags_list_and_ack             401 != 200, fails alone
+      #   test_export_bundle::test_bundle_zip_shape             pool InterfaceError, fails alone
+      #   test_export_endpoints::test_count_and_export_...      pool InterfaceError, fails alone
+      #   test_org_admin_api.py (whole file)                    KeyError 'role' + 3 cascading errors
+      #   test_api_access_rollup::test_rollup_counts_...        PASSES alone; fails only after
+      #                                                         test_api_access_admin_crud writes to
+      #                                                         the same tables — a test-isolation
+      #                                                         defect, not a product defect
+      # `python -m pytest`, not `pytest`: the module form guarantees the same
+      # interpreter that just installed the dependencies, and injects the working
+      # directory into sys.path. pytest.ini's `pythonpath = .` already covers the
+      # path half for a bare `pytest`; this covers the interpreter half.
+      - name: Run tests
+        run: |
+          # -rs lists every skip WITH its reason. Without it a test that silently
+          # stopped running (a missing TEST_DATABASE_URL, a renamed marker) is
+          # indistinguishable in the summary from a test that passed.
+          python -m pytest -q -rs \
+            --deselect backend/tests/test_admin_flags.py::test_flags_list_and_ack \
+            --deselect backend/tests/test_export_bundle.py::test_bundle_zip_shape \
+            --deselect backend/tests/test_export_endpoints.py::test_count_and_export_geotraces_bbox \
+            --deselect backend/tests/test_api_access_rollup.py::test_rollup_counts_each_row_once_and_is_idempotent \
+            --ignore=backend/tests/test_org_admin_api.py
+
+  lint:
+    name: Lint — report only, never blocks
+    runs-on: ubuntu-latest
+    # First lint pass over ~39.7k + ~61k lines that were never linted. The run
+    # exists to measure the backlog and keep it visible, not to gate on it. Promote
+    # to blocking per-rule, as each reaches zero — not all at once.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ESLint (frontend)
+        working-directory: frontend
+        run: |
+          npm ci
+          npx eslint . -f stylish || true
+
+      - name: Ruff (backend)
+        run: |
+          pip install ruff==0.16.4
+          ruff check backend --output-format=github || true

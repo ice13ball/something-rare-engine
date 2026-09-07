@@ -1,0 +1,75 @@
+{
+  "actions": {
+    "all": "Tout",
+    "cancel": "Annuler",
+    "clear": "Effacer",
+    "close": "Fermer",
+    "loading": "Chargement…",
+    "none": "Aucun",
+    "reset": "Réinitialiser",
+    "retry": "Réessayer",
+    "save": "Enregistrer",
+    "search": "Rechercher",
+    "undo": "Annuler"
+  },
+  "search": {
+    "placeholder": "Rechercher concessions, cheminées, espèces…",
+    "noResults": "Aucun résultat pour « {{query}} »",
+    "noResultsSimple": "Aucun résultat",
+    "mobileTitle": "Rechercher",
+    "coordinateLabel": "Coordonnées",
+    "coordinateAction": "Aller à cet endroit",
+    "groupHeader": {
+      "claims": "Concessions minières",
+      "vents": "Cheminées hydrothermales",
+      "seamounts": "Monts sous-marins",
+      "contractors": "Contractants",
+      "stations": "Stations de surveillance"
+    }
+  },
+  "tooltips": {
+    "clearFilters": "Effacer les filtres",
+    "closeLayersPanel": "Fermer le panneau des couches",
+    "collapseFilters": "Réduire les filtres",
+    "expandFilters": "Développer les filtres",
+    "flyToLayer": "Aller à la couche",
+    "hideAllPlumes": "Masquer tous les panaches actuellement suivis",
+    "infoAbout": "Infos sur {{label}}",
+    "resetAllFilters": "Réinitialiser tous les filtres",
+    "toggleLayer": "Basculer la visibilité de la couche",
+    "toggleSection": "Afficher/masquer la section {{label}}",
+    "toggleSubSection": "Afficher/masquer la sous-section {{label}}",
+    "turnOffAllLayers": "Désactiver toutes les couches actives",
+    "undoFilterReset": "Annuler la réinitialisation des filtres",
+    "zoomTo": "Zoomer sur {{label}}",
+    "featureDetails": "Détails de l'entité",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "dataReference": "Référence des données",
+    "dismiss": "Fermer"
+  },
+  "map": {
+    "ariaLabel": "Carte 3D interactive des concessions minières en haute mer. Utilisez les touches fléchées pour vous déplacer, +/− pour zoomer.",
+    "loadingOceanData": "Chargement des données océaniques…",
+    "tracingPlume": "Traçage du panache…",
+    "referenceButton": "Référence"
+  },
+  "layerUnavailable": {
+    "title": "Certaines couches indisponibles",
+    "titleFull": "Certaines couches sont temporairement indisponibles",
+    "body": "Ces sources de données n'ont pas pu être chargées : {{layers}}. Essayez d'actualiser ou consultez l'onglet Dates et fraîcheur de la légende.",
+    "otherLayersOperational": "Les autres couches fonctionnent normalement"
+  },
+  "seafloorDepthLabel": "Profondeur du fond",
+  "belowSeaLevel": "sous le niveau de la mer",
+  "statusStrip": {
+    "ariaLabel": "État du système",
+    "tracking": "SUIVI ACTIF",
+    "degraded": "DÉGRADÉ",
+    "sync": "SYNC",
+    "layers": "COUCHES",
+    "minutesShort": "il y a {{n}} min",
+    "hoursShort": "il y a {{n}} h",
+    "daysShort": "il y a {{n}} j"
+  }
+}

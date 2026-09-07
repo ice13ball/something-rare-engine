@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deep Sea Mining Map: ISA Concessions & Vents | Abyssal Claims</title>
+    <meta name="description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
+    <!-- No static canonical: this SPA shell is served for every client-side
+         route, so a hardcoded homepage canonical made every non-SSR route
+         (/privacy, /terms, /about, …) declare itself a duplicate of "/".
+         The homepage self-canonicalizes to "/"; per-route canonicals are set
+         by react-helmet-async (LegalPage/SeoPage/SEO) and, for crawlers, by
+         the server-side routes in server.js. -->
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://something-rare.com/" />
+    <meta property="og:title" content="Deep Sea Mining Map: ISA Concessions & Vents | Abyssal Claims" />
+    <meta property="og:description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
+    <meta property="og:image" content="https://something-rare.com/og.webp" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Deep Sea Mining Map: ISA Concessions & Vents | Abyssal Claims" />
+    <meta name="twitter:description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
+    <meta name="twitter:image" content="https://something-rare.com/og.webp" />
+    <!-- Google Scholar / Highwire Press citation tags -->
+    <meta name="citation_title" content="Abyssal Claims: Ocean & Land Environmental Transparency Map" />
+    <meta name="citation_author" content="Mazurowski, Michal" />
+    <meta name="citation_author_orcid" content="https://orcid.org/0009-0007-3786-0310" />
+    <meta name="citation_doi" content="10.5281/zenodo.19745884" />
+    <meta name="citation_publication_date" content="2026" />
+    <meta name="citation_publisher" content="Zenodo" />
+    <meta name="citation_public_url" content="https://something-rare.com" />
+    <!-- Fonts: Barlow (UI body) + JetBrains Mono (data readouts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- Resource hints — reduce connection latency for critical third-party origins -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://services.arcgisonline.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <!-- Force high-performance GPU path for WebGL (deck.gl / MapLibre).
+         Patching getContext before any script runs ensures powerPreference
+         is set at context-creation time, not after. -->
+    <script>
+      (function(){
+        var _orig = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function(type, attrs) {
+          if (type === 'webgl2' || type === 'webgl') {
+            attrs = Object.assign({ powerPreference: 'high-performance', antialias: false }, attrs || {});
+          }
+          return _orig.call(this, type, attrs);
+        };
+      })();
+    </script>
+    <!-- Google Consent Mode v2 — must fire BEFORE gtag config -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      // Set consent defaults: denied until user accepts
+      gtag('consent', 'default', {
+        analytics_storage: 'denied',
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        wait_for_update: 500
+      });
+      // Restore prior consent decision or auto-grant non-EU first-visit
+      try {
+        var stored = localStorage.getItem('abyssal_consent');
+        if (stored === 'granted') {
+          gtag('consent', 'update', {
+            analytics_storage: 'granted',
+            ad_storage: 'granted',
+            ad_user_data: 'granted',
+            ad_personalization: 'granted'
+          });
+        } else if (stored === null) {
+          // First visit: auto-grant if non-EU locale (GDPR does not apply)
+          var euLangs = ['bg','cs','da','de','et','el','es','fr','ga','hr','it','lv','lt','hu','mt','nl','pl','pt','ro','sk','sl','fi','sv','is','no'];
+          var lang = ((navigator.languages && navigator.languages[0]) || navigator.language || '').split('-')[0].toLowerCase();
+          if (!euLangs.includes(lang)) {
+            localStorage.setItem('abyssal_consent', 'granted');
+            gtag('consent', 'update', {
+              analytics_storage: 'granted',
+              ad_storage: 'granted',
+              ad_user_data: 'granted',
+              ad_personalization: 'granted'
+            });
+          }
+        }
+      } catch(e) {}
+    </script>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S5HR4WT0ZG"></script>
+    <script>
+      gtag('js', new Date());
+      gtag('config', 'G-S5HR4WT0ZG');
+    </script>
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org/",
+      "@type": "Dataset",
+      "name": "Abyssal Claims: Ocean & Land Environmental Transparency Map",
+      "description": "An independent transparency platform mapping 50+ environmental data layers across ocean and land — from ISA deep-sea mining concessions and hydrothermal vents to global mining footprints, deforestation, active fires, air quality, and biodiversity hotspots.",
+      "url": "https://something-rare.com",
+      "identifier": "https://doi.org/10.5281/zenodo.19745884",
+      "sameAs": ["https://zenodo.org/records/19745884"],
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "keywords": [
+        "Deep Sea Mining",
+        "International Seabed Authority",
+        "Hydrothermal Vents",
+        "Ocean Conservation",
+        "Marine Spatial Planning",
+        "Argo Floats",
+        "Clarion-Clipperton Zone",
+        "Deforestation",
+        "Mining Footprints",
+        "Air Quality",
+        "Active Fires",
+        "Environmental Monitoring",
+        "Protected Areas"
+      ],
+      "creator": {
+        "@type": "Person",
+        "name": "Michal Mazurowski",
+        "jobTitle": "Principal Systems Architect",
+        "identifier": "https://orcid.org/0009-0007-3786-0310",
+        "url": "https://orcid.org/0009-0007-3786-0310",
+        "sameAs": ["https://orcid.org/0009-0007-3786-0310"]
+      },
+      "distribution": [
+        {
+          "@type": "DataDownload",
+          "encodingFormat": "interactive/visual",
+          "contentUrl": "https://something-rare.com"
+        }
+      ],
+      "variableMeasured": [
+        "Mining Concession Boundaries",
+        "Hydrothermal Vent Locations",
+        "Species Observations",
+        "Ocean Temperature and Salinity",
+        "Current Backtracking (Plumes)",
+        "Global Mining Footprints",
+        "Tree Cover Loss",
+        "Active Fire Detections",
+        "Air Quality (PM2.5, SO₂, NO₂, O₃)",
+        "Soil Organic Carbon",
+        "Forest Carbon Flux",
+        "Landslide Events",
+        "Surface Water Change"
+      ],
+      "includedInDataCatalog": {
+        "@type": "DataCatalog",
+        "name": "Open Ocean Data"
+      },
+      "hasPart": [
+        {
+          "@type": "Dataset",
+          "name": "InterRidge Global Database of Active Submarine Hydrothermal Vent Fields v3.4",
+          "description": "721 hydrothermal vent field locations with activity status and depth data.",
+          "url": "https://doi.pangaea.de/10.1594/PANGAEA.917894",
+          "license": "https://creativecommons.org/licenses/by/4.0/",
+          "creator": {
+            "@type": "Organization",
+            "name": "InterRidge / PANGAEA"
+          }
+        },
+        {
+          "@type": "Dataset",
+          "name": "ISA Deep Seabed Mining Contracts",
+          "description": "All ISA exploration and exploitation contracts for polymetallic nodules, sulphides, and crusts.",
+          "url": "https://www.isa.org.jm/exploration-contracts/",
+          "license": "https://creativecommons.org/licenses/by/4.0/",
+          "creator": {
+            "@type": "Organization",
+            "name": "International Seabed Authority"
+          }
+        },
+        {
+          "@type": "Dataset",
+          "name": "Ocean Biodiversity Information System (OBIS)",
+          "description": "Deep-sea species observations and biodiversity records from the global OBIS network.",
+          "url": "https://obis.org/",
+          "license": "https://creativecommons.org/licenses/by/4.0/",
+          "creator": {
+            "@type": "Organization",
+            "name": "Ocean Biodiversity Information System (OBIS)"
+          }
+        },
+        {
+          "@type": "Dataset",
+          "name": "Argo Float Programme",
+          "description": "Real-time autonomous ocean profiling float data including temperature, salinity, oxygen, and pH.",
+          "url": "https://argo.ucsd.edu/",
+          "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+          "creator": {
+            "@type": "Organization",
+            "name": "International Argo Program / GCOOS"
+          }
+        }
+      ]
+    }
+    </script>
+    <!-- FAQ Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is deep sea mining?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Deep-sea mining is the industrial extraction of mineral deposits — polymetallic nodules, seafloor massive sulphides, and cobalt-rich crusts — from the ocean floor, typically at depths of 1,000 to 6,000 metres. The metals (nickel, cobalt, manganese, copper, rare earth elements) are used in batteries and electronics. Mining is regulated by the International Seabed Authority (ISA) in international waters and by national agencies within Exclusive Economic Zones."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where is deep sea mining happening?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most active deep-sea mining exploration is concentrated in the Clarion-Clipperton Zone (CCZ) of the Pacific Ocean between Hawaii and Mexico, with additional contracts in the Indian Ocean, Mid-Atlantic Ridge, and Western Pacific. The interactive map shows every active ISA exploration and exploitation contract alongside national leasing zones from BOEM, NOPTA, NSTA, and other registries. As of 2026, no commercial-scale deep-sea mining has begun, but tests of nodule-collector vehicles started in 2022."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is deep sea mining legal?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Deep-sea mining in international waters is legal under exploration contracts issued by the International Seabed Authority, but commercial exploitation requires a separate Mining Code the ISA has been negotiating since 2014. Within national waters, individual countries (e.g., Norway, Cook Islands, Papua New Guinea) set their own rules. Several countries — including France, Germany, Spain, Chile, and Palau — have called for a moratorium or precautionary pause until environmental impacts are better understood."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does deep sea mining damage ecosystems?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Deep-sea mining disturbs the seafloor at depths where ecosystems recover slowly — sediment plumes can travel hundreds of kilometres and smother filter-feeding life, while light and noise pollution affects species adapted to total darkness. Hydrothermal vents host species found nowhere else on Earth, and even small-scale disturbance can extirpate entire populations. Recovery timescales for polymetallic nodule fields are estimated in millions of years."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who regulates deep sea mining?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The International Seabed Authority (ISA), based in Kingston, Jamaica, regulates deep-sea mining in 'the Area' — the seabed beyond national jurisdiction, roughly 54% of Earth's seafloor. The ISA has 168 member states and operates under the UN Convention on the Law of the Sea (UNCLOS). Within national EEZs, regulation is handled by domestic agencies such as BOEM (USA), NOPTA (Australia), NSTA (UK), Sodir (Norway), CNH (Mexico), and others — all surfaced as separate layers on this map."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What metals are in deep-sea mining nodules?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Polymetallic nodules contain primarily manganese (~28%), iron (~6%), nickel (~1.3%), copper (~1.1%), and cobalt (~0.2%), plus trace rare earth elements. Seafloor massive sulphides are richer in copper, zinc, gold, and silver. Cobalt-rich crusts grow on seamount surfaces and contain up to 1.5% cobalt with significant tellurium and platinum-group metals. Demand is driven by battery metals for EVs and grid storage."
+          }
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Pre-render content for search engine crawlers — replaced by React on mount -->
+      <main style="max-width:800px;margin:0 auto;padding:2rem;color:#ccc;font-family:system-ui,sans-serif">
+        <h1>Deep Sea Mining Map: Track ISA Concessions, Hydrothermal Vents, and Ocean Biodiversity</h1>
+        <p>Deep-sea mining is reshaping the ocean floor — and most of it happens out of sight. Abyssal Claims is an independent transparency platform mapping every active International Seabed Authority (ISA) exploration contract, every documented hydrothermal vent field, and the biodiversity at risk, alongside 50+ ocean and land environmental data layers on an interactive 3D globe. Built for researchers, journalists, policymakers, and the public.</p>
+
+        <h2>Ocean Data Layers</h2>
+        <ul>
+          <li><strong>Mining Concessions</strong> — All active ISA exploration and exploitation contracts with contractor details, expiry dates, and environmental risk assessments.</li>
+          <li><strong>Hydrothermal Vents</strong> — 721 vent fields from the InterRidge Database v3.4, including active, inactive, and extinct sites with depth data.</li>
+          <li><strong>Biodiversity Hotspots</strong> — Deep-sea species observations from the Ocean Biodiversity Information System (OBIS), including endangered species flagging.</li>
+          <!-- Counts in this block are asserted against the live backend by
+               `npm run check:counts` — read its header before changing one.
+               (The story stays there, not here: this file ships to every
+               visitor, and a comment is the one place a stale figure can
+               survive a check that strips comments before comparing.) -->
+          <li><strong>Seamounts</strong> — 37,889 underwater mountains from Yesson et al. 2011, primary targets for cobalt-crust mining.</li>
+          <li><strong>Argo Floats</strong> — Real-time ocean monitoring with 90-day drift trails, depth profiles, temperature, salinity, oxygen, and pH measurements.</li>
+          <li><strong>Plume Tracing</strong> — Copernicus Marine ocean current backtracking to estimate sediment plume origins from mining activity.</li>
+          <li><strong>EEZ Boundaries</strong> — Exclusive Economic Zones from MarineRegions.org World EEZ v12.</li>
+          <li><strong>Protected Areas</strong> — ISA Areas of Particular Environmental Interest (APEIs) and UNESCO World Heritage Marine Sites.</li>
+          <li><strong>Submarine Cables</strong> — Undersea telecommunications infrastructure from EMODnet.</li>
+          <li><strong>OceanSITES &amp; ONC</strong> — Long-term ocean monitoring stations and observatories.</li>
+        </ul>
+
+        <h2>Land Data Layers</h2>
+        <ul>
+          <li><strong>Global Mining Footprints</strong> — 74,548 mine polygons (pits, tailings, waste dumps, processing sites) from Sentinel-2 at 10m resolution — Maus et al. 2022/2023.</li>
+          <li><strong>Tree Cover Loss</strong> — Annual deforestation at 30m resolution (2001–2024) with weekly GLAD/RADD alerts — University of Maryland / WRI.</li>
+          <li><strong>Active Fires (FIRMS)</strong> — Near-real-time fire detection from MODIS &amp; VIIRS — NASA LANCE, updated within 3 hours.</li>
+          <li><strong>Air Quality Stations</strong> — Real-time PM2.5, SO₂, NO₂, O₃, CO from government stations worldwide — OpenAQ.</li>
+          <li><strong>Tailings Dams</strong> — 1,800+ mine tailings dams with risk classification — GRID-Arendal / UNEP.</li>
+          <li><strong>Landslide Catalog</strong> — Rainfall-triggered landslides since 2007 — NASA COOLR / Goddard Space Flight Center.</li>
+          <li><strong>Global Surface Water</strong> — Surface water occurrence and change 1984–2021 at 30m — JRC / European Commission.</li>
+          <li><strong>Global Dams</strong> — 41,145 river barriers + 35,295 reservoir polygons — Global Dam Watch.</li>
+          <li><strong>Forest Carbon Flux</strong> — CO₂ emissions and removals per hectare at 30m — WRI / Global Forest Watch.</li>
+          <li><strong>Soil Organic Carbon</strong> — Global soil carbon content (top 0–5cm) at ~250m — ISRIC SoilGrids.</li>
+        </ul>
+
+        <h2>What Is Deep-Sea Mining?</h2>
+        <p>Deep-sea mining is the extraction of metals — polymetallic nodules, seafloor massive sulphides, and cobalt-rich crusts — from the ocean floor at depths of 1,000 to 6,000 metres. The International Seabed Authority (ISA) regulates mining in international waters and has issued exploration contracts across the Pacific (Clarion-Clipperton Zone), Indian, and Atlantic Oceans. Commercial extraction could begin within years, despite incomplete environmental impact data and unresolved questions about damage to hydrothermal vent ecosystems and deep-sea biodiversity.</p>
+        <p>This map tracks every active ISA concession alongside the vents, species observations, and ocean monitoring data those concessions overlap — connecting policy, ecology, and infrastructure in one view.</p>
+
+        <h2>Frequently Asked Questions</h2>
+        <h3>What is deep sea mining?</h3>
+        <p>Deep-sea mining is the industrial extraction of mineral deposits — polymetallic nodules, seafloor massive sulphides, and cobalt-rich crusts — from the ocean floor, typically at depths of 1,000 to 6,000 metres. The metals (nickel, cobalt, manganese, copper, rare earth elements) are used in batteries and electronics. Mining is regulated by the International Seabed Authority (ISA) in international waters and by national agencies within Exclusive Economic Zones.</p>
+
+        <h3>Where is deep sea mining happening?</h3>
+        <p>Most active deep-sea mining exploration is concentrated in the Clarion-Clipperton Zone (CCZ) of the Pacific Ocean between Hawaii and Mexico, with additional contracts in the Indian Ocean, Mid-Atlantic Ridge, and Western Pacific. The interactive map shows every active ISA exploration and exploitation contract alongside national leasing zones from BOEM, NOPTA, NSTA, and other registries. As of 2026, no commercial-scale deep-sea mining has begun, but tests of nodule-collector vehicles started in 2022.</p>
+
+        <h3>Is deep sea mining legal?</h3>
+        <p>Deep-sea mining in international waters is legal under exploration contracts issued by the International Seabed Authority, but commercial exploitation requires a separate Mining Code the ISA has been negotiating since 2014. Within national waters, individual countries (e.g., Norway, Cook Islands, Papua New Guinea) set their own rules. Several countries — including France, Germany, Spain, Chile, and Palau — have called for a moratorium or precautionary pause until environmental impacts are better understood.</p>
+
+        <h3>How does deep sea mining damage ecosystems?</h3>
+        <p>Deep-sea mining disturbs the seafloor at depths where ecosystems recover slowly — sediment plumes can travel hundreds of kilometres and smother filter-feeding life, while light and noise pollution affects species adapted to total darkness. Hydrothermal vents host species found nowhere else on Earth, and even small-scale disturbance can extirpate entire populations. Recovery timescales for polymetallic nodule fields are estimated in millions of years.</p>
+
+        <h3>Who regulates deep sea mining?</h3>
+        <p>The International Seabed Authority (ISA), based in Kingston, Jamaica, regulates deep-sea mining in "the Area" — the seabed beyond national jurisdiction, roughly 54% of Earth's seafloor. The ISA has 168 member states and operates under the UN Convention on the Law of the Sea (UNCLOS). Within national EEZs, regulation is handled by domestic agencies such as BOEM (USA), NOPTA (Australia), NSTA (UK), Sodir (Norway), CNH (Mexico), and others — all surfaced as separate layers on this map.</p>
+
+        <h3>What metals are in deep-sea mining nodules?</h3>
+        <p>Polymetallic nodules contain primarily manganese (~28%), iron (~6%), nickel (~1.3%), copper (~1.1%), and cobalt (~0.2%), plus trace rare earth elements. Seafloor massive sulphides are richer in copper, zinc, gold, and silver. Cobalt-rich crusts grow on seamount surfaces and contain up to 1.5% cobalt with significant tellurium and platinum-group metals. Demand is driven by battery metals for EVs and grid storage.</p>
+
+        <h2>Data Sources</h2>
+        <ul>
+          <li>International Seabed Authority (ISA) — Deep-sea mining contracts and boundaries</li>
+          <li>InterRidge Database v3.4 via PANGAEA — Hydrothermal vent locations</li>
+          <li>Ocean Biodiversity Information System (OBIS) — Marine species observations</li>
+          <li>Argo Programme — Autonomous ocean profiling floats</li>
+          <li>Copernicus Marine Service (CMEMS) — Ocean currents for plume analysis</li>
+          <li>MarineRegions.org — EEZ and UNESCO marine boundaries</li>
+          <li>Maus et al. 2022/2023 — Global mining footprints from Sentinel-2</li>
+          <li>University of Maryland / WRI — Global Forest Watch deforestation</li>
+          <li>NASA LANCE FIRMS — Near-real-time fire detection</li>
+          <li>OpenAQ — Global air quality monitoring stations</li>
+          <li>GRID-Arendal / UNEP — Mine tailings dams</li>
+          <li>NASA COOLR — Global landslide catalog</li>
+          <li>JRC / European Commission — Global surface water</li>
+          <li>Global Dam Watch — River barriers and reservoirs</li>
+          <li>ISRIC — SoilGrids soil organic carbon</li>
+        </ul>
+        <!-- AGPL-3.0 §13 and our §7(b) additional term require the notice to be
+             reachable from the running program. The React footer carries it for
+             anyone with JavaScript; this copy is what a crawler and a JS-less
+             reader see, since / is served from this static shell and never goes
+             through seo/render-page.js's wrapHtml. -->
+        <h2>Licence</h2>
+        <p>
+          Abyssal Claims is free software:
+          <a href="https://github.com/ice13ball/something-rare-engine">source code</a>,
+          licensed <a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0-or-later</a>.
+          Based on Abyssal Claims — &copy; 2026 Michal Mazurowski.
+        </p>
+      </main>
+      <noscript>
+        <p>Abyssal Claims requires JavaScript to display the interactive 3D map. Please enable JavaScript or visit with a modern browser.</p>
+      </noscript>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

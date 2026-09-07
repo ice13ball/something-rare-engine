@@ -1,0 +1,115 @@
+cff-version: 1.2.0
+message: "If you use this software, the live platform, or any derived product from Abyssal Claims, please cite the Zenodo deposit below."
+title: "Abyssal Claims: A FAIR-aligned integration platform for deep-sea and terrestrial mining transparency"
+abstract: >-
+  Abyssal Claims is an independently developed, non-commercial web platform that
+  integrates more than fifty publicly funded and open-licensed geospatial
+  datasets onto a single interactive three-dimensional globe, with the goal of
+  making the environmental and governance context of deep-sea mineral extraction
+  and terrestrial industrial mining legible to researchers, journalists, policy
+  analysts and the general public. This repository contains the platform source
+  code (React + deck.gl frontend, FastAPI + PostGIS backend, and the data-sync
+  pipelines). No scientific data is included; each layer is fetched at runtime
+  from its upstream provider under that provider's own licence. The accompanying
+  Zenodo deposit documents the data sources, refresh strategies, architecture,
+  derived products, known limitations and licensing model.
+type: software
+# `version` is the SOFTWARE release, deliberately independent of the documentation
+# deposit's version (which is at 1.6). Do not sync the two — they have different
+# cadences; that separation is the whole reason the code gets its own Zenodo record.
+version: "1.0.0"
+date-released: "2026-07-29"
+license: AGPL-3.0-or-later
+# TODO after the first GitHub release is archived by Zenodo: replace `doi` below with
+# the SOFTWARE concept DOI, and move the documentation DOI to `identifiers` only.
+# Until then this points at the documentation deposit so the citation still resolves.
+# `version` above needs the same post-release update: it currently tracks this
+# repository's own release cadence, independent of the doc deposit's version (1.6).
+doi: "10.5281/zenodo.19745884"
+url: "https://something-rare.com"
+repository-code: "https://github.com/ice13ball/something-rare-engine"
+repository-artifact: "https://github.com/ice13ball/something-rare-engine/releases"
+keywords:
+  - deep-sea mining
+  - seabed minerals
+  - International Seabed Authority
+  - ISA
+  - Clarion-Clipperton Zone
+  - deep-sea biodiversity
+  - OBIS
+  - ISA DeepData
+  - NOAA DSCRTP
+  - hydrophone
+  - passive acoustic monitoring
+  - IUCN Red List
+  - GBIF
+  - submarine cables
+  - GEBCO
+  - bathymetry
+  - Copernicus Marine
+  - ocean currents
+  - editorial neutrality
+  - WOA
+  - GLODAP
+  - SOCAT
+  - MEMENTO
+  - GEOTRACES
+  - SEAFLEA
+  - SIOS Svalbard
+  - CASCADE
+  - MOSAiC
+  - ARCADE
+  - permafrost
+  - Arctic system
+  - WoRMS
+  - equal-area hex grid
+  - Area Export
+  - public API
+  - mining transparency
+  - tailings
+  - WDPA
+  - Key Biodiversity Areas
+  - Argo
+  - hydrothermal vents
+  - geospatial integration
+  - FAIR data
+  - deck.gl
+  - PostGIS
+  - FastAPI
+  - synthetic aperture radar
+  - AIS
+  - dark vessel
+  - ocean observatories
+  - environmental monitoring
+  - offshore oil and gas
+  - species distribution model
+  - MaxEnt
+  - vulnerable marine ecosystems
+  - cold-water corals
+  - ocean acidification
+  - aragonite saturation state
+  - PyCO2SYS
+  - modeled products
+  - platform-derived data
+  - cumulative human impact
+  - NCEAS
+  - anthropogenic pressure
+authors:
+  - family-names: "Mazurowski"
+    given-names: "Michal"
+    orcid: "https://orcid.org/0009-0007-3786-0310"
+    affiliation: "Independent Researcher"
+identifiers:
+  - description: "Methods and data documentation — Zenodo concept DOI, CC-BY-4.0 (always resolves to the latest version)"
+    type: doi
+    value: "10.5281/zenodo.19745884"
+  - description: "Live platform URL"
+    type: url
+    value: "https://something-rare.com"
+  - description: "Author ORCID"
+    type: other
+    value: "0009-0007-3786-0310"
+contact:
+  - website: "https://something-rare.com"
+    family-names: "Mazurowski"
+    given-names: "Michal"

@@ -1,0 +1,60 @@
+{
+  "status": {
+    "Active": "Aktiv",
+    "Inactive": "Inaktiv",
+    "Extinct": "Erloschen",
+    "Pending": "Ausstehend",
+    "Suspended": "Ausgesetzt",
+    "Expired": "Abgelaufen",
+    "Relinquished": "Aufgegeben",
+    "Reserved": "Reserviert",
+    "Approved": "Genehmigt",
+    "Submitted": "Eingereicht"
+  },
+  "resourceType": {
+    "Polymetallic Nodules": "Polymetallische Knollen",
+    "Polymetallic Sulphides": "Polymetallische Sulfide",
+    "Cobalt-rich Crusts": "Kobaltreiche Krusten",
+    "Cobalt-Rich Crusts": "Kobaltreiche Krusten",
+    "Reserved Area": "Reservierter Bereich"
+  },
+  "oceanBasin": {
+    "Pacific": "Pazifik",
+    "Atlantic": "Atlantik",
+    "Indian": "Indischer Ozean",
+    "Arctic": "Arktischer Ozean",
+    "Southern": "Südlicher Ozean"
+  },
+  "offshoreType": {
+    "oil_gas": "Öl & Gas",
+    "offshore_wind": "Offshore-Wind",
+    "seabed_mining": "Tiefseebergbau"
+  },
+  "seamountSize": {
+    "Major": "Hauptgipfel",
+    "Large": "Groß",
+    "Medium": "Mittelgroß",
+    "Small": "Klein"
+  },
+  "iso_topic": {
+    "oceans": "Ozeane",
+    "climatologyMeteorologyAtmosphere": "Klimatologie / Atmosphäre",
+    "environment": "Umwelt",
+    "biota": "Biota"
+  },
+  "seabedSubstrate": {
+    "gravel": "Kies und gröber",
+    "sand": "Sand",
+    "silt": "Schluff",
+    "clay": "Ton",
+    "calcareous_ooze": "Kalkschlamm",
+    "radiolarian_ooze": "Radiolarienschlamm",
+    "diatom_ooze": "Diatomeen-Schlamm",
+    "sponge_spicules": "Schwammnadeln",
+    "mixed_ooze": "Gemischter Kalk-/Kieselschlamm",
+    "shells_coral": "Schalen und Korallenbruchstücke",
+    "ash_volcanic": "Vulkanasche und Sand/Kies",
+    "siliceous_mud": "Kieseliger Schlamm",
+    "fine_calcareous": "Feinkörniges Kalksediment"
+  }
+}

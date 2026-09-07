@@ -1,0 +1,142 @@
+# Full resolved environment — captured from PRODUCTION 2026-08-21.
+# Python 3.12.13
+#
+# requirements.txt = direct dependencies (what this project asks for).
+# requirements.lock.txt = every package actually installed, transitives included.
+#
+# Reproduce the production environment exactly:
+#   pip install -r requirements.lock.txt
+# ⛔ THIS SNAPSHOT IS NOT REPRODUCIBLE BY pip, and that is a property of the
+# environment, not of this file. Production runs rasterio==1.5.0 alongside
+# click==8.2.1, but rasterio 1.5.0's own metadata declares `click!=8.2.*` — so the
+# two were installed past a conflict, deliberately (see the click note in
+# requirements.txt: rasterio's library API never imports click, only its unused
+# `rio` console script does). A clean `pip install -r requirements.txt` therefore
+# resolves BACKWARDS to rasterio 1.4.3 + click-plugins.
+#
+# Verified 2026-08-21 against the live venv: the old requirements.txt and the newly
+# pinned one produce the identical resolution, so the pinning did not cause this.
+# It has been latent since the click pin landed 2026-07-15, and `deploy-if-new.sh`
+# runs `pip install -q -r requirements.txt` on every backend change — meaning CI,
+# which installs from scratch, will get 1.4.3 while production sits on 1.5.0.
+# Unresolved on purpose: choosing between the click pin and the rasterio version
+# changes what the VME/elapid bake runs against, and that is a maintainer call.
+#
+# Re-capture after any intentional upgrade:
+#   ssh <production-host> '~/something-rare/backend/.venv/bin/python -m pip freeze' > requirements.lock.txt
+affine==2.4.0
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.5
+aiosignal==1.4.0
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+arcosparse==0.4.2
+asyncpg==0.29.0
+attrs==26.1.0
+autograd==1.9.1
+bcrypt==5.0.0
+boto3==1.42.80
+botocore==1.42.80
+certifi==2026.2.25
+cftime==1.6.5
+charset-normalizer==3.4.6
+click==8.2.1
+cligj==0.7.2
+cloudpickle==3.1.2
+contourpy==1.3.3
+copernicusmarine==2.3.0
+cycler==0.12.1
+dask==2026.3.0
+dnspython==2.8.0
+donfig==0.8.1.post1
+duckdb==1.5.2
+elapid==1.0.4
+email-validator==2.3.0
+fastapi==0.111.1
+fastapi-cli==0.0.24
+fonttools==4.63.0
+frozenlist==1.8.0
+fsspec==2026.3.0
+geoip2==5.2.0
+geopandas==1.1.4
+google-crc32c==1.8.0
+h11==0.16.0
+h5netcdf==1.8.1
+h5py==3.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.27.2
+idna==3.11
+iniconfig==2.3.0
+Jinja2==3.1.6
+jmespath==1.1.0
+joblib==1.5.3
+kiwisolver==1.5.0
+locket==1.0.0
+mapbox-vector-tile==2.2.0
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib==3.11.0
+maxminddb==3.1.1
+mdurl==0.1.2
+mercantile==1.2.1
+multidict==6.7.1
+narwhals==2.24.0
+netCDF4==1.7.4
+numcodecs==0.16.5
+numpy==2.4.4
+packaging==26.0
+pandas==2.3.3
+partd==1.4.2
+pillow==12.2.0
+pluggy==1.6.0
+propcache==0.4.1
+protobuf==6.33.6
+pyarrow==23.0.1
+pyclipper==1.4.0
+PyCO2SYS==1.8.3.4
+pydantic==2.12.5
+pydantic_core==2.41.5
+Pygments==2.20.0
+pyogrio==0.13.0
+pyparsing==3.3.2
+pyproj==3.7.2
+pyshp==3.0.3
+pystac==1.14.3
+pytest==9.1.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+python-multipart==0.0.22
+pytz==2026.1.post1
+PyYAML==6.0.3
+rasterio==1.5.0
+requests==2.33.1
+rich==14.3.3
+rich-toolkit==0.19.7
+rtree==1.4.1
+s3transfer==0.16.0
+scikit-learn==1.9.0
+scipy==1.17.1
+semver==3.0.4
+setuptools==82.0.1
+shapely==2.1.2
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+starlette==0.37.2
+threadpoolctl==3.6.0
+toolz==1.1.0
+tqdm==4.67.3
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+tzdata==2025.3
+urllib3==2.6.3
+uvicorn==0.29.0
+uvloop==0.22.1
+watchfiles==1.1.1
+websockets==12.0
+xarray==2026.2.0
+yarl==1.23.0
+zarr==3.1.6

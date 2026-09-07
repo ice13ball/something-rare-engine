@@ -1,0 +1,75 @@
+{
+  "actions": {
+    "all": "All",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "close": "Close",
+    "loading": "Loading…",
+    "none": "None",
+    "reset": "Reset",
+    "retry": "Retry",
+    "save": "Save",
+    "search": "Search",
+    "undo": "Undo"
+  },
+  "search": {
+    "placeholder": "Search claims, vents, species…",
+    "noResults": "No results for \"{{query}}\"",
+    "noResultsSimple": "No results",
+    "mobileTitle": "Search",
+    "coordinateLabel": "Coordinates",
+    "coordinateAction": "Fly to this location",
+    "groupHeader": {
+      "claims": "Mining Concessions",
+      "vents": "Hydrothermal Vents",
+      "seamounts": "Seamounts",
+      "contractors": "Contractors",
+      "stations": "Monitoring Stations"
+    }
+  },
+  "tooltips": {
+    "clearFilters": "Clear filters",
+    "closeLayersPanel": "Close layers panel",
+    "collapseFilters": "Collapse filters",
+    "expandFilters": "Expand filters",
+    "flyToLayer": "Fly to layer",
+    "hideAllPlumes": "Hide all currently tracked plumes",
+    "infoAbout": "Info about {{label}}",
+    "resetAllFilters": "Reset all filters",
+    "toggleLayer": "Toggle layer visibility",
+    "toggleSection": "Toggle {{label}} section",
+    "toggleSubSection": "Toggle {{label}} sub-section",
+    "turnOffAllLayers": "Turn off all active layers",
+    "undoFilterReset": "Undo filter reset",
+    "zoomTo": "Zoom to {{label}}",
+    "featureDetails": "Feature details",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "dataReference": "Data Reference",
+    "dismiss": "Dismiss"
+  },
+  "map": {
+    "ariaLabel": "Interactive 3D map of deep-sea mining concessions. Use arrow keys to pan, +/− to zoom.",
+    "loadingOceanData": "Loading ocean data…",
+    "tracingPlume": "Tracing plume…",
+    "referenceButton": "Reference"
+  },
+  "layerUnavailable": {
+    "title": "Some layers unavailable",
+    "titleFull": "Some layers are temporarily unavailable",
+    "body": "These data sources failed to load: {{layers}}. Try refreshing or check the legend's Dates & Freshness tab.",
+    "otherLayersOperational": "Other layers are operational"
+  },
+  "seafloorDepthLabel": "Seafloor depth",
+  "belowSeaLevel": "below sea level",
+  "statusStrip": {
+    "ariaLabel": "System status",
+    "tracking": "TRACKING",
+    "degraded": "DEGRADED",
+    "sync": "SYNC",
+    "layers": "LAYERS",
+    "minutesShort": "{{n}}m ago",
+    "hoursShort": "{{n}}h ago",
+    "daysShort": "{{n}}d ago"
+  }
+}

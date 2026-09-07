@@ -1,0 +1,59 @@
+{
+  "welcome": {
+    "title": "Abyssal Claims",
+    "tagline": "Umwelttransparenz für Ozean und Land",
+    "description": "Eine <bold>Plattform für Umwelttransparenz</bold> über Ozean und Land. Über 50 Datenebenen — Tiefsee-Bergbaukonzessionen, ozeanischer Kohlenstoff und Versauerung, arktischer Land-Ozean-Wandel, Biodiversität und Live-Ozeansensoren — aus echten wissenschaftlichen Datenbanken. Klicken Sie auf ein Objekt für Details oder kombinieren Sie Ebenen, um Überschneidungen und Veränderungen aufzudecken.",
+    "subtitle": "Wählen Sie Ihren Schwerpunkt",
+    "hint": {
+      "layers": "Ebenen links aktivieren — Konzessionen, Arten, Quellen, Bergbau-Fußabdrücke, Feuer und mehr",
+      "pin": "Klicken Sie auf ein beliebiges Objekt für Analysen, Risikobewertungen und Folgenberichte"
+    },
+    "footer": "Jeder Modus lädt eine kuratierte Auswahl an Ebenen. Weitere Ebenen können über das linke Panel ein- oder ausgeblendet werden. Das gleichzeitige Aktivieren vieler Ebenen kann Ihren Browser verlangsamen.",
+    "ocean": {
+      "title": "Ozean-Ebenen",
+      "summary": "ISA-Konzessionen, Argo-Floats, Quellen, Arten, Kabel, Verankerungen",
+      "ariaLabel": "Mit Ozean-Ebenen starten — ISA-Konzessionen, Argo-Floats, Quellen, Arten, Kabel, Verankerungen"
+    },
+    "land": {
+      "title": "Land-Ebenen",
+      "summary": "Bergbau-Fußabdrücke, Biodiversitätsflächen, aktive Feuer, Luftqualität",
+      "ariaLabel": "Mit Land-Ebenen starten — Bergbau-Fußabdrücke, Biodiversitätsflächen, aktive Feuer, Luftqualität"
+    },
+    "guided": {
+      "title": "Geführte Berichte",
+      "summary": "9 investigative Berichte — Bergbau vs. Quellen, Rückstandsrisiko, Feuersaison",
+      "ariaLabel": "Mit geführten investigativen Berichten starten — kuratierte Ebenenkombinationen mit Erläuterungen"
+    },
+    "continue": "Dort weitermachen, wo ich aufgehört habe",
+    "exploreAll": "Alles erkunden",
+    "back": "Zurück",
+    "allOcean": "Alle Meeres-Layer",
+    "allLand": "Alle Land-Layer",
+    "oceanCarbonArctic": {
+      "title": "Ozeankohlenstoff & Arktis",
+      "summary": "Kohlenstoff, Gase & Spurenmetalle + arktische Land→Ozean-Einträge",
+      "ariaLabel": "Ozeankohlenstoff- und Arktis-Ebenen anzeigen"
+    }
+  },
+  "coach": {
+    "next": "Weiter →",
+    "skip": "Überspringen",
+    "done": "Fertig",
+    "step1": {
+      "title": "Auf ein Objekt klicken",
+      "body": "Tippen Sie auf eine Konzession, eine Quelle oder einen Punkt auf der Karte, um Details anzuzeigen"
+    },
+    "step2": {
+      "title": "Ebenen umschalten",
+      "body": "Das linke Panel verwenden, um Datenebenen ein- oder auszublenden"
+    },
+    "step3": {
+      "title": "Zu einer Ebene fliegen",
+      "body": "Klicken Sie auf ⊙ neben einer Ebene, um direkt dorthin zu zoomen"
+    },
+    "step4": {
+      "title": "Referenz öffnen",
+      "body": "Vollständige Dokumentation für jede Ebene, Datenquelle und Filter"
+    }
+  }
+}

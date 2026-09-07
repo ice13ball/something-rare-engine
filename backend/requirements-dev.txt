@@ -1,0 +1,16 @@
+# Test toolchain. NOT installed in production.
+#
+# ⚠️ Until 2026-08-21 none of this was declared anywhere: 21 test files use
+# @pytest.mark.asyncio while pytest-asyncio appeared in no requirements file and is
+# absent from the production venv. Whether the suite passed therefore depended on
+# whatever happened to be installed on the machine running it — which is how a
+# measurement run produced 13 spurious errors that looked like a broken suite and
+# were only a plugin-mode mismatch.
+#
+# asyncio_mode = auto lives in the repo-root pytest.ini; it is required because
+# conftest declares async fixtures with a plain @pytest.fixture.
+
+-r requirements.txt
+
+pytest==9.1.1            # same version as the production venv
+pytest-asyncio==1.4.0

@@ -1,0 +1,103 @@
+name: Deploy DEV to Cloud Run
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-gcp-dev.yml"
+
+env:
+  PROJECT_ID: YOUR_GCP_PROJECT_ID
+  REGION: YOUR_REGION
+  REPOSITORY: YOUR_ARTIFACT_REPO
+  SERVICE: YOUR_SERVICE_NAME_DEV
+  IMAGE: YOUR_REGION-docker.pkg.dev/YOUR_GCP_PROJECT_ID/YOUR_ARTIFACT_REPO/frontend-dev
+
+jobs:
+  # ⛔ THE GATE. Nothing below runs until the whole suite passes. Before 2026-08-21
+  # this workflow went straight from `git push` to `gcloud run deploy` with no test
+  # of any kind — the only check was `tsc` running as a side effect of the Docker
+  # build. See .github/workflows/tests.yml for what this runs and what it excludes.
+  test:
+    uses: ./.github/workflows/tests.yml
+
+  deploy:
+    name: Build & Deploy (dev)
+    needs: test
+    # Skip cleanly on a fork instead of failing loudly on GCP auth — the
+    # workload identity provider and service account below only exist in the
+    # upstream project (see README: "infra values are placeholders").
+    if: github.repository == 'ice13ball/something-rare'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/YOUR_GCP_PROJECT_NUMBER/locations/global/workloadIdentityPools/YOUR_POOL/providers/YOUR_PROVIDER
+          service_account: YOUR_DEPLOYER_SA@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        working-directory: frontend
+        run: |
+          docker build \
+            --tag "$IMAGE:$COMMIT_SHA" \
+            --tag "$IMAGE:latest" \
+            .
+          docker push "$IMAGE:$COMMIT_SHA"
+          docker push "$IMAGE:latest"
+
+      - name: Deploy to Cloud Run
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image="$IMAGE:$COMMIT_SHA" \
+            --region="$REGION" \
+            --platform=managed \
+            --min-instances=0 \
+            --max-instances=2 \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=30 \
+            --set-secrets="ABYSSAL_API_KEY=ABYSSAL_API_KEY:latest,INDEXNOW_KEY=INDEXNOW_KEY:latest" \
+            --set-env-vars="VPS_API_URL=https://api.example.org" \
+            --quiet
+
+      - name: Show service URL
+        run: |
+          gcloud run services describe "$SERVICE" \
+            --region="$REGION" \
+            --format="value(status.url)"
+
+      - name: Delete old images (keep current + 1 previous)
+        run: |
+          set -euo pipefail
+          ALL=$(gcloud artifacts docker images list "$IMAGE" \
+            --project="$PROJECT_ID" \
+            --sort-by="~CREATE_TIME" \
+            --format='value(version)')
+          fail=0
+          echo "$ALL" | tail -n +3 | while read -r digest; do
+            [ -z "$digest" ] && continue
+            echo "Deleting $digest"
+            if ! gcloud artifacts docker images delete "$IMAGE@$digest" \
+                  --project="$PROJECT_ID" --delete-tags --quiet; then
+              echo "::warning::Failed to delete $digest"
+              fail=$((fail+1))
+            fi
+          done
+          # Repo-level cleanup policy is the safety net (keep-recent-2 + delete >1h)
+          echo "Inline cleanup finished. Repo policy will catch any stragglers."

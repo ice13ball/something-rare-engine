@@ -1,0 +1,32 @@
+fastapi==0.111.1
+uvicorn[standard]==0.29.0
+asyncpg==0.29.0
+shapely==2.1.2
+pydantic==2.12.5
+httpx==0.27.2
+websockets==12.0
+pyshp==3.0.3
+python-dotenv==1.2.2
+copernicusmarine==2.3.0
+xarray==2026.2.0
+netCDF4==1.7.4
+dask==2026.3.0
+h5py==3.16.0
+Pillow==12.2.0
+numpy==2.4.4
+pyproj==3.7.2
+mercantile==1.2.1
+scipy==1.17.1
+duckdb==1.5.2
+geoip2==5.2.0
+bcrypt==5.0.0
+requests==2.33.1
+# --- VME SDM layer (modeled deep-sea coral habitat suitability) ---
+elapid==1.0.4
+scikit-learn==1.9.0
+PyCO2SYS==1.8.3.4
+# elapid pulls rasterio, whose metadata pins click!=8.2.*, but the pre-existing
+# copernicusmarine (currents bake) + typer need click 8.2.1. rasterio's LIBRARY API
+# (all elapid/we use) does not import click — only its unused `rio` console script does.
+# Pin 8.2.1 so a fresh resolve can't break copernicusmarine/typer. See ledger 2026-07-15.
+click==8.2.1

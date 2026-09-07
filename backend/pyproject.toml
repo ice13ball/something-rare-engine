@@ -1,0 +1,38 @@
+# Ruff only. This project has no packaging metadata on purpose — the backend is
+# deployed as a checkout, not as a wheel.
+#
+# Deliberately NON-BLOCKING in CI for now: this is the first lint pass over ~61k
+# lines that were never linted, so the run exists to measure the backlog. Promote
+# rules out of `ignore` as they reach zero.
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"          # production venv is Python 3.12.13
+exclude = [".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache"]
+
+[tool.ruff.lint]
+select = [
+  "E",      # pycodestyle errors
+  "F",      # pyflakes — unused imports/names, undefined names
+  "W",      # pycodestyle warnings
+  "I",      # import sorting
+  "UP",     # pyupgrade
+  "B",      # bugbear — real bug shapes, not style
+  "ASYNC",  # async antipatterns; this codebase is ~45 background tasks deep
+]
+ignore = [
+  "E501",   # line length — reported by the formatter's job, not worth the churn here
+  "B008",   # function call in default arg: this IS the FastAPI Depends() idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Schema modules are one long ordered run of DDL by design; import order there is
+# semantics, not style (see schema/__init__.py — order is load-bearing at boot).
+"schema/*.py" = ["I001"]
+"tests/*.py"  = ["B011"]
+# A deliberately partial source excerpt used as a link-audit fixture: the names it
+# references live in the file it was cut from. F821 here is the fixture working.
+"tests/fixtures/link_audit/provenance_excerpt.py" = ["F821"]
+
+[tool.ruff.format]
+quote-style = "double"

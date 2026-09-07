@@ -1,0 +1,59 @@
+{
+  "welcome": {
+    "title": "Abyssal Claims",
+    "tagline": "Ocean & Land Environmental Transparency",
+    "description": "An <bold>environmental transparency platform</bold> spanning the ocean and land. 50+ data layers — deep-sea mining claims, ocean carbon and acidification, Arctic land-to-ocean change, biodiversity, and live ocean sensors — sourced from real scientific databases. Click any feature for detail, or combine layers to reveal overlaps and change.",
+    "subtitle": "Choose your focus",
+    "hint": {
+      "layers": "Toggle layers on the left — concessions, species, vents, mine footprints, fires, and more",
+      "pin": "Click any feature for analysis, risk scores, and impact reports"
+    },
+    "footer": "Each mode loads a curated set of layers. You can toggle additional layers on or off from the panel on the left. Enabling many layers at once may slow down your browser.",
+    "ocean": {
+      "title": "Ocean Layers",
+      "summary": "ISA concessions, Argo floats, vents, species, cables, moorings",
+      "ariaLabel": "Start with ocean layers — ISA concessions, Argo floats, vents, species, cables, moorings"
+    },
+    "land": {
+      "title": "Land Layers",
+      "summary": "Mining footprints, biodiversity areas, active fires, air quality",
+      "ariaLabel": "Start with land layers — mining footprints, biodiversity areas, active fires, air quality"
+    },
+    "guided": {
+      "title": "Guided Stories",
+      "summary": "9 investigative narratives — mining vs. vents, tailings risk, fire season",
+      "ariaLabel": "Start with guided investigative stories — curated layer combinations with narratives"
+    },
+    "continue": "Continue where I left off",
+  "exploreAll": "Explore everything",
+  "back": "Back",
+  "allOcean": "All ocean layers",
+  "allLand": "All land layers",
+    "oceanCarbonArctic": {
+      "title": "Ocean Carbon & Arctic",
+      "summary": "Carbon, gases & trace metals + the Arctic land→ocean inputs",
+      "ariaLabel": "Show the ocean carbon and Arctic layers"
+    }
+  },
+  "coach": {
+    "next": "Next →",
+    "skip": "Skip",
+    "done": "Done",
+    "step1": {
+      "title": "Click any feature",
+      "body": "Tap a concession, vent, or dot on the map to see its details"
+    },
+    "step2": {
+      "title": "Toggle layers",
+      "body": "Use the panel on the left to show or hide data layers"
+    },
+    "step3": {
+      "title": "Fly to a layer",
+      "body": "Click ⊙ next to any layer to zoom straight to it"
+    },
+    "step4": {
+      "title": "Open the Reference",
+      "body": "Full docs for every layer, data source, and filter"
+    }
+  }
+}

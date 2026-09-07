@@ -1,0 +1,60 @@
+{
+  "status": {
+    "Active": "Active",
+    "Inactive": "Inactive",
+    "Extinct": "Extinct",
+    "Pending": "Pending",
+    "Suspended": "Suspended",
+    "Expired": "Expired",
+    "Relinquished": "Relinquished",
+    "Reserved": "Reserved",
+    "Approved": "Approved",
+    "Submitted": "Submitted"
+  },
+  "resourceType": {
+    "Polymetallic Nodules": "Polymetallic Nodules",
+    "Polymetallic Sulphides": "Polymetallic Sulphides",
+    "Cobalt-rich Crusts": "Cobalt-rich Crusts",
+    "Cobalt-Rich Crusts": "Cobalt-rich Crusts",
+    "Reserved Area": "Reserved Area"
+  },
+  "oceanBasin": {
+    "Pacific": "Pacific",
+    "Atlantic": "Atlantic",
+    "Indian": "Indian",
+    "Arctic": "Arctic",
+    "Southern": "Southern"
+  },
+  "offshoreType": {
+    "oil_gas": "Oil & Gas",
+    "offshore_wind": "Offshore Wind",
+    "seabed_mining": "Seabed Mining"
+  },
+  "seamountSize": {
+    "Major": "Major",
+    "Large": "Large",
+    "Medium": "Medium",
+    "Small": "Small"
+  },
+  "iso_topic": {
+    "oceans": "Oceans",
+    "climatologyMeteorologyAtmosphere": "Climatology / Atmosphere",
+    "environment": "Environment",
+    "biota": "Biota"
+  },
+  "seabedSubstrate": {
+    "gravel": "Gravel and coarser",
+    "sand": "Sand",
+    "silt": "Silt",
+    "clay": "Clay",
+    "calcareous_ooze": "Calcareous ooze",
+    "radiolarian_ooze": "Radiolarian ooze",
+    "diatom_ooze": "Diatom ooze",
+    "sponge_spicules": "Sponge spicules",
+    "mixed_ooze": "Mixed calcareous/siliceous ooze",
+    "shells_coral": "Shells and coral fragments",
+    "ash_volcanic": "Ash and volcanic sand/gravel",
+    "siliceous_mud": "Siliceous mud",
+    "fine_calcareous": "Fine-grained calcareous sediment"
+  }
+}
