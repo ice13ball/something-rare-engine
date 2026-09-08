@@ -364,7 +364,8 @@ async def get_noise_risk_grid():
 
     async with db.pool.acquire() as conn:
         rows = await conn.fetch("""
-            SELECT lon, lat, pbd_norm, spl_norm, cetacean_norm, species_weight,
+            SELECT lon, lat, pbd_norm, spl_norm, pbd_year, pbd_year_min, pbd_year_max,
+                   cetacean_norm, species_weight,
                    risk_index, risk_level, data_gap, noise_source,
                    cetacean_count, max_species
             FROM   noise_risk_grid
@@ -378,6 +379,9 @@ async def get_noise_risk_grid():
             "properties": {
                 "pbd_norm":        r["pbd_norm"],
                 "spl_norm":        r["spl_norm"],
+                "pbd_year":        r["pbd_year"],
+                "pbd_year_min":    r["pbd_year_min"],
+                "pbd_year_max":    r["pbd_year_max"],
                 "cetacean_norm":   r["cetacean_norm"],
                 "species_weight":  r["species_weight"],
                 "risk_index":      r["risk_index"],

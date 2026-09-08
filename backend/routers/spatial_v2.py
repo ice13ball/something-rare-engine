@@ -682,6 +682,8 @@ class HydrothermalVentDetail(BaseModel):
     jurisdiction: Optional[str] = None
     tectonic_setting: Optional[str] = None
     discovery_year: Optional[str] = None
+    discovery_year_num: Optional[int] = None
+    date_precision: Optional[str] = None
     biology_notes: Optional[str] = None
     latitude: float
     longitude: float
@@ -1086,6 +1088,7 @@ async def get_hydrothermal_vent(vent_id: int) -> HydrothermalVentDetail:
             """
             SELECT id, name, status, depth_m, min_depth_m, max_temp_c, temp_category,
                    ocean, region, jurisdiction, tectonic_setting, discovery_year,
+                   discovery_year_num, date_precision,
                    biology_notes, latitude, longitude, source_url, created_at,
                    COALESCE(chess_count, 0) AS chess_count,
                    COALESCE(chess_species::text, '[]') AS chess_species_raw

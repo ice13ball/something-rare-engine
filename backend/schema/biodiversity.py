@@ -117,6 +117,9 @@ async def ensure_noise_cetacean_grids(conn) -> None:
             continuous_spl  FLOAT,
             pbd_norm        FLOAT,   -- ICES / EMODnet INER pulse-block days, 0-1
             spl_norm        FLOAT,   -- EMODnet continuous SPL (dB re 1uPa), 0-1
+            pbd_year        INTEGER, -- year of the retained impulsive_pbd maximum (EMODnet INER only; ICES has no year)
+            pbd_year_min    INTEGER, -- earliest year among rows that contributed a candidate to this cell
+            pbd_year_max    INTEGER, -- latest year among rows that contributed a candidate to this cell
             source      TEXT NOT NULL,
             region      TEXT,
             updated_at  TIMESTAMPTZ DEFAULT NOW()
@@ -134,6 +137,18 @@ async def ensure_noise_cetacean_grids(conn) -> None:
     )
     await conn.execute(
         "ALTER TABLE noise_cells ADD COLUMN IF NOT EXISTS spl_norm FLOAT"
+    )
+    # Migrate older deployments that pre-date the year columns — the year
+    # EMODnet INER's own CSV sends (parts[2]) was fetched over the network and
+    # discarded until now; see noise_ingest.py aggregate_emodnet_iner_rows().
+    await conn.execute(
+        "ALTER TABLE noise_cells ADD COLUMN IF NOT EXISTS pbd_year INTEGER"
+    )
+    await conn.execute(
+        "ALTER TABLE noise_cells ADD COLUMN IF NOT EXISTS pbd_year_min INTEGER"
+    )
+    await conn.execute(
+        "ALTER TABLE noise_cells ADD COLUMN IF NOT EXISTS pbd_year_max INTEGER"
     )
     # noise_norm blended pulse-block days and continuous SPL — two
     # non-commensurable quantities — into one column. Every reader now uses
@@ -180,6 +195,9 @@ async def ensure_noise_cetacean_grids(conn) -> None:
             cell_key        TEXT NOT NULL UNIQUE,
             pbd_norm        FLOAT,
             spl_norm        FLOAT,
+            pbd_year        INTEGER, -- set only on kind="pbd" rows; mirrors pbd_norm's nullability
+            pbd_year_min    INTEGER,
+            pbd_year_max    INTEGER,
             cetacean_norm   FLOAT,
             species_weight  FLOAT NOT NULL DEFAULT 1.0,
             risk_index      FLOAT NOT NULL,
@@ -203,6 +221,17 @@ async def ensure_noise_cetacean_grids(conn) -> None:
     )
     await conn.execute(
         "ALTER TABLE noise_risk_grid ADD COLUMN IF NOT EXISTS spl_norm FLOAT"
+    )
+    # Migrate deployments that pre-date the pbd_year columns — noise_cells.pbd_year
+    # threads through here so a reader can see when a cell's pbd_norm is from.
+    await conn.execute(
+        "ALTER TABLE noise_risk_grid ADD COLUMN IF NOT EXISTS pbd_year INTEGER"
+    )
+    await conn.execute(
+        "ALTER TABLE noise_risk_grid ADD COLUMN IF NOT EXISTS pbd_year_min INTEGER"
+    )
+    await conn.execute(
+        "ALTER TABLE noise_risk_grid ADD COLUMN IF NOT EXISTS pbd_year_max INTEGER"
     )
     # noise_norm here was the same blended, NOT NULL column noise_cells used to
     # have. The table is fully TRUNCATEd and rebuilt by noise_risk_compute.py
@@ -262,6 +291,8 @@ async def ensure_vents_and_chess(conn) -> None:
         ("jurisdiction",       "TEXT"),
         ("tectonic_setting",   "TEXT"),
         ("discovery_year",     "TEXT"),
+        ("discovery_year_num", "INTEGER"),
+        ("date_precision",     "TEXT"),
         ("biology_notes",      "TEXT"),
         ("description_notes",  "TEXT"),
     ]:

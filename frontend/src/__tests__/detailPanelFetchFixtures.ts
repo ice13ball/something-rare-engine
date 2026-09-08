@@ -429,3 +429,15 @@ export const OXYGEN_POINT = {
   delta_o2: -14.7,
   units: "µmol/kg",
 };
+
+// ---- PermafrostThawPanel — GET .../permafrost-thaw/by-id/{unique_id} ------
+// (DetailPanel.tsx / panels/arctic/PermafrostThawPanel.tsx). Detail-only
+// fields split off the bulk GeoJSON 2026-09-08; see that file's header comment.
+export const PERMAFROST_THAW_DETAIL = {
+  imagery: "TEST imagery",
+  authors: "Test Author",
+  source_doi: "10.5281/zenodo.16996415",
+  data_source_type: "satellite imagery",
+  obs_start: "1985-06-01",
+  obs_end: "2015-08-15",
+};

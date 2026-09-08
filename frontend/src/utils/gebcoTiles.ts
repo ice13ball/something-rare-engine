@@ -9,8 +9,15 @@
  * the {x, y, z} tile index into the EPSG:3857 bbox GEBCO needs and returns a
  * GetMap URL pointing at the GEBCO_LATEST shaded-relief layer.
  *
- * GEBCO_LATEST auto-tracks the newest published grid (GEBCO_2024 today,
- * GEBCO_2025 from June 2026 onward) — so URLs we set now keep working.
+ * GEBCO_LATEST auto-tracks the newest published grid, so the URL keeps working
+ * across releases — but the ATTRIBUTION STRING BELOW DOES NOT TRACK ANYTHING.
+ * ⛔ It is a hand-written label and it has already gone stale once: this comment
+ * predicted "GEBCO_2025 from June 2026" while GEBCO actually published
+ * GEBCO_2026 in April 2026, so the map rendered the 2026 grid and credited the
+ * 2025 one for months. Re-read the live WMS before trusting it:
+ *   curl -s 'https://wms.gebco.net/mapserv?service=WMS&request=GetCapabilities' \
+ *     | grep -o 'GEBCO_20[0-9][0-9] Grid'
+ * Checked 2026-09-08: GEBCO_2026 Grid.
  *
  * Attribution required: "GEBCO Compilation Group (2026) GEBCO Bathymetric
  * Compilation Group" + DOI on the project's about/attribution surface.
@@ -51,4 +58,4 @@ export function gebcoTileUrl(z: number, x: number, y: number): string {
   return `${GEBCO_WMS}?${qs.toString()}`;
 }
 
-export const GEBCO_ATTRIBUTION = "GEBCO Compilation Group · GEBCO_2025 Grid";
+export const GEBCO_ATTRIBUTION = "GEBCO Compilation Group · GEBCO_2026 Grid";

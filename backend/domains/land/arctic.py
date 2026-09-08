@@ -12,7 +12,7 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 
 import db
@@ -232,6 +232,15 @@ async def get_permafrost_thaw():
                         -- key are the same to every consumer here) and buys back far
                         -- more than the six columns cost, because most rows leave
                         -- several of them empty.
+                        -- Bulk-only shape: draw/filter/search fields plus the YEAR
+                        -- form of the observation window. `imagery`, `authors`,
+                        -- `source_doi`, `data_source_type` and the raw `obs_start`/
+                        -- `obs_end` DATEs moved to GET .../by-id/{unique_id} on
+                        -- 2026-09-08 — together they were ~10.3 MiB of this 29.85 MiB
+                        -- payload and are only ever read once a feature is clicked
+                        -- (PermafrostThawPanel), never for drawing, filtering or
+                        -- search. See that endpoint's docstring for the full
+                        -- Cloud-Run-32-MiB story.
                         'properties', json_strip_nulls(json_build_object(
                             'unique_id', unique_id,
                             'source', source,
@@ -239,19 +248,9 @@ async def get_permafrost_thaw():
                             'feature_type', feature_type,
                             'feature_category', feature_category,
                             'thaw_type', thaw_type,
-                            'data_source_type', data_source_type,
-                            'authors', authors,
-                            'source_doi', source_doi,
-                            'imagery', imagery,
-                            -- The observation window, now queryable instead of buried
-                            -- in the `imagery` string above. Years are the primary
-                            -- form; the ISO dates are present only where the source
-                            -- gave full dates, so the panel can show exactly what it
-                            -- was given without widening a year into a day.
+                            -- Year form only; full ISO dates live behind /by-id.
                             'obs_start_year', obs_start_year,
                             'obs_end_year', obs_end_year,
-                            'obs_start', obs_start,
-                            'obs_end', obs_end,
                             'date_precision', date_precision,
                             -- ⛔ Not an observation date. Kept distinct in the payload
                             -- so a panel cannot accidentally render it as one.
@@ -269,13 +268,74 @@ async def get_permafrost_thaw():
     # service answers 200, the browser gets 500, and nothing in our own log looks
     # wrong. That is exactly what happened on 2026-09-08, when adding six columns
     # took this payload to 34.17 MB and the permafrost layer stopped loading while
-    # the API looked healthy. Warn well before the cliff, because the symptom points
-    # away from the cause. ⚠️ The fix when this fires is to stop shipping 47k
-    # features as one document — not to shave off another key.
+    # the API looked healthy. Same day: bulk/detail split shipped (imagery, authors,
+    # source_doi, data_source_type, obs_start, obs_end moved to
+    # GET .../permafrost-thaw/by-id/{unique_id}), bringing this back to ~19.5 MiB.
+    # Warn well before the cliff, because the symptom points away from the cause.
+    # ⚠️ If this fires again, move more fields to /by-id rather than shaving a key
+    # out of the bulk properties above — a field a renderer/filter/search reads
+    # cannot simply be dropped.
     _mib = len(_permafrost_thaw_cache) / 1048576
     if _mib > 28:
         log.warning("permafrost-thaw payload %.1f MiB — Cloud Run refuses >32 MiB and "
                     "fails it at the proxy as a 500 while this service logs 200", _mib)
     return Response(content=_permafrost_thaw_cache, media_type="application/json")
+
+
+@router.get("/permafrost-thaw/by-id/{unique_id}")
+async def permafrost_thaw_by_id(unique_id: str, source: str | None = None):
+    """Detail-only fields for one feature, fetched lazily on click.
+
+    Carries exactly what was pulled off the bulk GeoJSON on 2026-09-08 to stay
+    under Cloud Run's 32 MiB proxy limit: `imagery`, `authors`, `source_doi`,
+    `data_source_type`, and the raw ISO `obs_start`/`obs_end` dates (the year
+    form stays in bulk; the panel already renders a window from the years and
+    only upgrades to the exact dates once this arrives).
+
+    ⛔ The row's real key is `(source, unique_id)` — that is what the unique index
+    is on (`schema_orchestrator.py`). `unique_id` alone happens to be globally
+    unique today (verified live 2026-09-08: `count(*)` and `count(DISTINCT
+    unique_id)` both 47,239, zero NULLs), but "happens to be" is not a constraint.
+    The day a second source ships a colliding id, a lookup on `unique_id` alone
+    would silently return the wrong feature's provenance — the same shape of bug
+    as keying on a stale ArcGIS OBJECTID, and just as invisible.
+
+    So `source` is accepted and used when the caller has it (the panel always
+    does; it is a bulk property). Without it we fall back to `unique_id` alone and
+    ask for TWO rows: one means the answer was unambiguous, two means the
+    assumption above has expired and we say so with a 409 instead of guessing.
+    """
+    if db.pool is None:
+        raise HTTPException(503, "Database pool unavailable")
+    cols = "imagery, authors, source_doi, data_source_type, obs_start, obs_end"
+    async with db.pool.acquire() as conn:
+        if source:
+            rows = await conn.fetch(
+                f"""SELECT {cols} FROM permafrost_thaw_features
+                     WHERE unique_id = $1 AND source = $2 LIMIT 2""",
+                unique_id, source,
+            )
+        else:
+            rows = await conn.fetch(
+                f"""SELECT {cols} FROM permafrost_thaw_features
+                     WHERE unique_id = $1 LIMIT 2""",
+                unique_id,
+            )
+    if not rows:
+        raise HTTPException(status_code=404, detail="not found")
+    if len(rows) > 1:
+        # Reachable only if `unique_id` stopped being globally unique. Returning
+        # row zero would be a silent wrong answer; a 409 is a bug report.
+        raise HTTPException(
+            status_code=409,
+            detail=f"'{unique_id}' matches more than one feature — pass ?source= to disambiguate",
+        )
+    row = rows[0]
+    d = dict(row)
+    if d.get("obs_start") is not None:
+        d["obs_start"] = d["obs_start"].isoformat()
+    if d.get("obs_end") is not None:
+        d["obs_end"] = d["obs_end"].isoformat()
+    return d
 
 

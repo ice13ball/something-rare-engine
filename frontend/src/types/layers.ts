@@ -184,7 +184,7 @@ export const LAYER_CONFIGS: LayerConfig[] = [
     // Raster overlay — fill/line RGBA aren't rendered; values are placeholders to satisfy the type.
     fillRgba: [59, 130, 166, 0],
     lineRgba: [59, 130, 166, 0],
-    description: "GEBCO_2025 shaded-relief seafloor depth (free, IHO/IOC)",
+    description: "GEBCO_2026 shaded-relief seafloor depth (free, IHO/IOC)",
   },
   {
     id: "monitoring-density",

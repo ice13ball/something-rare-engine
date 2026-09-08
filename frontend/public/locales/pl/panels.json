@@ -757,6 +757,8 @@
     "cetaceansSectionTitle": "Walenie",
     "dataGapWarning": "Wykryto wysoki poziom hałasu, ale brak danych z badań waleni dla tej komórki. Brak rekordów ≠ brak zwierząt.",
     "dataSourceLabel": "Źródło danych",
+    "pbdYearLabel": "Rok wartości maksymalnej",
+    "pbdYearSpanLabel": "Lata uwzględnione w komórce",
     "derivedModelBanner": "MODEL, nie pomiar. Ten indeks ryzyka jest obliczany przez tę platformę na podstawie niezależnych zbiorów danych o dniach hałasu impulsowego, ciągłym SPL oraz obserwacjach waleni — nie jest to pomiar z pojedynczego źródła.",
     "impactRiskIndexLabel": "Indeks ryzyka oddziaływania",
     "noiseCetaceanNormLabel": "Norma waleni",

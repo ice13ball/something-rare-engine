@@ -27,6 +27,14 @@ ICES_WFS = (
     "&count=5000"
 )
 
+# ⚠️ THIS DATASET HAS EXACTLY ONE STATION. Not one after our filtering — one in the
+# dataset. Verified at the source 2026-09-08: the query below returns 1,576,548 rows
+# (56 MB), and `?longitude,latitude&distinct()` with NO time filter returns a single
+# position, off Galicia at roughly -8.78, 42.63. So `noise_cells` holding one row for
+# source `emodnet` is CORRECT, not a broken ingest — do not "fix" it. What it means is
+# that the continuous-SPL input to the noise-risk layer is one hydrophone, not a
+# coverage surface, and whether that input earns its 56 MB download is a question for
+# the layer's design rather than for this parser.
 EMODNET_ERDDAP = (
     "https://erddap.emodnet-physics.eu/erddap/tabledap/EP_ERD_INT_UWN_NAT.json"
     "?longitude,latitude,TotalSPL&time>=2023-01-01"
@@ -136,25 +144,23 @@ def decode_subsquare(sq: str) -> tuple[float, float] | None:
         return None
 
 
-async def ingest_emodnet_iner(conn: asyncpg.Connection, client: httpx.AsyncClient):
-    """Ingest EMODnet impulsive noise (PBD) via EP_UWN_INER — OSPAR/HELCOM area."""
-    log.info("Fetching EMODnet INER impulsive noise data...")
-    try:
-        r = await client.get(EMODNET_INER_CSV, timeout=120)
-        r.raise_for_status()
-    except Exception as e:
-        log.warning("EMODnet INER fetch failed: %s", e)
-        return
+def aggregate_emodnet_iner_rows(lines: list[str]) -> dict[str, dict]:
+    """Aggregate EMODnet INER CSV data rows (no header/units rows) to a 1°
+    grid: max pulsedays per cell, PLUS the year the max came from and the
+    full year span of every row considered for that cell.
 
-    # Parse CSV — take max PBD per 1° grid cell across all years
+    Column order is fixed by EMODNET_INER_CSV: pulsedays, subsquare, year.
+
+    - A row with a blank subsquare is skipped (the source's own gap).
+    - A row with a missing/unparseable year still contributes its pulsedays
+      to the max; it just contributes no year to pbd_year or the span —
+      a missing year stays missing, never substituted.
+    - pbd_year_min/pbd_year_max widen to cover every row seen for the cell
+      (whether or not that row's pulsedays won the max), so a reader can
+      see how wide a pool the maximum was taken over.
+    """
     cells: dict[str, dict] = {}
-    lines = r.text.splitlines()
-    if len(lines) < 3:
-        log.warning("EMODnet INER: no data returned")
-        return
-
-    # Skip header and units row
-    for line in lines[2:]:
+    for line in lines:
         parts = line.split(",")
         if len(parts) < 2:
             continue
@@ -165,26 +171,82 @@ async def ingest_emodnet_iner(conn: asyncpg.Connection, client: httpx.AsyncClien
             continue
         if not sq:
             continue
+
+        year: int | None = None
+        if len(parts) > 2:
+            raw_year = parts[2].strip()
+            if raw_year:
+                try:
+                    year = int(raw_year)
+                except ValueError:
+                    year = None
+
         coords = decode_subsquare(sq)
         if not coords:
             continue
         lon, lat = coords
         key = cell_key(lon, lat, "emodnet_iner")
-        if key not in cells or pbd > cells[key]["pbd"]:
-            cells[key] = {"lon": snap(lon), "lat": snap(lat), "pbd": pbd}
+
+        cell = cells.get(key)
+        if cell is None:
+            cells[key] = {
+                "lon": snap(lon), "lat": snap(lat), "pbd": pbd,
+                "pbd_year": year, "pbd_year_min": year, "pbd_year_max": year,
+            }
+            continue
+
+        if pbd > cell["pbd"]:
+            cell["pbd"] = pbd
+            cell["pbd_year"] = year
+        if year is not None:
+            if cell["pbd_year_min"] is None or year < cell["pbd_year_min"]:
+                cell["pbd_year_min"] = year
+            if cell["pbd_year_max"] is None or year > cell["pbd_year_max"]:
+                cell["pbd_year_max"] = year
+
+    return cells
+
+
+async def ingest_emodnet_iner(conn: asyncpg.Connection, client: httpx.AsyncClient):
+    """Ingest EMODnet impulsive noise (PBD) via EP_UWN_INER — OSPAR/HELCOM area."""
+    log.info("Fetching EMODnet INER impulsive noise data...")
+    try:
+        r = await client.get(EMODNET_INER_CSV, timeout=120)
+        r.raise_for_status()
+    except Exception as e:
+        log.warning("EMODnet INER fetch failed: %s", e)
+        return
+
+    lines = r.text.splitlines()
+    if len(lines) < 3:
+        log.warning("EMODnet INER: no data returned")
+        return
+
+    # Skip header and units row; take max PBD per 1° grid cell across all years
+    cells = aggregate_emodnet_iner_rows(lines[2:])
 
     log.info("EMODnet INER: %d grid cells after aggregation", len(cells))
 
     for key, c in cells.items():
         pbd_norm = min(1.0, c["pbd"] / PBD_DAYS_PER_YEAR)
         await conn.execute("""
-            INSERT INTO noise_cells (geom, lon, lat, cell_key, impulsive_pbd, pbd_norm, source, region, updated_at)
-            VALUES (ST_SetSRID(ST_MakePoint($1,$2),4326), $1, $2, $3, $4, $5, 'emodnet_iner', 'ospar_helcom', NOW())
+            INSERT INTO noise_cells (
+                geom, lon, lat, cell_key, impulsive_pbd, pbd_norm,
+                pbd_year, pbd_year_min, pbd_year_max, source, region, updated_at
+            )
+            VALUES (
+                ST_SetSRID(ST_MakePoint($1,$2),4326), $1, $2, $3, $4, $5,
+                $6, $7, $8, 'emodnet_iner', 'ospar_helcom', NOW()
+            )
             ON CONFLICT (cell_key) DO UPDATE SET
                 impulsive_pbd = EXCLUDED.impulsive_pbd,
                 pbd_norm      = EXCLUDED.pbd_norm,
+                pbd_year      = EXCLUDED.pbd_year,
+                pbd_year_min  = EXCLUDED.pbd_year_min,
+                pbd_year_max  = EXCLUDED.pbd_year_max,
                 updated_at    = NOW()
-        """, c["lon"], c["lat"], key, c["pbd"], pbd_norm)
+        """, c["lon"], c["lat"], key, c["pbd"], pbd_norm,
+             c["pbd_year"], c["pbd_year_min"], c["pbd_year_max"])
 
     log.info("EMODnet INER: upserted %d cells", len(cells))
 

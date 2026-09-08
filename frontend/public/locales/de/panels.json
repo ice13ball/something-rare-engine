@@ -757,6 +757,8 @@
     "cetaceansSectionTitle": "Meeressäuger",
     "dataGapWarning": "Hoher Lärm erkannt, aber keine Walbeobachtungsdaten für diese Zelle verfügbar. Fehlen von Datensätzen ≠ Fehlen von Tieren.",
     "dataSourceLabel": "Datenquelle",
+    "pbdYearLabel": "Jahr des Maximalwerts",
+    "pbdYearSpanLabel": "Für diese Zelle gepoolte Jahre",
     "derivedModelBanner": "MODELLIERT, nicht gemessen. Dieser Risikoindex wird von dieser Plattform aus unabhängigen Datensätzen zu Impulslärm-Tagen, kontinuierlichem SPL und Walsichtungen berechnet — er ist keine Messung einer einzelnen Quelle.",
     "impactRiskIndexLabel": "Folgerisikoindex",
     "noiseCetaceanNormLabel": "Meeressäuger-Norm",

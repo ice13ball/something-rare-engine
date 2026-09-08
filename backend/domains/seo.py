@@ -438,7 +438,8 @@ async def get_vent_report(vent_id: int):
                    COALESCE(chess_count, 0) AS chess_count,
                    COALESCE(chess_species::text, '[]') AS chess_species,
                    max_temp_c, temp_category, min_depth_m, ocean, region,
-                   jurisdiction, tectonic_setting, discovery_year, biology_notes
+                   jurisdiction, tectonic_setting, discovery_year,
+                   discovery_year_num, date_precision, biology_notes
             FROM hydrothermal_vents
             WHERE id = $1
         """, vent_id)
@@ -472,6 +473,8 @@ async def get_vent_report(vent_id: int):
         "jurisdiction":   vent["jurisdiction"],
         "tectonic_setting": vent["tectonic_setting"],
         "discovery_year": vent["discovery_year"],
+        "discovery_year_num": vent["discovery_year_num"],
+        "date_precision": vent["date_precision"],
         "biology_notes":  vent["biology_notes"],
         "latitude":       vent["latitude"],
         "longitude":      vent["longitude"],

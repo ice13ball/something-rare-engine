@@ -227,7 +227,7 @@ const LAYER_SOURCES: Record<string, SourceEntry> = {
     homepage: "https://github.com/tayljordan/ports",
   },
   "bird-tectonic": {
-    org: "Bird (2003) — PANGAEA",
+    org: "Bird (2003) — AGU, Geochem. Geophys. Geosyst.",
     homepage: "https://doi.org/10.1029/2001GC000252",
   },
   "cmems-plume": {

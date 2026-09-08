@@ -83,7 +83,8 @@ async def main():
     # never be summed or averaged into one number — they measure different
     # things. See rules/subsystems/units-and-passthrough.md.
     noise_rows = await conn.fetch(
-        "SELECT lon, lat, pbd_norm, spl_norm, source FROM noise_cells"
+        "SELECT lon, lat, pbd_norm, spl_norm, pbd_year, pbd_year_min, pbd_year_max, "
+        "source FROM noise_cells"
     )
     # Fetch all cetacean cells
     cet_rows = await conn.fetch(
@@ -115,6 +116,9 @@ async def main():
         lon, lat = nr["lon"], nr["lat"]
         pbd_norm = nr["pbd_norm"]
         spl_norm = nr["spl_norm"]
+        pbd_year = nr["pbd_year"]
+        pbd_year_min = nr["pbd_year_min"]
+        pbd_year_max = nr["pbd_year_max"]
 
         # A noise_cells row is written by exactly one ingest function today —
         # ices/emodnet_iner set pbd_norm, emodnet sets spl_norm (noise_ingest.py)
@@ -168,14 +172,23 @@ async def main():
             cell_key = f"{lon}_{lat}_{nr['source']}_{kind}"
             pbd_val = noise_measure if kind == "pbd" else None
             spl_val = noise_measure if kind == "spl" else None
+            # pbd_year/_min/_max travel with the pbd measure only — an spl-kind
+            # row has no year data (EMODnet's continuous-SPL source never asked
+            # for one), so it must not inherit the pbd row's year by accident.
+            year_val = pbd_year if kind == "pbd" else None
+            year_min_val = pbd_year_min if kind == "pbd" else None
+            year_max_val = pbd_year_max if kind == "pbd" else None
 
             await conn.execute("""
                 INSERT INTO noise_risk_grid
-                  (geom, lon, lat, cell_key, pbd_norm, spl_norm, cetacean_norm, species_weight,
+                  (geom, lon, lat, cell_key, pbd_norm, spl_norm, pbd_year, pbd_year_min, pbd_year_max,
+                   cetacean_norm, species_weight,
                    risk_index, risk_level, data_gap, noise_source, cetacean_count, max_species, computed_at)
                 VALUES
-                  (ST_SetSRID(ST_MakePoint($1,$2),4326), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
-            """, lon, lat, cell_key, pbd_val, spl_val, cetacean_norm, species_weight,
+                  (ST_SetSRID(ST_MakePoint($1,$2),4326), $1, $2, $3, $4, $5, $6, $7, $8,
+                   $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+            """, lon, lat, cell_key, pbd_val, spl_val, year_val, year_min_val, year_max_val,
+                 cetacean_norm, species_weight,
                  risk_idx, level, data_gap, nr["source"], cetacean_count, max_species)
             inserted += 1
 

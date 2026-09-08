@@ -22,6 +22,7 @@ import {
   MOSAIC_RESPONSE, ARCTIC_CATCHMENT_DETAIL, WOA_POINT, CARBON_POINT,
   ACIDIFICATION_POINT, CHI_POINT, UNIFIED_CARBON_POINT, UNIFIED_CARBON_NEAREST_OBS,
   VME_POINT, CORAL_EXPOSURE_POINT, CORAL_EXPOSURE_SUMMARY, CO2_POINT, OXYGEN_POINT,
+  PERMAFROST_THAW_DETAIL,
 } from "./detailPanelFetchFixtures";
 
 // Every panel that fetches does so in a useEffect; the FIRST snapshot per
@@ -65,6 +66,7 @@ const ROUTES: Array<[RegExp, unknown]> = [
   [/\/v2\/spatial\/geotraces\/by-id\//, GEOTRACES_RESPONSE],
   [/\/v2\/spatial\/mosaic\/by-id\//, MOSAIC_RESPONSE],
   [/\/v2\/spatial\/arctic-catchments\/by-id\//, ARCTIC_CATCHMENT_DETAIL],
+  [/\/v2\/map\/permafrost-thaw\/by-id\//, PERMAFROST_THAW_DETAIL],
   [/\/v1\/woa\/point(?:$|\?)/, WOA_POINT],
   [/\/v1\/carbon\/unified-point(?:$|\?)/, UNIFIED_CARBON_POINT],
   [/\/v1\/carbon\/nearest-obs(?:$|\?)/, UNIFIED_CARBON_NEAREST_OBS],
@@ -145,7 +147,7 @@ const FETCHING_LAYERS = new Set([
   "wod-oxygen", "memento", "geotraces", "mosaic-sediment", "arctic-catchments",
   "woa-climatology", "ocean-carbon", "ocean-acidification", "cumulative-human-impact",
   "marine-carbon", "vme-suitability", "coral-acid-exposure", "ocean-co2-surface",
-  "oxygen-deox",
+  "oxygen-deox", "permafrost-thaw",
 ]);
 
 describe("DetailPanel dispatch matrix", () => {

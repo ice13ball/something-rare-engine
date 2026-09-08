@@ -757,6 +757,8 @@
     "cetaceansSectionTitle": "Cétacés",
     "dataGapWarning": "Bruit élevé détecté mais aucune donnée d'inventaire des cétacés disponible pour cette cellule. L'absence de données ≠ l'absence d'animaux.",
     "dataSourceLabel": "Source des données",
+    "pbdYearLabel": "Année de la valeur maximale",
+    "pbdYearSpanLabel": "Années regroupées pour cette cellule",
     "derivedModelBanner": "MODÉLISÉ, non observé. Cet indice de risque est calculé par cette plateforme à partir de jeux de données indépendants sur les jours de bruit impulsif, le SPL continu et les observations de cétacés — ce n'est pas une mesure d'une source unique.",
     "impactRiskIndexLabel": "Indice de risque d'impact",
     "noiseCetaceanNormLabel": "Norme cétacés",

@@ -391,11 +391,22 @@ COVERAGE: tuple[Coverage, ...] = (
         # with no date filter anywhere, so there is no start to state. Writing one
         # would be a guess, and the whole point of this table is that a guess is worse
         # than an admission.
-        wording="multiplies three inputs of different vintage with no date join: "
-                "EMODnet continuous SPL filtered to 2023 onward · cetacean density "
-                "from an OBIS pull with NO date filter, spanning decades of "
-                "opportunistic sightings · IUCN Red List 2024 status applied to all "
-                "of them. No observation-date column exists in this pipeline.",
+        # ⚠️ Corrected 2026-09-08. The earlier wording described THREE inputs and
+        # ended "No observation-date column exists in this pipeline." Both were
+        # wrong. The impulsive component is a separate EMODnet product whose own
+        # `year` column spans 2014-2022 — counted at the source that day: 2014:63,
+        # 2015:1283, 2016:1184, 2017:769, 2018:1010, 2019:1352, 2020:973, 2021:1684,
+        # 2022:27 across 8,345 usable rows. `noise_ingest.py` was requesting that
+        # column over the network and reading only the two beside it, so a cell whose
+        # maximum came from 2015 sat next to one from 2021 with nothing recording
+        # which. The year is kept per cell now; this row states the pooled span
+        # because a per-cell maximum over nine years is still a pooled figure.
+        wording="multiplies FOUR inputs of different vintage with no date join: "
+                "EMODnet continuous SPL filtered to 2023 onward · EMODnet impulsive "
+                "noise (Pulse Block Days) spanning 2014-2022, of which each cell "
+                "keeps only its all-time maximum · cetacean density from an OBIS "
+                "pull with NO date filter, spanning decades of opportunistic "
+                "sightings · IUCN Red List 2024 status applied to all of them.",
         source_url="https://emodnet.ec.europa.eu/en/human-activities",
         verified_on="2026-09-08",
     ),
@@ -416,6 +427,84 @@ COVERAGE: tuple[Coverage, ...] = (
                 "float is the intent, not a mismatch. The earliest contributing record "
                 "we hold is 1900 (World Ocean Database).",
         source_url="https://something-rare.com/api-docs",
+        verified_on="2026-09-08",
+    ),
+    # ── LIFE & GEOLOGY menu group ────────────────────────────────────────────
+    # Verified 2026-09-08 at the live source, not from our own tables: what we
+    # happen to store says nothing about what the publisher covers.
+    Coverage(
+        layer_id="hydrothermal-vents",
+        # ⭐ The only layer in this group with a real per-record date already in
+        # production and already visible in the popup: `discovery_year` is filled
+        # on 721/721 rows, 691 of them starting with a clean 4-digit year (min
+        # 1800, max 2018 — counted on the live DB, not inferred). The remaining
+        # 30 are 29× "NotProvided" plus one multi-event free text.
+        start_year=1800, end_year=2018,
+        kind="compilation",
+        wording="Version 3.4 was completed on 25 March 2020 with a total of 721 "
+                "vent fields. ⛔ That is the compilation's freeze date, not its "
+                "measurement window: the vents themselves were discovered between "
+                "1800 and 2018, and each row carries its own discovery year.",
+        source_url="https://doi.pangaea.de/10.1594/PANGAEA.917894",
+        verified_on="2026-09-08",
+    ),
+    Coverage(
+        layer_id="seamounts",
+        # ⛔ NOT 2020. The paper was published in 2020, but a predicted-seamount
+        # catalogue is only as current as the bathymetry it was predicted FROM,
+        # and that grid is SRTM30_PLUS v11 of November 2014. A modeller asking
+        # "how current is this?" needs the input's vintage, not the paper's.
+        start_year=2014, end_year=2014,
+        kind="modelled",
+        wording="It is based on the global bathymetry SRTM v.11 — a grid dated "
+                "29 November 2014. The catalogue itself (37,889 peaks) was "
+                "published 2020-08-18. No seamount carries its own date: every "
+                "one inherits this single model vintage.",
+        source_url="https://doi.org/10.1594/PANGAEA.921688",
+        verified_on="2026-09-08",
+    ),
+    Coverage(
+        layer_id="tectonic-plates",
+        start_year=2003, end_year=2003,
+        kind="modelled",
+        wording="An updated digital model of plate boundaries — Bird, Geochemistry "
+                "Geophysics Geosystems, 2003. A fixed-vintage interpreted model, "
+                "not observations. ⛔ The GitHub redistribution we fetch retrieved "
+                "Bird's files in June 2014; that is the mirror's date, not the "
+                "model's.",
+        source_url="https://doi.org/10.1029/2001GC000252",
+        verified_on="2026-09-08",
+    ),
+    Coverage(
+        layer_id="bathymetry",
+        # Open-ended on purpose: GEBCO has shipped an annual release without a
+        # break (2024 → 2025 → 2026, confirmed live on the WMS today), so a hard
+        # end year would age into a lie within twelve months.
+        start_year=1930, end_year=None,
+        kind="compilation",
+        wording="With the advent of acoustic data recording in the 1930's the "
+                "volume of soundings has increased phenomenally. ⛔ The grid merges "
+                "measured soundings with satellite-gravity interpolation, so a "
+                "cell's depth may never have been sounded at all; GEBCO's TID grid "
+                "records which is which, per cell.",
+        source_url="https://www.gebco.net/about-us/faq",
+        verified_on="2026-09-08",
+    ),
+    Coverage(
+        layer_id="biodiversity-hotspots",
+        # ⛔ NOT 1103, which is what OBIS's own /v3/statistics reports as its
+        # minimum year — an evident data-entry artefact, and below the 1750 floor
+        # our own gate enforces for exactly this reason. 1842 is the earliest year
+        # a NAMED deep-sea contributor states for itself (NOAA DSCRTP).
+        start_year=1842, end_year=None,
+        kind="observations",
+        wording="OBIS reports a year range of 1103–2026, whose lower bound is an "
+                "evident data-entry artefact; the earliest span a named deep-sea "
+                "contributor states is NOAA DSCRTP's 1842-Present. ⛔ Our own copy "
+                "stores NO per-record date — OBIS serves eventDate on the great "
+                "majority of records and our ingest never asked for it — so this "
+                "layer cannot be filtered by period here, only at the source.",
+        source_url="https://api.obis.org/v3/statistics",
         verified_on="2026-09-08",
     ),
 )

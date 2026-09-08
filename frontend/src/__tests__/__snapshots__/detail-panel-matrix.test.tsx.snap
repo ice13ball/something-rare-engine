@@ -12583,7 +12583,7 @@ exports[`DetailPanel dispatch matrix > renders oxygen-deox without throwing and 
 </div>
 `;
 
-exports[`DetailPanel dispatch matrix > renders permafrost-thaw without throwing and matches its snapshot 1`] = `
+exports[`DetailPanel dispatch matrix > renders permafrost-thaw after data loads 1`] = `
 <div>
   <div
     aria-label="Feature details"
@@ -12744,6 +12744,129 @@ exports[`DetailPanel dispatch matrix > renders permafrost-thaw without throwing 
               TEST imagery
             </span>
           </div>
+        </div>
+        <p
+          class="text-white/50 text-[11px] mt-3"
+        >
+          Observed occurrences, unevenly sampled — denser near roads and field sites; absence of points ≠ absence of thaw. Alaska only. Webb et al. 2026 (ESSD), CC-BY 4.0.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders permafrost-thaw without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Permafrost Thaw Feature
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <h2
+          class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+        >
+          Permafrost Thaw Feature
+        </h2>
+        <div
+          class="text-white/60 text-[11px] mb-1"
+        >
+          Alaska Thaw DB
+        </div>
+        <div
+          class="mb-4"
+        >
+          <p
+            class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+          >
+            Feature
+          </p>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Category
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              Thermokarst lake
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Reported as
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              lake
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Thaw type
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              Non-abrupt
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Site
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              TEST Feature
+            </span>
+          </div>
+        </div>
+        <div
+          class="mb-4"
+        >
+          <p
+            class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+          >
+            Source
+          </p>
         </div>
         <p
           class="text-white/50 text-[11px] mt-3"
@@ -14668,7 +14791,7 @@ exports[`DetailPanel dispatch matrix > renders tectonic-plates-boundaries withou
             target="_blank"
             title="Open the source organisation's homepage"
           >
-            Bird (2003) — PANGAEA
+            Bird (2003) — AGU, Geochem. Geophys. Geosyst.
              
             <span
               aria-hidden="true"
@@ -14798,7 +14921,7 @@ exports[`DetailPanel dispatch matrix > renders tectonic-plates-fill without thro
             target="_blank"
             title="Open the source organisation's homepage"
           >
-            Bird (2003) — PANGAEA
+            Bird (2003) — AGU, Geochem. Geophys. Geosyst.
              
             <span
               aria-hidden="true"

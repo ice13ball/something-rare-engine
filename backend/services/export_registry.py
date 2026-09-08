@@ -525,6 +525,7 @@ _VECTORS: dict[str, VectorExport] = {
                 "source_url", "created_at", "chess_count", "chess_species",
                 "max_temp_c", "temp_category", "min_depth_m", "ocean", "region",
                 "jurisdiction", "tectonic_setting", "discovery_year",
+                "discovery_year_num", "date_precision",
                 "biology_notes", "description_notes"),
         prov=Provenance(
             source="InterRidge Vents Database v3.4",

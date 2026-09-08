@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 
 import db
 from ingestion.obis_sync import is_obis_paused, sync_obis, rebuild_hotspot_grid
+import log_redaction
 
 INTERVAL = 7 * 24 * 3600  # weekly
 
@@ -73,4 +74,7 @@ if __name__ == "__main__":
         level=os.getenv("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    # Own process, own logging setup — so it needs its own install() call. See
+    # backend/log_redaction.py.
+    log_redaction.install()
     asyncio.run(main())

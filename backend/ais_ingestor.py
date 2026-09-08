@@ -34,6 +34,7 @@ from typing import Any
 import asyncpg
 
 import db
+import log_redaction
 from ais_sync import (
     ensure_ais_schema,
     seed_aois_from_existing_layers,
@@ -48,6 +49,9 @@ logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
+# Own process, own logging setup — so it needs its own install() call. See
+# backend/log_redaction.py.
+log_redaction.install()
 
 AISSTREAM_URL = "wss://stream.aisstream.io/v0/stream"
 AISSTREAM_API_KEY = os.getenv("AISSTREAM_API_KEY", "")

@@ -95,6 +95,11 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
   "cumulative-human-impact-raster": "cumulative-human-impact",
   "cumulative-human-impact-hexes":  "cumulative-human-impact",
   "biodiversity-hotspots-glow":     "biodiversity-hotspots",
+  // The two zoom-dependent grid aggregations of the same layer. Without these,
+  // clicking an OBIS point showed its frame and clicking an OBIS grid cell of the
+  // very same data showed nothing.
+  "biodiversity-hotspots-grid-coarse": "biodiversity-hotspots",
+  "biodiversity-hotspots-grid-fine":   "biodiversity-hotspots",
   "argo-glow":                      "argo",
   "argo-floats-3d":                 "argo",
   "hydrothermal-vents-active-glow": "hydrothermal-vents",

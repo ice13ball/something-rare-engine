@@ -757,6 +757,8 @@
     "cetaceansSectionTitle": "Cetaceans",
     "dataGapWarning": "High noise detected but no cetacean survey data available for this cell. Absence of records ≠ absence of animals.",
     "dataSourceLabel": "Data source",
+    "pbdYearLabel": "Year of maximum value",
+    "pbdYearSpanLabel": "Years pooled for this cell",
     "derivedModelBanner": "MODELED, not observed. This risk index is computed by this platform from independent pulse-block-day and continuous-SPL noise datasets plus cetacean sightings — it is not a measurement from any single source.",
     "impactRiskIndexLabel": "Impact Risk Index",
     "noiseCetaceanNormLabel": "Cetacean norm",

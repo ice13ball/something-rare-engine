@@ -102,6 +102,7 @@ from datetime import datetime, timezone, timedelta
 import db
 import httpx
 from auth import get_api_key
+from ingestion.vent_dates import parse_discovery_year
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
 from indexnow import notify_indexnow as _notify_indexnow, SITE_HOST
@@ -147,16 +148,26 @@ async def sync_hydrothermal_vents() -> int:
     within 14 days (vent locations are geologically stable; new discoveries rare).
     Returns number of new rows inserted.
     """
-    # 14-day interval guard
+    # 14-day interval guard. Rows ingested before 2026-09-08 carry no
+    # discovery_year_num/date_precision, and that pair cannot be recovered from
+    # what we stored — it has to be derived from discovery_year again. So
+    # "recently synced" is not enough to skip on: a table with any row missing
+    # date_precision gets re-ingested once, and exactly once, because after that
+    # pass the count is zero. Same pattern as arctic.py's permafrost backfill.
     async with db.pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT last_synced_at FROM sync_log WHERE source = 'hydrothermal_vents'"
         )
-    if row and row["last_synced_at"]:
+        undated = await conn.fetchval(
+            "SELECT COUNT(*) FROM hydrothermal_vents WHERE date_precision IS NULL"
+        )
+    if row and row["last_synced_at"] and not undated:
         age_days = (datetime.now(timezone.utc) - row["last_synced_at"]).days
         if age_days < VENT_SYNC_INTERVAL_DAYS:
             log.info("hydrothermal_vents: skipping sync (last ran %d days ago)", age_days)
             return 0
+    if undated:
+        log.info("hydrothermal_vents: %d rows without date_precision — re-ingesting", undated)
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -218,6 +229,7 @@ async def sync_hydrothermal_vents() -> int:
             jurisdiction = _clean(row.get("National.Jurisdiction"))
             tectonic_setting = _clean(row.get("Tectonic.setting"))
             discovery_raw = _clean(row.get("Year.and.How.Discovered..if.active..visual.confirmation.is.listed.first."))
+            discovery_year_num, date_precision = parse_discovery_year(discovery_raw)
             biology_notes = _clean(row.get("Notes.Relevant.to.Biology"))
             description_notes = _clean(row.get("Notes.on.Vent.Field.Description"))
 
@@ -226,10 +238,11 @@ async def sync_hydrothermal_vents() -> int:
                        (name, status, depth_m, latitude, longitude, geom, source_url,
                         max_temp_c, temp_category, min_depth_m, ocean, region,
                         jurisdiction, tectonic_setting, discovery_year,
+                        discovery_year_num, date_precision,
                         biology_notes, description_notes)
                    VALUES ($1, $2, $3, $4, $5,
                            ST_SetSRID(ST_MakePoint($5, $4), 4326)::geography,
-                           $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                           $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
                    ON CONFLICT (name, latitude, longitude) DO UPDATE SET
                        status = EXCLUDED.status,
                        depth_m = EXCLUDED.depth_m,
@@ -241,11 +254,14 @@ async def sync_hydrothermal_vents() -> int:
                        jurisdiction = EXCLUDED.jurisdiction,
                        tectonic_setting = EXCLUDED.tectonic_setting,
                        discovery_year = EXCLUDED.discovery_year,
+                       discovery_year_num = EXCLUDED.discovery_year_num,
+                       date_precision = EXCLUDED.date_precision,
                        biology_notes = EXCLUDED.biology_notes,
                        description_notes = EXCLUDED.description_notes""",
                 name, status, depth_m, lat, lon, PANGAEA_VENTS_URL,
                 max_temp_c, temp_category, min_depth_m, ocean, region,
                 jurisdiction, tectonic_setting, discovery_raw,
+                discovery_year_num, date_precision,
                 biology_notes, description_notes,
             )
             if "INSERT" in result:
@@ -594,6 +610,8 @@ async def get_vents():
                         'jurisdiction',      jurisdiction,
                         'tectonic_setting',  tectonic_setting,
                         'discovery_year',    discovery_year,
+                        'discovery_year_num', discovery_year_num,
+                        'date_precision',    date_precision,
                         'biology_notes',     biology_notes
                     )
                 )

@@ -436,12 +436,15 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     },
   },
   {
+    // Bulk-only shape (2026-09-08 split): authors/data_source_type/source_doi/
+    // imagery moved to GET .../permafrost-thaw/by-id/{unique_id} — see
+    // PERMAFROST_THAW_DETAIL in detailPanelFetchFixtures.ts for those.
     layer: "permafrost-thaw",
     id: "TEST",
     properties: {
-      authors: "Test Author", data_source_type: "satellite imagery", feature_category: "thermokarst lake",
-      feature_name: "TEST Feature", feature_type: "lake", imagery: "TEST imagery",
-      source: "alaska_webb", source_doi: "10.5281/zenodo.16996415", thaw_type: "non-abrupt",
+      unique_id: "TEST-UID-1", feature_category: "thermokarst lake",
+      feature_name: "TEST Feature", feature_type: "lake",
+      source: "alaska_webb", thaw_type: "non-abrupt",
     },
   },
   {

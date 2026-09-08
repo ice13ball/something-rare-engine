@@ -14,6 +14,7 @@ import asyncpg
 from dotenv import load_dotenv
 import db
 from services import vme_sdm
+import log_redaction
 
 LOCK_KEY = 4242001            # shared with obis_sync_worker
 STALE_DAYS = 30
@@ -83,4 +84,7 @@ async def main():
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"),
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # Own process, own logging setup — so it needs its own install() call. See
+    # backend/log_redaction.py.
+    log_redaction.install()
     asyncio.run(main())

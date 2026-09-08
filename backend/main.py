@@ -74,12 +74,18 @@ from fastapi.security.api_key import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from api_docs import build_openapi
+import log_redaction
 
 load_dotenv()
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+# ⛔ Must come AFTER load_dotenv() and after basicConfig has made the handlers, or it
+# silently protects less than it looks like it does. Closes the ONC-token leak found
+# in the journal on 2026-09-08 — see backend/log_redaction.py.
+_redacted_secret_count = log_redaction.install()
 log = logging.getLogger(__name__)
+log.info("log redaction active for %d secret values", _redacted_secret_count)
 
 # Whether the running commit's schema (migrate.py's job) matches what's actually
 # in the database. Set once at startup by lifespan(), read by /health.

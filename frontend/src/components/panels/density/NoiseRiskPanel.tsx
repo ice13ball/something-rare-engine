@@ -48,6 +48,15 @@ export function NoiseRiskPanel({ properties: p }: { properties: Record<string, u
 
       <Section title={t("noiseRisk.noiseSourceSectionTitle")}>
         <Row label={t("noiseRisk.dataSourceLabel")} value={String(p.noise_source ?? "—")} />
+        {p.pbd_year != null && (
+          <Row label={t("noiseRisk.pbdYearLabel")} value={String(p.pbd_year)} />
+        )}
+        {p.pbd_year_min != null && p.pbd_year_max != null && p.pbd_year_min !== p.pbd_year_max && (
+          <Row
+            label={t("noiseRisk.pbdYearSpanLabel")}
+            value={`${p.pbd_year_min}–${p.pbd_year_max}`}
+          />
+        )}
       </Section>
 
       {dataGap && (

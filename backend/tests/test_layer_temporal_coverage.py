@@ -44,6 +44,19 @@ IOPAN_LAYERS = (
     "marine-carbon",          # A6 — the synthesis
 )
 
+# The "Life & Geology" menu group, raised by Michal on 2026-09-08. ⛔ Deliberately
+# NOT folded into IOPAN_LAYERS: that constant has to keep meaning "what IO PAN
+# asked for", and these six were not on their list. They are a priority of ours,
+# which is a different fact and gets a different name.
+LIFE_AND_GEOLOGY_LAYERS = (
+    "biodiversity-hotspots",   # OBIS Species (Deep)
+    "hydrothermal-vents",      # Hydrothermal Vents
+    "chess",                   # Chemosynthetic Sites — already anchored
+    "seamounts",               # Seamounts
+    "tectonic-plates",         # Tectonic Plates
+    "bathymetry",              # Seafloor Bathymetry
+)
+
 BY_ID = {c.layer_id: c for c in COVERAGE}
 
 
@@ -54,6 +67,18 @@ def test_every_iopan_layer_has_a_time_frame():
         "Each needs a row read AT THE SOURCE — dataset-level coverage counts, and is "
         "often present where per-record dates are absent (ChEssBase: no eventDate on "
         "any of 3,715 records, yet the GBIF dataset states 1977-2025)."
+    )
+
+
+def test_every_life_and_geology_layer_is_anchored():
+    """Same gate, second group. A layer people can click on the globe and get no
+    temporal answer for is the defect this whole table exists to prevent."""
+    missing = [lid for lid in LIFE_AND_GEOLOGY_LAYERS if lid not in BY_ID]
+    assert not missing, (
+        f"{len(missing)} of {len(LIFE_AND_GEOLOGY_LAYERS)} Life & Geology layers "
+        f"carry no temporal anchor: {missing}. A landform layer still has one — "
+        "not 'when the seamount appeared', but which bathymetry vintage the "
+        "catalogue was predicted from, which is what decides if it may be pooled."
     )
 
 
