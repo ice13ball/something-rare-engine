@@ -77,7 +77,7 @@ async def ensure_oceansites(conn) -> None:
             lon          DOUBLE PRECISION NOT NULL,
             status       TEXT DEFAULT 'OPERATIONAL',
             network      TEXT DEFAULT '',
-            deploy_date  TEXT,
+            deploy_date  DATE,
             geom         GEOMETRY(Point, 4326),
             updated_at   TIMESTAMPTZ DEFAULT NOW(),
             latest_obs   JSONB,
@@ -97,6 +97,23 @@ async def ensure_oceansites(conn) -> None:
             )
         except Exception:
             pass
+    # 2026-09-08: deploy_date was TEXT and always NULL (the ingest never
+    # populated it). The OceanOPS widening starts writing real ISO dates —
+    # convert the column so callers get a DATE, not a string to re-parse.
+    # A pre-existing non-empty TEXT value that fails the cast is left NULL
+    # rather than aborting the whole ALTER (USING with a defensive CASE).
+    try:
+        await conn.execute("""
+            ALTER TABLE oceansites_stations
+            ALTER COLUMN deploy_date TYPE DATE
+            USING CASE
+                WHEN deploy_date IS NULL OR deploy_date = '' THEN NULL
+                WHEN deploy_date ~ '^\\d{4}-\\d{2}-\\d{2}' THEN deploy_date::DATE
+                ELSE NULL
+            END
+        """)
+    except Exception:
+        pass
     await conn.execute("""
         CREATE INDEX IF NOT EXISTS oceansites_geom_idx
         ON oceansites_stations USING GIST(geom)

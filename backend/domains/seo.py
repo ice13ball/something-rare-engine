@@ -827,8 +827,13 @@ async def seo_sitemap_entries():
         """)
         sync = await conn.fetch("SELECT source, last_synced_at FROM sync_log")
         reports = await conn.fetch(REPORT_SITEMAP_SQL)
+        # Same gate as seo_sitemap_core() — see 2026-09-08 comment there.
+        # This function is otherwise unused by production (server.js calls
+        # seo_sitemap_core), but a test asserts the two agree so a future
+        # fix to one cannot silently leave the other ungated again.
         oceansites = await conn.fetch("""
-            SELECT ref, updated_at FROM oceansites_stations ORDER BY ref
+            SELECT ref, updated_at FROM oceansites_stations
+            WHERE latest_obs IS NOT NULL ORDER BY ref
         """)
         # Gated on latest_sensors IS NOT NULL: with onc_ingest.py now pulling
         # every ONC device category, onc_locations holds ~1,993 rows (most
@@ -1014,7 +1019,16 @@ async def seo_sitemap_core():
     async with db.pool.acquire() as conn:
         concessions = await conn.fetch("SELECT isa_id, COALESCE(act_date, created_at, NOW()) AS lastmod FROM mining_contracts ORDER BY isa_id")
         vents = await conn.fetch("SELECT id, COALESCE(created_at, NOW()) AS lastmod FROM hydrothermal_vents ORDER BY id")
-        oceansites = await conn.fetch("SELECT ref, updated_at FROM oceansites_stations ORDER BY ref")
+        # 2026-09-08: OceanSITES widened from 65 OPERATIONAL-only rows to
+        # every status OceanOPS returns (~5,795). Gating the sitemap on
+        # latest_obs IS NOT NULL (same marker as ONC's latest_sensors below)
+        # keeps only platforms that actually have a rendered data page worth
+        # crawling; /v1/seo/oceansites/{ref} itself stays UNGATED — every
+        # station still 200s there, it just isn't advertised for crawl.
+        oceansites = await conn.fetch(
+            "SELECT ref, updated_at FROM oceansites_stations "
+            "WHERE latest_obs IS NOT NULL ORDER BY ref"
+        )
         # Gated on latest_sensors IS NOT NULL — this is the function server.js
         # actually calls for sitemap.xml (frontend/server.js:881, :1126), unlike
         # seo_sitemap_entries() below which nothing in production fetches.

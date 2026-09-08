@@ -272,9 +272,13 @@ HUBS: dict[str, Hub] = {
         heading="OceanSITES moorings",
         intro="Long-term open-ocean reference moorings in the OceanSITES network.",
         per_page=250,
-        count_sql="SELECT COUNT(*) FROM oceansites_stations",
+        # 2026-09-08: widened to every OceanOPS status (~5,795 rows). Gated on
+        # latest_obs IS NOT NULL, same marker as the "onc" hub above — only
+        # platforms with an actual rendered data page are listed here.
+        count_sql="SELECT COUNT(*) FROM oceansites_stations WHERE latest_obs IS NOT NULL",
         rows_sql=(
             "SELECT ref, name, network, status FROM oceansites_stations "
+            "WHERE latest_obs IS NOT NULL "
             "ORDER BY ref LIMIT $1 OFFSET $2"
         ),
         row_to_item=_oceansites_item,

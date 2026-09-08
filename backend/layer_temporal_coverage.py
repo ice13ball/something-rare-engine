@@ -506,10 +506,12 @@ COVERAGE: tuple[Coverage, ...] = (
                 "the open ocean. ⛔ Neither page states a network-wide start or "
                 "end year, so this span was counted from the deployment dates "
                 "OceanOPS publishes for the network's 5,795 platforms — not "
-                "quoted from the publisher. ⚠️ Our own copy carries no "
-                "deployment date at all yet, and holds only the 65 platforms "
-                "currently OPERATIONAL, so no record here can be filtered by "
-                "this span.",
+                "quoted from the publisher. Every platform is held, whatever "
+                "its status, each with its own deployment date, so a record "
+                "here can be filtered by this span. ⚠️ A deployment date is "
+                "when the mooring went in, not the window it measured: a "
+                "platform deployed in 1948 and closed decades later carries "
+                "the one date, not the other.",
         source_url="https://www.ocean-ops.org/oceansites/about.html",
         verified_on="2026-09-08",
     ),

@@ -377,10 +377,17 @@ async def enrich_claim_boundaries() -> int:
                 GROUP BY c.id
             ),
             oceansites AS (
+                -- 2026-09-08: oceansites_stations widened from 65 OPERATIONAL
+                -- rows to every OceanOPS status (~5,795) — same shape as the
+                -- ONC widening above. Gated on latest_obs IS NOT NULL (same
+                -- marker, same reasoning) so a concession isn't reported as
+                -- "near 400 OceanSITES moorings" when most are 1990s CLOSED
+                -- platforms with no data.
                 SELECT c.id, COUNT(*) AS n
                 FROM mc_centroids c
                 JOIN oceansites_stations os
                   ON ST_DWithin(os.geom::geography, c.ctr::geography, 500000)
+                 AND os.latest_obs IS NOT NULL
                 GROUP BY c.id
             )
             UPDATE mining_contracts mc SET

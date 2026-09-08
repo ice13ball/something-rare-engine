@@ -203,12 +203,13 @@ ALTER TABLE blog_articles OWNER TO abyssal_user
 ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS ai_generated BOOLEAN DEFAULT FALSE
 ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS cover_image TEXT
 INSERT INTO blog_articles (slug, title, description, content_md, tags, reading_time_min, published, published_at, ai_generated) VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, TRUE) ON CONFLICT (slug) DO NOTHING
-CREATE TABLE IF NOT EXISTS oceansites_stations ( ref TEXT PRIMARY KEY, name TEXT NOT NULL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, status TEXT DEFAULT 'OPERATIONAL', network TEXT DEFAULT '', deploy_date TEXT, geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(), latest_obs JSONB, obs_fetched_at TIMESTAMPTZ )
+CREATE TABLE IF NOT EXISTS oceansites_stations ( ref TEXT PRIMARY KEY, name TEXT NOT NULL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, status TEXT DEFAULT 'OPERATIONAL', network TEXT DEFAULT '', deploy_date DATE, geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(), latest_obs JSONB, obs_fetched_at TIMESTAMPTZ )
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS latest_obs JSONB
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS obs_fetched_at TIMESTAMPTZ
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS age_days DOUBLE PRECISION
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS model TEXT
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS obs_source TEXT
+ALTER TABLE oceansites_stations ALTER COLUMN deploy_date TYPE DATE USING CASE WHEN deploy_date IS NULL OR deploy_date = '' THEN NULL WHEN deploy_date ~ '^\d{4}-\d{2}-\d{2}' THEN deploy_date::DATE ELSE NULL END
 CREATE INDEX IF NOT EXISTS oceansites_geom_idx ON oceansites_stations USING GIST(geom)
 ALTER TABLE oceansites_stations OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS onc_locations ( location_code TEXT PRIMARY KEY, name TEXT NOT NULL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, description TEXT DEFAULT '', geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(), latest_sensors JSONB, sensors_fetched_at TIMESTAMPTZ )

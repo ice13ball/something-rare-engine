@@ -614,14 +614,47 @@ async def sync_argo_profiles() -> int:
     return inserted
 
 
+# A shrink of more than this fraction of the currently-stored row count is
+# refused rather than applied — same guard class used for the ONC widening
+# (2026-09-08). OceanOPS is the sole source and this ingest now keeps every
+# status (not just OPERATIONAL), so a healthy fetch should only ever grow or
+# hold steady; a >20% drop is far more likely a bad filter, a truncated page,
+# or an upstream outage than 1,000+ real platforms vanishing between syncs.
+_OCEANSITES_SHRINK_GUARD_FRACTION = 0.20
+
+
 async def sync_oceansites() -> int:
-    """Fetch OceanSITES mooring locations and upsert into DB."""
-    from ingestion.oceansites_ingest import fetch_oceansites_stations
+    """Fetch ALL OceanSITES mooring platforms (every status) and upsert.
+
+    Status changes (e.g. OPERATIONAL -> CLOSED) update the row in place; a
+    row is only removed when OceanOPS stops returning that ref at all —
+    "no longer operational" and "no longer exists" are different facts and
+    must not share a code path (see module docstring / task brief).
+    """
+    from datetime import date as _date
+
+    from ingestion.oceansites_ingest import fetch_oceansites_stations, last_sentinel_count
     stations = await fetch_oceansites_stations()
     if not stations:
+        # FAILED sync — do not stamp last_synced_at (rule: a failed sync must
+        # not look like a successful one to the monitor).
+        log.error("oceansites: OceanOPS returned zero stations, skipping sync")
         return 0
+
     current_refs = [s["ref"] for s in stations]
+
     async with db.pool.acquire() as conn:
+        existing_count = await conn.fetchval("SELECT COUNT(*) FROM oceansites_stations")
+
+        if existing_count and len(stations) < existing_count * (1 - _OCEANSITES_SHRINK_GUARD_FRACTION):
+            # FAILED sync (refused) — do not stamp last_synced_at.
+            log.error(
+                "oceansites: refusing sync — fetch returned %d stations, stored has %d "
+                "(%.0f%% shrink guard)",
+                len(stations), existing_count, _OCEANSITES_SHRINK_GUARD_FRACTION * 100,
+            )
+            return existing_count
+
         await conn.executemany(
             """INSERT INTO oceansites_stations
                (ref, name, lat, lon, status, network, deploy_date, age_days, model, geom, updated_at)
@@ -635,18 +668,27 @@ async def sync_oceansites() -> int:
                    model=EXCLUDED.model, geom=EXCLUDED.geom,
                    updated_at=NOW()""",
             [(s["ref"], s["name"], s["lat"], s["lon"],
-              s["status"], s["network"], s["deploy_date"],
+              s["status"], s["network"],
+              (_date.fromisoformat(s["deploy_date"]) if s.get("deploy_date") else None),
               s.get("age_days"), s.get("model"))
              for s in stations],
         )
-        # Remove stale rows (stations no longer OPERATIONAL in the registry)
-        await conn.execute(
-            "DELETE FROM oceansites_stations WHERE ref != ALL($1::text[])",
+        # A ref is removed only when OceanOPS stops returning it entirely —
+        # NOT merely when its status changes (that's an UPDATE above).
+        deleted = await conn.fetchval(
+            "WITH d AS (DELETE FROM oceansites_stations WHERE ref != ALL($1::text[]) RETURNING 1) "
+            "SELECT COUNT(*) FROM d",
             current_refs,
         )
         count = await conn.fetchval("SELECT COUNT(*) FROM oceansites_stations")
+
+    if deleted:
+        log.info("oceansites: removed %d refs no longer present in OceanOPS at all", deleted)
+
     global _oceansites_cache
     _oceansites_cache = None
+    log.info("oceansites: %d sentinel (1900-01-01) deploy dates rejected to NULL this sync",
+              last_sentinel_count)
     await _log_sync("oceansites", len(stations), count)
     asyncio.create_task(_notify_indexnow([f"https://{SITE_HOST}/sitemap.xml"]))
     await sync_oceansites_obs()
@@ -668,8 +710,16 @@ async def sync_oceansites_obs() -> int:
     from ingestion.oceansites_gdac import fetch_gdac_observations
     from ingestion.pmel_erddap import fetch_pmel_observations
 
+    # 2026-09-08: oceansites_stations widened from 65 OPERATIONAL-only rows to
+    # every OceanOPS status (~5,795). Fetching live observations for a
+    # platform closed since the 1990s cannot return anything and would fan
+    # this out from ~65 HTTP requests per sync to ~5,795 — a network-load
+    # regression this loop's `Semaphore(10)` was never sized for. Live obs
+    # are only meaningful for currently OPERATIONAL platforms.
     async with db.pool.acquire() as conn:
-        rows = await conn.fetch("SELECT ref, name FROM oceansites_stations")
+        rows = await conn.fetch(
+            "SELECT ref, name FROM oceansites_stations WHERE status = 'OPERATIONAL'"
+        )
     refs_with_names = [(r["ref"], r["name"]) for r in rows]
     refs = [ref for ref, _ in refs_with_names]
     if not refs:

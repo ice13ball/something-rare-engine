@@ -79,6 +79,16 @@ _MONITORING_DENSITY_SQL = """
         SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, 'argo' AS src
             FROM argo_profiles WHERE geom IS NOT NULL
         UNION ALL
+        -- ⭐ UNGATED ON PURPOSE, ruled 2026-09-08 when the OceanSITES ingest went
+        -- from 65 OPERATIONAL platforms to all 5,795 of every status. That is a
+        -- ~90x jump into this grid, which looks alarming until you read what this
+        -- layer promises: layer_temporal_coverage calls monitoring-density an
+        -- "all-time cumulative count" of "every monitoring record ever logged at a
+        -- location... not current activity", and says pooling a 1930s cruise with a
+        -- 2024 float "is the intent, not a mismatch". A mooring closed in 1995 is
+        -- exactly the baseline effort this counts. ⛔ Do not add a status filter
+        -- here to make the numbers smaller — that would contradict the layer's own
+        -- published definition. The place to reconsider is that definition.
         SELECT lon, lat, 'oceansites'  AS src FROM oceansites_stations
         UNION ALL
         SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, 'onc' AS src
