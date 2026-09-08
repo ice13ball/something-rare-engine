@@ -48,16 +48,24 @@ async def pool_and_router():
                ON CONFLICT (station_id) DO NOTHING""",
             _STATION,
         )
+        # ⚠️ BOTH samples deliberately carry the SAME geotraces_sample_id.
+        # That is not sloppiness — it is the real shape of the source. On the
+        # 129,148-row IDP2025 CSV that column is empty on 41% of rows and its
+        # 76,056 non-empty values collapse to 29,944 distinct ones. Keying the
+        # values table on it (the 2026-09-08 first cut) silently dropped 41% of
+        # bottles and made the rest collide on the primary key. These two rows
+        # must stay distinguishable ONLY by csv_row, so this fixture goes red
+        # the moment anyone keys on geotraces_sample_id again.
         await conn.execute(
             """INSERT INTO geotraces_samples
                  (station_id, cruise, station, lat, lon, depth_m,
-                  mn_d, fe_d, geotraces_sample_id, geom)
+                  mn_d, fe_d, csv_row, geotraces_sample_id, geom)
                VALUES
                  ($1, 'TEST-CRUISE', 'ST1', 10.0, 20.0, 10.0,
-                  1.1, 2.2, 'GT-SAMPLE-1',
+                  1.1, 2.2, 900001, 'GT-SAMPLE-1',
                   ST_SetSRID(ST_MakePoint(20.0, 10.0), 4326)),
                  ($1, 'TEST-CRUISE', 'ST1', 10.0, 20.0, 50.0,
-                  1.3, 2.4, 'GT-SAMPLE-2',
+                  1.3, 2.4, 900002, 'GT-SAMPLE-1',
                   ST_SetSRID(ST_MakePoint(20.0, 10.0), 4326))""",
             _STATION,
         )
@@ -72,10 +80,10 @@ async def pool_and_router():
         await conn.execute(
             """INSERT INTO geotraces_values (sample_id, param_code, value, stddev, qc_flag)
                VALUES
-                 ('GT-SAMPLE-1', 'Mn_D_CONC_BOTTLE', 1.1, 0.05, 1),
-                 ('GT-SAMPLE-1', 'Fe_D_CONC_BOTTLE', 2.2, NULL, 2),
-                 ('GT-SAMPLE-2', 'Mn_D_CONC_BOTTLE', 1.3, 0.02, 1),
-                 ('GT-SAMPLE-2', 'Cd_D_CONC_BOTTLE', 0.4, NULL, 1)
+                 (900001, 'Mn_D_CONC_BOTTLE', 1.1, 0.05, 1),
+                 (900001, 'Fe_D_CONC_BOTTLE', 2.2, NULL, 2),
+                 (900002, 'Mn_D_CONC_BOTTLE', 1.3, 0.02, 1),
+                 (900002, 'Cd_D_CONC_BOTTLE', 0.4, NULL, 1)
                ON CONFLICT (sample_id, param_code) DO NOTHING"""
         )
 
@@ -84,7 +92,7 @@ async def pool_and_router():
     finally:
         async with pool.acquire() as conn:
             await conn.execute(
-                "DELETE FROM geotraces_values WHERE sample_id IN ('GT-SAMPLE-1', 'GT-SAMPLE-2')"
+                "DELETE FROM geotraces_values WHERE sample_id IN (900001, 900002)"
             )
             await conn.execute(
                 "DELETE FROM geotraces_params WHERE param_code IN "

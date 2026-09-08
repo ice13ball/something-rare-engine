@@ -59,7 +59,14 @@ async def test_new_tables_and_columns_created():
             assert params_cols["n_values"] == "integer"
 
             values_cols = await _cols(conn, "geotraces_values")
-            assert values_cols["sample_id"] == "text"
+            # ⛔ bigint, not text. This keys on geotraces_samples.csv_row — the
+            # CSV row ordinal — because the file has NO unique bottle key.
+            # Measured 2026-09-08 on the real 129,148-row IDP2025 CSV:
+            # "GEOTRACES Sample ID" is EMPTY on 53,092 rows (41%) and the
+            # 76,056 that have one collapse to 29,944 distinct values, so
+            # 46,112 collide. Keying on it dropped 41% of bottles silently and
+            # made the rest violate this table's primary key.
+            assert values_cols["sample_id"] == "bigint"
             assert values_cols["param_code"] == "text"
             assert values_cols["value"] == "double precision"
             assert values_cols["stddev"] == "double precision"
@@ -84,7 +91,18 @@ async def test_new_tables_and_columns_created():
             assert any("param" in r["indexname"] for r in idx)
 
             samples_cols = await _cols(conn, "geotraces_samples")
+            # The join key the values table points at. Without it every
+            # measurement is orphaned.
+            assert samples_cols["csv_row"] == "bigint"
+            csv_row_idx = await conn.fetch(
+                """SELECT indexname FROM pg_indexes
+                   WHERE tablename = 'geotraces_samples'
+                     AND indexdef LIKE '%UNIQUE%csv_row%'"""
+            )
+            assert csv_row_idx, "csv_row must be UNIQUE — it is the values join key"
+
             new_meta_cols = {
+                # ⚠️ informational only. NOT a key — see the sample_id note above.
                 "geotraces_sample_id": "text",
                 "sampling_device": "text",
                 "cast_identifier": "text",
