@@ -151,9 +151,21 @@ async def _sync_pf_source(source: str, fetch, build, force: bool) -> int:
     async with db.pool.acquire() as conn:
         existing = await conn.fetchval(
             "SELECT COUNT(*) FROM permafrost_thaw_features WHERE source=$1", source)
-    if not force and existing and existing > 0:
+    # Rows ingested before 2026-09-08 carry no observation window, and the window
+    # cannot be recovered from what we stored — it was folded into the free-text
+    # `imagery` blob. So "populated" is no longer enough to skip on: a source whose
+    # rows have no date_precision gets re-fetched once, and exactly once, because
+    # after that pass the count is zero.
+    async with db.pool.acquire() as conn:
+        undated = await conn.fetchval(
+            "SELECT COUNT(*) FROM permafrost_thaw_features "
+            "WHERE source=$1 AND date_precision IS NULL", source)
+    if not force and existing and existing > 0 and not undated:
         log.info("permafrost-thaw[%s]: skip — %d rows present", source, existing)
         return 0
+    if undated:
+        log.info("permafrost-thaw[%s]: %d rows without an observation window — re-ingesting",
+                 source, undated)
     try:
         gj = await asyncio.to_thread(fetch)
     except Exception as exc:
@@ -169,12 +181,17 @@ async def _sync_pf_source(source: str, fetch, build, force: bool) -> int:
             await conn.executemany(
                 """INSERT INTO permafrost_thaw_features
                      (source, unique_id, feature_name, feature_type, feature_category,
-                      thaw_type, data_source_type, authors, source_doi, imagery, lat, lon, geom)
+                      thaw_type, data_source_type, authors, source_doi, imagery, lat, lon, geom,
+                      obs_start_year, obs_end_year, obs_start, obs_end, date_precision,
+                      contribution_date)
                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-                           ST_SetSRID(ST_MakePoint($12,$11),4326))""",
+                           ST_SetSRID(ST_MakePoint($12,$11),4326),
+                           $13,$14,$15,$16,$17,$18)""",
                 [(r["source"], r["unique_id"], r["feature_name"], r["feature_type"],
                   r["feature_category"], r["thaw_type"], r["data_source_type"], r["authors"],
-                  r["source_doi"], r["imagery"], r["lat"], r["lon"]) for r in rows])
+                  r["source_doi"], r["imagery"], r["lat"], r["lon"],
+                  r["obs_start_year"], r["obs_end_year"], r["obs_start"], r["obs_end"],
+                  r["date_precision"], r["contribution_date"]) for r in rows])
     log.info("permafrost-thaw[%s]: inserted %d rows", source, len(rows))
     return len(rows)
 
@@ -205,7 +222,17 @@ async def get_permafrost_thaw():
                     json_build_object(
                         'type', 'Feature',
                         'geometry', ST_AsGeoJSON(geom)::json,
-                        'properties', json_build_object(
+                        -- ⛔ json_strip_nulls, and it is not a micro-optimisation.
+                        -- Cloud Run refuses a response over 32 MiB and this payload is
+                        -- 47,239 features: adding the six window columns took it from
+                        -- ~27 MB to 34.17 MB, and the BFF proxy began answering 500
+                        -- while the backend itself still returned 200 — so the layer
+                        -- broke in a place the API's own logs looked healthy.
+                        -- Dropping null keys costs nothing (an absent key and a null
+                        -- key are the same to every consumer here) and buys back far
+                        -- more than the six columns cost, because most rows leave
+                        -- several of them empty.
+                        'properties', json_strip_nulls(json_build_object(
                             'unique_id', unique_id,
                             'source', source,
                             'feature_name', feature_name,
@@ -215,8 +242,21 @@ async def get_permafrost_thaw():
                             'data_source_type', data_source_type,
                             'authors', authors,
                             'source_doi', source_doi,
-                            'imagery', imagery
-                        )
+                            'imagery', imagery,
+                            -- The observation window, now queryable instead of buried
+                            -- in the `imagery` string above. Years are the primary
+                            -- form; the ISO dates are present only where the source
+                            -- gave full dates, so the panel can show exactly what it
+                            -- was given without widening a year into a day.
+                            'obs_start_year', obs_start_year,
+                            'obs_end_year', obs_end_year,
+                            'obs_start', obs_start,
+                            'obs_end', obs_end,
+                            'date_precision', date_precision,
+                            -- ⛔ Not an observation date. Kept distinct in the payload
+                            -- so a panel cannot accidentally render it as one.
+                            'contribution_date', contribution_date
+                        ))
                     )
                 ), '[]'::json)
             )::text
@@ -224,6 +264,18 @@ async def get_permafrost_thaw():
         """)
 
     _permafrost_thaw_cache = row if isinstance(row, str) else json.dumps(row)
+
+    # ⛔ Cloud Run rejects a response over 32 MiB, and it fails at the PROXY: this
+    # service answers 200, the browser gets 500, and nothing in our own log looks
+    # wrong. That is exactly what happened on 2026-09-08, when adding six columns
+    # took this payload to 34.17 MB and the permafrost layer stopped loading while
+    # the API looked healthy. Warn well before the cliff, because the symptom points
+    # away from the cause. ⚠️ The fix when this fires is to stop shipping 47k
+    # features as one document — not to shave off another key.
+    _mib = len(_permafrost_thaw_cache) / 1048576
+    if _mib > 28:
+        log.warning("permafrost-thaw payload %.1f MiB — Cloud Run refuses >32 MiB and "
+                    "fails it at the proxy as a 500 while this service logs 200", _mib)
     return Response(content=_permafrost_thaw_cache, media_type="application/json")
 
 

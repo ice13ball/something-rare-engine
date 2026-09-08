@@ -14,6 +14,8 @@ no natural source id, `unique_id` is a deterministic hash derived from coordinat
 identifying fields (see `_make_unique_id`).
 """
 from __future__ import annotations
+
+from ingestion.thaw_dates import window_fields as _window_fields
 import hashlib
 import json
 import logging
@@ -111,6 +113,13 @@ def build_thaw_rows(geojson: dict) -> list[dict]:
             "authors": _clean(p.get("Authors")),
             "source_doi": _clean(p.get("DOI")),
             "imagery": imagery,
+            # ImageryDates is a range ("1985 through 2015"), present on 17,245 of
+            # 19,540 features at the live source — mostly bare years, which is why
+            # the year columns are the primary form.
+            **_window_fields(p.get("ImageryDates")),
+            # This source publishes no contribution date; the column stays null
+            # rather than being filled with something that means anything else.
+            "contribution_date": None,
             "lat": lat,
             "lon": lon,
         })

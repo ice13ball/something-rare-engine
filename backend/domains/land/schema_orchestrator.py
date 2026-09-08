@@ -308,11 +308,33 @@ async def ensure_land_schema():
                 woce_line  TEXT,
                 lon        DOUBLE PRECISION NOT NULL,
                 lat        DOUBLE PRECISION NOT NULL,
+                -- ⛔ A row here is NOT a station, whatever the table name says: it is a
+                -- vertex of the cruise track LineString, subsampled to 30 points per
+                -- cruise. The track carries lon/lat only — no per-point time exists at
+                -- the source — so the honest sample time for these rows is the CRUISE
+                -- WINDOW, never a day. That is why these are campaign_* and not
+                -- sample_date. `year` stays because the map filter and ORDER BY use it;
+                -- it is derived from campaign_start, not a second claim.
+                campaign_start DATE,
+                campaign_end   DATE,
+                -- date_precision doubles as the backfill sentinel: NULL means "this row
+                -- predates the date columns and has never been asked about", which is
+                -- what _backfill_cchdo_dates() looks for. A cruise the API dates as
+                -- 'none' is therefore not re-fetched on every sync forever.
+                date_precision TEXT,
                 UNIQUE (expocode, lon, lat)
             )
         """)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_ncei_icoads_year ON ncei_icoads_files(year)")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_cchdo_stations_expocode ON cchdo_stations(expocode)")
+        # Additive for the 41,102 rows that already exist; the CREATE above only runs
+        # on a fresh database.
+        for stmt in (
+            "ALTER TABLE cchdo_stations ADD COLUMN IF NOT EXISTS campaign_start DATE",
+            "ALTER TABLE cchdo_stations ADD COLUMN IF NOT EXISTS campaign_end   DATE",
+            "ALTER TABLE cchdo_stations ADD COLUMN IF NOT EXISTS date_precision TEXT",
+        ):
+            await conn.execute(stmt)
 
         # ── Arctic River Stations ──────────────────────────────────────
         await conn.execute("""
@@ -370,6 +392,26 @@ async def ensure_land_schema():
                 authors TEXT,
                 source_doi TEXT,
                 imagery TEXT,
+                -- WHEN the feature was actually observed. Both sources date every
+                -- feature and both were burying it in `imagery` above, where nothing
+                -- could query it. ⛔ It is an imagery WINDOW, not a sampling day: a
+                -- thaw slump is mapped from imagery spanning a period.
+                --
+                -- Years are the primary form because that is what most of the source
+                -- gives (Alaska Webb writes "1985 through 2015" on 88% of its rows);
+                -- the DATE columns are filled only where the source gave full dates,
+                -- so a consumer can tell which it got by whether they are null. ⛔ A
+                -- bare year must never be widened into 1 January here.
+                obs_start_year INTEGER,
+                obs_end_year   INTEGER,
+                obs_start      DATE,
+                obs_end        DATE,
+                date_precision TEXT,
+                -- ⛔ NOT an observation date: ARTS records when the digitisation was
+                -- contributed, which ran years after the imagery was taken (2024 for
+                -- 2020 imagery in the sampled data). Kept apart so it can never be
+                -- mistaken for one.
+                contribution_date DATE,
                 lat DOUBLE PRECISION NOT NULL,
                 lon DOUBLE PRECISION NOT NULL,
                 geom GEOMETRY(Point, 4326),
@@ -378,6 +420,17 @@ async def ensure_land_schema():
                     CHECK (source IN ('alaska_webb','arts_panarctic'))
             )
         """)
+        # Additive for the 47,239 rows already in place; the CREATE above only runs
+        # on a fresh database.
+        for stmt in (
+            "ALTER TABLE permafrost_thaw_features ADD COLUMN IF NOT EXISTS obs_start_year INTEGER",
+            "ALTER TABLE permafrost_thaw_features ADD COLUMN IF NOT EXISTS obs_end_year   INTEGER",
+            "ALTER TABLE permafrost_thaw_features ADD COLUMN IF NOT EXISTS obs_start      DATE",
+            "ALTER TABLE permafrost_thaw_features ADD COLUMN IF NOT EXISTS obs_end        DATE",
+            "ALTER TABLE permafrost_thaw_features ADD COLUMN IF NOT EXISTS date_precision TEXT",
+            "ALTER TABLE permafrost_thaw_features ADD COLUMN IF NOT EXISTS contribution_date DATE",
+        ):
+            await conn.execute(stmt)
         await conn.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS permafrost_thaw_features_src_uid_uidx "
             "ON permafrost_thaw_features (source, unique_id)"

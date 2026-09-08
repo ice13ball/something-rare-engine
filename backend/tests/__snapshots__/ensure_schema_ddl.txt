@@ -102,6 +102,7 @@ ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS campaign_start DATE
 ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS campaign_end DATE
 ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS core_comment TEXT
 ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS date_precision TEXT
+UPDATE mosaic_cores SET sampling_date = make_date(sampling_year, sampling_month, sampling_day) WHERE sampling_date IS NULL AND sampling_year IS NOT NULL AND sampling_month BETWEEN 1 AND 12 AND sampling_day BETWEEN 1 AND 31 AND sampling_day <= EXTRACT(DAY FROM ( make_date(sampling_year, sampling_month, 1) + INTERVAL '1 month' - INTERVAL '1 day'))
 CREATE TABLE IF NOT EXISTS seaflea_seeps ( id SERIAL PRIMARY KEY, ext_id TEXT UNIQUE, lat DOUBLE PRECISION, lon DOUBLE PRECISION, depth_m DOUBLE PRECISION, obs_year INTEGER, loc_uncert_m DOUBLE PRECISION, feature_types TEXT[], primary_type TEXT, type_raw JSONB, source_ref TEXT, source_url TEXT, pockmark_depth_m DOUBLE PRECISION, pockmark_radius_m DOUBLE PRECISION, geom GEOMETRY(Point, 4326), synced_at TIMESTAMPTZ DEFAULT NOW() )
 ALTER TABLE seaflea_seeps ADD COLUMN IF NOT EXISTS pockmark_depth_m DOUBLE PRECISION
 ALTER TABLE seaflea_seeps ADD COLUMN IF NOT EXISTS pockmark_radius_m DOUBLE PRECISION
@@ -129,7 +130,7 @@ CREATE TABLE IF NOT EXISTS report_cache_v2_concession ( isa_id TEXT PRIMARY KEY,
 CREATE TABLE IF NOT EXISTS report_jobs_v2_concession ( isa_id TEXT PRIMARY KEY, status TEXT NOT NULL CHECK (status IN ('generating','ready','failed')), started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), finished_at TIMESTAMPTZ, worker_id TEXT, error TEXT )
 ALTER TABLE report_cache_v2_concession OWNER TO abyssal_user
 ALTER TABLE report_jobs_v2_concession OWNER TO abyssal_user
-ALTER TABLE biodiversity_hotspots ADD COLUMN iucn_category TEXT DEFAULT 'NE'
+ALTER TABLE biodiversity_hotspots ADD COLUMN IF NOT EXISTS iucn_category TEXT DEFAULT 'NE'
 ALTER TABLE biodiversity_hotspots ADD COLUMN IF NOT EXISTS dataset_id TEXT, ADD COLUMN IF NOT EXISTS occurrence_id TEXT
 CREATE INDEX IF NOT EXISTS bh_cr_en_geom_gix ON biodiversity_hotspots USING GIST(geom) WHERE iucn_category IN ('CR','EN')
 CREATE INDEX IF NOT EXISTS idx_bh_scientific_name ON biodiversity_hotspots (scientific_name)

@@ -3,8 +3,8 @@
 
 """Operational metadata per map layer: which sync drives it and which table(s)
 hold its data. Pure module (no DB import) so it is unit-testable. KEEP IN SYNC
-with LAYER_DEFAULTS_PY in main.py and the add-a-layer checklist — a new layer
-with no entry here shows 'unknown' health and cannot be purged.
+with LAYER_DEFAULTS_PY in startup_seeds.py and the add-a-layer checklist — a
+new layer with no entry here shows 'unknown' health and cannot be purged.
 
 sync_source = the `_SYNC_SOURCES` action key (what Force Sync triggers).
 log_source  = the `sync_log.source` key used for last-sync-time lookup.

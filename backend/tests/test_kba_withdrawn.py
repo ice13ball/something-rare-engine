@@ -15,10 +15,11 @@ stay in the database; only the serving surfaces stop.
 """
 import layer_ops
 import main
+import startup_seeds
 
 
 def test_kba_is_gone_from_every_layer_registry():
-    assert "kbas" not in {d["id"] for d in main.LAYER_DEFAULTS_PY}
+    assert "kbas" not in {d["id"] for d in startup_seeds.LAYER_DEFAULTS_PY}
     assert "kbas" not in layer_ops.LAYER_OPS
 
 
@@ -30,7 +31,7 @@ def test_kba_is_gone_from_the_public_data_inventory():
 
 def test_the_three_layer_registries_still_agree():
     """They carried KEEP IN SYNC at 57. A removal must leave them equal, not one short."""
-    assert len(main.LAYER_DEFAULTS_PY) == len(layer_ops.LAYER_OPS)
+    assert len(startup_seeds.LAYER_DEFAULTS_PY) == len(layer_ops.LAYER_OPS)
 
 
 # ── the SERVING paths, not just the registries ────────────────────────────
@@ -110,10 +111,10 @@ def test_the_layer_row_is_retired_by_code_rather_than_by_hand():
     (WHERE status='enabled') keeps advertising it — on every environment the
     code is deployed to, including any restored backup.
     """
-    import main
+    import startup_seeds
 
-    assert "kbas" in main.WITHDRAWN_LAYER_IDS
-    src = (BACKEND / "main.py").read_text()
+    assert "kbas" in startup_seeds.WITHDRAWN_LAYER_IDS
+    src = (BACKEND / "startup_seeds.py").read_text()
     fn = src[src.index("async def ensure_layer_config_seed"):]
     fn = fn[:fn.index("\nasync def ", 1)]
     assert "WITHDRAWN_LAYER_IDS" in fn

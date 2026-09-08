@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API } from "../shared/tokens";
 import { Row, Section, Badge, PanelHeader, WarningBanner, SourceFooter } from "../shared/primitives";
+import { SampleDate } from "../shared/SampleDate";
 
 // ── Monitoring density cell panel ────────────────────────────────────────────
 
@@ -33,7 +34,17 @@ function densityCoverageLabel(cnt: number): { label: string; color: string } {
   return               { label: "Well-observed",       color: "text-emerald-400" };
 }
 
-type DensitySample = { id: string; title: string; year: number | null };
+type DensitySample = {
+  id: string;
+  title: string;
+  year: number | null;
+  // Present only for sources whose sample time has actually been established at the
+  // source. Absent means "not audited yet", which is NOT the same as "no date" —
+  // those rows keep the bare-year rendering below rather than being relabelled.
+  date_precision?: "day" | "month" | "year" | "campaign" | "none" | null;
+  campaign_start?: string | null;
+  campaign_end?: string | null;
+};
 type DensitySource = { src: string; count: number; samples: DensitySample[] };
 type ChessSpeciesItem = { id: string; species: string; phylum: string; depth_m: number | null; institution: string };
 
@@ -254,8 +265,24 @@ export function MonitoringDensityPanel({ properties: p }: { properties: Record<s
                                 ) : (
                                   <span className="text-white/70 line-clamp-2">{s.title || s.id}</span>
                                 )}
-                                {s.year != null && (
-                                  <span className="text-white/55 ml-1">{s.year}</span>
+                                {s.date_precision ? (
+                                  // One component decides how a source date becomes text
+                                  // (docs/methods/data-passthrough.md). It also states a
+                                  // missing date instead of rendering nothing: a blank
+                                  // reads as "still loading", which is a different claim
+                                  // from "the source never dated this".
+                                  <span className="text-white/55 ml-1">
+                                    <SampleDate
+                                      precision={s.date_precision}
+                                      year={s.year}
+                                      campaignStart={s.campaign_start}
+                                      campaignEnd={s.campaign_end}
+                                    />
+                                  </span>
+                                ) : (
+                                  s.year != null && (
+                                    <span className="text-white/55 ml-1">{s.year}</span>
+                                  )
                                 )}
                               </li>
                             );

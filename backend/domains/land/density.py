@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from datetime import date
 
 import httpx
 from fastapi import APIRouter, Depends
@@ -172,46 +173,56 @@ async def ensure_density_hex_cells():
             )
             up_to_date = (current_edge == _HEX_EDGE_M and current_bv == _HEX_BUILD_V)
         if not up_to_date:
-            await conn.execute("DROP TABLE IF EXISTS density_hex_cells CASCADE")
-            await conn.execute(f"""
-                CREATE TABLE density_hex_cells AS
-                -- Tile the Web-Mercator world square in EPSG:3857, then transform to
-                -- 4326 for display. Clip to the 3857 box first so edge cells don't
-                -- transform out of the projection domain (NaN/Inf). Result: regular
-                -- hexagons on the Mercator basemap at every latitude, finer (smaller
-                -- real area) toward the poles.
-                WITH box AS (
-                    SELECT ST_MakeEnvelope(-{_MERC_WORLD}, -{_MERC_WORLD},
-                                            {_MERC_WORLD},  {_MERC_WORLD}, 3857) AS g
-                ),
-                hexes AS (
-                    SELECT (ST_HexagonGrid({_HEX_EDGE_M}, box.g)).*
-                    FROM box
-                ),
-                clipped AS (
-                    SELECT h.i, h.j, ST_Intersection(h.geom, box.g) AS geom_3857
-                    FROM hexes h, box
-                    WHERE ST_Intersects(h.geom, box.g)
+            # The rebuild used to run only at startup, before anything was serving.
+            # It now runs from migrate.py, pre-restart, while the OLD process is
+            # still answering requests. `conn.execute` is autocommit — without an
+            # explicit transaction, the DROP commits before the CREATE begins, and
+            # every land-density query in that window sees no table at all
+            # (UndefinedTableError -> 500 at the edge, the exact outcome this body
+            # of work exists to remove). Wrapping drop+create+indexes in one
+            # transaction means other sessions still see the OLD table (MVCC) until
+            # this commits, then atomically see the NEW one — never neither.
+            async with conn.transaction():
+                await conn.execute("DROP TABLE IF EXISTS density_hex_cells CASCADE")
+                await conn.execute(f"""
+                    CREATE TABLE density_hex_cells AS
+                    -- Tile the Web-Mercator world square in EPSG:3857, then transform to
+                    -- 4326 for display. Clip to the 3857 box first so edge cells don't
+                    -- transform out of the projection domain (NaN/Inf). Result: regular
+                    -- hexagons on the Mercator basemap at every latitude, finer (smaller
+                    -- real area) toward the poles.
+                    WITH box AS (
+                        SELECT ST_MakeEnvelope(-{_MERC_WORLD}, -{_MERC_WORLD},
+                                                {_MERC_WORLD},  {_MERC_WORLD}, 3857) AS g
+                    ),
+                    hexes AS (
+                        SELECT (ST_HexagonGrid({_HEX_EDGE_M}, box.g)).*
+                        FROM box
+                    ),
+                    clipped AS (
+                        SELECT h.i, h.j, ST_Intersection(h.geom, box.g) AS geom_3857
+                        FROM hexes h, box
+                        WHERE ST_Intersects(h.geom, box.g)
+                    )
+                    SELECT
+                        i || ',' || j                 AS cell_id,
+                        i, j,
+                        {_HEX_EDGE_M}::float8          AS edge_m,
+                        {_HEX_BUILD_V}::smallint        AS build_v,
+                        geom_3857,
+                        ST_Transform(geom_3857, 4326)  AS geom
+                    FROM clipped
+                    WHERE NOT ST_IsEmpty(geom_3857)
+                """)
+                await conn.execute(
+                    "CREATE UNIQUE INDEX density_hex_cells_pk ON density_hex_cells (cell_id)"
                 )
-                SELECT
-                    i || ',' || j                 AS cell_id,
-                    i, j,
-                    {_HEX_EDGE_M}::float8          AS edge_m,
-                    {_HEX_BUILD_V}::smallint        AS build_v,
-                    geom_3857,
-                    ST_Transform(geom_3857, 4326)  AS geom
-                FROM clipped
-                WHERE NOT ST_IsEmpty(geom_3857)
-            """)
-            await conn.execute(
-                "CREATE UNIQUE INDEX density_hex_cells_pk ON density_hex_cells (cell_id)"
-            )
-            await conn.execute(
-                "CREATE INDEX density_hex_cells_g3857_gix ON density_hex_cells USING GIST (geom_3857)"
-            )
-            await conn.execute(
-                "CREATE INDEX density_hex_cells_g4326_gix ON density_hex_cells USING GIST (geom)"
-            )
+                await conn.execute(
+                    "CREATE INDEX density_hex_cells_g3857_gix ON density_hex_cells USING GIST (geom_3857)"
+                )
+                await conn.execute(
+                    "CREATE INDEX density_hex_cells_g4326_gix ON density_hex_cells USING GIST (geom)"
+                )
             log.info("density_hex_cells built (edge=%s m 3857, build_v=%s)", _HEX_EDGE_M, _HEX_BUILD_V)
 
 
@@ -496,7 +507,19 @@ async def _cell_samples_impl(conn, src: str, cell: dict, limit: int = _CELL_SAMP
               AND ST_Contains(ST_GeomFromWKB($5, 4326), ST_SetSRID(ST_MakePoint(lon, lat), 4326))
             LIMIT $6
         """, *bb, limit)
-        return [{"id": r["id"], "title": r["title"] or "", "year": r["year"]} for r in rows]
+        # date_precision "none" is a FINDING, not a shrug, and it is why the NULL year
+        # above needs no apology. ChEssBase on GBIF carries no sample date at all —
+        # verified 2026-09-08 against the live API four ways: the 70-field record has no
+        # temporal key; GBIF's own facet=year over all 3,715 records comes back empty; an
+        # eventDate range query returns 0; and the /verbatim endpoint has no date field
+        # either, so it is not an interpretation failure at GBIF's end.
+        #
+        # ⛔ Do not "fix" this by re-fetching — there is nothing upstream to fetch. Sending
+        # "none" makes the panel say "no date at source"; leaving it absent made the panel
+        # render blank, which reads as "not loaded yet". Those are different claims and the
+        # data-passthrough rule exists to keep them apart.
+        return [{"id": r["id"], "title": r["title"] or "", "year": r["year"],
+                 "date_precision": "none"} for r in rows]
     if src == "argo":
         rows = await conn.fetch("""
             SELECT profile_id AS id,
@@ -578,13 +601,21 @@ async def _cell_samples_impl(conn, src: str, cell: dict, limit: int = _CELL_SAMP
                                THEN ' · ' || woce_line ELSE '' END,
                           CASE WHEN country IS NOT NULL
                                THEN ' (' || country || ')' ELSE '' END) AS title,
-                   year
+                   year, campaign_start, campaign_end, date_precision
             FROM cchdo_stations
             WHERE lon BETWEEN $1 AND $2 AND lat BETWEEN $3 AND $4
               AND ST_Contains(ST_GeomFromWKB($5, 4326), ST_SetSRID(ST_MakePoint(lon, lat), 4326))
             ORDER BY expocode, year DESC NULLS LAST LIMIT $6
         """, *bb, limit)
-        return [{"id": r["id"], "title": r["title"] or "", "year": r["year"]} for r in rows]
+        # A row here is a vertex of the cruise track, not a station, so the cruise
+        # WINDOW is the whole of what the source dated — see _cchdo_cruise_dates().
+        # date_precision is NULL only on rows the backfill has not reached yet; those
+        # keep the old bare-year rendering rather than claiming a window we do not have.
+        return [{"id": r["id"], "title": r["title"] or "", "year": r["year"],
+                 "date_precision": r["date_precision"],
+                 "campaign_start": r["campaign_start"].isoformat() if r["campaign_start"] else None,
+                 "campaign_end":   r["campaign_end"].isoformat()   if r["campaign_end"]   else None}
+                for r in rows]
     # obis (hotspot_grid) and seamap have no per-record titles
     return []
 
@@ -1250,13 +1281,116 @@ def _subsample_track(coords: list, max_points: int) -> list:
     return [coords[int(i * step)] for i in range(max_points)]
 
 
+def _cchdo_cruise_dates(detail: dict) -> tuple[date | None, date | None, str, int | None]:
+    """(campaign_start, campaign_end, date_precision, year) for one CCHDO cruise.
+
+    ⛔ The precision is never finer than `campaign`, and that is a statement about
+    the SOURCE, not a limitation of this parser. The rows this feeds are vertices
+    of `geometry.track` — a LineString of [lon, lat] pairs with no time on any
+    point. CCHDO dates the CRUISE (`startDate`/`endDate`), not the vertex. Calling
+    a track point `2007-07-06` would attach a day to a position that may have been
+    occupied four days later; `campaign: 2007-07-06 → 2007-07-10` is the whole of
+    what the source actually said.
+
+    `endDate` was being dropped entirely before 2026-09-08, and `startDate` was
+    truncated with `int(start[:4])` — which threw away the window and kept the one
+    part of it that cannot express a window.
+
+    Roughly 3.5% of cruises carry no usable date (14 of a 400-cruise sample). Those
+    get `none`, never a silent NULL: `none` is the answer "the source has no date",
+    and it also stops the backfill asking about that cruise again.
+    """
+    def _one(key: str) -> date | None:
+        raw = (detail.get(key) or "").strip()
+        if len(raw) < 10:
+            return None
+        try:
+            return date.fromisoformat(raw[:10])
+        except ValueError:
+            return None
+
+    start, end = _one("startDate"), _one("endDate")
+    if start is None and end is None:
+        return None, None, "none", None
+    # year stays derived from the start of the window, never from the end: a cruise
+    # crossing New Year would otherwise report the year it finished in.
+    return start, end, "campaign", (start or end).year
+
+
+async def _backfill_cchdo_dates() -> int:
+    """Give the cruise window to rows that were ingested before it was stored.
+
+    ⚠️ Uses `/cruise/all`, NOT `/cruise`. The two names are one segment apart and
+    return completely different payloads: `/cruise` is an index — `{expocode, id}`
+    and nothing else, zero dates on all 2,558 entries — while `/cruise/all` is the
+    full dump and carries `startDate`/`endDate` for 2,510 of them. The ingest above
+    walks `/cruise` and then fetches each cruise individually because it needs the
+    track geometry; a backfill needs only the dates, so it costs ONE request here
+    instead of 2,558.
+
+    `date_precision` is the queue and every cruise leaves it after one pass —
+    including the 48 (1.9%) the source does not date, which get 'none'. Without
+    that, the undated ones would be re-requested on every sync for ever.
+    """
+    async with db.pool.acquire() as conn:
+        pending = await conn.fetchval(
+            "SELECT count(*) FROM cchdo_stations WHERE date_precision IS NULL")
+    if not pending:
+        return 0
+
+    try:
+        async with httpx.AsyncClient(timeout=180, follow_redirects=True) as client:
+            r = await client.get(f"{_CCHDO_API_BASE}/cruise/all")
+            r.raise_for_status()
+            payload = r.json()
+    except Exception as e:
+        log.warning("cchdo backfill: cruise/all failed, dates left untouched: %s", e)
+        return 0
+
+    entries = payload if isinstance(payload, list) else (payload.get("cruises") or [])
+    if not entries:
+        log.warning("cchdo backfill: cruise/all returned 0 entries — not marking anything")
+        return 0
+
+    updates: list[tuple] = []
+    for entry in entries:
+        expocode = (entry.get("expocode") or "").strip()
+        if not expocode:
+            continue
+        camp_start, camp_end, precision, year = _cchdo_cruise_dates(entry)
+        updates.append((camp_start, camp_end, precision, year, expocode))
+
+    filled = 0
+    async with db.pool.acquire() as conn:
+        async with conn.transaction():
+            for camp_start, camp_end, precision, year, expocode in updates:
+                # COALESCE on year: the existing value was already derived from the same
+                # startDate, so this must not blank it out for a cruise the dump omits.
+                filled += int((await conn.execute("""
+                    UPDATE cchdo_stations
+                       SET campaign_start = $1,
+                           campaign_end   = $2,
+                           date_precision = $3,
+                           year           = COALESCE($4, year)
+                     WHERE expocode = $5 AND date_precision IS NULL
+                """, camp_start, camp_end, precision, year, expocode)).split()[-1])
+
+    log.info("cchdo backfill: %d rows dated from %d cruises (%d rows were pending)",
+             filled, len(updates), pending)
+    return filled
+
+
 async def _sync_cchdo_cruises() -> int:
     """Fetch CCHDO cruise track coordinates (GO-SHIP repeat hydrography).
     ~2500 cruises, each with an expanded track LineString."""
     async with db.pool.acquire() as conn:
         existing = await conn.fetchval("SELECT COUNT(*) FROM cchdo_stations")
     if existing and existing > 40000:
-        log.info("cchdo_stations: already have %d records, skipping", existing)
+        # The track geometry is complete; what the 41,102 pre-2026-09-08 rows lack is
+        # the cruise window. Fill that in place. Re-ingesting 2,558 cruises to rewrite
+        # two columns would fetch the same coordinates back at ~2,558 requests.
+        filled = await _backfill_cchdo_dates()
+        log.info("cchdo_stations: already have %d records; dated %d rows", existing, filled)
         return 0
 
     async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
@@ -1293,13 +1427,7 @@ async def _sync_cchdo_cruises() -> int:
                 continue
             ship = (detail.get("ship") or "")[:100]
             country = (detail.get("country") or "")[:8]
-            start = detail.get("startDate") or ""
-            year = None
-            if len(start) >= 4:
-                try:
-                    year = int(start[:4])
-                except ValueError:
-                    pass
+            camp_start, camp_end, precision, year = _cchdo_cruise_dates(detail)
             woce_lines = (detail.get("collections") or {}).get("woce_lines") or []
             woce_line = (woce_lines[0] if woce_lines else "")[:32]
 
@@ -1311,14 +1439,16 @@ async def _sync_cchdo_cruises() -> int:
                     continue
                 if not (-180 <= lon <= 180 and -90 <= lat <= 90):
                     continue
-                rows.append((expocode, ship, country, year, woce_line, round(lon, 4), round(lat, 4)))
+                rows.append((expocode, ship, country, year, woce_line, round(lon, 4), round(lat, 4),
+                             camp_start, camp_end, precision))
 
             if rows:
                 async with db.pool.acquire() as conn:
                     await conn.executemany("""
                         INSERT INTO cchdo_stations
-                          (expocode, ship, country, year, woce_line, lon, lat)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                          (expocode, ship, country, year, woce_line, lon, lat,
+                           campaign_start, campaign_end, date_precision)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                         ON CONFLICT (expocode, lon, lat) DO NOTHING
                     """, rows)
                 inserted += len(rows)

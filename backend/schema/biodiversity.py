@@ -16,11 +16,11 @@ log = logging.getLogger(__name__)
 async def ensure_biodiversity_enrichment(conn) -> None:
     """biodiversity_hotspots iucn/enrichment + obis_species_check."""
 
-    # Add iucn_category to biodiversity_hotspots (safe — ignores if exists)
-    try:
-        await conn.execute("ALTER TABLE biodiversity_hotspots ADD COLUMN iucn_category TEXT DEFAULT 'NE'")
-    except Exception:
-        pass  # Column already exists
+    # Add iucn_category to biodiversity_hotspots (idempotent — no bare except)
+    await conn.execute(
+        "ALTER TABLE biodiversity_hotspots "
+        "ADD COLUMN IF NOT EXISTS iucn_category TEXT DEFAULT 'NE'"
+    )
 
     # OBIS `_id` (stored as obis_id) is NOT stable: it is regenerated whenever a
     # contributor republishes a dataset, so every republication used to orphan a

@@ -7,6 +7,8 @@ import { analytics } from "../utils/analytics";
 import { WOD_DECADE_HEX } from "../utils/wodDecades";
 import { useMapStore } from "../store/mapStore";
 import type { LayerId } from "../types/layers";
+import { TemporalFrame } from "./panels/shared/TemporalFrame";
+import { useTemporalCoverage } from "../utils/useTemporalCoverage";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -263,6 +265,10 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
   const [active, setActive] = useState<TabId>("layers");
   const ref = useRef<HTMLDivElement>(null);
   const [syncDates, setSyncDates] = useState<Record<string, string>>({});
+  // WHEN the data is from — a different question from syncDates above, which is
+  // when we last fetched it. Both are shown, never merged. Shared with every popup
+  // through one cached fetch.
+  const coverage = useTemporalCoverage();
   const [inventory, setInventory] = useState<InventoryResponse | null>(null);
   const [inventoryError, setInventoryError] = useState(false);
   const legendFocusLayer = useMapStore(s => s.legendFocusLayer);
@@ -383,6 +389,10 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <p className="text-white/80 text-[15px] leading-[1.6] mb-2">
                     <span className="text-white/75 font-mono text-[13px] uppercase tracking-wider">{t("dataReference.readingPrefix")} → </span>{lt("reading")}
                   </p>
+                  {/* What it is → how to read it → WHEN it is from. Absent for a layer
+                      whose frame has not been established at the source yet; absent is
+                      honest, a guessed range would not be. */}
+                  <TemporalFrame coverage={coverage[s.layerId ?? s.id]} />
                   {lt("selectionCriteria") !== `layers.${s.id}.selectionCriteria` && lt("selectionCriteria") ? (
                     <p className="text-white/80 text-[15px] leading-[1.6] mb-2">
                       <span className="text-white/75 font-mono text-[13px] uppercase tracking-wider">What's included → </span>{lt("selectionCriteria")}

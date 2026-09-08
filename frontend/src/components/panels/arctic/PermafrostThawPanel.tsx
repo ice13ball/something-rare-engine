@@ -4,6 +4,7 @@
 import { thawCategoryLabel } from "../../../utils/thawTypes";
 
 import { Row, Section, PanelHeader } from "../shared/primitives";
+import { SampleDate } from "../shared/SampleDate";
 
 export function PermafrostThawPanel({ properties: p }: { properties: Record<string, unknown> }) {
   const cat = thawCategoryLabel(p.feature_category as string | null | undefined);
@@ -15,6 +16,20 @@ export function PermafrostThawPanel({ properties: p }: { properties: Record<stri
   const authors = p.authors ? String(p.authors) : null;
   const method = p.data_source_type ? String(p.data_source_type) : null;
   const imagery = p.imagery ? String(p.imagery) : null;
+  // The imagery window the source publishes for THIS feature. ⛔ Not a sampling
+  // day: a thaw slump is mapped from imagery spanning a period, and the source
+  // says so. Bare years stay years — obs_start/obs_end are filled only where full
+  // dates were given, so the string handed to SampleDate is exactly what we were
+  // told, never a year widened into 1 January.
+  const precision = (p.date_precision as string | null) ?? null;
+  const num = (v: unknown) => (v == null ? null : Number(v));
+  const bound = (iso: unknown, year: unknown) =>
+    iso ? String(iso) : year != null ? String(year) : null;
+  const winStart = bound(p.obs_start, p.obs_start_year);
+  const winEnd = bound(p.obs_end, p.obs_end_year);
+  // ⛔ A different fact, deliberately labelled apart: when the digitisation was
+  // contributed (2024 for 2020 imagery in ARTS), never when anything was observed.
+  const contributed = p.contribution_date ? String(p.contribution_date) : null;
   return (
     <>
       <PanelHeader>Permafrost Thaw Feature</PanelHeader>
@@ -37,6 +52,20 @@ export function PermafrostThawPanel({ properties: p }: { properties: Record<stri
             {doi}
           </a>
         )}
+        {precision && precision !== "none" && (
+          <Row
+            label="Observed"
+            value={
+              <SampleDate
+                precision={precision as "day" | "month" | "year" | "campaign" | "none"}
+                year={num(p.obs_start_year)}
+                campaignStart={winStart}
+                campaignEnd={winEnd}
+              />
+            }
+          />
+        )}
+        {contributed && <Row label="Digitised (contributed)" value={contributed} />}
         {imagery && <Row label="Imagery" value={imagery} />}
       </Section>
       <p className="text-white/50 text-[11px] mt-3">

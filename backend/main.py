@@ -49,29 +49,25 @@ from domains import sensors
 from domains import seo
 from domains import seo_hubs
 from land_layers import (
-    router as land_layers_router, ensure_land_schema, sync_all_land_sources,
+    router as land_layers_router, sync_all_land_sources,
     _sync_air_quality_readings, _sync_mining_footprints, _sync_kbas, _sync_wdpa,
     _sync_tailings, _enrich_tailings_from_grid, _sync_active_fires, _sync_air_quality, _sync_landslides, _sync_dams, _sync_water_risk,
-    ensure_monitoring_density_matview, ensure_density_hex_cells, ensure_density_source_indexes, refresh_monitoring_density,
+    refresh_monitoring_density,
     _sync_wod_profiles, _sync_pangaea_records,
     _sync_bco_dmo, _sync_noaa_datasets, _sync_obis_seamap,
     _sync_ncei_icoads, _sync_cchdo_cruises,
 )
-from land_overlaps import router as land_overlaps_router, ensure_overlap_views, refresh_overlap_views
+from land_overlaps import router as land_overlaps_router, refresh_overlap_views
 from vessel_events import (
     router as vessel_events_router,
-    ensure_vessel_events_schema,
     auto_discover_contractors,
     sync_vessel_events_stub,
 )
 from ais_sync import (
     router as ais_router,
-    ensure_ais_schema,
-    seed_aois_from_existing_layers,
     run_aoi_seed,
     run_partition_maintenance,
 )
-from sar_detector import ensure_sar_schema
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
@@ -85,52 +81,87 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-# Seconds any single startup schema/migration step may take before it is
-# abandoned. Generous on purpose: on a FRESH database these steps do real work
-# (building the density hex grid, the monitoring matview), and killing that
-# would leave the schema half-provisioned — see the GEOTRACES caveat in the
-# 2026-05-22 incident notes. Override with ABYSSAL_STARTUP_STEP_TIMEOUT_S.
-STARTUP_STEP_TIMEOUT_S = float(os.environ.get("ABYSSAL_STARTUP_STEP_TIMEOUT_S", "180"))
+# Whether the running commit's schema (migrate.py's job) matches what's actually
+# in the database. Set once at startup by lifespan(), read by /health.
+SCHEMA_STATE = "unknown"
 
 
-async def _ensure_step(step, name: str, timeout_s: float | None = None) -> None:
-    """Run one startup schema step, tolerating the two ways it can fail to finish.
+def classify_schema_state(row, running_sha: str | None) -> str:
+    """Three answers, and none of them stops the process.
 
-    On an established DB these DDLs are idempotent no-ops, so a lock conflict
-    means another session holds the table lock — NOT that the schema is missing.
-    Letting that abort startup crash-loops the whole API (incident 2026-05-22: a
-    40-min backfill held locks during a deploy restart). So a lock timeout is
-    logged and skipped, and the step reapplies on a later restart.
+    "unknown" — we cannot tell which commit this is (no git, no env var). A
+                deployment that cannot know its own commit must not be told its
+                schema is stale.
+    "stale"   — no migration row, or one recorded against a different commit.
+    "ok"      — the recorded commit is the running one.
+    """
+    if running_sha is None:
+        return "unknown"
+    if not row or not row.get("git_sha"):
+        return "stale"
+    return "ok" if row["git_sha"] == running_sha else "stale"
 
-    ⚠️ The timeout is the other half, and it was missing until 2026-08-21. That
-    tolerance assumes a blocked step RAISES, which is only true when the step set
-    `lock_timeout` on its own connection — and only 4 of the 15 steps do. The
-    other eleven waited forever: `lifespan()` never returned, uvicorn never bound
-    the port, and `systemctl is-active` reported `active` while nothing listened.
-    A crash-loop is loud and self-restarting; that hang was silent and permanent.
-    So every step now runs under a wall-clock guard, which also covers steps
-    added later and hangs that are not lock-related at all.
 
-    Any other error (bad SQL, fresh-DB provisioning failure) still propagates and
-    fails startup, as before.
+# Wall-clock budget for reading schema_migrations at startup. A lock on that
+# row, or an exhausted pool, would otherwise hang lifespan() forever — uvicorn
+# never binds the port, nothing listens, and `systemctl is-active` reports
+# "active" regardless (the 2026-08-21 incident, on a new code path: a
+# crash-loop is loud and self-restarting, that hang was silent and permanent).
+SCHEMA_CHECK_TIMEOUT_S = 10.0
+
+
+class _SchemaCheckFailed(Exception):
+    """The schema_migrations fetch failed for a reason OTHER than the table
+    being missing — a connection reset, an exhausted pool, a lock on the row,
+    a permission error, or the wall-clock timeout above firing. None of those
+    mean the schema is stale; they mean the check itself failed, so the
+    caller maps this to SCHEMA_STATE "unknown", never "stale" — reporting
+    "stale" here would have /health claim a mismatch it never observed."""
+
+
+async def _fetch_schema_migration_row(pool: asyncpg.Pool,
+                                       timeout_s: float = SCHEMA_CHECK_TIMEOUT_S):
+    """Read schema_migrations' one row under the wall-clock guard above.
+
+    Returns the row, or None if the table does not exist yet — a real "stale"
+    verdict, since migrate.py has never run against this database. Raises
+    _SchemaCheckFailed for anything else, timeout included.
+    """
+    async def _read():
+        async with pool.acquire() as conn:
+            return await conn.fetchrow(
+                "SELECT git_sha, applied_at FROM schema_migrations WHERE id = 1"
+            )
+    try:
+        return await asyncio.wait_for(_read(), timeout=timeout_s)
+    except asyncpg.exceptions.UndefinedTableError:
+        return None
+    except asyncio.TimeoutError as e:
+        raise _SchemaCheckFailed(f"timed out after {timeout_s:.0f}s") from e
+    except Exception as e:
+        raise _SchemaCheckFailed(f"{type(e).__name__}: {e}") from e
+
+
+async def _check_schema_state(pool: asyncpg.Pool, running_sha: str | None,
+                               timeout_s: float = SCHEMA_CHECK_TIMEOUT_S):
+    """Fetch schema_migrations and classify it against running_sha. Never raises.
+
+    Thin enough that lifespan() (which cannot be unit-tested without a live
+    pool) stays a one-line caller, while this can be exercised directly with
+    a fake pool. Returns (state, row) — row is the schema_migrations row (or
+    None) on a normal fetch, and always None when the fetch itself failed, so
+    callers can still log the recorded git_sha/applied_at on "ok"/"stale".
     """
     try:
-        await asyncio.wait_for(step(), timeout=timeout_s or STARTUP_STEP_TIMEOUT_S)
-    except asyncio.TimeoutError:
+        row = await _fetch_schema_migration_row(pool, timeout_s)
+        row = dict(row) if row else None
+    except _SchemaCheckFailed as e:
         log.error(
-            "startup step %s abandoned after %.0fs — it never returned; API "
-            "starting without it, step will reapply on next restart. Check "
-            "pg_stat_activity for wait_event_type='Lock' and cancel the BLOCKER.",
-            name, timeout_s or STARTUP_STEP_TIMEOUT_S,
+            "schema check failed (%s) — reporting \"unknown\", not \"stale\": "
+            "we did not observe a mismatch, we failed to look.", e,
         )
-    except (asyncpg.exceptions.LockNotAvailableError,
-            asyncpg.exceptions.QueryCanceledError) as e:
-        log.error(
-            "startup step %s skipped — table lock unavailable (%s); "
-            "API starting without it, step will reapply on next restart",
-            name, e,
-        )
-
+        return "unknown", None
+    return classify_schema_state(row, running_sha), row
 
 
 # Exact allow-list only. No wildcard regex — a `*.onrender.com` pattern would let any
@@ -174,174 +205,6 @@ _startup_profiles_cache_ts: float = 0.0
 ARGO_SYNC_INTERVAL_SECONDS = 12 * 3600   # 12 hours
 
 # ── Sync helpers ──────────────────────────────────────────────────────────────
-
-LAYER_CONFIG_DDL = """
-CREATE TABLE IF NOT EXISTS layer_config (
-    id          TEXT PRIMARY KEY,
-    order_idx   INTEGER NOT NULL,
-    default_on  BOOLEAN NOT NULL DEFAULT FALSE,
-    modes       TEXT[] NOT NULL DEFAULT ARRAY['ocean','land','continue']::TEXT[],
-    updated_at  TIMESTAMPTZ DEFAULT now(),
-    updated_by  TEXT
-);
-CREATE INDEX IF NOT EXISTS layer_config_order_idx ON layer_config (order_idx);
-"""
-
-# Mirror of frontend/src/utils/layerConfig.ts LAYER_DEFAULTS.
-# KEEP IN SYNC — this is the one-time DB seed only; TS list is the runtime fallback.
-LAYER_DEFAULTS_PY = [
-    # Bathymetry MUST stay at the lowest order_idx so the GEBCO shaded-relief
-    # tiles render behind every other layer. See KEEP-IN-SYNC note in
-    # frontend/src/utils/layerConfig.ts.
-    {"id": "bathymetry",             "order_idx": 50,   "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "tectonic-plates",        "order_idx": 100,  "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "offshore-activities",    "order_idx": 200,  "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "relinquished-areas",     "order_idx": 300,  "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "reserved-areas",         "order_idx": 400,  "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "apeis",                  "order_idx": 500,  "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "eez",                    "order_idx": 600,  "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "protected-marine-sites", "order_idx": 700,  "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "contracts",              "order_idx": 800,  "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "seamounts",              "order_idx": 900,  "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "biodiversity-hotspots",  "order_idx": 1000, "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "monitoring-density",     "order_idx": 1100, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "noise-risk",             "order_idx": 1200, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "argo",                   "order_idx": 1300, "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "hydrothermal-vents",     "order_idx": 1400, "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "oceansites",             "order_idx": 1500, "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "onc",                    "order_idx": 1600, "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "chess",                  "order_idx": 1700, "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "submarine-cables",       "order_idx": 1800, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "onc-instruments",        "order_idx": 1900, "default_on": True,  "modes": ["ocean","continue"]},
-    {"id": "ports",                  "order_idx": 2000, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "ocean-currents",         "order_idx": 2050, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "geotraces",              "order_idx": 2074, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "woa-climatology",        "order_idx": 2075, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "oxygen-deox",            "order_idx": 2076, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "wod-oxygen",             "order_idx": 2077, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "memento",                "order_idx": 2078, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "ocean-carbon",           "order_idx": 2081, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "ocean-co2-surface",      "order_idx": 2082, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "marine-carbon",          "order_idx": 70,   "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "surface-water",          "order_idx": 2100, "default_on": False, "modes": ["land"]},
-    {"id": "forest-loss",            "order_idx": 2200, "default_on": False, "modes": ["land"]},
-    {"id": "carbon-flux",            "order_idx": 2300, "default_on": False, "modes": ["land"]},
-    {"id": "soil-carbon",            "order_idx": 2400, "default_on": False, "modes": ["land"]},
-    {"id": "water-risk",             "order_idx": 2500, "default_on": False, "modes": ["land"]},
-    {"id": "mining-footprints",      "order_idx": 2600, "default_on": True,  "modes": ["land"]},
-    {"id": "tailings",               "order_idx": 2900, "default_on": False, "modes": ["land"]},
-    {"id": "fires",                  "order_idx": 3000, "default_on": True,  "modes": ["land"]},
-    {"id": "air-quality",            "order_idx": 3100, "default_on": True,  "modes": ["land"]},
-    {"id": "landslides",             "order_idx": 3200, "default_on": False, "modes": ["land"]},
-    {"id": "dams",                   "order_idx": 3300, "default_on": False, "modes": ["land"]},
-    {"id": "arctic-rivers",          "order_idx": 2079, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "methane-seeps",          "order_idx": 2080, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "permafrost-thaw",        "order_idx": 2086, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "sios-svalbard",          "order_idx": 2083, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "arctic-catchments",      "order_idx": 2084, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "seabed-substrate",       "order_idx": 70,   "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "arctic-sediment-carbon", "order_idx": 2085, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "mosaic-sediment", "order_idx": 2088, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "vme-suitability",        "order_idx": 68,   "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "ocean-acidification",    "order_idx": 69,   "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "coral-acid-exposure",    "order_idx": 71,   "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "cumulative-human-impact","order_idx": 72,   "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "ais-live",               "order_idx": 3400, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "vessel-events",          "order_idx": 3500, "default_on": False, "modes": ["ocean","continue"]},
-]
-
-
-# Layers withdrawn from the platform. The ROWS stay in the database — only the
-# serving stops — but `layer_config` must stop advertising them.
-#
-# ⛔ This is deliberately code, not a hand-run UPDATE on production. The seed
-# below is `ON CONFLICT (id) DO NOTHING`, so an existing row keeps whatever
-# status it already has: a `wdpa` row seeded before the withdrawal would sit at
-# status='enabled' forever, and `/v1/map/layer-config` (WHERE status='enabled')
-# would keep serving it. A hand-run UPDATE would fix exactly one database and
-# nothing else — not a fresh deploy, not a restored backup, not a dev instance.
-# Retiring in code fixes every environment the code reaches, every restart.
-#
-# `status` already carries 'retired' in the CHECK constraint below, and the
-# admin panel's own UPDATE cannot resurrect these: the retirement reapplies on
-# the next boot.
-WITHDRAWN_LAYER_IDS: tuple[str, ...] = (
-    # WDPA, 2026-09-03. Protected Planet's terms forbid redistribution "through
-    # interactive web maps ... that grant users download access" without prior
-    # written permission from UNEP-WCMC (protectedareas@unep-wcmc.org).
-    "wdpa",
-    # KBA, 2026-09-03. BirdLife's KBA terms carry the same clause — redistribution
-    # "through interactive web maps ... that grant users download access" is
-    # prohibited without written permission from the KBA Secretariat, plus a
-    # separate no-commercial-use clause. Verified against
-    # keybiodiversityareas.org/termsofservice on 2026-09-03.
-    "kbas",
-)
-
-
-async def ensure_layer_config_seed() -> None:
-    async with _pool.acquire() as conn:
-        await conn.execute(LAYER_CONFIG_DDL)
-        # --- status lifecycle column (idempotent; ON CONFLICT seed below never overwrites it,
-        #     so a 'retired' layer survives every restart/redeploy) ---
-        await conn.execute(
-            "ALTER TABLE layer_config "
-            "ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'enabled'"
-        )
-        await conn.execute(
-            """DO $$ BEGIN
-                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'layer_config_status_chk') THEN
-                   ALTER TABLE layer_config
-                     ADD CONSTRAINT layer_config_status_chk
-                     CHECK (status IN ('enabled','disabled','retired'));
-                 END IF;
-               END $$;"""
-        )
-        await conn.executemany(
-            """INSERT INTO layer_config (id, order_idx, default_on, modes)
-               VALUES ($1, $2, $3, $4)
-               ON CONFLICT (id) DO NOTHING""",
-            [(e["id"], e["order_idx"], e["default_on"], e["modes"]) for e in LAYER_DEFAULTS_PY],
-        )
-        # Retire withdrawn layers. Idempotent: the WHERE clause makes a re-run a
-        # no-op, so this costs nothing on the 99% of boots where it changes
-        # nothing, and it self-heals a row someone re-enabled by hand.
-        if WITHDRAWN_LAYER_IDS:
-            retired = await conn.fetch(
-                "UPDATE layer_config SET status = 'retired', updated_at = now(), "
-                "updated_by = 'withdrawal (code)' "
-                "WHERE id = ANY($1::text[]) AND status <> 'retired' RETURNING id",
-                list(WITHDRAWN_LAYER_IDS),
-            )
-            if retired:
-                log.warning(
-                    "layer_config: retired withdrawn layer(s) %s",
-                    ", ".join(r["id"] for r in retired),
-                )
-    log.info("layer_config: table ready (%d default rows available)", len(LAYER_DEFAULTS_PY))
-
-
-async def ensure_startup_profiles_seed() -> None:
-    """Create startup_profiles + seed defaults. ON CONFLICT DO NOTHING so operator
-    edits and disabled profiles are never overwritten on restart."""
-    import json as _json
-    import profiles as _profiles
-    async with _pool.acquire() as conn:
-        await conn.execute(_profiles.STARTUP_PROFILES_DDL)
-        await conn.execute(
-            "ALTER TABLE startup_profiles "
-            "ADD COLUMN IF NOT EXISTS views JSONB NOT NULL DEFAULT '{}'::jsonb")
-        await conn.executemany(
-            """INSERT INTO startup_profiles
-                 (id, section, order_idx, status, layers, label, description, accent)
-               VALUES ($1,$2,$3,'enabled',$4,$5,$6,$7)
-               ON CONFLICT (id) DO NOTHING""",
-            [(p["id"], p["section"], p["order_idx"], p["layers"],
-              _json.dumps(p["label"]), _json.dumps(p["description"]), p.get("accent"))
-             for p in _profiles.PROFILE_SEED],
-        )
-    log.info("startup_profiles seed ready")
-
 
 GBIF_SPECIES_URL = "https://api.gbif.org/v1/species/{key}"
 
@@ -1211,60 +1074,36 @@ async def lifespan(app: FastAPI):
     _pool = await asyncpg.create_pool(os.environ["DATABASE_URL"], min_size=2, max_size=4, max_inactive_connection_lifetime=300.0)
     _db.pool = _pool
 
-    # See _ensure_step at module level for what these steps tolerate and why.
-
-    from schema import ensure_schema
-    from routers.reports import ensure_species_cache_table
-    from api_access.schema import ensure_api_access_schema
-    from api_access.logstore import ensure_log_schema, drop_expired_log_partitions, ensure_daily_partitions
     from api_access.logging_mw import batch_writer
     from api_access.rollup import rollup_new_rows
     from api_access.geoip import load_geoip
     from api_access.store import seed_internal_key
     from api_access.auth import init_key_cache
-    from api_access.admin_auth import ensure_admin_schema, bootstrap_super_admin
-    for _step, _name in (
-        (ensure_schema,                   "ensure_schema"),
-        (ensure_api_access_schema,        "ensure_api_access_schema"),
-        (ensure_log_schema,               "ensure_log_schema"),
-        (ensure_admin_schema,             "ensure_admin_schema"),
-        (ensure_layer_config_seed,        "ensure_layer_config_seed"),
-        (ensure_startup_profiles_seed,    "ensure_startup_profiles_seed"),
-        (ensure_land_schema,              "ensure_land_schema"),
-        (ensure_overlap_views,            "ensure_overlap_views"),
-        (ensure_vessel_events_schema,     "ensure_vessel_events_schema"),
-        (ensure_sar_schema,               "ensure_sar_schema"),
-        (ensure_ais_schema,               "ensure_ais_schema"),
-        (ensure_density_hex_cells,        "ensure_density_hex_cells"),
-        (ensure_density_source_indexes,   "ensure_density_source_indexes"),
-        (ensure_monitoring_density_matview, "ensure_monitoring_density_matview"),
-        (ensure_species_cache_table,      "ensure_species_cache_table"),
-    ):
-        await _ensure_step(_step, _name)
-    # AOI seeding depends on mining_contracts rows; safe on empty DB.
-    try:
-        await seed_aois_from_existing_layers()
-    except Exception:
-        log.exception("AOI seeding failed (non-fatal)")
+    from api_access.admin_auth import bootstrap_super_admin
 
-    # Contractor auto-discovery joins ais_positions × aois — 6+ min, CPU-heavy.
-    # Delay 20 min after boot so cold-start traffic and SAR seeding get the pool first.
-    async def _delayed_auto_discover():
-        # 45 min, not the 20 it used to be. The engine rule asks for >=15 min for
-        # anything scanning ais_positions, and 20 nominally cleared it — but on
-        # 2026-09-02 this call still lost a race with the cold start and the SAR
-        # seed and died on its statement_timeout, while the identical query took
-        # 86 s once the box was quiet. The scan is ~52M rows; give the boot storm
-        # room to finish first. The regular 6h task already waits 2h.
-        await asyncio.sleep(2700)
-        try:
-            await auto_discover_contractors()
-        except Exception:
-            log.exception("contractor auto-discovery failed")
-    asyncio.create_task(_delayed_auto_discover()).add_done_callback(_watch)
+    # The sixteen schema steps and the AOI seed now run in scripts/migrate.py,
+    # before the deploy restart — see that script for what they do. Startup
+    # only checks that they ran against the commit it is about to serve.
+    global SCHEMA_STATE
+    from schema_steps import SCHEMA_STEPS, resolve_git_sha
+    running_sha = resolve_git_sha()
+    SCHEMA_STATE, _schema_row = await _check_schema_state(_pool, running_sha)
+    if SCHEMA_STATE == "ok":
+        log.info("schema verified: %s, %d steps, applied %s",
+                 running_sha[:12], len(SCHEMA_STEPS), _schema_row["applied_at"])
+    elif SCHEMA_STATE == "stale":
+        log.error("SCHEMA STALE — running %s but schema_migrations records %s. "
+                  "Run backend/scripts/migrate.py. Serving anyway: refusing to "
+                  "boot would crash-loop (Restart=always, RestartSec=5).",
+                  (running_sha or "?")[:12],
+                  (_schema_row["git_sha"][:12] if _schema_row and _schema_row.get("git_sha") else "nothing"))
+    else:
+        log.info("schema check unresolved: commit not knowable, or the check itself failed")
+
     # API-key subsystem: seed the frontend's env key into the DB (idempotent),
     # then point the in-memory key cache at the live pool. Must run after
-    # ensure_api_access_schema so the tables exist.
+    # ensure_api_access_schema so the tables exist. Runs even for a standby —
+    # it still serves reads and needs a working key cache to authenticate them.
     try:
         await seed_internal_key(_pool, os.getenv("ABYSSAL_API_KEY"))
     except Exception as e:
@@ -1279,58 +1118,84 @@ async def lifespan(app: FastAPI):
             log.info("Bootstrapped super-admin %s", os.getenv("ADMIN_BOOTSTRAP_USER"))
     except Exception as e:
         log.error("super-admin bootstrap failed: %s", e)
-    # Phase 2: request logging writer + periodic rollup + retention.
-    _geoip = load_geoip()
-    asyncio.create_task(batch_writer(_pool, _log_pipe, _geoip)).add_done_callback(_watch)
-    asyncio.create_task(_usage_rollup_task()).add_done_callback(_watch)
-    asyncio.create_task(_leak_detection_task()).add_done_callback(_watch)
-    asyncio.create_task(_log_retention_task()).add_done_callback(_watch)
-    # Load paused syncs into memory cache before any sync tasks start
-    await _load_paused_syncs()
-    # Verify data exists on startup (fast) — no heavy syncs during dev restarts
-    asyncio.create_task(_run_with_log(_startup_data_check, "Startup data check")).add_done_callback(_watch)
-    # Scheduled syncs — actual data refresh happens here, not on boot
-    asyncio.create_task(_weekly_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_argo_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_onc_sensor_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_onc_instruments_daily_task()).add_done_callback(_watch)
-    asyncio.create_task(_onc_sparkline_task()).add_done_callback(_watch)
-    asyncio.create_task(_onc_adcp_task()).add_done_callback(_watch)
-    asyncio.create_task(_onc_ctd_task()).add_done_callback(_watch)
-    asyncio.create_task(_usgs_earthquakes_task()).add_done_callback(_watch)
-    asyncio.create_task(_oceansites_obs_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_land_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_monitoring_density_refresh_task()).add_done_callback(_watch)
-    asyncio.create_task(_sio_bic_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_slow_sources_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_air_quality_readings_task()).add_done_callback(_watch)
-    asyncio.create_task(_ais_partition_maintenance_task()).add_done_callback(_watch)
-    asyncio.create_task(_vessel_events_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_acoustic_stations_task()).add_done_callback(_watch)
-    asyncio.create_task(_acoustic_soundscape_task()).add_done_callback(_watch)
-    asyncio.create_task(_offshore_activities_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_currents_bake_task()).add_done_callback(_watch)
-    asyncio.create_task(_currents_backfill_task()).add_done_callback(_watch)
-    asyncio.create_task(_woa_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_woa_backfill_task()).add_done_callback(_watch)
-    asyncio.create_task(_oxygen_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_carbon_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_acidification_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_chi_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_coral_exposure_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_socat_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_seabed_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_cascade_startup_bake()).add_done_callback(_watch)
-    asyncio.create_task(_bathymetry_grid_bake_task()).add_done_callback(_watch)
-    asyncio.create_task(_worms_sync_task()).add_done_callback(_watch)
-    asyncio.create_task(_log_noise_risk_count_on_startup()).add_done_callback(_watch)
-    # Watchdog: kill orphan postgres backends running > 60 min, warn > 15 min.
-    # Catches zombie queries left behind by service restarts / Python crashes.
-    asyncio.create_task(_query_watchdog_task()).add_done_callback(_watch)
-    # Kick off tile pre-bake on startup so viewers don't hit cold on-demand tiles.
-    # schedule_bake is debounced — safe to call even if syncs trigger it again soon.
-    import offshore_tile_baker as _baker
-    asyncio.create_task(_baker.schedule_bake(_pool)).add_done_callback(_watch)
+
+    # A standby lives ~30 s, started only while a deploy is in flight (see
+    # ABYSSAL_STANDBY in .env.example). Nothing below can fire in that window —
+    # the shortest startup delay in this block is 15 min — so spawning every
+    # one of these tasks would do nothing for the standby itself. But a standby that
+    # someone forgot to kill would duplicate every sync, silently: the monitor
+    # has no way to tell "ran twice" from "ran once", so the failure is invisible
+    # exactly when it happens. Five lines closes that off.
+    if os.environ.get("ABYSSAL_STANDBY") == "1":
+        log.info("ABYSSAL_STANDBY=1 — serving reads only, no background tasks")
+    else:
+        # Contractor auto-discovery joins ais_positions × aois — 6+ min, CPU-heavy.
+        # Delay 20 min after boot so cold-start traffic and SAR seeding get the pool first.
+        async def _delayed_auto_discover():
+            # 45 min, not the 20 it used to be. The engine rule asks for >=15 min for
+            # anything scanning ais_positions, and 20 nominally cleared it — but on
+            # 2026-09-02 this call still lost a race with the cold start and the SAR
+            # seed and died on its statement_timeout, while the identical query took
+            # 86 s once the box was quiet. The scan is ~52M rows; give the boot storm
+            # room to finish first. The regular 6h task already waits 2h.
+            await asyncio.sleep(2700)
+            try:
+                await auto_discover_contractors()
+            except Exception:
+                log.exception("contractor auto-discovery failed")
+        asyncio.create_task(_delayed_auto_discover()).add_done_callback(_watch)
+        # Phase 2: request logging writer + periodic rollup + retention.
+        _geoip = load_geoip()
+        asyncio.create_task(batch_writer(_pool, _log_pipe, _geoip)).add_done_callback(_watch)
+        asyncio.create_task(_usage_rollup_task()).add_done_callback(_watch)
+        asyncio.create_task(_leak_detection_task()).add_done_callback(_watch)
+        asyncio.create_task(_log_retention_task()).add_done_callback(_watch)
+        # Load paused syncs into memory cache before any sync tasks start
+        await _load_paused_syncs()
+        # Verify data exists on startup (fast) — no heavy syncs during dev restarts
+        asyncio.create_task(_run_with_log(_startup_data_check, "Startup data check")).add_done_callback(_watch)
+        # Scheduled syncs — actual data refresh happens here, not on boot
+        asyncio.create_task(_weekly_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_argo_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_onc_sensor_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_onc_instruments_daily_task()).add_done_callback(_watch)
+        asyncio.create_task(_onc_sparkline_task()).add_done_callback(_watch)
+        asyncio.create_task(_onc_adcp_task()).add_done_callback(_watch)
+        asyncio.create_task(_onc_ctd_task()).add_done_callback(_watch)
+        asyncio.create_task(_usgs_earthquakes_task()).add_done_callback(_watch)
+        asyncio.create_task(_oceansites_obs_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_land_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_monitoring_density_refresh_task()).add_done_callback(_watch)
+        asyncio.create_task(_sio_bic_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_slow_sources_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_air_quality_readings_task()).add_done_callback(_watch)
+        asyncio.create_task(_ais_partition_maintenance_task()).add_done_callback(_watch)
+        asyncio.create_task(_vessel_events_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_acoustic_stations_task()).add_done_callback(_watch)
+        asyncio.create_task(_acoustic_soundscape_task()).add_done_callback(_watch)
+        asyncio.create_task(_offshore_activities_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_currents_bake_task()).add_done_callback(_watch)
+        asyncio.create_task(_currents_backfill_task()).add_done_callback(_watch)
+        asyncio.create_task(_woa_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_woa_backfill_task()).add_done_callback(_watch)
+        asyncio.create_task(_oxygen_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_carbon_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_acidification_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_chi_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_coral_exposure_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_socat_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_seabed_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_cascade_startup_bake()).add_done_callback(_watch)
+        asyncio.create_task(_bathymetry_grid_bake_task()).add_done_callback(_watch)
+        asyncio.create_task(_worms_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_log_noise_risk_count_on_startup()).add_done_callback(_watch)
+        # Watchdog: kill orphan postgres backends running > 60 min, warn > 15 min.
+        # Catches zombie queries left behind by service restarts / Python crashes.
+        asyncio.create_task(_query_watchdog_task()).add_done_callback(_watch)
+        # Kick off tile pre-bake on startup so viewers don't hit cold on-demand tiles.
+        # schedule_bake is debounced — safe to call even if syncs trigger it again soon.
+        import offshore_tile_baker as _baker
+        asyncio.create_task(_baker.schedule_bake(_pool)).add_done_callback(_watch)
     yield
     await _pool.close()
 
@@ -1530,6 +1395,32 @@ async def get_sync_status():
     async with _pool.acquire() as conn:
         rows = await conn.fetch("SELECT source, last_synced_at FROM sync_log ORDER BY source")
     return {r["source"]: r["last_synced_at"].date().isoformat() for r in rows}
+
+
+@app.get("/v1/layers/temporal-coverage", dependencies=[Depends(get_api_key)])
+async def get_layer_temporal_coverage():
+    """WHEN each layer's data is from — the anchor needed before pooling it.
+
+    ⛔ Not the same question as /v1/sync/status, and the two are routinely confused.
+    That one reports when WE last refreshed our copy; this one reports the period the
+    DATA covers. A layer synced this morning can be a 1955-2017 climatology, and a
+    layer we last pulled a year ago can hold measurements taken last week.
+
+    `kind` is the part that decides whether values may be merged with recent data:
+    `observations` are dated rows a model may filter by period, while a `climatology`
+    is a single averaged value per cell that cannot be filtered at all and must never
+    be treated as contemporaneous with dated points.
+    """
+    async with _pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT layer_id, start_year, end_year, kind, wording, source_url,
+                      verified_on
+                 FROM layer_temporal_coverage ORDER BY layer_id""")
+    return {r["layer_id"]: {"start_year": r["start_year"], "end_year": r["end_year"],
+                            "kind": r["kind"], "wording": r["wording"],
+                            "source_url": r["source_url"],
+                            "verified_on": r["verified_on"].isoformat()}
+            for r in rows}
 
 
 @app.get("/v1/plumes/history", dependencies=[Depends(get_api_key)])
@@ -1848,7 +1739,7 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "port_locations":         "ports",
     "mining_footprints":      "land-mining",
     # "kbas" removed 2026-09-03 alongside the withdrawal (WITHDRAWN_LAYER_IDS
-    # above) — same treatment as "wdpa". land-kbas stays in _SYNC_SOURCES below
+    # in startup_seeds.py) — same treatment as "wdpa". land-kbas stays in _SYNC_SOURCES below
     # so the periodic sync keeps the table fresh; only the admin "sync now"
     # button loses its friendly log-source mapping for a retired layer.
     "tailings":               "land-tailings",
@@ -2439,6 +2330,7 @@ async def health():
         )
     return {
         "status": "ok",
+        "schema": SCHEMA_STATE,
         "sync": [
             {
                 "source": r["source"],

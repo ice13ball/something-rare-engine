@@ -26,6 +26,9 @@ INSERT works downstream: source="arts_panarctic",
 feature_category="retrogressive thaw slump", thaw_type="abrupt".
 """
 from __future__ import annotations
+
+from ingestion import thaw_dates as _thaw_dates
+from ingestion.thaw_dates import window_fields as _window_fields
 import json
 import logging
 import os
@@ -164,6 +167,12 @@ def build_arts_rows(geojson: dict) -> list[dict]:
             "authors": _clean(p.get("CreatorLab")),
             "source_doi": _DOI,
             "imagery": imagery,
+            # The imagery window, lifted out of the free-text blob above so it can
+            # be queried. BaseMapDate is a PAIR of acquisitions on every feature in
+            # the 4,069 sampled live on 2026-09-08.
+            **_window_fields(p.get("BaseMapDate")),
+            # ⛔ Not an observation date — see thaw_dates.parse_single_date.
+            "contribution_date": _thaw_dates.parse_single_date(p.get("ContributionDate")),
             "lat": lat,
             "lon": lon,
         })

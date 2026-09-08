@@ -19,7 +19,12 @@ def test_rows_shape_and_source():
     assert len(rows) > 0
     r = rows[0]
     assert set(r) == {"source", "unique_id", "feature_name", "feature_type", "feature_category",
-                      "thaw_type", "data_source_type", "authors", "source_doi", "imagery", "lat", "lon"}
+                      "thaw_type", "data_source_type", "authors", "source_doi", "imagery",
+                      "lat", "lon",
+                      # Added 2026-09-08: the imagery window both sources publish
+                      # and both were folding into the free-text `imagery` blob.
+                      "obs_start_year", "obs_end_year", "obs_start", "obs_end",
+                      "date_precision", "contribution_date"}
     assert r["source"] == "arts_panarctic"
     assert r["feature_category"] == "retrogressive thaw slump"
     assert r["thaw_type"] == "abrupt"

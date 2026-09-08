@@ -10,8 +10,11 @@ name: Tests
 #
 # Duplication note: a push touching frontend/ triggers the deploy workflow, which
 # calls this one; `paths-ignore` below keeps this workflow's own push trigger from
-# firing for the same commit. A push touching BOTH trees runs it twice. That waste
-# is accepted — the alternative is a filter that can silently skip the backend.
+# firing for the same commit. A push touching BOTH trees creates two runs, but they
+# share the `concurrency` group below, so the standalone one is CANCELLED and the
+# tests execute inside the deploy run as jobs prefixed `test /`. That is why every
+# main push shows a "Tests" run cancelled after ~2s — it is the duplicate, not a
+# failed gate. `gh run view <deploy-run-id>` is where the real result lives.
 
 on:
   pull_request:

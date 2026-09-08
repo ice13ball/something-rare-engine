@@ -31,7 +31,7 @@ import math
 
 import db
 import httpx
-from auth import get_api_key
+from auth import get_api_key, require_admin_token
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sync_log import log_sync as _log_sync
@@ -1105,7 +1105,7 @@ async def get_chess_citation():
     }
 
 
-@router.post("/admin/enrich-species-images", dependencies=[Depends(get_api_key)])
+@router.post("/admin/enrich-species-images", dependencies=[Depends(require_admin_token)])
 async def admin_enrich_species_images(batch_size: int = Query(default=500, ge=1, le=5000)):
     """Trigger a species image enrichment run on-demand.
 
@@ -1127,14 +1127,14 @@ async def admin_enrich_species_images(batch_size: int = Query(default=500, ge=1,
     }
 
 
-@router.post("/v1/admin/rebuild-hotspot-grid", dependencies=[Depends(get_api_key)])
+@router.post("/v1/admin/rebuild-hotspot-grid", dependencies=[Depends(require_admin_token)])
 async def api_rebuild_hotspot_grid():
     """Manually trigger hotspot grid rebuild."""
     asyncio.create_task(rebuild_hotspot_grid())
     return {"status": "started", "message": "Hotspot grid rebuild started in background"}
 
 
-@router.post("/v1/admin/backfill-iucn", dependencies=[Depends(get_api_key)])
+@router.post("/v1/admin/backfill-iucn", dependencies=[Depends(require_admin_token)])
 async def api_backfill_iucn(batch_size: int = Query(default=500, ge=1, le=5000)):
     """Manually trigger IUCN backfill for species missing conservation status."""
     asyncio.create_task(backfill_iucn_categories(batch_size=batch_size))

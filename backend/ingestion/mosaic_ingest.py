@@ -94,6 +94,23 @@ def parse_geopoints(rows):
                 mo = sdate.month
             if dy is None:
                 dy = sdate.day
+        # ...and the mirror case, which the 2026-09-04 fix left open: the source
+        # gives year, month AND day as separate fields but no compound
+        # sampling_date. 1,913 live cores were in exactly that state — dated to the
+        # day, with an empty date column. They rendered fine (the panel reads the
+        # parts) and were invisible to every query and export that filters on
+        # sampling_date, which is the worst shape for a defect to take.
+        #
+        # Composing y+m+d is assembling what the source gave, not inventing
+        # precision — the same argument as the branch above, run backwards.
+        elif None not in (yr, mo, dy):
+            try:
+                sdate = _dt.date(yr, mo, dy)
+            except ValueError:
+                # A source day that is not a real calendar date (2011-02-30 and the
+                # like). Leave sdate None and let the parts stand on their own
+                # rather than snapping to a neighbouring day nobody sampled.
+                pass
         cs = _epoch_ms_to_date(r.get("sampling_campaign_date_start"))
         ce = _epoch_ms_to_date(r.get("sampling_campaign_date_end"))
         out.append({

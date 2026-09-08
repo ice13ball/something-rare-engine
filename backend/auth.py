@@ -45,7 +45,16 @@ async def get_api_key(request: Request, key: str = Security(_header)) -> str:
 # so this is safe and idempotent.
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
-ADMIN_DASHBOARD_TOKEN = os.getenv("ADMIN_DASHBOARD_TOKEN", "")
+def load_admin_token() -> str:
+    # Runtime state is separate from .env: the deploy user sources .env as shell
+    # code, so a service allowed to rewrite it could escape its Unix account.
+    token_file = os.getenv("ADMIN_DASHBOARD_TOKEN_FILE")
+    if token_file:
+        return Path(token_file).read_text().strip()  # fail closed on bad deployment
+    return os.getenv("ADMIN_DASHBOARD_TOKEN", "")
+
+
+ADMIN_DASHBOARD_TOKEN = load_admin_token()
 
 
 async def require_admin_token(request: Request, token: str = "") -> None:

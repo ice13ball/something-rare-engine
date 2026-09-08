@@ -13,6 +13,7 @@ import { SPA_PATHS, hydrates } from './seo/route-categories.js';
 import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './seo/urls.js';
 import { forceHttpsMiddleware, wwwRedirectMiddleware } from './seo/canonical-hosts.js';
 import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, wrapHtml, siteCitation, renderHubPage, hubNavHtml, BackendUnavailable, EntityGone } from './seo/render-page.js';
+import { fetchUpstream } from './seo/upstream-fetch.js';
 
 config();
 
@@ -87,26 +88,14 @@ function sendUnavailable(res, what) {
 /**
  * The same discriminator as `fetchJsonOrThrow` in seo/render-page.js, for the
  * handlers that fetch the backend directly rather than through renderSeoPage.
- * Kept deliberately identical in behaviour: two copies that disagree about
- * what 403 means would reintroduce the defect on half the routes.
+ * Both now delegate to the shared `fetchUpstream` (seo/upstream-fetch.js) so
+ * two copies can no longer disagree about what 422 or a transient 503 means.
  */
 async function fetchEntity(url, timeoutMs = 5000) {
-  let r;
-  try {
-    r = await fetch(url, { headers: { 'X-API-Key': ABYSSAL_API_KEY }, signal: AbortSignal.timeout(timeoutMs) });
-  } catch (err) {
-    throw new BackendUnavailable(err.message || String(err));
-  }
-  // Same set as MISSING_STATUSES in seo/render-page.js — 400/404/410/422 are
-  // about the id; 401/403/429/5xx are about us. Two copies that disagree on
-  // what 422 means would reproduce the defect on half the routes.
-  if ([400, 404, 410, 422].includes(r.status)) return null;   // the id does not exist
-  if (!r.ok) throw new BackendUnavailable(`HTTP ${r.status}`); // we cannot tell
-  try {
-    return await r.json();
-  } catch (err) {
-    throw new BackendUnavailable(`malformed JSON: ${err.message}`);
-  }
+  return fetchUpstream(url, {
+    timeoutMs,
+    fetchImpl: (u, opts) => fetch(u, { ...opts, headers: { 'X-API-Key': ABYSSAL_API_KEY } }),
+  });
 }
 
 function entityRoute(what, handler) {
@@ -464,23 +453,22 @@ for (const kind of HUB_KINDS) {
   app.get(`/${kind}`, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     try {
-      const [hubRes, hubs] = await Promise.all([
-        fetch(`${VPS_API_URL}/v1/seo/hub/${kind}?page=${page}`, {
-          headers: API_HEADERS, signal: AbortSignal.timeout(10000),
+      const [hub, hubs] = await Promise.all([
+        fetchUpstream(`${VPS_API_URL}/v1/seo/hub/${kind}?page=${page}`, {
+          timeoutMs: 10000,
+          fetchImpl: (u, opts) => fetch(u, { ...opts, headers: API_HEADERS }),
         }),
         fetchHubIndex(),
       ]);
       // A page number past the end is a genuine 404. Answer it HERE rather than
       // via next(): the hubs are excluded from SPA_PATHS precisely so the shell
       // cannot turn this into a 200 soft-404 (the defect fixed 2026-08-09).
-      if (hubRes.status === 404) {
+      if (!hub) {
         return res.status(404).type('html').send(
           '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex">'
           + `<title>Page not found | Abyssal Claims</title>`
           + `<p>No such page in this index. <a href="https://something-rare.com/${kind}">Back to page 1</a>.</p>`);
       }
-      if (!hubRes.ok) throw new Error(`API ${hubRes.status}`);
-      const hub = await hubRes.json();
       res.type('html').set('Cache-Control', 'public, max-age=1800').send(renderHubPage(hub, hubs));
     } catch (err) {
       // NOT next(): these paths are in sitemap-core, and the catch-all 404s

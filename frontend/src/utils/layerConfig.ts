@@ -83,6 +83,11 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
   "offshore-activities-mvt":        "offshore-activities",
   "mining-contracts-mvt":           "contracts",
   "marine-carbon-hexes":            "marine-carbon",
+  // Hex aggregations of layers that also draw individual stations. Without
+  // these two, clicking a GEOTRACES station showed its layer's time frame and
+  // clicking a GEOTRACES hex of the same layer showed nothing.
+  "geotraces-hexes":                "geotraces",
+  "memento-hexes":                  "memento",
   "vme-suitability-hexes":          "vme-suitability",
   "ocean-acidification-raster":     "ocean-acidification",
   "ocean-acidification-hexes":      "ocean-acidification",

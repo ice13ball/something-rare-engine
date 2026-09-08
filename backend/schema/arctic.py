@@ -64,6 +64,32 @@ async def ensure_mosaic(conn) -> None:
     await conn.execute("ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS core_comment TEXT")
     await conn.execute("ALTER TABLE mosaic_cores ADD COLUMN IF NOT EXISTS date_precision TEXT")
 
+    # Heal cores the source dated to the day whose compound date column was never
+    # filled — 1,913 of them on 2026-09-08. They rendered correctly (the panel reads
+    # sampling_year/month/day), so nothing looked wrong, while every query and export
+    # filtering on sampling_date skipped them silently. That is the worst shape a
+    # defect can take: invisible where you look, absent where you count.
+    #
+    # ⛔ This composes ONLY where the source already gave all three parts. It never
+    # invents a day from a year, which would be the precision-inflation the
+    # data-passthrough rule forbids. make_date is strict, so an impossible day
+    # (2011-02-30) would raise — the WHERE clause below therefore validates the day
+    # against the month's real length first and leaves the rest alone.
+    #
+    # Idempotent: after one pass the WHERE matches nothing, so this costs a single
+    # index-less scan of 25k rows on the 99% of boots where it changes nothing.
+    await conn.execute("""
+        UPDATE mosaic_cores
+           SET sampling_date = make_date(sampling_year, sampling_month, sampling_day)
+         WHERE sampling_date IS NULL
+           AND sampling_year  IS NOT NULL
+           AND sampling_month BETWEEN 1 AND 12
+           AND sampling_day   BETWEEN 1 AND 31
+           AND sampling_day <= EXTRACT(DAY FROM (
+                 make_date(sampling_year, sampling_month, 1)
+                 + INTERVAL '1 month' - INTERVAL '1 day'))
+    """)
+
 
 async def ensure_cascade(conn) -> None:
     """cascade_stations."""

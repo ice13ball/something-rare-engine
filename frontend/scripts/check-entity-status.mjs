@@ -71,6 +71,7 @@ const BOT_ONLY_PATHS = [...ENTITY_PATHS, ...REPORT_PATHS];
 // ── A stub backend whose behaviour this script chooses ───────────────────────
 let stubMode = 'missing';
 let stubHits = 0;
+const pathHits = new Map(); // per-path hit count, for the 'flapping' mode below
 const stub = createServer((req, res) => {
   stubHits++;
   if (stubMode === 'missing') {
@@ -90,6 +91,29 @@ const stub = createServer((req, res) => {
   if (stubMode === 'throttled') {
     res.writeHead(429, { 'Content-Type': 'application/json' });
     return res.end('{"detail":"slow down"}');
+  }
+  // 'flapping': 503 the first time a path is asked for, 200 (falls through to
+  // the 'ok' body below) after that. This is the only mode that proves the
+  // retry does something — none of the modes above ever answer a literal 502
+  // or 503, so a retry scoped to those statuses would never engage and every
+  // check in this file would pass while testing nothing at all.
+  if (stubMode === 'flapping') {
+    const path = req.url.split('?')[0];
+    const n = (pathHits.get(path) || 0) + 1;
+    pathHits.set(path, n);
+    if (n === 1) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      return res.end('{"detail":"flap"}');
+    }
+    // second and later hits on this path fall through to 'ok' below
+  }
+  // 'down502': 502 every time. The final answer must still be 503, and the
+  // stub must have been asked exactly twice — not once (no retry) and not
+  // three times (a retry that fires more than once, which looks identical
+  // from outside to a working retry unless the hit count is checked).
+  if (stubMode === 'down502') {
+    res.writeHead(502, { 'Content-Type': 'application/json' });
+    return res.end('{"detail":"down"}');
   }
   // 'ok' — enough shape for the renderers we exercise.
   const body = {
@@ -234,6 +258,34 @@ await withApp(STUB_URL, async () => {
     if (r.status !== 503) wrong.push(`${p} → ${r.status}`);
   }
   check('a 429 (throttled) yields 503, not 404', wrong.length === 0, wrong.join('; '));
+});
+
+// ── 2d. A transient 502/503 is retried into a 200 ────────────────────────────
+// The only assertion in this file that proves the retry does something. Every
+// mode above answers 404, 422, 429 or 500 — never a literal 502 or 503 — so a
+// retry scoped to RETRY_STATUSES in seo/upstream-fetch.js would never have
+// engaged, and this checker would have gone green while testing nothing.
+stubMode = 'flapping';
+pathHits.clear();
+await withApp(STUB_URL, async () => {
+  const r = await get('/river/arcticgro:kolyma');
+  check('a flapping upstream is retried into a 200',
+    r.status === 200, `expected 200 after retry, got ${r.status}`);
+});
+
+// ── 2e. A persistent 502 still answers 503, asked exactly twice ─────────────
+// The counterweight to 2d: without counting upstream hits, a retry that fires
+// three times — or zero times — looks identical from the outside to one that
+// fires exactly once, because the final answer is 503 either way.
+stubMode = 'down502';
+await withApp(STUB_URL, async () => {
+  stubHits = 0;
+  const r = await get('/river/anything');
+  check('a persistent 502 still answers 503',
+    r.status === 503 && r.headers.get('retry-after') !== null,
+    `expected 503+Retry-After, got ${r.status}`);
+  check('the retry fired exactly once (two upstream hits)',
+    stubHits === 2, `expected 2 upstream hits, saw ${stubHits}`);
 });
 
 // ── 3. Backend not running at all → 503 ──────────────────────────────────────

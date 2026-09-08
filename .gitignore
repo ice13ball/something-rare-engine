@@ -253,3 +253,7 @@ deploy/
 .impeccable.md
 /*.yml
 docs/private/
+
+# Subagent-driven-development scratch: ledgers, briefs, review packages.
+# Per-plan working directory, never part of the release.
+.superpowers/

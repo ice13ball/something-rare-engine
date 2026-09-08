@@ -7,6 +7,8 @@ import { useMapStore } from "../store/mapStore";
 import type { SelectedFeature } from "../store/mapStore";
 
 import { T } from "./panels/shared/tokens";
+import { TemporalFrame } from "./panels/shared/TemporalFrame";
+import { useTemporalCoverage, coverageForDeckLayer } from "../utils/useTemporalCoverage";
 import { SeabedSubstratePanel } from "./panels/seabed/SeabedSubstratePanel";
 import { CascadeStationPanel } from "./panels/seabed/CascadeStationPanel";
 import { CascadeFieldPanel } from "./panels/seabed/CascadeFieldPanel";
@@ -72,6 +74,27 @@ import { GeotracesHexPanel } from "./panels/arctic/GeotracesHexPanel";
 import { MosaicPanel } from "./panels/arctic/MosaicPanel";
 import { MosaicHexPanel } from "./panels/arctic/MosaicHexPanel";
 import { ArcticCatchmentPanel } from "./panels/arctic/ArcticCatchmentPanel";
+
+
+/**
+ * The layer-level time frame under a clicked object.
+ *
+ * ⚠️ Keyed by the DECK layer id the click came from, which is NOT the id the frames
+ * are stored under — "argo-floats-3d" vs "argo". coverageForDeckLayer does that
+ * translation; getting it wrong shows nothing and reports nothing.
+ *
+ * Renders nothing for a layer with no frame established yet. Absent is honest.
+ */
+function LayerTimeFrame({ deckLayerId }: { deckLayerId: string }) {
+  const coverage = useTemporalCoverage();
+  const c = coverageForDeckLayer(coverage, deckLayerId);
+  if (!c) return null;
+  return (
+    <div className="mt-3 pt-3 border-t border-white/[0.06]">
+      <TemporalFrame coverage={c} />
+    </div>
+  );
+}
 
 
 function PanelContent({ feature }: { feature: SelectedFeature }) {
@@ -315,6 +338,10 @@ function DraggablePanel({
       </div>
       <div className="px-4 py-4">
         <PanelContent feature={feature} />
+        {/* WHEN this layer's data is from — one insertion here reaches EVERY popup,
+            instead of thirty per-layer panels each remembering to do it. Sits after
+            the panel body so the object comes first and its provenance second. */}
+        <LayerTimeFrame deckLayerId={feature.layer} />
       </div>
     </div>
   );

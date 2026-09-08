@@ -292,11 +292,31 @@ def _rewrite_env_var(key: str, value: str, env_path=None) -> None:
     _os.replace(tmp, env_path)  # atomic rename
 
 
+def _persist_admin_token(value: str) -> None:
+    token_file = _os.getenv("ADMIN_DASHBOARD_TOKEN_FILE")
+    if not token_file:
+        _rewrite_env_var("ADMIN_DASHBOARD_TOKEN", value)
+        return
+    # Only a data file is writable by the isolated service, never deploy .env.
+    import tempfile
+    dest = _Path(token_file)
+    fd, tmp = tempfile.mkstemp(prefix=".admin-token-", dir=dest.parent)
+    try:
+        with _os.fdopen(fd, "w") as f:
+            f.write(value + "\n")
+            f.flush()
+            _os.fsync(f.fileno())
+        _os.replace(tmp, dest)
+    finally:
+        if _os.path.exists(tmp):
+            _os.unlink(tmp)
+
+
 @router.post("/settings/rotate-token")
 async def rotate_token(admin=Depends(require_super_admin)):
     import auth
     new = "abyssal-admin-" + _secrets.token_urlsafe(18)
-    _rewrite_env_var("ADMIN_DASHBOARD_TOKEN", new)
+    _persist_admin_token(new)
     auth.ADMIN_DASHBOARD_TOKEN = new  # hot-reload the in-memory value (auth.py owns this — see its module docstring)
     _os.environ["ADMIN_DASHBOARD_TOKEN"] = new
     async with _db.pool.acquire() as conn:

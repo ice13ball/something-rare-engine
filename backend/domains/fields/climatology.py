@@ -194,7 +194,14 @@ async def woa_hexes(variable: str = "oxygen", depth: float = 0.0):
 
 @router.get("/v1/oxygen/point", dependencies=[Depends(get_api_key)])
 async def oxygen_point(lat: float, lon: float, depth: float = 0.0):
-    """ISAS recent O₂ + WOA ~1980s baseline + Δ at the nearest cell."""
+    """ISAS recent O₂ (2014–2018) + WOA 1971–2000 baseline + Δ at the nearest cell.
+
+    ⛔ NOT "~1980s". woa_climatology.FIELDS["oxygen"] uses period `decav71A0` and
+    carries baseline="1971–2000" two files away; 1985 is the midpoint of that
+    window, not the window. The Δ this returns is a 30-year mean subtracted from a
+    5-year mean, and a reader who thinks the baseline is one decade will
+    misjudge what the change means.
+    """
     if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
         raise HTTPException(status_code=400, detail="lat/lon out of range")
     def _build():

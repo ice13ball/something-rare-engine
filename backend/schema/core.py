@@ -183,9 +183,9 @@ async def ensure_core_tables(conn) -> None:
     # never carried into this function — only their later ALTERs were. On an
     # established DB nothing notices, because `ADD COLUMN IF NOT EXISTS`
     # succeeds on a table that already exists. On a FRESH DB the first ALTER
-    # below raised UndefinedTableError, `_ensure_step` re-raised it (it
-    # tolerates lock errors only) and the API crash-looped — so the platform
-    # could not provision an empty database at all. Columns here are the base
+    # below raised UndefinedTableError, which propagated straight out of the
+    # schema step and crash-looped the API — so the platform could not
+    # provision an empty database at all. Columns here are the base
     # set as it exists in production; everything added by an `IF NOT EXISTS`
     # ALTER further down is deliberately left to that ALTER.
     await conn.execute("""

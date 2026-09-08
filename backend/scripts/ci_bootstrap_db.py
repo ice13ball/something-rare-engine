@@ -3,11 +3,12 @@
 
 """Create the full schema in an empty database, for CI.
 
-⛔ This must stay a thin caller of the SAME three ensure_* functions that
-`main.lifespan()` runs, in the SAME order. Do not inline DDL here and do not
-"simplify" the order: order is semantics — an index or ALTER ahead of its
-CREATE TABLE fails at boot, which is precisely the class of bug a CI schema
-step exists to catch. If lifespan gains a fourth step, add it here too.
+⛔ This must stay a thin caller of the SAME sixteen steps that `main.lifespan()`
+runs, in the SAME order — both import `schema_steps.SCHEMA_STEPS`, the single
+source of truth. Do not inline DDL here and do not "simplify" the order: order
+is semantics — an index or ALTER ahead of its CREATE TABLE fails at boot, which
+is precisely the class of bug a CI schema step exists to catch. A new step
+belongs in `schema_steps.py`, not here.
 
 Why a role is created first: `profiles.py` issues
 `ALTER TABLE startup_profiles OWNER TO abyssal_user`, so a database without
@@ -75,24 +76,36 @@ async def main() -> int:
         )
         await conn.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
 
-    from domains.land.schema_orchestrator import ensure_land_schema
-    from ais_sync import ensure_ais_schema
-    from schema import ensure_schema
-
-    steps = [
-        (ensure_schema, "ensure_schema"),
-        (ensure_land_schema, "ensure_land_schema"),
-        (ensure_ais_schema, "ensure_ais_schema"),
-    ]
+    from schema_steps import (
+        SCHEMA_STEPS,
+        resolve_git_sha,
+        ensure_schema_migrations_table,
+        record_schema_migration,
+    )
 
     failed = 0
-    for fn, name in steps:
+    for fn, name in SCHEMA_STEPS:
         try:
             await fn()
             print(f"ci_bootstrap_db: {name} OK")
         except Exception as exc:                      # noqa: BLE001 — report every step
             failed += 1
             print(f"ci_bootstrap_db: {name} FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
+
+    # Write the same schema_migrations row migrate.py writes (shared DDL + upsert
+    # in schema_steps.py — a second copy of either is the defect this branch spent
+    # commits removing). Without it, a fresh database never gets a row at all:
+    # main.py's `_fetch_schema_migration_row` catches UndefinedTableError, returns
+    # None, and classifies that as "stale" forever — the alarm stuck on in exactly
+    # the environments (CI, any new env) where nothing is wrong. Only write it when
+    # every step actually succeeded; a partially-provisioned database recording
+    # itself as current would hide the failure instead of reporting it.
+    if not failed:
+        sha = resolve_git_sha() or "unknown"
+        async with pool.acquire() as conn:
+            await ensure_schema_migrations_table(conn)
+            await record_schema_migration(conn, sha, len(SCHEMA_STEPS))
+        print(f"ci_bootstrap_db: schema_migrations recorded ({sha[:12]})")
 
     async with pool.acquire() as conn:
         n = await conn.fetchval(

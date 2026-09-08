@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 import db
-from auth import get_api_key
+from auth import get_api_key, require_admin_token
 from fastapi import APIRouter, Depends, HTTPException
 
 log = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ async def refresh_species_cache():
 
     This module carried its own copy built at `ST_DWithin(bh.geom, mc.geom, 0.5)`
     — half a DEGREE, ~55 km. `services/species_cache.py` was tightened to an exact
-    10 km in b189380, but this copy was left behind, so the table had TWO live
+    10 km, but this copy was left behind, so the table had TWO live
     writers disagreeing about what "near a claim" means: whichever of
     `POST /v1/reports/refresh-species-cache` and `/admin/sync/species-cache` ran
     last silently set the radius for every reader, with nothing in the data to say
@@ -152,7 +152,7 @@ async def _get_species_for_claim(conn, isa_id: str) -> list[dict]:
                                  THEN bh.iucn_category END), 'NE') AS iucn_category
         FROM biodiversity_hotspots bh, mining_contracts mc
         WHERE mc.isa_id = $1
-          -- 10 km is the project-wide radius for "species near a claim" (b189380);
+          -- 10 km is the project-wide radius for "species near a claim";
           -- the degree clause is an index-friendly pre-filter on the bh.geom GIST
           -- index, the geography clause refines it to exactly 10 km at any latitude.
           AND ST_DWithin(bh.geom, mc.geom, 0.12)
@@ -206,7 +206,7 @@ async def _get_species_for_claims(conn, claim_ids: list[str]) -> dict[str, list]
         FROM mining_contracts mc
         JOIN biodiversity_hotspots bh
           -- 10 km, index-friendly pre-filter then exact refine — see the sibling
-          -- query above and b189380.
+          -- query above.
           ON ST_DWithin(bh.geom, mc.geom, 0.12)
          AND ST_DWithin(bh.geom::geography, mc.geom::geography, 10000)
         WHERE mc.isa_id = ANY($1::text[])
@@ -1470,7 +1470,7 @@ async def lookup_claims_by_contractor(q: str):
              "resource_type": r["resource_type"]} for r in rows]
 
 
-@router.post("/refresh-species-cache", dependencies=[Depends(get_api_key)])
+@router.post("/refresh-species-cache", dependencies=[Depends(require_admin_token)])
 async def api_refresh_species_cache():
     """Manually trigger a species cache rebuild. Takes ~5-10 min on first run."""
     if db.pool is None:

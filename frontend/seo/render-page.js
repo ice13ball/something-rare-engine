@@ -10,6 +10,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './urls.js';
 import { reportHasStatistics } from './report-shape.js';
+import { fetchUpstream, BackendUnavailable } from './upstream-fetch.js';
 
 // Fallback repointed 2026-08-24 — see the note in server.js. The old default
 // named a host that no longer exists.
@@ -49,6 +50,11 @@ export const siteCitation = {
  *
  * Callers that catch this must answer 503 + Retry-After, never 404 and never
  * 200. See `sendUnavailable` in server.js.
+ *
+ * The classification itself (which statuses mean "missing" vs "broken", and
+ * the single retry on a transient 502/503) lives in `./upstream-fetch.js`,
+ * shared with server.js's `fetchEntity` and its hub-index loop — three copies
+ * of this decision is how it drifted before.
  */
 // A page that exists, resolves, and has nothing to say.
 //
@@ -63,57 +69,19 @@ export class EntityGone extends Error {
   }
 }
 
-export class BackendUnavailable extends Error {
-  constructor(reason) {
-    super(`SEO backend unavailable: ${reason}`);
-    this.name = 'BackendUnavailable';
-  }
-}
+export { BackendUnavailable };
 
 /**
- * Statuses that are a statement about THE ID, not about the backend.
- *
- *   404 / 410  the entity is not there
- *   400 / 422  the id cannot be an id — FastAPI's validation error. `peak_id`
- *              and `vent_id` are typed `int`, so /seamount/zzz yields 422, and
- *              that is the most certain non-existence answer available: no
- *              retry can ever make `zzz` an integer.
- *
- * ⛔ 401, 403 and 429 are 4xx and are deliberately NOT here. They are about us
- * — a wrong key, a rate limit — and answering 404 would tell Google 40,300
- * pages are gone because we misconfigured ourselves or got throttled.
- */
-const MISSING_STATUSES = new Set([400, 404, 410, 422]);
-
-/**
- * The single discriminator. Returns parsed JSON, or `null` for a genuine
- * "does not exist", and throws BackendUnavailable for everything else.
- *
- * ⚠️ 422 was missing from this set on the first pass and production caught it:
- * `/seamount/zzz` answered **503**, i.e. "come back later" about a URL shape
- * that can never resolve. The stub in `check:status` could only answer 404 or
- * 500, so the test had no way to express the case — the checker's vocabulary
- * was narrower than the backend's. It now serves 422 too.
+ * The single discriminator, delegated to the shared `fetchUpstream` (see
+ * `./upstream-fetch.js` for the missing/broken status sets and the retry).
+ * Returns parsed JSON, or `null` for a genuine "does not exist", and throws
+ * BackendUnavailable for everything else.
  */
 async function fetchJsonOrThrow(url, timeoutMs = 5000) {
-  let res;
-  try {
-    res = await fetch(url, {
-      headers: { 'X-API-Key': API_KEY },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-  } catch (err) {
-    // Network error, DNS failure, or the AbortSignal timeout firing.
-    throw new BackendUnavailable(err.message || String(err));
-  }
-  if (MISSING_STATUSES.has(res.status)) return null;
-  if (!res.ok) throw new BackendUnavailable(`HTTP ${res.status}`);
-  try {
-    return await res.json();
-  } catch (err) {
-    // A 200 whose body is not JSON is a broken backend, not a missing entity.
-    throw new BackendUnavailable(`malformed JSON: ${err.message}`);
-  }
+  return fetchUpstream(url, {
+    timeoutMs,
+    fetchImpl: (u, opts) => fetch(u, { ...opts, headers: { 'X-API-Key': API_KEY } }),
+  });
 }
 
 async function fetchSeoData(path) {

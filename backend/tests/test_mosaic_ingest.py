@@ -196,3 +196,47 @@ def test_the_request_actually_asks_for_the_time_fields():
     body = src[start:end]
     for field in ("sampling_date", "sampling_campaign", "core_comment"):
         assert field in body, f"the ETH request does not ask for {field}"
+
+
+def test_composes_the_date_when_the_source_gave_all_three_parts():
+    """The mirror of the 2026-09-04 fix, and the reason 1,913 live cores were dated
+    to the day yet invisible to every query filtering on sampling_date."""
+    row = mi.parse_geopoints([{
+        "core_id": 1, "latitude": 78.2, "longitude": 15.6,
+        "sampling_year": 1964, "sampling_month": 6, "sampling_day": 27,
+    }])[0]
+    assert row["sampling_date"] == _dt.date(1964, 6, 27)
+    assert row["date_precision"] == "day"
+
+
+def test_never_composes_a_date_from_a_year_alone():
+    """⛔ Composing y+m+d assembles what the source gave. Composing a date from a
+    year alone would invent 1 January, which is the precision inflation the
+    data-passthrough rule exists to prevent."""
+    row = mi.parse_geopoints([{
+        "core_id": 2, "latitude": 78.2, "longitude": 15.6, "sampling_year": 1964,
+    }])[0]
+    assert row["sampling_date"] is None
+    assert row["date_precision"] == "year"
+    assert row["sampling_year"] == 1964
+
+
+def test_a_month_without_a_day_stays_a_month():
+    row = mi.parse_geopoints([{
+        "core_id": 3, "latitude": 78.2, "longitude": 15.6,
+        "sampling_year": 1964, "sampling_month": 6,
+    }])[0]
+    assert row["sampling_date"] is None
+    assert row["date_precision"] == "month"
+
+
+def test_an_impossible_day_leaves_the_date_empty_rather_than_snapping():
+    """2011-02-30 is not a date. Rounding to the 28th would put the sample on a day
+    nobody sampled; the parts still carry what the source claimed."""
+    row = mi.parse_geopoints([{
+        "core_id": 4, "latitude": 78.2, "longitude": 15.6,
+        "sampling_year": 2011, "sampling_month": 2, "sampling_day": 30,
+    }])[0]
+    assert row["sampling_date"] is None
+    assert row["date_precision"] == "day"
+    assert (row["sampling_month"], row["sampling_day"]) == (2, 30)
