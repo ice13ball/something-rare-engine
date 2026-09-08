@@ -195,10 +195,15 @@ export const MEMENTO_CAST = {
 
 // ---- GeotracesStationPanel — GeotracesResponse (DetailPanel.tsx:4740) -----
 // 3 samples with all 5 elements so GeotracesDepthChart draws for any selected element.
+// sample_id here mirrors what /v2/spatial/geotraces/by-id actually returns
+// post-DEFECT-1-fix: the geotraces_samples.sample_id BIGSERIAL PK (NOT the
+// CSV's "GEOTRACES Sample ID", which is unkeyable — see 2026-09-08 audit).
+// `measurements` below is keyed by this same sample_id, as the by-id
+// endpoint does — GeotracesStationPanel joins on String(sample.sample_id).
 const GEOTRACES_SAMPLES = [
-  { depth_m: 10, sample_time: "2020-06-15T00:00:00Z", mn_d: 1.1, fe_d: 0.9, co_d: 0.05, ni_d: 4.2, cu_d: 1.8, mn_d_qc: 1, fe_d_qc: 1, co_d_qc: 1, ni_d_qc: 1, cu_d_qc: 1, params: {} },
-  { depth_m: 200, sample_time: "2020-06-15T00:00:00Z", mn_d: 0.8, fe_d: 0.7, co_d: 0.04, ni_d: 4.5, cu_d: 2.1, mn_d_qc: 1, fe_d_qc: 1, co_d_qc: 1, ni_d_qc: 1, cu_d_qc: 1, params: {} },
-  { depth_m: 1000, sample_time: "2020-06-15T00:00:00Z", mn_d: 0.3, fe_d: 0.6, co_d: 0.03, ni_d: 5.1, cu_d: 2.6, mn_d_qc: 1, fe_d_qc: 1, co_d_qc: 1, ni_d_qc: 1, cu_d_qc: 1, params: {} },
+  { sample_id: 1, depth_m: 10, sample_time: "2020-06-15T00:00:00Z", mn_d: 1.1, fe_d: 0.9, co_d: 0.05, ni_d: 4.2, cu_d: 1.8, mn_d_qc: 1, fe_d_qc: 1, co_d_qc: 1, ni_d_qc: 1, cu_d_qc: 1, params: {} },
+  { sample_id: 2, depth_m: 200, sample_time: "2020-06-15T00:00:00Z", mn_d: 0.8, fe_d: 0.7, co_d: 0.04, ni_d: 4.5, cu_d: 2.1, mn_d_qc: 1, fe_d_qc: 1, co_d_qc: 1, ni_d_qc: 1, cu_d_qc: 1, params: {} },
+  { sample_id: 3, depth_m: 1000, sample_time: "2020-06-15T00:00:00Z", mn_d: 0.3, fe_d: 0.6, co_d: 0.03, ni_d: 5.1, cu_d: 2.6, mn_d_qc: 1, fe_d_qc: 1, co_d_qc: 1, ni_d_qc: 1, cu_d_qc: 1, params: {} },
 ];
 export const GEOTRACES_RESPONSE = {
   station: {
@@ -217,6 +222,20 @@ export const GEOTRACES_RESPONSE = {
   },
   units: { mn: "nmol/kg", fe: "nmol/kg", co: "pmol/kg", ni: "nmol/kg", cu: "nmol/kg" },
   samples: GEOTRACES_SAMPLES,
+  measurements: {
+    // Keyed on sample_id 2 (depth_m 200) — the plain assertion in
+    // detail-panel-matrix.test.tsx checks this row renders depth "200",
+    // not an em-dash from a failed String(sample.sample_id) join.
+    "2": [
+      { param_code: "Zn_D_CONC_BOTTLE", value: 3.4, stddev: 0.1, qc_flag: 1 },
+      { param_code: "Cd_D_CONC_BOTTLE", value: 0.6, stddev: 0.02, qc_flag: 1 },
+    ],
+  },
+  params: [
+    { param_code: "Zn_D_CONC_BOTTLE", label: "Dissolved Zn", unit: "nmol/kg", family: "trace metal", n_values: 50 },
+    { param_code: "Cd_D_CONC_BOTTLE", label: "Dissolved Cd", unit: "nmol/kg", family: "trace metal", n_values: 40 },
+  ],
+  truncated: false,
 };
 
 // ---- MosaicPanel — MosaicResponse (DetailPanel.tsx:4996) -------------------

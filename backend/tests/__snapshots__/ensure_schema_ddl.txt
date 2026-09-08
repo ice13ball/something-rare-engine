@@ -83,10 +83,37 @@ ALTER TABLE memento_casts OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS geotraces_stations ( station_id TEXT PRIMARY KEY, cruise TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, decade INTEGER, n_samples INTEGER, min_depth_m DOUBLE PRECISION, max_depth_m DOUBLE PRECISION, bottom_depth_m DOUBLE PRECISION, has_mn BOOLEAN, has_fe BOOLEAN, has_co BOOLEAN, has_ni BOOLEAN, has_cu BOOLEAN, mn_max DOUBLE PRECISION, fe_max DOUBLE PRECISION, co_max DOUBLE PRECISION, ni_max DOUBLE PRECISION, cu_max DOUBLE PRECISION, geom geometry(Point, 4326) )
 CREATE TABLE IF NOT EXISTS geotraces_samples ( sample_id BIGSERIAL PRIMARY KEY, station_id TEXT NOT NULL, cruise TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, bottom_depth_m DOUBLE PRECISION, mn_d DOUBLE PRECISION, fe_d DOUBLE PRECISION, co_d DOUBLE PRECISION, ni_d DOUBLE PRECISION, cu_d DOUBLE PRECISION, mn_d_qc SMALLINT, fe_d_qc SMALLINT, co_d_qc SMALLINT, ni_d_qc SMALLINT, cu_d_qc SMALLINT, params JSONB, geom geometry(Point, 4326) )
 CREATE TABLE IF NOT EXISTS geotraces_param_units ( param TEXT PRIMARY KEY, unit TEXT )
+CREATE TABLE IF NOT EXISTS geotraces_params ( param_code TEXT PRIMARY KEY, label TEXT, unit TEXT, family TEXT, n_values INTEGER DEFAULT 0 )
+CREATE TABLE IF NOT EXISTS geotraces_values ( sample_id BIGINT NOT NULL, param_code TEXT NOT NULL, value DOUBLE PRECISION NOT NULL, stddev DOUBLE PRECISION, qc_flag SMALLINT, PRIMARY KEY (sample_id, param_code) )
 CREATE INDEX IF NOT EXISTS geotraces_stations_geom_gix ON geotraces_stations USING GIST (geom)
 CREATE INDEX IF NOT EXISTS geotraces_samples_geom_gix ON geotraces_samples USING GIST (geom)
 CREATE INDEX IF NOT EXISTS geotraces_samples_station_idx ON geotraces_samples (station_id)
 CREATE INDEX IF NOT EXISTS geotraces_stations_decade_idx ON geotraces_stations (decade)
+CREATE INDEX IF NOT EXISTS geotraces_values_param_idx ON geotraces_values (param_code)
+DO $mig$ BEGIN IF EXISTS ( SELECT 1 FROM information_schema.columns WHERE table_name = 'geotraces_values' AND column_name = 'sample_id' AND data_type <> 'bigint' ) THEN TRUNCATE geotraces_values
+ALTER TABLE geotraces_values ALTER COLUMN sample_id TYPE BIGINT USING NULL
+END IF
+END $mig$
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS geotraces_sample_id TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS csv_row BIGINT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS sampling_device TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS cast_identifier TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bodc_event_number INTEGER
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bodc_bottle_number INTEGER
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS rosette_bottle_number INTEGER
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bottle_flag TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ship_name TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS cruise_period TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS chief_scientist TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS geotraces_scientist TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS operators_cruise_name TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS cruise_information_link TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bodc_cruise_number INTEGER
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ncbi_metagenome_biosample TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ncbi_single_cell_genome_bioproject TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ncbi_rrna_biosample TEXT
+ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS embl_ebi_metagenome_analysis TEXT
+CREATE UNIQUE INDEX IF NOT EXISTS geotraces_samples_csv_row_uidx ON geotraces_samples (csv_row)
 CREATE TABLE IF NOT EXISTS mosaic_cores ( core_id INTEGER PRIMARY KEY, core_name TEXT, latitude DOUBLE PRECISION NOT NULL, longitude DOUBLE PRECISION NOT NULL, water_depth_m DOUBLE PRECISION, sampling_year INTEGER, decade INTEGER, sampling_date DATE, sampling_month SMALLINT, sampling_day SMALLINT, campaign_name TEXT, campaign_start DATE, campaign_end DATE, core_comment TEXT, date_precision TEXT, sampling_method TEXT, research_vessel TEXT, seas TEXT, eez TEXT, longhurst TEXT, has_toc BOOLEAN, has_tn BOOLEAN, has_d13c BOOLEAN, has_d14c BOOLEAN, toc_surf DOUBLE PRECISION, tn_surf DOUBLE PRECISION, d13c_surf DOUBLE PRECISION, d14c_surf DOUBLE PRECISION, geom geometry(Point, 4326), synced_at TIMESTAMPTZ DEFAULT now() )
 CREATE TABLE IF NOT EXISTS mosaic_samples ( sample_id INTEGER PRIMARY KEY, core_id INTEGER NOT NULL, depth_upper_cm DOUBLE PRECISION, depth_bottom_cm DOUBLE PRECISION, depth_avg_cm DOUBLE PRECISION, material_analyzed TEXT, replicate INTEGER, toc DOUBLE PRECISION, tn DOUBLE PRECISION, d13c DOUBLE PRECISION, d14c DOUBLE PRECISION, fm14c DOUBLE PRECISION, provenance JSONB, geom geometry(Point, 4326) )
 CREATE INDEX IF NOT EXISTS mosaic_cores_geom_gix ON mosaic_cores USING GIST (geom)
@@ -195,6 +222,8 @@ CREATE TABLE IF NOT EXISTS onc_adcp_strips ( location_code TEXT, device_code TEX
 ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS depths JSONB
 ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS variable TEXT
 ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS units TEXT
+CREATE TABLE IF NOT EXISTS onc_location_categories ( location_code TEXT NOT NULL, device_category_code TEXT NOT NULL, PRIMARY KEY (location_code, device_category_code) )
+CREATE INDEX IF NOT EXISTS onc_location_categories_category_idx ON onc_location_categories (device_category_code)
 CREATE TABLE IF NOT EXISTS onc_ctd_profiles ( location_code TEXT, device_code TEXT, cast_time TIMESTAMPTZ, profile JSONB, updated_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (location_code, device_code, cast_time) )
 CREATE TABLE IF NOT EXISTS usgs_earthquakes ( usgs_id TEXT PRIMARY KEY, occurred_at TIMESTAMPTZ NOT NULL, magnitude REAL, depth_km REAL, place TEXT, geom GEOGRAPHY(POINT, 4326) )
 COMMENT ON COLUMN usgs_earthquakes.depth_km IS 'Kilometres below sea level. NEGATIVE values are correct - USGS reports events ' 'above sea level that way. Not a defect.'

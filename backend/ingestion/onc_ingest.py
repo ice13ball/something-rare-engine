@@ -7,6 +7,7 @@ API docs: https://wiki.oceannetworks.ca/spaces/O2A/pages/49447542/API+Guide
 Token: set ONC_TOKEN env var (register free at https://data.oceannetworks.ca/Registration)
 License: CC BY 4.0
 """
+import asyncio
 import logging
 import os
 import httpx
@@ -16,33 +17,122 @@ log = logging.getLogger(__name__)
 ONC_BASE = "https://data.oceannetworks.ca/api"
 ONC_TOKEN = os.getenv("ONC_TOKEN", "")
 
-# Only pull locations that have real oceanographic instruments.
-# AIS receivers (shore-based ship-tracking stations) are excluded — they
-# are not observatories and produce no oceanographic data relevant to this map.
-_OCEANOGRAPHIC_CATEGORIES = [
-    "CTD",
-    "OXYSENSOR",
-]
+# Fallback list, used only if the live GET /deviceCategories?method=get call
+# fails (transient outage). Deliberately small — this degrades the ingest to
+# "the two categories we always had", not "nothing".
+_FALLBACK_CATEGORIES = ["CTD", "OXYSENSOR"]
+
+# Delay between successive per-category location calls. Measured 2026-09-08:
+# fetching every category is ~129 calls where it used to be 2 — pace them so
+# we don't hammer ONC in a tight loop.
+_REQUEST_PACE_SECONDS = 0.15
 
 
-async def fetch_onc_locations() -> list[dict]:
-    """Fetch ONC observatory locations that have at least one oceanographic sensor.
+def safe_exc(exc: BaseException) -> str:
+    """A log-safe rendering of an httpx exception.
 
-    Queries each target device category for the locations that carry it, then
-    deduplicates. This excludes the ~1,800 AIS shore stations that the plain
-    `locations?method=get` call returns.
+    ⛔ NEVER log the raw exception from an ONC call. httpx puts the full request
+    URL in str(exc), and every ONC request carries ?token=<ONC_TOKEN>. The
+    root-logger filter in log_redaction.py does catch it — but a credential
+    must not depend on one backstop, and that filter only matches secrets that
+    were present in the environment when it was installed.
+    """
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+        return f"HTTP {exc.response.status_code}"
+    return type(exc).__name__
 
-    Returns list of dicts: location_code, name, lat, lon, depth_m, description.
+
+async def fetch_device_categories(client: httpx.AsyncClient) -> list[str] | None:
+    """Fetch the live list of ONC device category codes.
+
+    Measured 2026-09-08: GET /deviceCategories?method=get returns 129
+    categories.
+
+    Returns None on ANY failure (network error, non-2xx, empty body) — this
+    is a deliberate signal distinct from "fetched successfully". A caller
+    that silently substituted `_FALLBACK_CATEGORIES` here and treated the
+    result as if it were live data is exactly the bug that let one timed-out
+    call truncate ~1,993 locations down to ~183 (2026-09-08 audit). Callers
+    that want the fallback list applied must do so explicitly and must know
+    they did.
+    """
+    try:
+        resp = await client.get(
+            f"{ONC_BASE}/deviceCategories",
+            params={"method": "get", "token": ONC_TOKEN},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        codes = [
+            d.get("deviceCategoryCode")
+            for d in data
+            if isinstance(d, dict) and d.get("deviceCategoryCode")
+        ]
+        if codes:
+            return codes
+        log.warning("onc: deviceCategories returned no codes")
+    except httpx.HTTPStatusError as exc:
+        # str(exc) embeds the full request URL, including ?token=... —
+        # log_redaction.py catches this today, but don't rely on it: log
+        # only the status code, never the raw exception object.
+        status = exc.response.status_code if exc.response is not None else "?"
+        log.warning("onc: deviceCategories fetch failed (HTTP %s)", status)
+    except Exception as exc:
+        log.warning("onc: deviceCategories fetch failed (%s)", type(exc).__name__)
+    return None
+
+
+async def fetch_onc_locations() -> tuple[list[dict], list[tuple[str, str]], bool]:
+    """Fetch every ONC observatory location, across every device category.
+
+    Queries GET /deviceCategories?method=get for the current category list,
+    then GET /locations?method=getByDeviceCategory for each category in turn,
+    deduplicating locations by location_code.
+
+    A 404 on a category is EXPECTED (measured 2026-09-08: 9 of 129 categories
+    return 404, e.g. MAGNETOMETER, PIES, PONECAMERA, SERVER) — it means the
+    category currently has zero locations. Skip it, count it, keep going;
+    never abort the sync over one category's 404.
+
+    CORRECTED 2026-09-08: an earlier version of this module excluded
+    AISRECEIVER as "~1,800 AIS shore stations". Measured against the real
+    API: `getByDeviceCategory(AISRECEIVER)` returns 126 locations. The 1,800
+    figure belongs to a different, unrelated endpoint — the bare
+    `locations?method=get` call — and never applied to the per-category
+    query this module makes. AIS is no longer excluded; every category is
+    fetched.
+
+    Returns (locations, location_categories, categories_ok):
+      - locations: deduplicated list of dicts (location_code, name, lat, lon,
+        depth_m, description) — one row per unique location, ~1,993 measured.
+      - location_categories: (location_code, device_category_code) pairs —
+        one row per (location, category) it was found under, ~4,937 measured.
+        This is the new information; do not throw it away by deduplicating it.
+      - categories_ok: False if the live deviceCategories fetch failed and
+        this call fell back to `_FALLBACK_CATEGORIES` (2 categories instead
+        of ~129). Callers MUST treat `categories_ok=False` as "this result is
+        not a true widening of the ingest" and must not let it replace a
+        larger, previously-stored location set.
     """
     if not ONC_TOKEN:
         log.warning("ONC_TOKEN not set — skipping ONC ingestion")
-        return []
+        return [], [], False
 
     seen: set[str] = set()
     locations: list[dict] = []
+    location_categories: list[tuple[str, str]] = []
+    no_data_categories = 0
 
     async with httpx.AsyncClient(timeout=30) as client:
-        for category in _OCEANOGRAPHIC_CATEGORIES:
+        categories = await fetch_device_categories(client)
+        categories_ok = categories is not None
+        if categories is None:
+            log.warning("onc: deviceCategories unavailable — falling back to %s", _FALLBACK_CATEGORIES)
+            categories = list(_FALLBACK_CATEGORIES)
+
+        for i, category in enumerate(categories):
+            if i > 0:
+                await asyncio.sleep(_REQUEST_PACE_SECONDS)
             try:
                 resp = await client.get(
                     f"{ONC_BASE}/locations",
@@ -52,15 +142,35 @@ async def fetch_onc_locations() -> list[dict]:
                         "token":              ONC_TOKEN,
                     },
                 )
+                if resp.status_code == 404:
+                    # Normal: the category currently has zero locations.
+                    no_data_categories += 1
+                    continue
                 resp.raise_for_status()
                 data = resp.json()
+            except httpx.HTTPStatusError as exc:
+                if exc.response is not None and exc.response.status_code == 404:
+                    no_data_categories += 1
+                    continue
+                # str(exc) embeds the request URL including ?token=... — log
+                # the status code, never the raw exception.
+                status = exc.response.status_code if exc.response is not None else "?"
+                log.warning("onc: category %s fetch failed (HTTP %s)", category, status)
+                continue
             except Exception as exc:
-                log.warning("onc: category %s fetch failed: %s", category, exc)
+                log.warning("onc: category %s fetch failed (%s)", category, type(exc).__name__)
+                continue
+
+            if not data:
+                no_data_categories += 1
                 continue
 
             for item in data:
                 code = item.get("locationCode", "")
-                if not code or code in seen:
+                if not code:
+                    continue
+                location_categories.append((code, category))
+                if code in seen:
                     continue
                 lat = item.get("lat")
                 lon = item.get("lon")
@@ -77,6 +187,11 @@ async def fetch_onc_locations() -> list[dict]:
                     "description":   item.get("description", "") or "",
                 })
 
-    log.info("onc: fetched %d oceanographic locations (from %d categories)",
-             len(locations), len(_OCEANOGRAPHIC_CATEGORIES))
-    return locations
+    log.info(
+        "onc: fetched %d unique locations, %d (location, category) pairs "
+        "from %d categories (%d of %d categories returned no locations, "
+        "categories_ok=%s)",
+        len(locations), len(location_categories), len(categories),
+        no_data_categories, len(categories), categories_ok,
+    )
+    return locations, location_categories, categories_ok

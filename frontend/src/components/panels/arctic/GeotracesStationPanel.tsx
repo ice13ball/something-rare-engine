@@ -26,6 +26,7 @@ interface GeotracesSample {
   ni_d_qc: number | null;
   cu_d_qc: number | null;
   params: Record<string, unknown>;
+  sample_id?: number | string;
 }
 
 interface GeotracesStationDetail {
@@ -43,10 +44,28 @@ interface GeotracesStationDetail {
   samples: GeotracesSample[];
 }
 
+interface GeotracesParam {
+  param_code: string;
+  label: string | null;
+  unit: string | null;
+  family: string | null;
+  n_values: number;
+}
+
+interface GeotracesMeasurement {
+  param_code: string;
+  value: number | null;
+  stddev: number | null;
+  qc_flag: number | null;
+}
+
 interface GeotracesResponse {
   station: GeotracesStationDetail;
   units: Record<string, string>;
   samples: GeotracesSample[];
+  measurements?: Record<string, GeotracesMeasurement[]>;
+  params?: GeotracesParam[];
+  truncated?: boolean;
 }
 
 function GeotracesDepthChart({
@@ -201,6 +220,71 @@ export function GeotracesStationPanel({ id }: { id: number | string }) {
           </div>
         </Section>
       )}
+
+      {data.measurements != null && (() => {
+        const paramByCode = Object.fromEntries((data.params ?? []).map(p => [p.param_code, p]));
+        const depthBySampleId = Object.fromEntries(
+          samples.map(s => [String(s.sample_id), s.depth_m])
+        );
+        const rows = Object.entries(data.measurements as Record<string, GeotracesMeasurement[]>).flatMap(
+          ([sampleId, meas]) => meas.map(m => ({ ...m, sample_id: sampleId, depth_m: depthBySampleId[sampleId] ?? null }))
+        );
+        if (rows.length === 0) return null;
+
+        const byFamily = new Map<string, typeof rows>();
+        for (const r of rows) {
+          const fam = paramByCode[r.param_code]?.family ?? "other";
+          if (!byFamily.has(fam)) byFamily.set(fam, []);
+          byFamily.get(fam)!.push(r);
+        }
+
+        return (
+          <details className="mb-4">
+            <summary className="text-white/70 text-xs font-semibold cursor-pointer select-none uppercase tracking-wide">
+              All measured parameters ({rows.length})
+            </summary>
+            {data.truncated && (
+              <p className="text-amber-300 text-[11px] mt-2 mb-1">
+                Showing a truncated subset — not the full parameter list for this station.
+              </p>
+            )}
+            <div className="mt-2 space-y-3">
+              {[...byFamily.entries()].map(([family, famRows]) => (
+                <div key={family}>
+                  <p className="text-white/50 text-[10px] uppercase tracking-wide mb-1">{family}</p>
+                  <div className="max-h-40 overflow-y-auto rounded border border-white/10">
+                    <table className="w-full text-[11px] font-mono">
+                      <thead className="sticky top-0 bg-black/80">
+                        <tr>
+                          <th className="px-2 py-0.5 text-left text-white/50 font-normal">Depth (m)</th>
+                          <th className="px-2 py-0.5 text-left text-white/50 font-normal">Param</th>
+                          <th className="px-2 py-0.5 text-right text-white/50 font-normal">Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {famRows.map((r, i) => {
+                          const p = paramByCode[r.param_code];
+                          return (
+                            <tr key={i} className="odd:bg-white/[0.025]">
+                              <td className="px-2 py-0.5 text-white/85">{r.depth_m ?? "—"}</td>
+                              <td className="px-2 py-0.5 text-white/75">{p?.label ?? r.param_code}</td>
+                              <td className="px-2 py-0.5 text-right text-white/75">
+                                {r.value == null ? "—" : fmtMetal(r.value)}
+                                {p?.unit ? ` ${p.unit}` : ""}
+                                {qcBadge(r.qc_flag)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        );
+      })()}
 
       <Section title="Station details">
         {station.cruise   != null && <Row label="Cruise"      value={String(station.cruise)} />}

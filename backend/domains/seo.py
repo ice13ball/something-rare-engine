@@ -830,8 +830,17 @@ async def seo_sitemap_entries():
         oceansites = await conn.fetch("""
             SELECT ref, updated_at FROM oceansites_stations ORDER BY ref
         """)
+        # Gated on latest_sensors IS NOT NULL: with onc_ingest.py now pulling
+        # every ONC device category, onc_locations holds ~1,993 rows (most
+        # junction boxes, power supplies, cameras with nothing to show on a
+        # page). Same marker sync_onc_sensors() uses to know "has data" and
+        # isa.py::enrich_claim_boundaries() now uses for nearby_onc_stations.
+        # seo_onc() below stays UNGATED — every location still resolves at
+        # /v1/seo/onc/{code}, it just isn't advertised in the sitemap.
         onc_locs = await conn.fetch("""
-            SELECT location_code, updated_at FROM onc_locations ORDER BY location_code
+            SELECT location_code, updated_at FROM onc_locations
+            WHERE latest_sensors IS NOT NULL
+            ORDER BY location_code
         """)
         rivers = await conn.fetch(
             "SELECT station_id FROM arctic_river_stations WHERE source='arcticgro' ORDER BY station_id"
@@ -1006,7 +1015,14 @@ async def seo_sitemap_core():
         concessions = await conn.fetch("SELECT isa_id, COALESCE(act_date, created_at, NOW()) AS lastmod FROM mining_contracts ORDER BY isa_id")
         vents = await conn.fetch("SELECT id, COALESCE(created_at, NOW()) AS lastmod FROM hydrothermal_vents ORDER BY id")
         oceansites = await conn.fetch("SELECT ref, updated_at FROM oceansites_stations ORDER BY ref")
-        onc_locs = await conn.fetch("SELECT location_code, updated_at FROM onc_locations ORDER BY location_code")
+        # Gated on latest_sensors IS NOT NULL — this is the function server.js
+        # actually calls for sitemap.xml (frontend/server.js:881, :1126), unlike
+        # seo_sitemap_entries() below which nothing in production fetches.
+        # Same marker used by seo_hubs.py's "onc" Hub and nearby_onc_stations.
+        onc_locs = await conn.fetch(
+            "SELECT location_code, updated_at FROM onc_locations "
+            "WHERE latest_sensors IS NOT NULL ORDER BY location_code"
+        )
         reports = await conn.fetch(REPORT_SITEMAP_SQL)
         sync = await conn.fetch("SELECT source, last_synced_at FROM sync_log")
         contractors = await conn.fetch("SELECT DISTINCT contractor_name FROM mining_contracts WHERE contractor_name IS NOT NULL ORDER BY contractor_name")

@@ -43,7 +43,7 @@ import {
   withAlpha,
 } from "../styles/colorStandards";
 import { stationAqi, AQI_NO_DATA_COLOR } from "../styles/aqi";
-import { ONC_EOV_CATEGORIES } from "../types/onc";
+import { ONC_EOV_CATEGORIES, ONC_ALL_KNOWN_CATEGORIES } from "../types/onc";
 import type { OncEov } from "../types/onc";
 import { useLayerConfig, DECK_TO_TOGGLE } from "../utils/layerConfig";
 import { gebcoTileUrl } from "../utils/gebcoTiles";
@@ -65,7 +65,7 @@ import {
   type Box, expandBox, walkCoords, bboxToView, getBBoxCenter,
   approxViewBbox, bboxContains, expandBoxBuffer,
 } from "./map3d/geometry";
-import { makeSetFilter } from "./map3d/filters";
+import { makeSetFilter, oncEovVisible } from "./map3d/filters";
 import { hexPassesDecadeFilter, hexFilteredCount } from "./map3d/hexDecadeFilter";
 import { decodeCurrentArrows, _currentsFieldLRU, lruPut } from "./map3d/currents";
 import {
@@ -1705,17 +1705,19 @@ export function Map3D() {
 
   const filteredOncFeatures = useMemo(() => {
     if (!oncData) return [];
-    if (!_oncEovAllowed) return oncData.features;
     return oncData.features.filter((f: any) =>
-      (f.properties?.device_categories ?? []).some((c: string) => _oncEovAllowed.has(c))
+      oncEovVisible(f.properties?.device_categories, _oncEovAllowed, ONC_ALL_KNOWN_CATEGORIES)
     );
   }, [oncData, _oncEovAllowed]);
 
   const filteredOncInstrumentsFeatures = useMemo(() => {
     if (!oncInstrumentsData) return [];
-    if (!_oncEovAllowed) return oncInstrumentsData.features;
     return oncInstrumentsData.features.filter((f: any) =>
-      _oncEovAllowed.has(f.properties?.device_category)
+      oncEovVisible(
+        f.properties?.device_category != null ? [f.properties.device_category] : [],
+        _oncEovAllowed,
+        ONC_ALL_KNOWN_CATEGORIES,
+      )
     );
   }, [oncInstrumentsData, _oncEovAllowed]);
 
@@ -2061,13 +2063,17 @@ export function Map3D() {
     "onc": {
       deckLayerId: "onc",
       filter: _oncEovAllowed
-        ? (f: any) => (f.properties?.device_categories ?? []).some((c: string) => _oncEovAllowed.has(c))
+        ? (f: any) => oncEovVisible(f.properties?.device_categories, _oncEovAllowed, ONC_ALL_KNOWN_CATEGORIES)
         : undefined,
     },
     "onc-instruments": {
       deckLayerId: "onc-instruments",
       filter: _oncEovAllowed
-        ? (f: any) => _oncEovAllowed.has(f.properties?.device_category)
+        ? (f: any) => oncEovVisible(
+            f.properties?.device_category != null ? [f.properties.device_category] : [],
+            _oncEovAllowed,
+            ONC_ALL_KNOWN_CATEGORIES,
+          )
         : undefined,
     },
     "deepdata-stations": {

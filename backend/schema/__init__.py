@@ -65,7 +65,7 @@ async def ensure_schema() -> None:
         await ensure_feedback(conn)  # feedback_submissions
         await ensure_blog(conn)  # blog_articles
         await ensure_oceansites(conn)  # oceansites_stations
-        await ensure_onc_core(conn)  # onc_locations, onc_sparklines, onc_adcp_strips, onc_ctd_profiles
+        await ensure_onc_core(conn)  # onc_locations, onc_location_categories, onc_sparklines, onc_adcp_strips, onc_ctd_profiles
         await ensure_usgs_earthquakes(conn)  # usgs_earthquakes
         await ensure_acoustic_stations(conn)  # acoustic_stations, acoustic_soundscape
         await ensure_vents_and_chess(conn)  # drop deprecated GBIF table; chess_occurrences; hydrothermal_vents InterRidge/ChEssBase enrichment

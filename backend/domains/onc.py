@@ -165,6 +165,7 @@ from fastapi.responses import Response
 from indexnow import notify_indexnow as _notify_indexnow
 from indexnow import SITE_HOST
 from ingestion import onc_adcp_product
+from ingestion import onc_ingest
 from ingestion import onc_dataproduct
 from sync_log import log_sync as _log_sync
 
@@ -567,17 +568,56 @@ async def enrich_onc_instruments(batch_limit: int | None = None) -> int:
 
 
 async def sync_onc() -> int:
-    """Fetch ONC observatory locations and replace DB contents.
+    """Fetch ONC observatory locations (every device category) and replace DB contents.
 
-    Full replace (truncate + insert) rather than upsert so that locations
-    removed from the oceanographic filter (e.g. AIS-only shore stations) are
-    not left as stale rows.
+    Full replace (truncate + insert) rather than upsert, on both
+    `onc_locations` and `onc_location_categories`, so that locations no
+    longer returned by ONC at all are not left as stale rows. This is the
+    ONLY place stale locations are removed — `sync_onc_sensors` below must
+    never delete a location just because it has no scalar data; most of the
+    ~1,993 locations are infrastructure (junction boxes, power supplies,
+    adapters) that legitimately never carry scalar readings.
     """
     from ingestion.onc_ingest import fetch_onc_locations
-    locations = await fetch_onc_locations()
+    locations, location_categories, categories_ok = await fetch_onc_locations()
+
     if not locations:
+        # Ran, found nothing to write — still log it so the monitor can tell
+        # this apart from "sync never ran".
+        await _log_sync("onc", 0, 0)
         return 0
+
+    if not categories_ok:
+        # The live deviceCategories call failed and fetch_onc_locations fell
+        # back to _FALLBACK_CATEGORIES (2 categories instead of ~129) — that
+        # yields ~183 locations, not the full ~1,993. Writing this over the
+        # existing table would be exactly the bug that wiped ~1,810
+        # locations on 2026-09-08. Refuse to truncate; do NOT stamp
+        # last_synced_at (a failed sync must not look like a successful one).
+        log.warning(
+            "onc: deviceCategories fetch failed — refusing to replace "
+            "onc_locations with the %d-location fallback result", len(locations),
+        )
+        return 0
+
     async with db.pool.acquire() as conn:
+        existing = await conn.fetchval("SELECT COUNT(*) FROM onc_locations")
+        # Shrink guard: refuse to replace the table if the new set is
+        # dramatically smaller than what's stored. Threshold: new count must
+        # be >= 50% of existing — chosen because the failure mode we're
+        # guarding against (fallback categories) collapses ~1,993 -> ~183,
+        # a ~90% drop; a single flaky category (measured: 9/129 return 404
+        # legitimately) costs at most a few dozen locations, nowhere near
+        # 50%. A real, deliberate ONC-side removal of >50% of locations in
+        # one sync is implausible and worth a human look, not a silent
+        # TRUNCATE.
+        if existing > 0 and len(locations) < existing * 0.5:
+            log.warning(
+                "onc: new location count (%d) is less than half of existing "
+                "(%d) — refusing to truncate, leaving table as-is",
+                len(locations), existing,
+            )
+            return 0
         async with conn.transaction():
             await conn.execute("TRUNCATE TABLE onc_locations")
             await conn.executemany(
@@ -590,6 +630,15 @@ async def sync_onc() -> int:
                   l["depth_m"], l["description"])
                  for l in locations],
             )
+            await conn.execute("TRUNCATE TABLE onc_location_categories")
+            if location_categories:
+                await conn.executemany(
+                    """INSERT INTO onc_location_categories
+                       (location_code, device_category_code)
+                       VALUES ($1, $2)
+                       ON CONFLICT (location_code, device_category_code) DO NOTHING""",
+                    location_categories,
+                )
         count = await conn.fetchval("SELECT COUNT(*) FROM onc_locations")
     global _onc_cache
     _onc_cache = None
@@ -600,14 +649,34 @@ async def sync_onc() -> int:
     return count
 
 
-async def sync_onc_sensors() -> int:
-    """Fetch latest CTD/oxygen readings for every ONC location and cache in DB.
+# Locations processed per sync_onc_sensors() call. Driven per-location from
+# onc_location_categories (only categories a location actually carries are
+# queried), so a full pass is ~4,937 scalardata calls rather than
+# 1,993 locations x 129 categories. That is still too many for one run, so
+# this is incremental: each call takes the batch least-recently refreshed
+# (sensors_fetched_at NULLS FIRST), same pattern as enrich_onc_instruments.
+_SENSOR_SYNC_BATCH_LOCATIONS = 400
 
-    Runs concurrently (up to 8 parallel requests) to process ~622 locations
-    quickly. Locations with no data within the past year are deleted — only
-    instruments with actual readings appear on the map.
 
-    Returns count of locations with live sensor data.
+async def sync_onc_sensors(batch_limit: int | None = None) -> int:
+    """Fetch latest scalar readings for a batch of ONC locations and cache in DB.
+
+    Queries only the device categories each location is known to carry (via
+    `onc_location_categories`), not every category — most of ONC's ~129
+    categories are infrastructure with no scalar data at all.
+
+    Locations with no data are NOT deleted — many are legitimately
+    infrastructure (junction boxes, power supplies, adapters) with no scalar
+    sensors. `latest_sensors` is simply left NULL for them. Deleting
+    no-data locations here is what silently undid the category-widening in
+    the past: `sync_onc()` is the only place a location is ever removed, and
+    it only removes locations ONC itself no longer returns.
+
+    Incremental: processes up to `_SENSOR_SYNC_BATCH_LOCATIONS` locations per
+    call, oldest-refreshed first, so a full sweep of ~1,993 locations takes
+    several scheduled runs rather than one multi-minute call.
+
+    Returns count of locations updated with live sensor data this call.
     """
     token = os.getenv("ONC_TOKEN")
     if not token:
@@ -615,10 +684,32 @@ async def sync_onc_sensors() -> int:
         return 0
 
     async with db.pool.acquire() as conn:
-        rows = await conn.fetch("SELECT location_code FROM onc_locations")
-    codes = [r["location_code"] for r in rows]
-    if not codes:
-        return 0
+        loc_rows = await conn.fetch(
+            """SELECT location_code FROM onc_locations
+               ORDER BY sensors_fetched_at ASC NULLS FIRST, location_code
+               LIMIT $1""",
+            batch_limit if batch_limit else _SENSOR_SYNC_BATCH_LOCATIONS,
+        )
+        codes = [r["location_code"] for r in loc_rows]
+        if not codes:
+            # Ran and found nothing to refresh — say so, or the monitor cannot
+            # tell this from a scheduler that never fired.
+            await _log_sync("onc-sensors", 0, 0)
+            return 0
+        cat_rows = await conn.fetch(
+            """SELECT location_code, device_category_code
+               FROM onc_location_categories
+               WHERE location_code = ANY($1::text[])""",
+            codes,
+        )
+
+    categories_by_location: dict[str, list[str]] = {}
+    for r in cat_rows:
+        categories_by_location.setdefault(r["location_code"], []).append(r["device_category_code"])
+    # Locations with no recorded categories (e.g. onc_location_categories not
+    # yet populated by an older sync_onc run) fall back to the historical pair.
+    for code in codes:
+        categories_by_location.setdefault(code, ["CTD", "OXYSENSOR"])
 
     now = datetime.now(timezone.utc)
     date_from = (now - timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -628,7 +719,7 @@ async def sync_onc_sensors() -> int:
 
     async def _fetch_one(client: httpx.AsyncClient, code: str) -> tuple[str, dict | None]:
         async with sem:
-            for category in ("CTD", "OXYSENSOR"):
+            for category in categories_by_location.get(code, []):
                 params = {
                     "method":             "getByLocation",
                     "locationCode":       code,
@@ -663,14 +754,30 @@ async def sync_onc_sensors() -> int:
                     if sensors:
                         return code, sensors
                 except Exception as exc:
-                    log.debug("onc sensor fetch %s/%s: %s", code, category, exc)
+                    # ⛔ Never interpolate the raw exception: httpx embeds the
+                    # full request URL in str(exc), and this one carries
+                    # ?token=<ONC_TOKEN>. log_redaction.py would catch it, but
+                    # a credential must not depend on a single backstop.
+                    log.debug("onc sensor fetch %s/%s: %s", code, category,
+                              onc_ingest.safe_exc(exc))
         return code, None
 
     async with httpx.AsyncClient() as client:
-        results = await asyncio.gather(*[_fetch_one(client, c) for c in codes])
+        results = await asyncio.gather(
+            *[_fetch_one(client, c) for c in codes], return_exceptions=True
+        )
 
-    with_data    = [(code, json.dumps(sensors)) for code, sensors in results if sensors]
-    without_data = [code for code, sensors in results if sensors is None]
+    with_data: list[tuple[str, str]] = []
+    no_data_codes: list[str] = []
+    for code, res in zip(codes, results):
+        if isinstance(res, Exception):
+            log.debug("onc sensor fetch %s: %s", code, onc_ingest.safe_exc(res))
+            continue
+        _, sensors = res
+        if sensors:
+            with_data.append((code, json.dumps(sensors)))
+        else:
+            no_data_codes.append(code)
 
     async with db.pool.acquire() as conn:
         async with conn.transaction():
@@ -681,15 +788,21 @@ async def sync_onc_sensors() -> int:
                        WHERE location_code = $1""",
                     with_data,
                 )
-            if without_data:
+            if no_data_codes:
+                # Leave latest_sensors as-is (do NOT null out a previously
+                # good reading just because this batch found nothing new),
+                # but stamp sensors_fetched_at so the NULLS-FIRST ordering
+                # above rotates on to the next batch of locations.
                 await conn.execute(
-                    "DELETE FROM onc_locations WHERE location_code = ANY($1::text[])",
-                    without_data,
+                    """UPDATE onc_locations SET sensors_fetched_at = NOW()
+                       WHERE location_code = ANY($1::text[])""",
+                    no_data_codes,
                 )
 
     global _onc_cache
     _onc_cache = None
-    log.info("onc sensors: %d with data, %d removed (no data)", len(with_data), len(without_data))
+    log.info("onc sensors: %d with data, %d with no data (batch of %d locations)",
+              len(with_data), len(no_data_codes), len(codes))
     await _log_sync("onc-sensors", len(with_data), len(with_data))
     return len(with_data)
 
@@ -1195,19 +1308,46 @@ async def get_onc():
         return Response(content=_onc_cache, media_type="application/json")
 
     async with db.pool.acquire() as conn:
+        # device_categories merges TWO independent sources, in two different
+        # naming forms — see rules/layers/onc-observatory.md and
+        # frontend/src/types/onc.ts:
+        #   - onc_instruments.device_category: LONG names ("Conductivity
+        #     Temperature Depth"), from the curated ArcGIS ONC_Instruments
+        #     WFS feed (sync_onc_instruments). Only ~20 categories deep.
+        #   - onc_location_categories.device_category_code: SHORT codes
+        #     ("CTD"), from the Oceans 3.0 deviceCategoryCode used by the
+        #     full-breadth ingest (onc_ingest.py) — this is what actually
+        #     covers the ~1,993 locations / 129 categories. Without this
+        #     join, every location added by that ingest gets an EMPTY
+        #     device_categories array and silently vanishes from the map the
+        #     instant any EOV filter is active.
         rows = await conn.fetch("""
             SELECT l.location_code, l.name, l.lat, l.lon, l.depth_m, l.description,
                    l.latest_sensors, l.sensors_fetched_at,
-                   COALESCE(i.categories, ARRAY[]::text[]) AS device_categories
+                   ARRAY(
+                       SELECT DISTINCT x FROM unnest(
+                           COALESCE(i.categories, ARRAY[]::text[])
+                           || COALESCE(lc.codes, ARRAY[]::text[])
+                       ) AS x
+                   ) AS device_categories
             FROM onc_locations l
             LEFT JOIN LATERAL (
                 SELECT array_agg(DISTINCT device_category) AS categories
                 FROM onc_instruments
                 WHERE location_code = l.location_code AND device_category IS NOT NULL
             ) i ON true
-            WHERE l.latest_sensors IS NOT NULL
+            LEFT JOIN LATERAL (
+                SELECT array_agg(DISTINCT device_category_code) AS codes
+                FROM onc_location_categories
+                WHERE location_code = l.location_code
+            ) lc ON true
             ORDER BY l.location_code
         """)
+        # NOTE: intentionally NOT gated on latest_sensors — Michal's decision
+        # (2026-09-08): ALL ~1,993 ONC locations belong on the map, including
+        # infrastructure (junction boxes, power supplies) that never gets a
+        # sensor reading. Only the SEO surfaces (sitemap, /hub/onc,
+        # nearby_onc_stations) are gated to real-measurement stations.
 
     features = [
         {

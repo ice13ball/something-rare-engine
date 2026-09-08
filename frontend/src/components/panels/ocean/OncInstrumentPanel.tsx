@@ -29,6 +29,28 @@ const ONC_CATEGORY_BLURBS: Record<string, string> = {
   "ACOUSTICDOPPLERCURRENTPROFILER": "Acoustic Doppler Current Profiler — measures 3D current velocity.",
   "RADIOMETER": "Measures incoming light (PAR, UV, surface radiation).",
   "MAGNETOMETER": "Measures magnetic field variations.",
+  // Chemistry/biology categories added with the 2026-09-08 full-breadth ONC ingest.
+  "CDOM": "Measures coloured dissolved organic matter via fluorescence.",
+  "CRUDEOILFLUOROMETER": "Fluorometer tuned to detect crude oil in seawater.",
+  "REFINEDFUELSFLUOROMETER": "Fluorometer tuned to detect refined fuel products in seawater.",
+  "TRANSMISSOMETER": "Measures light transmission — water clarity / particulate load.",
+  "TURBCHLFL": "Combined turbidity and chlorophyll fluorescence sensor.",
+  "PARTANALYZER": "Analyses suspended particle size and abundance.",
+  "SEDTRAP": "Sediment trap — collects settling particulate matter over time.",
+  "WATERSAMPLER": "Collects discrete water samples for lab analysis.",
+  "WETLABS_WQM": "WET Labs water-quality monitor — multi-parameter optical sensor.",
+  "PLANKTONSAMPLER": "Collects plankton samples in situ.",
+  "PLANKTONCAMSYSTEM": "In situ camera system imaging plankton.",
+  "CHEMINI": "Autonomous in situ chemical analyser (nutrients/metals).",
+  "GTD": "Gas tension device — measures total dissolved gas pressure.",
+  "METHSENSOR": "Measures dissolved methane concentration.",
+  "BIOSPECTROMETER": "Spectrometer used for biological/optical measurements.",
+  "MBIOSENSOR": "Microbial/biological sensor package.",
+  "BARS": "Benthic and Riser Sensor package.",
+  "BBES": "Benthic boundary environmental sensor package.",
+  "UCRDS": "Underwater chemical/radiological detection system.",
+  "UURS": "Underwater uranium/radiological survey system.",
+  "UWVOLTAMMETRICSYSTEM": "Underwater voltammetric system — trace metal chemistry.",
 };
 
 function formatDate(value: unknown): string | null {

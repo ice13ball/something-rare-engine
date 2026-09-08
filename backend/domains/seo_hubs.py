@@ -253,9 +253,14 @@ HUBS: dict[str, Hub] = {
         heading="Ocean Networks Canada observatories",
         intro="Cabled observatory locations on the NEPTUNE and VENUS arrays off British Columbia.",
         per_page=250,
-        count_sql="SELECT COUNT(*) FROM onc_locations",
+        # Gated on latest_sensors IS NOT NULL — same marker used by
+        # seo_sitemap_core() and nearby_onc_stations. Most of onc_locations
+        # (junction boxes, power supplies, cameras) has nothing to show on a
+        # hub row; only stations with real sensor data get listed here.
+        count_sql="SELECT COUNT(*) FROM onc_locations WHERE latest_sensors IS NOT NULL",
         rows_sql=(
             "SELECT location_code, name, depth_m FROM onc_locations "
+            "WHERE latest_sensors IS NOT NULL "
             "ORDER BY location_code LIMIT $1 OFFSET $2"
         ),
         row_to_item=_onc_item,

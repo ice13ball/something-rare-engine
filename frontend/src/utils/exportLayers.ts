@@ -117,6 +117,15 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     sourceUrl: "https://www.bodc.ac.uk/geotraces/",
   },
   {
+    id: "geotraces-values",
+    label: "GEOTRACES all parameters (per-sample values)",
+    kind: "vector",
+    geomKind: "point",
+    family: "Life & geology",
+    source: "GEOTRACES IDP2025 (BODC)",
+    sourceUrl: "https://www.bodc.ac.uk/geotraces/",
+  },
+  {
     id: "mosaic",
     mapLayerId: "mosaic-sediment",
     label: "Marine Sediment Carbon (MOSAIC)",

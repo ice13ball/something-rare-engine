@@ -4844,6 +4844,99 @@ exports[`DetailPanel dispatch matrix > renders geotraces after data loads 1`] = 
             </table>
           </div>
         </div>
+        <details
+          class="mb-4"
+        >
+          <summary
+            class="text-white/70 text-xs font-semibold cursor-pointer select-none uppercase tracking-wide"
+          >
+            All measured parameters (
+            2
+            )
+          </summary>
+          <div
+            class="mt-2 space-y-3"
+          >
+            <div>
+              <p
+                class="text-white/50 text-[10px] uppercase tracking-wide mb-1"
+              >
+                trace metal
+              </p>
+              <div
+                class="max-h-40 overflow-y-auto rounded border border-white/10"
+              >
+                <table
+                  class="w-full text-[11px] font-mono"
+                >
+                  <thead
+                    class="sticky top-0 bg-black/80"
+                  >
+                    <tr>
+                      <th
+                        class="px-2 py-0.5 text-left text-white/50 font-normal"
+                      >
+                        Depth (m)
+                      </th>
+                      <th
+                        class="px-2 py-0.5 text-left text-white/50 font-normal"
+                      >
+                        Param
+                      </th>
+                      <th
+                        class="px-2 py-0.5 text-right text-white/50 font-normal"
+                      >
+                        Value
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      class="odd:bg-white/[0.025]"
+                    >
+                      <td
+                        class="px-2 py-0.5 text-white/85"
+                      >
+                        200
+                      </td>
+                      <td
+                        class="px-2 py-0.5 text-white/75"
+                      >
+                        Dissolved Zn
+                      </td>
+                      <td
+                        class="px-2 py-0.5 text-right text-white/75"
+                      >
+                        3.400
+                         nmol/kg
+                      </td>
+                    </tr>
+                    <tr
+                      class="odd:bg-white/[0.025]"
+                    >
+                      <td
+                        class="px-2 py-0.5 text-white/85"
+                      >
+                        200
+                      </td>
+                      <td
+                        class="px-2 py-0.5 text-white/75"
+                      >
+                        Dissolved Cd
+                      </td>
+                      <td
+                        class="px-2 py-0.5 text-right text-white/75"
+                      >
+                        0.600
+                         nmol/kg
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </details>
         <div
           class="mb-4"
         >

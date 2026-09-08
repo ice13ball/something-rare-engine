@@ -69,7 +69,28 @@ async def ensure_memento(conn) -> None:
 
 
 async def ensure_geotraces(conn) -> None:
-    """geotraces_stations, geotraces_samples, geotraces_param_units."""
+    """geotraces_stations, geotraces_samples, geotraces_param_units,
+    geotraces_params, geotraces_values.
+
+    geotraces_params / geotraces_values (2026-09-08) are ADDITIVE: the full
+    1178-column IDP2025 CSV carries 386 measured parameters, and until now
+    build_samples() kept only the 5 legacy metals (mn/fe/co/ni/cu). These two
+    tables hold everything else in long format. They do NOT replace, rename
+    or stop-populating any legacy geotraces_samples/geotraces_stations column
+    — see rules/subsystems (geotraces) and the 2026-09-08 audit doc.
+
+    ⚠️ geotraces_values.sample_id is BIGINT and is a FK-BY-CONVENTION to
+    geotraces_samples.csv_row (the row's ordinal position in the IDP2025 CSV,
+    assigned in geotraces_ingest.stream_samples) — NOT to
+    geotraces_samples.sample_id, which stays BIGSERIAL/bigint (the legacy
+    internal PK), and NOT to geotraces_sample_id (see that column's own
+    comment below). csv_row is used because it is the only key in this file
+    that is actually unique — see DEFECT 1, 2026-09-08 audit:
+    "GEOTRACES Sample ID" is empty on 41% of rows and only 29,944 of the
+    76,056 non-empty values are distinct (46,112 duplicates); every other
+    natural key tried (cruise+station+depth, BODC event+bottle, ...) also
+    collides. Any code joining geotraces_values must join on csv_row.
+    """
 
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS geotraces_stations (
@@ -108,10 +129,70 @@ async def ensure_geotraces(conn) -> None:
             param TEXT PRIMARY KEY,
             unit TEXT
         );
+        CREATE TABLE IF NOT EXISTS geotraces_params (
+            param_code TEXT PRIMARY KEY,
+            label TEXT,
+            unit TEXT,
+            family TEXT,
+            n_values INTEGER DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS geotraces_values (
+            sample_id BIGINT NOT NULL,
+            param_code TEXT NOT NULL,
+            value DOUBLE PRECISION NOT NULL,
+            stddev DOUBLE PRECISION,
+            qc_flag SMALLINT,
+            PRIMARY KEY (sample_id, param_code)
+        );
         CREATE INDEX IF NOT EXISTS geotraces_stations_geom_gix ON geotraces_stations USING GIST (geom);
         CREATE INDEX IF NOT EXISTS geotraces_samples_geom_gix ON geotraces_samples USING GIST (geom);
         CREATE INDEX IF NOT EXISTS geotraces_samples_station_idx ON geotraces_samples (station_id);
         CREATE INDEX IF NOT EXISTS geotraces_stations_decade_idx ON geotraces_stations (decade);
+        CREATE INDEX IF NOT EXISTS geotraces_values_param_idx ON geotraces_values (param_code);
+
+        -- Migration for tables created before 2026-09-08 with the broken TEXT
+        -- keying (DEFECT 1): geotraces_values is always fully TRUNCATEd and
+        -- reloaded by load()/load_values_from_csv() on every sync, so there is
+        -- no data to preserve here — just fix the column type. Guarded so it
+        -- only runs once, against a pre-existing wrong-typed column.
+        DO $mig$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'geotraces_values' AND column_name = 'sample_id'
+                  AND data_type <> 'bigint'
+            ) THEN
+                TRUNCATE geotraces_values;
+                ALTER TABLE geotraces_values ALTER COLUMN sample_id TYPE BIGINT USING NULL;
+            END IF;
+        END $mig$;
+
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS geotraces_sample_id TEXT;
+        -- ⚠️ NOT unique, NOT a key — 41% of rows (53,092 / 129,148) have this
+        -- column empty, and of the 76,056 that do, only 29,944 are distinct
+        -- (46,112 duplicates). Measured against the real IDP2025 CSV,
+        -- 2026-09-08 audit. Informational source metadata only; join
+        -- geotraces_values on geotraces_samples.csv_row instead.
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS csv_row BIGINT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS sampling_device TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS cast_identifier TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bodc_event_number INTEGER;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bodc_bottle_number INTEGER;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS rosette_bottle_number INTEGER;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bottle_flag TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ship_name TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS cruise_period TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS chief_scientist TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS geotraces_scientist TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS operators_cruise_name TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS cruise_information_link TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS bodc_cruise_number INTEGER;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ncbi_metagenome_biosample TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ncbi_single_cell_genome_bioproject TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS ncbi_rrna_biosample TEXT;
+        ALTER TABLE geotraces_samples ADD COLUMN IF NOT EXISTS embl_ebi_metagenome_analysis TEXT;
+
+        CREATE UNIQUE INDEX IF NOT EXISTS geotraces_samples_csv_row_uidx ON geotraces_samples (csv_row);
     """)
 
 

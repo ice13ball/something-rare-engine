@@ -24,7 +24,7 @@ import {
   expandBox, walkCoords, bboxToView, getBBoxCenter,
   approxViewBbox, bboxContains, expandBoxBuffer,
 } from "../components/map3d/geometry";
-import { makeSetFilter } from "../components/map3d/filters";
+import { makeSetFilter, oncEovVisible } from "../components/map3d/filters";
 
 // ── colour maths ────────────────────────────────────────────────────────────
 
@@ -443,5 +443,38 @@ describe("makeSetFilter", () => {
   it("rejects a feature with missing properties object", () => {
     const filter = makeSetFilter(new Set(["active"]), "status");
     expect(filter!({})).toBe(false);
+  });
+});
+
+describe("oncEovVisible", () => {
+  const known = new Set(["CTD", "OXYSENSOR", "FLUOROMETER"]);
+  const allowed = new Set(["CTD"]);
+
+  it("shows everything when no filter is active", () => {
+    expect(oncEovVisible(["FLUOROMETER"], null, known)).toBe(true);
+    expect(oncEovVisible([], null, known)).toBe(true);
+  });
+
+  it("matches a location carrying an allowed category", () => {
+    expect(oncEovVisible(["CTD", "HYDROPHONE"], allowed, known)).toBe(true);
+  });
+
+  it("hides a location whose categories are all known but not selected", () => {
+    expect(oncEovVisible(["OXYSENSOR", "FLUOROMETER"], allowed, known)).toBe(false);
+  });
+
+  it("never hides a location with no category data — treated as unclassified", () => {
+    expect(oncEovVisible([], allowed, known)).toBe(true);
+    expect(oncEovVisible(null, allowed, known)).toBe(true);
+    expect(oncEovVisible(undefined, allowed, known)).toBe(true);
+  });
+
+  it("never hides a location carrying a category absent from ONC_ALL_KNOWN_CATEGORIES — the core anti-vanish rule", () => {
+    // e.g. a brand-new ONC device category that hasn't been bucketed yet
+    expect(oncEovVisible(["SOME_NEW_UNMAPPED_CATEGORY"], allowed, known)).toBe(true);
+  });
+
+  it("still hides when every category is known-but-unselected, even alongside no unknowns", () => {
+    expect(oncEovVisible(["OXYSENSOR"], allowed, known)).toBe(false);
   });
 });

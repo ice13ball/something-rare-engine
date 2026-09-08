@@ -424,6 +424,24 @@ _VECTORS: dict[str, VectorExport] = {
             note="Raw depth samples (not the station rollup). Units: Co pmol/kg, others nmol/kg.",
         ),
     ),
+    "geotraces-values": VectorExport(
+        id="geotraces-values", label="GEOTRACES all parameters (per-sample values)",
+        table="geotraces_values",
+        geom_col="s.geom", id_col="sample_id", geom_kind="point", cap=60_000,
+        # geotraces_values.sample_id is keyed on csv_row (CSV row ordinal), NOT
+        # geotraces_sample_id — see DEFECT 1, 2026-09-08 audit.
+        join_sql="JOIN geotraces_samples s ON s.csv_row = t.sample_id",
+        fields=("t.sample_id", "s.station_id", "s.depth_m", "t.param_code",
+                "t.value", "t.stddev", "t.qc_flag"),
+        prov=Provenance(
+            source="GEOTRACES IDP2025 (BODC)",
+            source_url="https://www.bodc.ac.uk/geotraces/",
+            license="CC-BY 4.0",
+            note="Every measured parameter (not just the 5 dissolved-metal columns of the "
+                 "'geotraces' layer), one row per sample x parameter. Units vary by parameter "
+                 "— see /v2/spatial/geotraces/params for the catalogue. Values are verbatim.",
+        ),
+    ),
     "mosaic": VectorExport(
         id="mosaic", label="Marine Sediment Carbon (MOSAIC)", table="mosaic_samples",
         geom_col="t.geom", id_col="sample_id", geom_kind="point", cap=60_000,

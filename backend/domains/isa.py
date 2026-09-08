@@ -360,10 +360,20 @@ async def enrich_claim_boundaries() -> int:
                 GROUP BY c.id
             ),
             onc AS (
+                -- latest_sensors IS NOT NULL restricts this to stations that
+                -- actually carry oceanographic measurements (the same marker
+                -- seo.py gates the sitemap on, and sync_onc_sensors() uses to
+                -- decide what it has data for). Widening onc_ingest.py to all
+                -- ~129 ONC device categories put ~1,993 locations (junction
+                -- boxes, power supplies, cameras) within 200 km of most
+                -- claims; without this filter nearby_onc_stations would count
+                -- them all and the concession page would list dozens of
+                -- non-instruments as "nearby ONC observatories".
                 SELECT c.id, COUNT(*) AS n
                 FROM mc_centroids c
                 JOIN onc_locations ol
                   ON ST_DWithin(ol.geom::geography, c.ctr::geography, 200000)
+                 AND ol.latest_sensors IS NOT NULL
                 GROUP BY c.id
             ),
             oceansites AS (

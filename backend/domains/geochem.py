@@ -217,20 +217,65 @@ async def sync_memento(force: bool = False) -> int:
         log.error("memento: MEMENTO_EMAIL/MEMENTO_PASSWORD not set — skipping")
         await _log_sync("memento", 0, 0)
         return 0
-    session = memento_ingest.login_session(email, pw)
-    legs = memento_ingest.fetch_leg_index(session)
-    all_samples = []
-    for leg in legs:
-        try:
-            csv_text = memento_ingest.download_leg_csv(session, leg["id"])
-            all_samples.extend(memento_ingest.build_samples(csv_text, leg["name"]))
-        except Exception as e:  # one bad leg must not abort the whole scrape
-            log.warning("memento: leg %s (%s) failed: %s", leg["id"], leg["name"], e)
+    # ⛔ EVERY LINE OF THE SCRAPE RUNS IN A THREAD. `memento_ingest` uses `requests`,
+    # which is synchronous: 313 legs at one blocking HTTP call each. Called directly
+    # from this coroutine it holds the event loop for the whole scrape, and a FastAPI
+    # process that cannot reach its event loop answers nothing at all.
+    #
+    # That is not hypothetical. On 2026-09-08, minutes after MEMENTO credentials were
+    # added to the VPS for the first time, this function took production down: the
+    # public /health timed out, every layer timed out, and the service still reported
+    # `active` because the process was alive and merely blocked. The bug had sat here
+    # harmlessly for months only because MEMENTO_EMAIL was never set, so the guard
+    # above returned early every single time. Supplying a credential armed it.
+    #
+    # `asyncio.to_thread` is what the seaflea sync in this same file already does.
+    def _scrape() -> tuple[list, list, list]:
+        session = memento_ingest.login_session(email, pw)
+        legs = memento_ingest.fetch_leg_index(session)
+        samples: list = []
+        failed: list = []
+        for leg in legs:
+            try:
+                csv_text = memento_ingest.download_leg_csv(session, leg["id"])
+                samples.extend(memento_ingest.build_samples(csv_text, leg["name"]))
+            except Exception as e:  # one bad leg must not abort the whole scrape
+                failed.append(leg["name"])
+                log.warning("memento: leg %s (%s) failed: %s", leg["id"], leg["name"], e)
+        return legs, samples, failed
+
+    legs, all_samples, failed_legs = await asyncio.to_thread(_scrape)
     if not all_samples:
         log.error("memento: scrape produced 0 samples — keeping existing data")
         await _log_sync("memento", 0, 0)
         return 0
-    casts = memento_ingest.derive_casts(all_samples)
+
+    # ⛔ load_memento TRUNCATEs before inserting, and its docstring claimed the empty
+    # check above made that safe. It does not. A PARTIAL scrape sails through it.
+    # On 2026-09-08 two legs died on a momentary "Connection refused" from the portal
+    # and the run replaced a complete table with one 9,831 casts smaller — 155,418
+    # down to 145,587 — reporting success the whole way, because losing a leg is only
+    # a WARNING and the totals it printed were the totals it had.
+    #
+    # So a scrape that lost legs may only publish if it still carries MORE than what
+    # is already stored. Retrying costs four minutes; the truncate is not reversible.
+    if failed_legs:
+        async with db.pool.acquire() as conn:
+            existing = await conn.fetchval("SELECT count(*) FROM memento_samples") or 0
+        if len(all_samples) < existing:
+            log.error(
+                "memento: %d of %d legs failed (%s) and the scrape carries %d samples "
+                "against %d already stored — REFUSING to truncate. Existing data kept; "
+                "re-run when the portal is healthy.",
+                len(failed_legs), len(legs), ", ".join(failed_legs[:5]),
+                len(all_samples), existing)
+            await _log_sync("memento", 0, 0)
+            return 0
+        log.warning("memento: %d legs failed but the scrape still carries %d samples "
+                    "against %d stored — publishing",
+                    len(failed_legs), len(all_samples), existing)
+    # derive_casts is pure CPU over ~200k samples — also off the loop.
+    casts = await asyncio.to_thread(memento_ingest.derive_casts, all_samples)
     inserted = await memento_ingest.load_memento(db.pool, all_samples, casts)
     from routers.spatial_v2 import clear_tile_cache
     clear_tile_cache()
@@ -243,31 +288,73 @@ async def sync_memento(force: bool = False) -> int:
 
 
 async def sync_geotraces(force: bool = False) -> int:
-    """GEOTRACES IDP2025 dissolved trace-metal profiles (Mn/Fe/Co/Ni/Cu).
+    """GEOTRACES IDP2025 — ALL 386 measured parameters, not just the five
+    dissolved trace metals (Mn/Fe/Co/Ni/Cu) that were kept historically. Those
+    five still populate the wide geotraces_samples/geotraces_stations columns
+    unchanged (additive design — nothing consuming them was touched); every
+    other parameter lands in geotraces_values/geotraces_params.
 
     Frozen archive: skip if table is already populated unless force=True.
-    Admin Force Sync passes force=True. Download is ~1.5 GB; admin-only.
+    Admin Force Sync passes force=True. Download is ~260 MB (measured
+    2026-09-08 — an earlier docstring here claimed ~1.5 GB; it did not).
+
+    Both the download/extract and the CSV parse are CPU/IO-bound and run via
+    asyncio.to_thread — a synchronous 268 MB download+parse on the event loop
+    is exactly what took production down once already (MEMENTO, same day).
+    The CSV itself is streamed row-by-row (csv.reader over a file handle),
+    never read whole into memory.
     """
     from ingestion import geotraces_ingest as gt
     if not force:
-        existing = await db.pool.fetchval("SELECT count(*) FROM geotraces_stations")
-        if existing and existing > 0:
-            log.info("geotraces: %s stations already present — skip (use force)", existing)
+        existing_stations = await db.pool.fetchval("SELECT count(*) FROM geotraces_stations") or 0
+        existing_values = await db.pool.fetchval("SELECT count(*) FROM geotraces_values") or 0
+        # "Populated" must mean fully populated, not just "load() got as far as
+        # stations". load_values_from_csv() now runs in one transaction, so a
+        # failed values load rolls back to 0 rows on its own — but this check
+        # also protects against any partial state left by a run before that
+        # fix (or a future bug that bypasses the transaction). A silent
+        # skip-forever here is exactly DEFECT 2, 2026-09-08 audit.
+        #
+        # ⚠️ This whole `if not force:` block is UNREACHABLE as wired today.
+        # The single call site is main.py's admin sync map, which passes
+        # force=True, and geotraces is not in the periodic sync chain. So what
+        # actually recovers a partial load is that every admin-triggered run
+        # truncates and reloads unconditionally — NOT this check. Kept because
+        # it becomes live the moment anyone adds a scheduled geotraces sync,
+        # and a frozen 260 MB archive is exactly the kind of layer someone
+        # will eventually put on a cadence. ⛔ Do not cite it as the guarantee.
+        if existing_stations > 0 and existing_values == 0:
+            log.warning(
+                "geotraces: %s stations present but geotraces_values is EMPTY — "
+                "a previous sync left a PARTIAL load. Reloading despite force=False.",
+                existing_stations)
+        elif existing_stations > 0:
+            log.info("geotraces: %s stations already present — skip (use force)", existing_stations)
             return 0
     import tempfile, shutil
     tmp = tempfile.mkdtemp(prefix="geotraces-")
     try:
-        csv_path = gt.fetch_and_extract(tmp)
-        with open(csv_path, encoding="utf-8", errors="replace") as f:
-            samples, units = gt.build_samples(f.read())
-        stations = gt.derive_stations(samples)
-        inserted = await gt.load(db.pool, samples, stations, units)
+        csv_path = await asyncio.to_thread(gt.fetch_and_extract, tmp)
+        samples, stations, units, params_meta = await asyncio.to_thread(
+            gt.parse_samples_and_meta, csv_path
+        )
+        # load() carries the anti-truncation guard: refuses to publish (and
+        # returns 0) if this parse yielded fewer samples than are already
+        # stored, WITHOUT touching the table or the sync log.
+        inserted = await gt.load(db.pool, samples, stations, units, params_meta)
+        if inserted == 0:
+            # load() already logged the refusal reason. Do NOT call _log_sync
+            # here — stamping last_synced_at on a refused/skipped parse would
+            # hide from the monitor that nothing was actually published.
+            return 0
+        n_values = await gt.load_values_from_csv(db.pool, csv_path, params_meta)
         await _log_sync("geotraces", len(samples), inserted)
         from routers.spatial_v2 import clear_tile_cache
         clear_tile_cache()
         global _geotraces_hex_cache
         _geotraces_hex_cache = None
-        log.info("geotraces: loaded %s samples / %s stations", inserted, len(stations))
+        log.info("geotraces: loaded %s samples / %s stations / %s values across %s params",
+                  inserted, len(stations), n_values, len(params_meta))
         return inserted
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

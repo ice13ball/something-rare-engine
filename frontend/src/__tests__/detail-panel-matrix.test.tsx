@@ -240,6 +240,21 @@ describe("DetailPanel dispatch matrix", () => {
         // fixtures file), so any real chart/table push this well past it.
         expect(container.innerHTML.length).toBeGreaterThan(loadingHtml.length);
 
+        // Plain (non-snapshot) regression for DEFECT 4, 2026-09-08 audit: the
+        // measurements table joins by String(sample.sample_id). If that join
+        // silently fails (e.g. the fixture forgets sample_id, or the backend
+        // key type changes under it again), the Depth column renders an
+        // em-dash and this is the assertion that can actually go red for it
+        // — a snapshot alone would just re-record the broken state.
+        if (fixture.layer === "geotraces") {
+          const rowText = Array.from(container.querySelectorAll("tr"))
+            .map((tr) => tr.textContent || "")
+            .find((t) => t.includes("Dissolved Zn"));
+          expect(rowText, "measurement row for Dissolved Zn (Zn_D_CONC_BOTTLE) not found").toBeTruthy();
+          expect(rowText).toContain("200");
+          expect(rowText).not.toContain("—");
+        }
+
         expect(container).toMatchSnapshot();
       });
     }

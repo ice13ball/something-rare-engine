@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 async def ensure_onc_core(conn) -> None:
-    """onc_locations, onc_sparklines, onc_adcp_strips, onc_ctd_profiles."""
+    """onc_locations, onc_location_categories, onc_sparklines, onc_adcp_strips, onc_ctd_profiles."""
 
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS onc_locations (
@@ -83,6 +83,18 @@ async def ensure_onc_core(conn) -> None:
         ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS depths   JSONB;
         ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS variable TEXT;
         ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS units    TEXT;
+    """)
+
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS onc_location_categories (
+            location_code         TEXT NOT NULL,
+            device_category_code  TEXT NOT NULL,
+            PRIMARY KEY (location_code, device_category_code)
+        )
+    """)
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS onc_location_categories_category_idx
+        ON onc_location_categories (device_category_code)
     """)
 
     await conn.execute("""

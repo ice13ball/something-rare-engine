@@ -221,8 +221,20 @@ def download_leg_csv(session, leg_id: str) -> str:
 
 
 async def load_memento(pool, samples: list[dict], casts: list[dict]) -> int:
-    """Replace memento tables with the freshly scraped snapshot. Never called with
-    empty input (caller guards) so a failed scrape never wipes a good load."""
+    """Replace memento tables with the freshly scraped snapshot.
+
+    ⛔ THIS TRUNCATES. The previous version of this docstring said "never called with
+    empty input (caller guards) so a failed scrape never wipes a good load", and that
+    reassurance was wrong in the case that actually happened. The caller's guard only
+    caught a scrape yielding ZERO samples. A PARTIAL scrape sailed straight through:
+    on 2026-09-08 two of 313 legs died on a momentary "Connection refused" and this
+    function replaced a complete table with one 9,831 casts smaller — 155,418 down to
+    145,587 — with nothing louder than a WARNING anywhere in the run.
+
+    The caller now also refuses to publish a scrape that lost legs AND carries fewer
+    samples than are already stored. Keep that check there: by the time control
+    reaches this function the TRUNCATE is one statement away and it does not come
+    back."""
     import json
     async with pool.acquire() as conn:
         async with conn.transaction():

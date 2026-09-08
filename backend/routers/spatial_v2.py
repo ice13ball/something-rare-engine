@@ -1171,9 +1171,26 @@ async def memento_by_id(cast_id: str):
 
 # ── GEOTRACES station detail endpoint ────────────────────────────────────────
 
+
+# Hard cap on the "measurements" list in the by-id response. Cloud Run rejects
+# responses over 32 MiB at the proxy — the API logs 200, the browser gets 500,
+# and nothing in our own logs looks unhealthy. Measured worst-case: the
+# busiest single station carries a few hundred samples x up to ~400 params,
+# i.e. low tens of thousands of measurement rows — each row serializes to
+# roughly 60-90 bytes of JSON, so this cap keeps the whole response in the
+# tens-of-KB to low-MB range, nowhere near the limit. Capped explicitly
+# rather than silently, via the "truncated" field below.
+_GEOTRACES_MEASUREMENTS_CAP = 20_000
+
+
 @router.get("/geotraces/by-id/{station_id}", dependencies=[Depends(get_api_key)])
 async def geotraces_by_id(station_id: str):
-    """Full station detail: metadata + ordered per-depth samples + param units."""
+    """Full station detail: metadata + ordered per-depth samples + param units.
+
+    ADDITIVE (2026-09-08): adds "measurements" (the full geotraces_values rows
+    per sample) and "params" (the catalogue rows for params present at this
+    station) alongside the untouched legacy "station"/"units"/"samples" keys.
+    """
     if db.pool is None:
         raise HTTPException(503, "Database pool unavailable")
     async with db.pool.acquire() as conn:
@@ -1187,23 +1204,92 @@ async def geotraces_by_id(station_id: str):
         if st is None:
             raise HTTPException(status_code=404, detail="not found")
         samples = await conn.fetch(
-            """SELECT depth_m, sample_time, mn_d, fe_d, co_d, ni_d, cu_d,
+            """SELECT sample_id, geotraces_sample_id, csv_row, depth_m, sample_time,
+                      mn_d, fe_d, co_d, ni_d, cu_d,
                       mn_d_qc, fe_d_qc, co_d_qc, ni_d_qc, cu_d_qc, params
                FROM geotraces_samples WHERE station_id = $1 ORDER BY depth_m NULLS LAST""",
             station_id,
         )
         units_rows = await conn.fetch("SELECT param, unit FROM geotraces_param_units")
+
+        # geotraces_values.sample_id is keyed on csv_row (the CSV row ordinal),
+        # NOT geotraces_sample_id — that column is empty on 41% of rows and,
+        # where present, only 39% of its values are distinct. See DEFECT 1,
+        # 2026-09-08 audit, and the comment on geotraces_values in schema/geochem.py.
+        csv_rows = [s["csv_row"] for s in samples if s["csv_row"] is not None]
+        measurements_by_sample: dict[int, list[dict]] = {}
+        params_seen: set[str] = set()
+        truncated = False
+        if csv_rows:
+            value_rows = await conn.fetch(
+                """SELECT sample_id, param_code, value, stddev, qc_flag
+                   FROM geotraces_values WHERE sample_id = ANY($1::bigint[])
+                   ORDER BY sample_id, param_code
+                   LIMIT $2""",
+                csv_rows,
+                _GEOTRACES_MEASUREMENTS_CAP + 1,
+            )
+            if len(value_rows) > _GEOTRACES_MEASUREMENTS_CAP:
+                value_rows = value_rows[:_GEOTRACES_MEASUREMENTS_CAP]
+                truncated = True
+            for vr in value_rows:
+                sid = vr["sample_id"]
+                params_seen.add(vr["param_code"])
+                measurements_by_sample.setdefault(sid, []).append(
+                    {
+                        "param_code": vr["param_code"],
+                        "value": vr["value"],
+                        "stddev": vr["stddev"],
+                        "qc_flag": vr["qc_flag"],
+                    }
+                )
+        params_rows = (
+            await conn.fetch(
+                """SELECT param_code, label, unit, family, n_values
+                   FROM geotraces_params WHERE param_code = ANY($1::text[])
+                   ORDER BY n_values DESC""",
+                list(params_seen),
+            )
+            if params_seen
+            else []
+        )
     d = dict(st)
     units = {r["param"]: r["unit"] for r in units_rows}
     out = []
+    measurements: dict[str, list[dict]] = {}
     for s in samples:
         sd = dict(s)
+        sd.pop("geotraces_sample_id", None)  # informational only, not a key — see schema comment
+        csv_row = sd.pop("csv_row", None)
         if isinstance(sd.get("params"), str):
             sd["params"] = json.loads(sd["params"])  # asyncpg returns JSONB as str
         if sd.get("sample_time") is not None:
             sd["sample_time"] = sd["sample_time"].isoformat()
         out.append(sd)
-    return {"station": d, "units": units, "samples": out}
+        if csv_row is not None:
+            measurements[str(sd["sample_id"])] = measurements_by_sample.get(csv_row, [])
+    params = [dict(r) for r in params_rows]
+    return {
+        "station": d,
+        "units": units,
+        "samples": out,
+        "measurements": measurements,
+        "params": params,
+        "truncated": truncated,
+    }
+
+
+@router.get("/geotraces/params", dependencies=[Depends(get_api_key)])
+async def geotraces_params():
+    """Full geotraces_params catalogue, ordered by n_values descending."""
+    if db.pool is None:
+        raise HTTPException(503, "Database pool unavailable")
+    async with db.pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT param_code, label, unit, family, n_values
+               FROM geotraces_params ORDER BY n_values DESC"""
+        )
+    return {"params": [dict(r) for r in rows]}
 
 
 # ── MOSAIC core detail endpoint ───────────────────────────────────────────────
