@@ -233,6 +233,11 @@ async def _sync_air_quality() -> int:
             all_locations.extend(results)
             page += 1
             if page > 50:
+                log.error(
+                    "air_quality: hit the %d-page ceiling with %d locations fetched — "
+                    "the station list may be truncated, raise the cap",
+                    50, len(all_locations),
+                )
                 break
             await asyncio.sleep(0.5)
 
@@ -304,130 +309,220 @@ async def _sync_air_quality() -> int:
     return inserted
 
 
+
+# Wall-clock budget for one _sync_air_quality_readings() run. The sweep is
+# incremental and resumable (stations already covered drop out of the
+# candidate query below), so a run does not need to finish the whole
+# 25,814-station backlog — it only needs to make forward progress and stop
+# before it starves the event loop or a cron overlap. 8 minutes keeps this
+# comfortably inside a 15-minute cron cadence with room for the next run's
+# station-list sync.
+_READINGS_MAX_RUNTIME_S = 8 * 60
+# A hard request ceiling as a second, independent guard — if the API ever
+# started answering instantly (no throttling), the time budget alone could
+# still allow an unbounded number of requests.
+_READINGS_MAX_REQUESTS = 2000
+_MAX_BACKOFF_S = 120
+
+
 async def _sync_air_quality_readings() -> int:
     """
     Fetch latest readings for air quality stations missing measurement data.
-    Uses /v3/locations/{id}/sensors sequentially (1 req/sec) to respect rate limits.
-    Processes up to 500 stations per run; designed for repeated cron invocations.
+    Uses /v3/locations/{id}/sensors sequentially, resuming oldest-station-first
+    across runs. Rate limiting is handled by respecting Retry-After / backing
+    off, never by abandoning the sweep — a throttled run simply covers fewer
+    stations and the next run picks up where this one left off.
     """
     if not OPENAQ_API_KEY:
         log.warning("air_quality_readings: OPENAQ_API_KEY not set, skipping")
+        await _log_land_sync("air_quality_readings", 0, 0)
         return 0
 
     async with db.pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT location_id FROM air_quality_stations "
-            "WHERE pm25 IS NULL AND no2 IS NULL AND o3 IS NULL "
-            "ORDER BY location_id LIMIT 500"
+            "SELECT s.location_id FROM air_quality_stations s "
+            "WHERE s.pm25 IS NULL AND s.no2 IS NULL AND s.o3 IS NULL "
+            "  AND NOT EXISTS (SELECT 1 FROM air_quality_params p WHERE p.location_id = s.location_id) "
+            "ORDER BY s.location_id LIMIT 500"
+        )
+        total_remaining_before = await conn.fetchval(
+            "SELECT COUNT(*) FROM air_quality_stations s "
+            "WHERE s.pm25 IS NULL AND s.no2 IS NULL AND s.o3 IS NULL "
+            "  AND NOT EXISTS (SELECT 1 FROM air_quality_params p WHERE p.location_id = s.location_id)"
         )
 
     if not rows:
         log.info("air_quality_readings: all stations have readings, skipping")
+        await _log_land_sync("air_quality_readings", 0, 0)
         return 0
 
     location_ids = [r["location_id"] for r in rows]
-    log.info("air_quality_readings: fetching latest for %d stations (sequential)", len(location_ids))
+    log.info("air_quality_readings: fetching latest for %d stations (%d total still uncovered)",
+              len(location_ids), total_remaining_before)
 
     headers = {"X-API-Key": OPENAQ_API_KEY}
     updated = 0
     skipped = 0
-    rate_limited = 0
-    consecutive_429 = 0
+    rate_limited_events = 0
+    requests_made = 0
+    started = asyncio.get_event_loop().time()
+    stopped_early_reason: str | None = None
 
     async with httpx.AsyncClient(timeout=30, headers=headers) as client:
+        idx = 0
         for idx, loc_id in enumerate(location_ids):
-            if consecutive_429 >= 3:
-                log.warning("air_quality_readings: 3 consecutive 429s at station %d/%d, pausing 60s",
-                            idx, len(location_ids))
-                await asyncio.sleep(60)
-                consecutive_429 = 0
-
-            if rate_limited >= 20:
-                log.warning("air_quality_readings: %d total rate limits, stopping at %d/%d",
-                            rate_limited, idx, len(location_ids))
+            elapsed = asyncio.get_event_loop().time() - started
+            if elapsed >= _READINGS_MAX_RUNTIME_S:
+                stopped_early_reason = f"wall-clock budget ({_READINGS_MAX_RUNTIME_S}s) reached"
+                break
+            if requests_made >= _READINGS_MAX_REQUESTS:
+                stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
                 break
 
-            try:
-                resp = await client.get(f"https://api.openaq.org/v3/locations/{loc_id}/sensors")
+            backoff = 2.0
+            attempt = 0
+            data: dict | None = None
+            while True:
+                attempt += 1
+                requests_made += 1
+                try:
+                    resp = await client.get(f"https://api.openaq.org/v3/locations/{loc_id}/sensors")
+                except Exception:
+                    skipped += 1
+                    break
+
                 if resp.status_code == 429:
-                    rate_limited += 1
-                    consecutive_429 += 1
-                    await asyncio.sleep(10)  # back off on 429
+                    rate_limited_events += 1
+                    retry_after = resp.headers.get("Retry-After")
+                    if retry_after is not None:
+                        try:
+                            wait_s = float(retry_after)
+                        except ValueError:
+                            wait_s = backoff
+                    else:
+                        wait_s = backoff
+                    wait_s = min(wait_s, _MAX_BACKOFF_S)
+                    if attempt >= 6:
+                        # Give up on THIS station only — never on the sweep.
+                        skipped += 1
+                        break
+                    log.info("air_quality_readings: 429 for station %s, waiting %.0fs (attempt %d)",
+                              loc_id, wait_s, attempt)
+                    await asyncio.sleep(wait_s)
+                    backoff = min(backoff * 2, _MAX_BACKOFF_S)
                     continue
-                consecutive_429 = 0
+
                 if resp.status_code != 200:
                     skipped += 1
-                    await asyncio.sleep(1)
-                    continue
+                    break
 
                 data = resp.json()
-                values: dict[str, float | None] = {}
-                for sensor in data.get("results", []):
-                    param_name = sensor.get("parameter", {}).get("name", "")
-                    if not param_name:
-                        continue
-                    latest = sensor.get("latest")
-                    summary = sensor.get("summary") or {}
-                    if latest and latest.get("value") is not None:
-                        values[param_name] = latest["value"]
-                    elif summary.get("avg") is not None:
-                        values[param_name] = round(summary["avg"], 2)
+                break
 
-                # Extract coverage_pct: prefer PM2.5 sensor, else first available
-                coverage_pct: float | None = None
-                for sensor in data.get("results", []):
-                    cov = sensor.get("coverage")
-                    if cov and cov.get("percentComplete") is not None:
-                        pname = sensor.get("parameter", {}).get("name", "")
-                        if coverage_pct is None or pname == "pm25":
-                            coverage_pct = cov["percentComplete"]
-                            if pname == "pm25":
-                                break
+            if data is None:
+                if requests_made >= _READINGS_MAX_REQUESTS:
+                    stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
+                    break
+                await asyncio.sleep(1.0)
+                continue
 
-                if values:
-                    async with db.pool.acquire() as conn:
+            values: dict[str, float | None] = {}
+            units: dict[str, str | None] = {}
+            for sensor in data.get("results", []):
+                param = sensor.get("parameter") or {}
+                param_name = param.get("name", "")
+                if not param_name:
+                    continue
+                units[param_name] = param.get("units")
+                latest = sensor.get("latest")
+                summary = sensor.get("summary") or {}
+                if latest and latest.get("value") is not None:
+                    values[param_name] = latest["value"]
+                elif summary.get("avg") is not None:
+                    values[param_name] = round(summary["avg"], 2)
+
+            # Extract coverage_pct: prefer PM2.5 sensor, else first available
+            coverage_pct: float | None = None
+            for sensor in data.get("results", []):
+                cov = sensor.get("coverage")
+                if cov and cov.get("percentComplete") is not None:
+                    pname = (sensor.get("parameter") or {}).get("name", "")
+                    if coverage_pct is None or pname == "pm25":
+                        coverage_pct = cov["percentComplete"]
+                        if pname == "pm25":
+                            break
+
+            if values:
+                async with db.pool.acquire() as conn:
+                    await conn.execute("""
+                        UPDATE air_quality_stations
+                        SET pm25 = $2,  so2 = $3,  no2 = $4,  o3 = $5,  co = $6,
+                            pm10 = $7,  bc = $8,   no = $9,   nox = $10,
+                            humidity = $11, temperature = $12, co2 = $13,
+                            pm1 = $14,  pm4 = $15, ch4 = $16, ufp = $17,
+                            coverage_pct = $18,
+                            last_updated = NOW()
+                        WHERE location_id = $1
+                    """,
+                        loc_id,
+                        _concentration_or_none(values.get("pm25")),   _concentration_or_none(values.get("so2")),
+                        _concentration_or_none(values.get("no2")),    _concentration_or_none(values.get("o3")),
+                        _concentration_or_none(values.get("co")),
+                        _concentration_or_none(values.get("pm10")),   _concentration_or_none(values.get("bc")),
+                        _concentration_or_none(values.get("no")),     _concentration_or_none(values.get("nox")),
+                        _score_or_none(values.get("relativehumidity")),
+                        _score_or_none(values.get("temperature")),
+                        _concentration_or_none(values.get("co2")),
+                        _concentration_or_none(values.get("pm1")),    _concentration_or_none(values.get("pm4")),
+                        _concentration_or_none(values.get("ch4")),    _concentration_or_none(values.get("ufp")),
+                        coverage_pct,
+                    )
+                    # Store every parameter the sensor reported (44 possible),
+                    # not just the 16 columns above — verbatim unit, no
+                    # conversion, no unit ever assumed.
+                    for pname, pvalue in values.items():
                         await conn.execute("""
-                            UPDATE air_quality_stations
-                            SET pm25 = $2,  so2 = $3,  no2 = $4,  o3 = $5,  co = $6,
-                                pm10 = $7,  bc = $8,   no = $9,   nox = $10,
-                                humidity = $11, temperature = $12, co2 = $13,
-                                pm1 = $14,  pm4 = $15, ch4 = $16, ufp = $17,
-                                coverage_pct = $18,
-                                last_updated = NOW()
-                            WHERE location_id = $1
-                        """,
-                            loc_id,
-                            _concentration_or_none(values.get("pm25")),   _concentration_or_none(values.get("so2")),
-                            _concentration_or_none(values.get("no2")),    _concentration_or_none(values.get("o3")),
-                            _concentration_or_none(values.get("co")),
-                            _concentration_or_none(values.get("pm10")),   _concentration_or_none(values.get("bc")),
-                            _concentration_or_none(values.get("no")),     _concentration_or_none(values.get("nox")),
-                            _score_or_none(values.get("relativehumidity")),
-                            _score_or_none(values.get("temperature")),
-                            _concentration_or_none(values.get("co2")),
-                            _concentration_or_none(values.get("pm1")),    _concentration_or_none(values.get("pm4")),
-                            _concentration_or_none(values.get("ch4")),    _concentration_or_none(values.get("ufp")),
-                            coverage_pct,
-                        )
-                        updated += 1
-                else:
-                    skipped += 1
-
-            except Exception:
+                            INSERT INTO air_quality_params (location_id, parameter, value, unit, last_updated)
+                            VALUES ($1, $2, $3, $4, NOW())
+                            ON CONFLICT (location_id, parameter) DO UPDATE
+                            SET value = EXCLUDED.value, unit = EXCLUDED.unit, last_updated = NOW()
+                        """, loc_id, pname, _score_or_none(pvalue), units.get(pname))
+                    updated += 1
+            else:
                 skipped += 1
 
             # Log progress every 50 stations
             if (idx + 1) % 50 == 0:
-                log.info("air_quality_readings: %d/%d processed, %d updated, %d skipped, %d rate-limited",
-                         idx + 1, len(location_ids), updated, skipped, rate_limited)
+                log.info("air_quality_readings: %d/%d processed, %d updated, %d skipped, %d rate-limit events",
+                         idx + 1, len(location_ids), updated, skipped, rate_limited_events)
 
-            await asyncio.sleep(1.2)  # ~50 req/min, well under typical API limits
+            await asyncio.sleep(1.2)  # ~50 req/min baseline pace between stations
+
+    async with db.pool.acquire() as conn:
+        total_remaining_after = await conn.fetchval(
+            "SELECT COUNT(*) FROM air_quality_stations s "
+            "WHERE s.pm25 IS NULL AND s.no2 IS NULL AND s.o3 IS NULL "
+            "  AND NOT EXISTS (SELECT 1 FROM air_quality_params p WHERE p.location_id = s.location_id)"
+        )
 
     global _air_quality_cache
     _air_quality_cache = None
-    await _log_land_sync("air_quality_readings", updated, updated)
-    log.info("air_quality_readings: done — %d updated, %d skipped, %d rate-limited out of %d",
-             updated, skipped, rate_limited, len(location_ids))
+    # total_records = stations still uncovered after this run. 0 means this
+    # run finished the whole backlog (a complete sweep); >0 means it stopped
+    # early (throttled or budget-bound) and the next run must resume — the
+    # sync log itself carries that distinction, no separate status column.
+    await _log_land_sync("air_quality_readings", updated, total_remaining_after)
+    if stopped_early_reason:
+        log.warning(
+            "air_quality_readings: INCOMPLETE run — stopped early (%s) after %d/%d stations, "
+            "%d updated, %d skipped, %d rate-limit events, %d requests; %d stations still uncovered",
+            stopped_early_reason, idx + 1, len(location_ids), updated, skipped,
+            rate_limited_events, requests_made, total_remaining_after,
+        )
+    else:
+        log.info("air_quality_readings: done — %d updated, %d skipped, %d rate-limit events out of %d; "
+                  "%d stations still uncovered",
+                  updated, skipped, rate_limited_events, len(location_ids), total_remaining_after)
     return updated
 
 

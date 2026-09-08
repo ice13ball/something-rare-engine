@@ -55,6 +55,8 @@ IOPAN_LAYERS = (
 # label is the part that would have gone into an email to IO PAN.
 OURS_NOT_THEIRS = (
     "seabed-substrate",       # Seabed Substrate — ours/ONC's interest, not IO PAN's ask
+    "oceansites",             # OceanSITES — our own catalogue, not an IO PAN ask
+    "air-quality",            # OpenAQ — our own catalogue, not an IO PAN ask
 )
 
 # The "Life & Geology" menu group, raised by Michal on 2026-09-08. ⛔ Deliberately

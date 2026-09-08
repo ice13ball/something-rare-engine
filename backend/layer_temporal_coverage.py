@@ -491,6 +491,47 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-09-08",
     ),
     Coverage(
+        layer_id="oceansites",
+        # Measured at the source 2026-09-08: 5,788 of 5,795 platforms carry a real
+        # deployment date, running 1948-10-01 to 2026-04-12. The earliest is Ocean
+        # Weather Station Mike (STATION-M-1), a genuine 1948 record — not the
+        # 1900-01-01 sentinel on the remaining 7, which this range excludes. End is
+        # OPEN: the network is live and adds platforms continuously.
+        start_year=1948, end_year=None,
+        kind="observations",
+        wording="OceanSITES is a worldwide system of long-term, open-ocean "
+                "reference stations... providing multi-year time scales and "
+                "real-time data access. The mission is to collect data from "
+                "long-term, high-frequency observations at fixed locations in "
+                "the open ocean. ⛔ Neither page states a network-wide start or "
+                "end year, so this span was counted from the deployment dates "
+                "OceanOPS publishes for the network's 5,795 platforms — not "
+                "quoted from the publisher. ⚠️ Our own copy carries no "
+                "deployment date at all yet, and holds only the 65 platforms "
+                "currently OPERATIONAL, so no record here can be filtered by "
+                "this span.",
+        source_url="https://www.ocean-ops.org/oceansites/about.html",
+        verified_on="2026-09-08",
+    ),
+    Coverage(
+        layer_id="air-quality",
+        # Measured at the source 2026-09-08: datetime_first/datetime_last on
+        # air_quality_stations span 2016-01-01 to 2026-09-09 across 25,438 of
+        # 25,814 stations. ⚠️ That is station METADATA coverage, not measurement
+        # coverage: readings currently exist for only a small fraction of those
+        # stations, a gap this wording states rather than implies away.
+        start_year=2016, end_year=None,
+        kind="observations",
+        wording="We started with real-time and historical data from "
+                "reference-grade government monitors in 2015 and began "
+                "ingesting data from air sensors starting in 2021 (OpenAQ, "
+                "About Us). Our own station date fields span 2016-2026 across "
+                "25,438 of 25,814 stations; actual readings are populated for "
+                "only a small fraction of those stations, not all of them.",
+        source_url="https://openaq.org/about/",
+        verified_on="2026-09-08",
+    ),
+    Coverage(
         layer_id="biodiversity-hotspots",
         # ⛔ NOT 1103, which is what OBIS's own /v3/statistics reports as its
         # minimum year — an evident data-entry artefact, and below the 1750 floor

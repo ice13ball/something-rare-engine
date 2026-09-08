@@ -153,6 +153,27 @@ async def ensure_land_schema():
         """)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_air_quality_geom ON air_quality_stations USING GIST (geom)")
 
+        # ADDITIVE (2026-09-08): OpenAQ /v3/parameters reports 44 parameters;
+        # air_quality_stations has 16 named columns. Rather than widen the
+        # table to 44 columns, every parameter a sensor reports lands here in
+        # long form, verbatim unit included — same shape as geotraces_values.
+        # The 16 legacy columns keep being populated unchanged (frontend/SEO
+        # read them by name); this table is additive, not a replacement.
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS air_quality_params (
+                location_id  INTEGER NOT NULL,
+                parameter    TEXT NOT NULL,
+                value        DOUBLE PRECISION,
+                unit         TEXT,
+                last_updated TIMESTAMPTZ,
+                PRIMARY KEY (location_id, parameter)
+            )
+        """)
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_air_quality_params_parameter "
+            "ON air_quality_params (parameter)"
+        )
+
         # Enrich schema — safe to run on populated table
         for col_sql in [
             "ALTER TABLE air_quality_stations ADD COLUMN IF NOT EXISTS locality TEXT",
