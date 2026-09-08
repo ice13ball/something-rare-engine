@@ -33,7 +33,6 @@ IOPAN_LAYERS = (
     "arctic-sediment-carbon",  # Arctic Sediment Carbon (CASCADE)
     "permafrost-thaw",         # Permafrost Thaw
     "sios-svalbard",           # SIOS Svalbard (Arctic)
-    "seabed-substrate",       # Seabed Substrate
     # A6 "Ocean carbon (GLODAP + SOCAT + Marine Carbon)" — a row of IO PAN's own
     # roadmap in AI-Wall/LAYER-PROPOSALS.md, and the only one of theirs the menu
     # group above does not contain. ⛔ ocean-acidification is anchored too but is
@@ -42,6 +41,20 @@ IOPAN_LAYERS = (
     "ocean-carbon",           # A6 — GLODAP
     "ocean-co2-surface",      # A6 — SOCAT
     "marine-carbon",          # A6 — the synthesis
+)
+
+# ⛔ REMOVED from IOPAN_LAYERS on 2026-09-08 after checking the wiki instead of
+# trusting this file. `seabed-substrate` appears nowhere in
+# rare-seo/organizations/nauka/iopan/ or _archiwum/iopan-materials/ — not once. It
+# traces to ONC's own lunch-and-learn deck and to a Mission Ocean grant narrative we
+# wrote ourselves, where it links a source-to-sea story. Someone (me) folded a layer
+# we value into a list whose whole job is to record what THEY asked for.
+#
+# It keeps its temporal anchor — the gate below still covers it — because the frame
+# is about the data, not about who requested it. What changes is the label, and the
+# label is the part that would have gone into an email to IO PAN.
+OURS_NOT_THEIRS = (
+    "seabed-substrate",       # Seabed Substrate — ours/ONC's interest, not IO PAN's ask
 )
 
 # The "Life & Geology" menu group, raised by Michal on 2026-09-08. ⛔ Deliberately
@@ -68,6 +81,12 @@ def test_every_iopan_layer_has_a_time_frame():
         "often present where per-record dates are absent (ChEssBase: no eventDate on "
         "any of 3,715 records, yet the GBIF dataset states 1977-2025)."
     )
+
+
+def test_layers_we_track_for_ourselves_are_anchored_too():
+    """A layer losing its IO PAN label must not lose its temporal frame with it."""
+    missing = [lid for lid in OURS_NOT_THEIRS if lid not in BY_ID]
+    assert not missing, f"no temporal anchor: {missing}"
 
 
 def test_every_life_and_geology_layer_is_anchored():

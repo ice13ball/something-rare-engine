@@ -238,7 +238,25 @@ async def sync_arcade(force: bool = False) -> int:
         meta_resp = await client.get(
             "https://dataverse.nl/api/datasets/:persistentId/"
             "?persistentId=" + arcade_ingest.DATAVERSE_DOI)
-        meta = meta_resp.json()
+        # ⛔ Do NOT go straight to .json(). On 2026-09-08 this endpoint answered 503
+        # with an HTML error page while dataverse.nl's own homepage, its
+        # /api/info/version and the dataset DOI all answered 200 — so "the source is
+        # down" was not visible from anywhere except here. Calling .json() on that
+        # HTML raised `JSONDecodeError: Expecting value: line 1 column 1`, which
+        # names neither the URL nor the status and reads like OUR parser is broken.
+        # An upstream outage must look like an upstream outage in the log.
+        if meta_resp.status_code != 200:
+            log.error("arcade: dataverse.nl returned HTTP %s for the dataset metadata "
+                      "— keeping the catchments already loaded",
+                      meta_resp.status_code)
+            return 0
+        try:
+            meta = meta_resp.json()
+        except ValueError:
+            log.error("arcade: dataverse.nl answered 200 but not JSON (%s bytes, "
+                      "content-type %s) — an interstitial, not data; keeping existing rows",
+                      len(meta_resp.content), meta_resp.headers.get("content-type"))
+            return 0
     name_to_id = {f["dataFile"]["filename"]: f["dataFile"]["id"]
                   for f in meta["data"]["latestVersion"]["files"]}
 
