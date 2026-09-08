@@ -6,6 +6,13 @@ on:
     paths:
       - "frontend/**"
       - ".github/workflows/deploy-gcp.yml"
+  # ⛔ The path filter above has a silent hole, hit for real on 2026-09-08.
+  # A frontend commit whose deploy FAILS, followed by a backend-only fix that
+  # makes the suite green, never re-triggers this workflow — `paths` matches the
+  # pushed commit, not the branch state. main then serves the OLD frontend while
+  # everything reports success, and nothing anywhere says so.
+  # This makes the recovery one click instead of a fake frontend commit.
+  workflow_dispatch:
 
 env:
   PROJECT_ID: YOUR_GCP_PROJECT_ID
