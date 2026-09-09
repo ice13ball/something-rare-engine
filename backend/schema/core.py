@@ -174,6 +174,50 @@ async def ensure_core(conn) -> None:
     """)
 
 
+async def ensure_argo_long_form(conn) -> None:
+    """argo_profile_values, argo_params, argo_backfill_state.
+
+    2026-09-09: additive alongside argo_profiles (which keeps its existing
+    two-level summary columns unchanged — this is scope, not a replacement).
+    A long-form table so a future widening beyond the current 5 requested
+    Argovis parameters (of 35 offered) doesn't require another ALTER; see
+    `rules/subsystems/units-and-passthrough.md` for why no unit is invented
+    below when the source doesn't publish one.
+    """
+
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS argo_profile_values (
+            profile_id  TEXT NOT NULL,
+            level       TEXT NOT NULL,
+            param       TEXT NOT NULL,
+            value       DOUBLE PRECISION NOT NULL,
+            qc          SMALLINT,
+            PRIMARY KEY (profile_id, level, param)
+        );
+        CREATE INDEX IF NOT EXISTS argo_profile_values_param_idx
+            ON argo_profile_values (param);
+
+        CREATE TABLE IF NOT EXISTS argo_params (
+            param     TEXT PRIMARY KEY,
+            label     TEXT,
+            unit      TEXT,
+            n_values  INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS argo_backfill_state (
+            id            INTEGER PRIMARY KEY CHECK (id = 1),
+            done_through  DATE,
+            updated_at    TIMESTAMPTZ
+        );
+    """)
+    try:
+        await conn.execute("ALTER TABLE argo_profile_values OWNER TO abyssal_user")
+        await conn.execute("ALTER TABLE argo_params OWNER TO abyssal_user")
+        await conn.execute("ALTER TABLE argo_backfill_state OWNER TO abyssal_user")
+    except Exception:
+        pass
+
+
 async def ensure_core_tables(conn) -> None:
     """mining_contracts + biodiversity_hotspots (the two original core tables)."""
 

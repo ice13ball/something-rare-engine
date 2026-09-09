@@ -117,12 +117,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import date, datetime, timedelta, timezone
 
 import db
 import httpx
-from auth import get_api_key
-from fastapi import APIRouter, Depends
+from auth import get_api_key, require_admin_token
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from indexnow import notify_indexnow as _notify_indexnow
 from indexnow import SITE_HOST
@@ -360,10 +361,28 @@ _ARGO_TRAIL_SQL = """
 """
 
 
+
+# argo_profiles no longer has a rolling-window DELETE (2026-09-09 — history is
+# the point; see sync_argo_profiles_backfill). The float/trail *caches* still
+# have to be bounded, though: DISTINCT ON(platform_id) over full history is
+# fine (one row per float, ever), but the trail cache is one row PER PROFILE,
+# and at ~3.3M rows total that blows straight through Cloud Run's 32 MiB
+# response cap at the proxy — a 200 in the service log, a 500 in the browser.
+# Bounding both to a recent window keeps `/v1/map/argo` and
+# `/v1/map/argo/trails` answering "current state of the ocean" (which is what
+# a live map wants) instead of silently trying to serve the whole archive.
+_ARGO_CACHE_WINDOW_DAYS = 90
+
+
 async def populate_argo_cache(conn) -> None:
-    """Cold-start: load all floats into per-platform dicts."""
-    float_rows  = await conn.fetch(_ARGO_FLOAT_SQL.format(where=""))
-    trail_rows  = await conn.fetch(_ARGO_TRAIL_SQL.format(where=""))
+    """Cold-start: load recent floats into per-platform dicts.
+
+    Bounded to `_ARGO_CACHE_WINDOW_DAYS` — see the module note above the
+    constant for why an unbounded cache is not an option now that history
+    persists indefinitely."""
+    where = f"WHERE profile_date > NOW() - INTERVAL '{_ARGO_CACHE_WINDOW_DAYS} days'"
+    float_rows  = await conn.fetch(_ARGO_FLOAT_SQL.format(where=where))
+    trail_rows  = await conn.fetch(_ARGO_TRAIL_SQL.format(where=where))
     _argo_float_cache.clear()
     _argo_trail_cache.clear()
     for row in float_rows:
@@ -378,12 +397,21 @@ async def refresh_argo_platforms(conn, platform_ids: set[str]) -> None:
     if not platform_ids:
         return
     pid_list = list(platform_ids)
+    # ⛔ The SAME window populate_argo_cache uses. Without it this path was the
+    # hole in the bound: populate_argo_cache runs once, on the first sync, and
+    # every later sync comes through here — so a float's ENTIRE lifetime trail
+    # was re-loaded into the in-memory cache each time it surfaced. Harmless
+    # while the table held 2,303 rows and 180 days; with global history at
+    # ~3.3 M profiles across thousands of floats it walks straight back to the
+    # 32 MiB Cloud Run proxy ceiling this windowing exists to avoid — and it
+    # does it in RAM first, where nothing reports it.
+    _window = f"AND profile_date > NOW() - INTERVAL '{_ARGO_CACHE_WINDOW_DAYS} days'"
     float_rows = await conn.fetch(
-        _ARGO_FLOAT_SQL.format(where="WHERE platform_id = ANY($1::text[])"),
+        _ARGO_FLOAT_SQL.format(where=f"WHERE platform_id = ANY($1::text[]) {_window}"),
         pid_list,
     )
     trail_rows = await conn.fetch(
-        _ARGO_TRAIL_SQL.format(where="WHERE platform_id = ANY($1::text[])"),
+        _ARGO_TRAIL_SQL.format(where=f"WHERE platform_id = ANY($1::text[]) {_window}"),
         pid_list,
     )
     for row in float_rows:
@@ -404,70 +432,162 @@ def build_argo_geojson(float_props: dict) -> dict:
     }
 
 
-async def sync_argo_profiles() -> int:
-    """Fetch Argo float profiles from ArgoVis API covering all ISA mining zones.
-    Keeps a rolling 180-day window. Computes near_mining via PostGIS after insert."""
-    # Bounding polygons for the main ISA mining zones [lon, lat]
-    MINING_ZONES = [
-        [[-175, -5], [-115, -5], [-115, 25], [-175, 25], [-175, -5]],  # Pacific CCZ
-        [[45, -35],  [90, -35],  [90, 10],   [45, 10],   [45, -35]],   # Indian Ocean
-        [[-50, -35], [-10, -35], [-10, 15],  [-50, 15],  [-50, -35]],  # Mid-Atlantic Ridge
-        [[140, -30], [175, -30], [175, 10],  [140, 10],  [140, -30]],  # W. Pacific
-    ]
-    end   = datetime.now(timezone.utc)
-    start = end - timedelta(days=180)
+_ARGO_API = "https://argovis-api.colorado.edu/argo"
 
+# Recent-window for the *periodic* sync. Argo floats profile roughly every
+# 10 days, so 30 days comfortably covers 2-3 cycles per float even allowing
+# for ArgoVis's own ingest lag — wide enough that a float that missed one
+# sync still gets picked up by the next, without re-walking full history on
+# every 12h run (that job is sync_argo_profiles_backfill, below).
+_ARGO_RECENT_WINDOW_DAYS = 30
+
+_argo_param_vocab_cache: list[str] | None = None
+
+
+async def _fetch_argo_param_vocabulary(client: httpx.AsyncClient) -> list[str]:
+    """The full list of `data` names ArgoVis currently offers (base
+    variables and their `*_argoqc` companions alike) — fetched once per
+    process and cached, since the vocabulary changes rarely and every sync
+    would otherwise pay for it twice."""
+    global _argo_param_vocab_cache
+    if _argo_param_vocab_cache is not None:
+        return _argo_param_vocab_cache
+    r = await client.get(f"{_ARGO_API}/vocabulary", params={"parameter": "data"})
+    r.raise_for_status()
+    _argo_param_vocab_cache = list(r.json())
+    return _argo_param_vocab_cache
+
+
+async def _fetch_argo_window(
+    client: httpx.AsyncClient, start: datetime, end: datetime, params: list[str]
+) -> list[dict]:
+    """One global (no polygon — Truncation (a) removed) ArgoVis query for
+    [start, end). Raises on transport/HTTP failure so the caller can treat
+    the whole run as failed rather than silently partial."""
+    r = await client.get(
+        _ARGO_API,
+        params={
+            "startDate": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endDate":   end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            # ⛔ `data` IS A FILTER, NOT A COLUMN SELECTION. Naming parameters
+            # returns only profiles carrying ALL of them. Measured against the
+            # live API on 2026-09-09, one day of global profiles:
+            #     no `data` at all ................. 464 profiles
+            #     data=all ......................... 464 profiles
+            #     data=temperature ................. 460
+            #     data=temperature,salinity ........ 426
+            #     the five this ingest used to ask . 36   ← 7.8 %
+            # So the old five-parameter request was a fifth, unnoticed
+            # truncation on top of the four we knew about: it silently kept
+            # only floats carrying oxygen AND pH AND the rest. It is why all
+            # 2,303 rows in production had both oxygen and pH — 100 %, which no
+            # real fleet looks like.
+            # ⚠️ Enumerating the whole vocabulary is WORSE, not better: it means
+            # "carrying every parameter that exists", which matches nothing —
+            # the live API answers HTTP 400 or an empty 404.
+            # `all` is the documented way to say "every measurement, whatever
+            # this float carries": same 464 profiles, 42 distinct parameters
+            # returned, 15.9 MB for one global day.
+            "data": "all",
+        },
+    )
+    r.raise_for_status()
     seen: set[str] = set()
-    all_profiles: list[dict] = []
-    async with httpx.AsyncClient(timeout=60) as client:
-        for polygon in MINING_ZONES:
-            try:
-                r = await client.get(
-                    "https://argovis-api.colorado.edu/argo",
-                    params={
-                        "startDate": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                        "endDate":   end.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                        "polygon":   json.dumps(polygon),
-                        # The *_argoqc names must be requested explicitly. Argovis
-                        # returns only the variables listed here, and col() yields
-                        # None for anything absent — silently. Reading a QC name we
-                        # had not asked for is why every flag was NULL from the
-                        # start. Verified against /argo/vocabulary?parameter=data.
-                        "data": (
-                            "temperature,salinity,pressure,doxy,ph_in_situ_total,"
-                            "temperature_argoqc,salinity_argoqc,doxy_argoqc,"
-                            "ph_in_situ_total_argoqc"
-                        ),
-                    },
-                )
-                r.raise_for_status()
-                for p in r.json():
-                    if p["_id"] not in seen:
-                        seen.add(p["_id"])
-                        all_profiles.append(p)
-            except httpx.HTTPError as e:
-                log.warning("ArgoVis fetch failed for zone %s: %s", polygon[0], e)
+    profiles: list[dict] = []
+    for p in r.json():
+        if p["_id"] not in seen:
+            seen.add(p["_id"])
+            profiles.append(p)
+    return profiles
 
+
+def extract_argo_long_form(profile: dict, base_params: list[str]) -> list[dict]:
+    """Long-form surface/deep values for every requested parameter, for
+    `argo_profile_values`.
+
+    Uses the exact same level selection `extract_argo_measurements` uses —
+    surface = shallowest level at or above 50 dbar, deep = the deepest level
+    with a valid pressure reading. That selection is Michal's decision to
+    keep (2026-09-09); only parameter breadth changed here, not depth
+    resolution.
+
+    ArgoVis is column-major: data[i] is every depth level for the variable
+    named at data_info[0][i]. Each parameter's own column is looked up and
+    indexed independently below — never index one variable's column with
+    another variable's offset, and never assume two columns share a length
+    (the WOD-oxygen ragged-array trap this repo has already paid for once).
+    """
+    data_info = profile.get("data_info") or []
+    var_names: list[str] = data_info[0] if data_info else []
+    data_cols: list[list] = profile.get("data") or []
+
+    def col(name: str) -> list | None:
+        i = var_names.index(name) if name in var_names else None
+        return data_cols[i] if i is not None and i < len(data_cols) else None
+
+    pressures = col("pressure")
+    if not pressures:
+        return []
+    n = len(pressures)
+    surface_idx = next(
+        (j for j in range(n) if pressures[j] is not None and pressures[j] <= 50), None
+    )
+    deep_idx = next(
+        (j for j in range(n - 1, -1, -1) if pressures[j] is not None), None
+    )
+    if surface_idx is None and deep_idx is None:
+        return []
+
+    rows: list[dict] = []
+    # ⭐ Iterate what THIS PROFILE actually carries, not a vocabulary list.
+    # With `data=all` the response names its own variables in data_info[0], so
+    # the profile is the authority on its own contents. Walking a fetched
+    # vocabulary instead would silently skip any parameter a float reports that
+    # the vocabulary endpoint has not caught up with — the same "we only see
+    # what we thought to ask for" failure that hid ONC's oxygen for months.
+    # `base_params` is kept only as a caller-supplied restriction for tests.
+    names = list(var_names) if not base_params else [
+        n for n in var_names if n in set(base_params)
+    ]
+    for param in names:
+        if param == "pressure" or param.endswith("_argoqc"):
+            continue
+        values = col(param)
+        if not values:
+            continue  # this profile doesn't carry this parameter — no row, not a 0
+        qc_values = col(f"{param}_argoqc")
+        for level, idx in (("surface", surface_idx), ("deep", deep_idx)):
+            if idx is None or idx >= len(values):
+                continue
+            v = values[idx]
+            if v is None:
+                continue
+            qc = None
+            if qc_values is not None and idx < len(qc_values) and qc_values[idx] is not None:
+                try:
+                    qc = int(qc_values[idx])
+                except (TypeError, ValueError):
+                    qc = None
+            rows.append({"level": level, "param": param, "value": float(v), "qc": qc})
+    return rows
+
+
+async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tuple[int, set[str]]:
+    """Shared insert path for both the periodic sync and the backfill:
+    legacy argo_profiles row (5-column surface/deep summary, unchanged),
+    long-form argo_profile_values rows (upsert, not blind insert — a re-run
+    of the same chunk must not duplicate), then near_mining/mining_zone
+    enrichment scoped to only the profile_ids touched THIS call. Scoping the
+    enrichment queries this way (rather than the old `WHERE near_mining =
+    FALSE` / `WHERE near_mining = TRUE` full-table predicates) is what keeps
+    them bounded now that argo_profiles can hold the full ~3.3M-row history:
+    an UPDATE that scans the whole table on every run is not bounded, one
+    that touches only the rows just written is."""
     inserted = 0
+    touched_ids: list[str] = []
     new_platform_ids: set[str] = set()
     async with db.pool.acquire() as conn:
-        # Rolling window — drop profiles older than 180 days
-        deleted_pids = await conn.fetch(
-            "DELETE FROM argo_profiles WHERE profile_date < NOW() - INTERVAL '180 days' RETURNING platform_id"
-        )
-        # Remove expired platforms from cache (only if they have no remaining profiles)
-        if deleted_pids and _argo_float_cache:
-            expired_pids = {r["platform_id"] for r in deleted_pids}
-            still_active = set(await conn.fetch(
-                "SELECT DISTINCT platform_id FROM argo_profiles WHERE platform_id = ANY($1::text[])",
-                list(expired_pids),
-            ))
-            truly_gone = expired_pids - {r["platform_id"] for r in still_active}
-            for pid in truly_gone:
-                _argo_float_cache.pop(pid, None)
-                _argo_trail_cache.pop(pid, None)
-
-        for profile in all_profiles:
+        for profile in profiles:
             geo = (profile.get("geolocation") or {}).get("coordinates") or []
             if len(geo) < 2:
                 continue
@@ -480,7 +600,8 @@ async def sync_argo_profiles() -> int:
             # Skip profiles with no temperature data at all
             if m["surface_temp"] is None and m["deep_temp"] is None:
                 continue
-            platform_id = profile["_id"].split("_")[0]
+            profile_id = profile["_id"]
+            platform_id = profile_id.split("_")[0]
             w = await asyncio.to_thread(
                 woa_climatology.enrich_profile, float(lat), float(lon), profile_date.month,
                 0.0, m["deep_press"],
@@ -502,7 +623,7 @@ async def sync_argo_profiles() -> int:
                            $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,
                            ST_SetSRID(ST_MakePoint($26,$27),4326))
                    ON CONFLICT (profile_id) DO NOTHING""",
-                profile["_id"], platform_id, profile_date, m["max_depth"],
+                profile_id, platform_id, profile_date, m["max_depth"],
                 m["surface_temp"], m["surface_sal"],
                 m["deep_temp"], m["deep_sal"], m["deep_press"],
                 m["oxygen"], m["ph"],
@@ -513,92 +634,142 @@ async def sync_argo_profiles() -> int:
                 w["woa_deep_phosphate"], w["woa_deep_silicate"], w["woa_deep_nitrate"],
                 float(lon), float(lat),
             )
+            touched_ids.append(profile_id)
             if result == "INSERT 0 1":
                 inserted += 1
                 new_platform_ids.add(platform_id)
 
-        # Cap spatial enrichment at 30 min — prevents 7-hour runaway queries
-        # that hold locks and block startup DDL on mining_contracts
-        await conn.execute("SET statement_timeout = '30min'")
+            long_rows = extract_argo_long_form(profile, params)
+            if long_rows:
+                await conn.executemany(
+                    """INSERT INTO argo_profile_values (profile_id, level, param, value, qc)
+                       VALUES ($1,$2,$3,$4,$5)
+                       ON CONFLICT (profile_id, level, param) DO UPDATE
+                       SET value = EXCLUDED.value, qc = EXCLUDED.qc""",
+                    [(profile_id, r["level"], r["param"], r["value"], r["qc"]) for r in long_rows],
+                )
 
-        # Step 1: mark newly-qualifying floats as near_mining
-        await conn.execute("""
-            UPDATE argo_profiles a
-            SET near_mining = TRUE
-            WHERE near_mining = FALSE
-              AND EXISTS (
-                  SELECT 1 FROM mining_contracts mc
-                  WHERE ST_DWithin(a.geom::geography, mc.geom::geography, 200000)
-              )
-        """)
+        if touched_ids:
+            # Cap spatial enrichment at 30 min — prevents runaway queries
+            # that hold locks and block startup DDL on mining_contracts
+            await conn.execute("SET statement_timeout = '30min'")
 
-        # Step 2: refresh nearest zone + all zones for ALL near-mining floats
-        await conn.execute("""
-            UPDATE argo_profiles a
-            SET
-                mining_zone          = sub.contractor_name,
-                mining_dist_km       = ROUND((sub.d / 1000)::numeric, 1),
-                nearest_contract_lon = ST_X(ST_ClosestPoint(sub.geom, a.geom)),
-                nearest_contract_lat = ST_Y(ST_ClosestPoint(sub.geom, a.geom))
-            FROM (
-                SELECT
-                    ap.profile_id,
-                    mc.contractor_name,
-                    mc.geom,
-                    ST_Distance(ap.geom::geography, mc.geom::geography) AS d
-                FROM argo_profiles ap
-                JOIN LATERAL (
-                    SELECT mc2.contractor_name, mc2.geom,
-                           ST_Distance(ap.geom::geography, mc2.geom::geography) AS dd
-                    FROM   mining_contracts mc2
-                    WHERE  ST_DWithin(ap.geom::geography, mc2.geom::geography, 200000)
-                    ORDER  BY dd
-                    LIMIT  1
-                ) mc ON TRUE
-                WHERE ap.near_mining = TRUE
-            ) sub
-            WHERE a.profile_id = sub.profile_id
-        """)
+            # Step 1: mark newly-qualifying touched floats as near_mining
+            await conn.execute(
+                """
+                UPDATE argo_profiles a
+                SET near_mining = TRUE
+                WHERE near_mining = FALSE
+                  AND a.profile_id = ANY($1::text[])
+                  AND EXISTS (
+                      SELECT 1 FROM mining_contracts mc
+                      WHERE ST_DWithin(a.geom::geography, mc.geom::geography, 200000)
+                  )
+                """,
+                touched_ids,
+            )
 
-        # Step 3: refresh mining_zones (all distinct contractors within 200 km, deduplicated)
-        await conn.execute("""
-            UPDATE argo_profiles a
-            SET mining_zones = sub.zones
-            FROM (
-                SELECT ap.profile_id,
-                       JSONB_AGG(
-                           JSONB_BUILD_OBJECT(
-                               'name',    closest.contractor_name,
-                               'dist_km', closest.dist_km,
-                               'lon',     closest.lon,
-                               'lat',     closest.lat
-                           ) ORDER BY closest.dist_km
-                       ) AS zones
-                FROM argo_profiles ap
-                JOIN LATERAL (
+            # Step 2: refresh nearest zone + all zones for touched near-mining floats
+            await conn.execute(
+                """
+                UPDATE argo_profiles a
+                SET
+                    mining_zone          = sub.contractor_name,
+                    mining_dist_km       = ROUND((sub.d / 1000)::numeric, 1),
+                    nearest_contract_lon = ST_X(ST_ClosestPoint(sub.geom, a.geom)),
+                    nearest_contract_lat = ST_Y(ST_ClosestPoint(sub.geom, a.geom))
+                FROM (
                     SELECT
+                        ap.profile_id,
                         mc.contractor_name,
-                        ROUND((MIN(ST_Distance(ap.geom::geography, mc.geom::geography))/1000)::numeric, 1) AS dist_km,
-                        (SELECT ST_X(ST_ClosestPoint(mc2.geom, ap.geom))
-                         FROM mining_contracts mc2
-                         WHERE mc2.contractor_name = mc.contractor_name
-                           AND ST_DWithin(ap.geom::geography, mc2.geom::geography, 200000)
-                         ORDER BY ST_Distance(ap.geom::geography, mc2.geom::geography) LIMIT 1) AS lon,
-                        (SELECT ST_Y(ST_ClosestPoint(mc2.geom, ap.geom))
-                         FROM mining_contracts mc2
-                         WHERE mc2.contractor_name = mc.contractor_name
-                           AND ST_DWithin(ap.geom::geography, mc2.geom::geography, 200000)
-                         ORDER BY ST_Distance(ap.geom::geography, mc2.geom::geography) LIMIT 1) AS lat
-                    FROM mining_contracts mc
-                    WHERE ST_DWithin(ap.geom::geography, mc.geom::geography, 200000)
-                    GROUP BY mc.contractor_name
-                ) closest ON TRUE
-                WHERE ap.near_mining = TRUE
-                GROUP BY ap.profile_id
-            ) sub
-            WHERE a.profile_id = sub.profile_id
-        """)
-        await conn.execute("SET statement_timeout = '0'")  # reset for normal queries
+                        mc.geom,
+                        ST_Distance(ap.geom::geography, mc.geom::geography) AS d
+                    FROM argo_profiles ap
+                    JOIN LATERAL (
+                        SELECT mc2.contractor_name, mc2.geom,
+                               ST_Distance(ap.geom::geography, mc2.geom::geography) AS dd
+                        FROM   mining_contracts mc2
+                        WHERE  ST_DWithin(ap.geom::geography, mc2.geom::geography, 200000)
+                        ORDER  BY dd
+                        LIMIT  1
+                    ) mc ON TRUE
+                    WHERE ap.near_mining = TRUE AND ap.profile_id = ANY($1::text[])
+                ) sub
+                WHERE a.profile_id = sub.profile_id
+                """,
+                touched_ids,
+            )
+
+            # Step 3: refresh mining_zones for touched near-mining floats
+            await conn.execute(
+                """
+                UPDATE argo_profiles a
+                SET mining_zones = sub.zones
+                FROM (
+                    SELECT ap.profile_id,
+                           JSONB_AGG(
+                               JSONB_BUILD_OBJECT(
+                                   'name',    closest.contractor_name,
+                                   'dist_km', closest.dist_km,
+                                   'lon',     closest.lon,
+                                   'lat',     closest.lat
+                               ) ORDER BY closest.dist_km
+                           ) AS zones
+                    FROM argo_profiles ap
+                    JOIN LATERAL (
+                        SELECT
+                            mc.contractor_name,
+                            ROUND((MIN(ST_Distance(ap.geom::geography, mc.geom::geography))/1000)::numeric, 1) AS dist_km,
+                            (SELECT ST_X(ST_ClosestPoint(mc2.geom, ap.geom))
+                             FROM mining_contracts mc2
+                             WHERE mc2.contractor_name = mc.contractor_name
+                               AND ST_DWithin(ap.geom::geography, mc2.geom::geography, 200000)
+                             ORDER BY ST_Distance(ap.geom::geography, mc2.geom::geography) LIMIT 1) AS lon,
+                            (SELECT ST_Y(ST_ClosestPoint(mc2.geom, ap.geom))
+                             FROM mining_contracts mc2
+                             WHERE mc2.contractor_name = mc.contractor_name
+                               AND ST_DWithin(ap.geom::geography, mc2.geom::geography, 200000)
+                             ORDER BY ST_Distance(ap.geom::geography, mc2.geom::geography) LIMIT 1) AS lat
+                        FROM mining_contracts mc
+                        WHERE ST_DWithin(ap.geom::geography, mc.geom::geography, 200000)
+                        GROUP BY mc.contractor_name
+                    ) closest ON TRUE
+                    WHERE ap.near_mining = TRUE AND ap.profile_id = ANY($1::text[])
+                    GROUP BY ap.profile_id
+                ) sub
+                WHERE a.profile_id = sub.profile_id
+                """,
+                touched_ids,
+            )
+            await conn.execute("SET statement_timeout = '0'")  # reset for normal queries
+    return inserted, new_platform_ids
+
+
+async def sync_argo_profiles() -> int:
+    """Periodic Argo sync: global coverage (no ISA-zone polygon filter —
+    Truncation (a) removed), a recent time window only (Truncation (b)'s
+    destructive DELETE removed entirely — see sync_argo_profiles_backfill
+    for how full history gets filled in instead), and every parameter
+    ArgoVis's vocabulary currently offers (Truncation (c) removed). The
+    fourth truncation — reducing each profile to a surface and a deep
+    sample — stays, by Michal's 2026-09-09 decision; see
+    extract_argo_measurements / extract_argo_long_form.
+    """
+    end   = datetime.now(timezone.utc)
+    start = end - timedelta(days=_ARGO_RECENT_WINDOW_DAYS)
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            params = await _fetch_argo_param_vocabulary(client)
+            profiles = await _fetch_argo_window(client, start, end, params)
+    except httpx.HTTPError as e:
+        # FAILED sync — do not call _log_sync, so last_synced_at is not
+        # stamped and the monitor can tell "ran, found nothing" (which DOES
+        # call _log_sync, below) apart from "never ran / failed".
+        log.error("argo_profiles: ArgoVis fetch failed, sync aborted: %s", type(e).__name__)
+        return 0
+
+    inserted, new_platform_ids = await _upsert_argo_profiles(profiles, params)
 
     async with db.pool.acquire() as conn:
         total      = await conn.fetchval("SELECT COUNT(*) FROM argo_profiles")
@@ -609,9 +780,101 @@ async def sync_argo_profiles() -> int:
         else:
             await populate_argo_cache(conn)
     await _log_sync("argo_profiles", inserted, total)
-    log.info("argo_profiles: %d new / %d total (%d near mining zones) — cache updated for %d floats",
-             inserted, total, near_count, len(new_platform_ids))
+    log.info(
+        "argo_profiles: %d new / %d total (%d near mining zones) — %d parameter(s) requested, cache updated for %d floats",
+        inserted, total, near_count, len(params), len(new_platform_ids),
+    )
     return inserted
+
+
+# ── Resumable full-history backfill ─────────────────────────────────────────
+# sync_argo_profiles above only ever refreshes the last _ARGO_RECENT_WINDOW_DAYS.
+# Filling in the rest of Argo's ~3.3M-profile history is a separate,
+# admin-triggered job, chunked by calendar MONTH, with its cursor persisted in
+# argo_backfill_state.done_through — safe to stop and restart at any point,
+# and a restart re-processes (upserts, never duplicates) rather than skips.
+#
+# Pacing: one ArgoVis request per month-chunk plus a 2s sleep between chunks.
+# ArgoVis documents no rate limit, but this job has no natural pause point of
+# its own (unlike the periodic sync, which only runs every 12h) — 2s keeps it
+# polite without materially slowing down completion.
+#
+# Wall-clock budget: 20 minutes (1200s) per invocation, chosen because Argo's
+# ~27-year history at one month per chunk is ~330 chunks — multiple
+# invocations are required regardless of budget, so the number only has to be
+# comfortably short of any HTTP/proxy timeout an admin caller might have
+# (well under Cloud Run's 60-minute ceiling) while still making many months
+# of progress per call. Re-invoke (e.g. via a cron hitting the admin
+# endpoint) until `done_through` reaches today.
+ARGO_BACKFILL_START = date(1999, 1, 1)  # Argo programme's earliest profiles
+ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS = 1200
+_ARGO_BACKFILL_CHUNK_PACING_SECONDS = 2
+
+
+def _next_month_start(d: date) -> date:
+    return date(d.year + 1, 1, 1) if d.month == 12 else date(d.year, d.month + 1, 1)
+
+
+async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS) -> dict:
+    """Resumable, chunked-by-month walk over full Argo history. See the
+    module note above ARGO_BACKFILL_START for pacing/budget/resumability."""
+    started = time.monotonic()
+    months_done = 0
+    total_inserted = 0
+
+    async with db.pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT done_through FROM argo_backfill_state WHERE id = 1")
+    cursor: date = row["done_through"] if row and row["done_through"] else ARGO_BACKFILL_START
+    today = datetime.now(timezone.utc).date()
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        try:
+            params = await _fetch_argo_param_vocabulary(client)
+        except httpx.HTTPError as e:
+            log.error("argo backfill: vocabulary fetch failed, no chunk attempted: %s", type(e).__name__)
+            return {
+                "months_done": 0, "inserted": 0,
+                "done_through": cursor.isoformat(), "error": "vocabulary_fetch_failed",
+            }
+
+        while cursor < today and (time.monotonic() - started) < budget_seconds:
+            month_start = cursor
+            month_end = min(_next_month_start(month_start), today)
+            try:
+                start_dt = datetime(month_start.year, month_start.month, month_start.day, tzinfo=timezone.utc)
+                end_dt   = datetime(month_end.year, month_end.month, month_end.day, tzinfo=timezone.utc)
+                profiles = await _fetch_argo_window(client, start_dt, end_dt, params)
+                inserted, _ = await _upsert_argo_profiles(profiles, params)
+            except Exception as e:
+                # Chunk failed — the cursor must NOT advance, so a restart
+                # retries exactly this month rather than silently skipping it.
+                log.error(
+                    "argo backfill: chunk %s..%s failed, cursor NOT advanced: %s",
+                    month_start, month_end, type(e).__name__,
+                )
+                break
+
+            async with db.pool.acquire() as conn:
+                await conn.execute(
+                    """INSERT INTO argo_backfill_state (id, done_through, updated_at)
+                       VALUES (1, $1, NOW())
+                       ON CONFLICT (id) DO UPDATE SET done_through = $1, updated_at = NOW()""",
+                    month_end,
+                )
+            cursor = month_end
+            months_done += 1
+            total_inserted += inserted
+            if cursor < today:
+                await asyncio.sleep(_ARGO_BACKFILL_CHUNK_PACING_SECONDS)
+
+    if months_done:
+        async with db.pool.acquire() as conn:
+            await populate_argo_cache(conn)  # bounded — see populate_argo_cache
+    log.info(
+        "argo backfill: %d month(s) processed, %d row(s) inserted, done_through=%s",
+        months_done, total_inserted, cursor,
+    )
+    return {"months_done": months_done, "inserted": total_inserted, "done_through": cursor.isoformat()}
 
 
 # A shrink of more than this fraction of the currently-stored row count is
@@ -863,23 +1126,45 @@ async def sync_oceansites_obs() -> int:
 
 # ── Endpoints ───────────────────────────────────────────────────────────────
 
+@router.post("/v1/admin/argo-backfill", dependencies=[Depends(require_admin_token)])
+async def admin_argo_backfill(
+    budget_seconds: int = Query(
+        ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS, ge=60, le=3600,
+        description="Wall-clock budget for this invocation; re-call until done_through reaches today.",
+    ),
+):
+    """Advance the resumable Argo full-history backfill by up to
+    `budget_seconds`. Safe to call repeatedly — see sync_argo_profiles_backfill."""
+    return await sync_argo_profiles_backfill(budget_seconds=budget_seconds)
+
+
 @router.get("/v1/map/argo", dependencies=[Depends(get_api_key)])
 async def get_argo():
+    """Latest profile per float. Windowed to `_ARGO_CACHE_WINDOW_DAYS` — see
+    populate_argo_cache. `windowed`/`window_days` in the payload say so
+    explicitly rather than truncating silently."""
     if not _argo_float_cache:
         async with db.pool.acquire() as conn:
             await populate_argo_cache(conn)
     features = [build_argo_geojson(p) for p in _argo_float_cache.values()]
     return Response(
-        content=json.dumps({"type": "FeatureCollection", "features": features}),
+        content=json.dumps({
+            "type": "FeatureCollection",
+            "features": features,
+            "windowed": True,
+            "window_days": _ARGO_CACHE_WINDOW_DAYS,
+        }),
         media_type="application/json",
     )
 
 
 @router.get("/v1/map/argo/trails", dependencies=[Depends(get_api_key)])
 async def get_argo_trails():
-    """All Argo profiles in the 90-day window, not deduplicated by platform.
-    Used to render drift trails showing float movement over time.
-    Returns minimal properties to keep payload small."""
+    """All Argo profiles in the `_ARGO_CACHE_WINDOW_DAYS` window, not
+    deduplicated by platform. Used to render drift trails showing float
+    movement over time. Returns minimal properties to keep payload small.
+    `windowed`/`window_days` in the payload say this is a subset, not the
+    full argo_profiles history (which now persists indefinitely)."""
     if not _argo_trail_cache:
         async with db.pool.acquire() as conn:
             await populate_argo_cache(conn)
@@ -890,7 +1175,12 @@ async def get_argo_trails():
         for p in trail
     ]
     return Response(
-        content=json.dumps({"type": "FeatureCollection", "features": features}),
+        content=json.dumps({
+            "type": "FeatureCollection",
+            "features": features,
+            "windowed": True,
+            "window_days": _ARGO_CACHE_WINDOW_DAYS,
+        }),
         media_type="application/json",
     )
 

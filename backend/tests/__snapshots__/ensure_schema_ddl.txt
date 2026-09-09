@@ -36,6 +36,13 @@ CREATE TABLE IF NOT EXISTS maritime_boundaries ( mrgid INTEGER PRIMARY KEY, geon
 CREATE INDEX IF NOT EXISTS maritime_boundaries_geom_idx ON maritime_boundaries USING GIST(geom)
 CREATE TABLE IF NOT EXISTS protected_marine_sites ( site_id INTEGER PRIMARY KEY, name TEXT NOT NULL, country TEXT, lat_whc DOUBLE PRECISION, lon_whc DOUBLE PRECISION, area_km2 DOUBLE PRECISION, geom GEOMETRY(MULTIPOLYGON, 4326), synced_at TIMESTAMPTZ DEFAULT now() )
 CREATE INDEX IF NOT EXISTS protected_marine_sites_geom_idx ON protected_marine_sites USING GIST(geom)
+CREATE TABLE IF NOT EXISTS argo_profile_values ( profile_id TEXT NOT NULL, level TEXT NOT NULL, param TEXT NOT NULL, value DOUBLE PRECISION NOT NULL, qc SMALLINT, PRIMARY KEY (profile_id, level, param) )
+CREATE INDEX IF NOT EXISTS argo_profile_values_param_idx ON argo_profile_values (param)
+CREATE TABLE IF NOT EXISTS argo_params ( param TEXT PRIMARY KEY, label TEXT, unit TEXT, n_values INTEGER )
+CREATE TABLE IF NOT EXISTS argo_backfill_state ( id INTEGER PRIMARY KEY CHECK (id = 1), done_through DATE, updated_at TIMESTAMPTZ )
+ALTER TABLE argo_profile_values OWNER TO abyssal_user
+ALTER TABLE argo_params OWNER TO abyssal_user
+ALTER TABLE argo_backfill_state OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS mining_contracts ( id SERIAL PRIMARY KEY, isa_id TEXT UNIQUE, contractor_name TEXT, resource_type TEXT, area_km2 DOUBLE PRECISION, expiry_date TIMESTAMPTZ, region TEXT, is_high_risk BOOLEAN DEFAULT FALSE, geom geometry(MultiPolygon, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, act_date TIMESTAMPTZ )
 CREATE INDEX IF NOT EXISTS idx_mining_contracts_geom ON mining_contracts USING GIST(geom)
 CREATE TABLE IF NOT EXISTS biodiversity_hotspots ( id SERIAL PRIMARY KEY, obis_id TEXT UNIQUE, scientific_name TEXT, vernacular_name TEXT, category TEXT, is_endangered BOOLEAN DEFAULT FALSE, geom geometry(Point, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, phylum TEXT, class_name TEXT, order_name TEXT, family TEXT, depth NUMERIC, description TEXT, image_url TEXT, iucn_category TEXT DEFAULT 'NE' )

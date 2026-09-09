@@ -27,7 +27,7 @@ from schema.arctic import ensure_mosaic, ensure_cascade, ensure_sios, ensure_arc
 from schema.biodiversity import ensure_biodiversity_enrichment, ensure_hotspot_grid, ensure_noise_cetacean_grids, ensure_vents_and_chess, ensure_sio_bic, ensure_deepdata, ensure_mbari, ensure_noaa_corals, ensure_worms
 from schema.blog import ensure_blog
 from schema.cables import ensure_cables
-from schema.core import ensure_core, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback
+from schema.core import ensure_core, ensure_argo_long_form, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback
 from schema.fields import ensure_vme
 from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea
 from schema.isa import ensure_mining_contracts_columns, ensure_isa_seed, ISA_CONTRACT_SEED
@@ -45,6 +45,7 @@ async def ensure_schema() -> None:
         await conn.execute("SET lock_timeout = '10s'")
 
         await ensure_core(conn)  # isa_contract_lookup, sync_log, paused_syncs, admin_audit, reserved_areas, isa_apeis, argo_profiles, hydrothermal_vents, relinquished_areas, maritime_boundaries, protected_marine_sites
+        await ensure_argo_long_form(conn)  # argo_profile_values, argo_params, argo_backfill_state (additive, alongside argo_profiles)
         await ensure_core_tables(conn)  # mining_contracts + biodiversity_hotspots (the two original core tables)
         await ensure_mining_contracts_columns(conn)  # mining_contracts enrichment ALTER columns
         await ensure_isa_seed(conn)  # isa_contract_lookup seed upsert (ISA_CONTRACT_SEED)

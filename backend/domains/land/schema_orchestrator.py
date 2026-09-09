@@ -159,20 +159,75 @@ async def ensure_land_schema():
         # long form, verbatim unit included — same shape as geotraces_values.
         # The 16 legacy columns keep being populated unchanged (frontend/SEO
         # read them by name); this table is additive, not a replacement.
+        #
+        # FIXED (2026-09-09): one OpenAQ location can carry several sensors
+        # reporting the SAME parameter (reference-grade + low-cost monitoring
+        # the same thing is the ordinary case) — under (location_id,
+        # parameter) alone they collided on the primary key and one reading
+        # was silently lost. sensor_id joins the key. Also added per-sensor
+        # datetimeFirst/datetimeLast, summary (min/max/sd/expectedCount/
+        # observedCount) and coverage.percentComplete — cheap fields the
+        # source gives that were being read (or not even read) and dropped.
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS air_quality_params (
-                location_id  INTEGER NOT NULL,
-                parameter    TEXT NOT NULL,
-                value        DOUBLE PRECISION,
-                unit         TEXT,
-                last_updated TIMESTAMPTZ,
-                PRIMARY KEY (location_id, parameter)
+                location_id     INTEGER NOT NULL,
+                sensor_id       INTEGER NOT NULL DEFAULT 0,
+                parameter       TEXT NOT NULL,
+                value           DOUBLE PRECISION,
+                unit            TEXT,
+                last_updated    TIMESTAMPTZ,
+                datetime_first  TIMESTAMPTZ,
+                datetime_last   TIMESTAMPTZ,
+                value_min       DOUBLE PRECISION,
+                value_max       DOUBLE PRECISION,
+                value_sd        DOUBLE PRECISION,
+                expected_count  INTEGER,
+                observed_count  INTEGER,
+                coverage_pct    DOUBLE PRECISION,
+                PRIMARY KEY (location_id, sensor_id, parameter)
             )
         """)
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_air_quality_params_parameter "
             "ON air_quality_params (parameter)"
         )
+
+        # Migrate an existing table created under the old (location_id,
+        # parameter) key. DEFAULT 0 on the new sensor_id column keeps every
+        # row unique under the new key too (the old key was already unique),
+        # so no row is lost. Idempotent: only runs when the old PK is found.
+        for col_sql in [
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS sensor_id INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS datetime_first TIMESTAMPTZ",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS datetime_last TIMESTAMPTZ",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS value_min DOUBLE PRECISION",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS value_max DOUBLE PRECISION",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS value_sd DOUBLE PRECISION",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS expected_count INTEGER",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS observed_count INTEGER",
+            "ALTER TABLE air_quality_params ADD COLUMN IF NOT EXISTS coverage_pct DOUBLE PRECISION",
+        ]:
+            await conn.execute(col_sql)
+
+        old_pk = await conn.fetchrow("""
+            SELECT tc.constraint_name,
+                   array_agg(kcu.column_name ORDER BY kcu.ordinal_position) AS cols
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+              ON kcu.constraint_name = tc.constraint_name
+             AND kcu.table_schema = tc.table_schema
+            WHERE tc.table_name = 'air_quality_params'
+              AND tc.constraint_type = 'PRIMARY KEY'
+            GROUP BY tc.constraint_name
+        """)
+        if old_pk and list(old_pk["cols"]) == ["location_id", "parameter"]:
+            await conn.execute(
+                f'ALTER TABLE air_quality_params DROP CONSTRAINT "{old_pk["constraint_name"]}"'
+            )
+            await conn.execute(
+                "ALTER TABLE air_quality_params ADD PRIMARY KEY (location_id, sensor_id, parameter)"
+            )
+            log.info("air_quality_params: migrated primary key to (location_id, sensor_id, parameter)")
 
         # Enrich schema — safe to run on populated table
         for col_sql in [

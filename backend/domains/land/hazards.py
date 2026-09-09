@@ -255,8 +255,15 @@ async def _sync_air_quality() -> int:
                 if lat is None or lon is None:
                     continue
 
-                # Extract latest parameter values
-                params = {p.get("parameter", ""): p.get("lastValue") for p in loc.get("parameters", [])}
+                # NOTE (2026-09-09): /v3/locations also returns a
+                # `parameters[]` array (per-parameter lastValue at this
+                # location). It is intentionally NOT extracted here — this
+                # sync only stores station identity/geometry; per-parameter
+                # readings are the job of _sync_air_quality_readings() below,
+                # which reads the richer per-SENSOR /v3/locations/{id}/sensors
+                # endpoint instead (sensor id, full summary, coverage). Two
+                # readings of the same field would drift; keeping one source
+                # of truth for values.
 
                 # Extract location-level metadata
                 locality   = loc.get("locality") or ""
@@ -426,22 +433,54 @@ async def _sync_air_quality_readings() -> int:
                 await asyncio.sleep(1.0)
                 continue
 
+            # Station-level aggregate (16 named columns on air_quality_stations,
+            # unchanged behaviour): last sensor reporting a parameter wins when
+            # several sensors share it. `sensor_rows` below is the honest,
+            # per-sensor record — nothing is collapsed there.
             values: dict[str, float | None] = {}
             units: dict[str, str | None] = {}
+            sensor_rows: list[dict] = []
             for sensor in data.get("results", []):
                 param = sensor.get("parameter") or {}
                 param_name = param.get("name", "")
                 if not param_name:
                     continue
-                units[param_name] = param.get("units")
+                sensor_id = sensor.get("id")
+                unit = param.get("units")
+                units[param_name] = unit
                 latest = sensor.get("latest")
                 summary = sensor.get("summary") or {}
-                if latest and latest.get("value") is not None:
-                    values[param_name] = latest["value"]
-                elif summary.get("avg") is not None:
-                    values[param_name] = round(summary["avg"], 2)
+                coverage = sensor.get("coverage") or {}
 
-            # Extract coverage_pct: prefer PM2.5 sensor, else first available
+                value: float | None = None
+                if latest and latest.get("value") is not None:
+                    value = latest["value"]
+                elif summary.get("avg") is not None:
+                    value = round(summary["avg"], 2)
+                if value is not None:
+                    values[param_name] = value
+
+                sensor_rows.append({
+                    # 0 is the same "unknown/unattributed sensor" sentinel the
+                    # schema migration backfills for pre-fix rows — OpenAQ
+                    # always sends an id in practice, but a response that
+                    # somehow omits it still lands (own row per parameter,
+                    # not silently dropped) rather than being skipped.
+                    "sensor_id": sensor_id if sensor_id is not None else 0,
+                    "parameter": param_name,
+                    "unit": unit,
+                    "value": value,
+                    "datetime_first": _parse_openaq_dt(sensor.get("datetimeFirst")),
+                    "datetime_last": _parse_openaq_dt(sensor.get("datetimeLast")),
+                    "value_min": summary.get("min"),
+                    "value_max": summary.get("max"),
+                    "value_sd": summary.get("sd"),
+                    "expected_count": summary.get("expectedCount"),
+                    "observed_count": summary.get("observedCount"),
+                    "coverage_pct": coverage.get("percentComplete"),
+                })
+
+            # Station-level coverage_pct: prefer PM2.5 sensor, else first available
             coverage_pct: float | None = None
             for sensor in data.get("results", []):
                 cov = sensor.get("coverage")
@@ -477,16 +516,35 @@ async def _sync_air_quality_readings() -> int:
                         _concentration_or_none(values.get("ch4")),    _concentration_or_none(values.get("ufp")),
                         coverage_pct,
                     )
-                    # Store every parameter the sensor reported (44 possible),
-                    # not just the 16 columns above — verbatim unit, no
-                    # conversion, no unit ever assumed.
-                    for pname, pvalue in values.items():
+                    # Store every SENSOR the location reported (44 possible
+                    # parameters, and several sensors can share one parameter
+                    # — reference-grade + low-cost monitoring the same thing
+                    # is the ordinary case, so sensor_id is part of the key,
+                    # not just parameter). Verbatim unit, no conversion, no
+                    # unit ever assumed; a missing unit stores NULL.
+                    for row in sensor_rows:
                         await conn.execute("""
-                            INSERT INTO air_quality_params (location_id, parameter, value, unit, last_updated)
-                            VALUES ($1, $2, $3, $4, NOW())
-                            ON CONFLICT (location_id, parameter) DO UPDATE
-                            SET value = EXCLUDED.value, unit = EXCLUDED.unit, last_updated = NOW()
-                        """, loc_id, pname, _score_or_none(pvalue), units.get(pname))
+                            INSERT INTO air_quality_params
+                                (location_id, sensor_id, parameter, value, unit, last_updated,
+                                 datetime_first, datetime_last, value_min, value_max, value_sd,
+                                 expected_count, observed_count, coverage_pct)
+                            VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12, $13)
+                            ON CONFLICT (location_id, sensor_id, parameter) DO UPDATE
+                            SET value = EXCLUDED.value, unit = EXCLUDED.unit, last_updated = NOW(),
+                                datetime_first = EXCLUDED.datetime_first,
+                                datetime_last = EXCLUDED.datetime_last,
+                                value_min = EXCLUDED.value_min, value_max = EXCLUDED.value_max,
+                                value_sd = EXCLUDED.value_sd,
+                                expected_count = EXCLUDED.expected_count,
+                                observed_count = EXCLUDED.observed_count,
+                                coverage_pct = EXCLUDED.coverage_pct
+                        """,
+                            loc_id, row["sensor_id"], row["parameter"],
+                            _score_or_none(row["value"]), row["unit"],
+                            row["datetime_first"], row["datetime_last"],
+                            row["value_min"], row["value_max"], row["value_sd"],
+                            row["expected_count"], row["observed_count"], row["coverage_pct"],
+                        )
                     updated += 1
             else:
                 skipped += 1
