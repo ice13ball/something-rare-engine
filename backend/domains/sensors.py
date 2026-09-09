@@ -808,7 +808,13 @@ async def sync_argo_profiles() -> int:
 # endpoint) until `done_through` reaches today.
 ARGO_BACKFILL_START = date(1999, 1, 1)  # Argo programme's earliest profiles
 ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS = 1200
-_ARGO_BACKFILL_CHUNK_PACING_SECONDS = 2
+_ARGO_BACKFILL_CHUNK_PACING_SECONDS = 5
+# ArgoVis answers 429 with no Retry-After. Measured 2026-09-09: a ~20s pause
+# cleared it, so start there and double. ⛔ These retries are what stop a
+# rate-limited run from looking like a permanent chunk failure.
+_ARGO_429_BASE_WAIT_SECONDS = 20.0
+_ARGO_429_MAX_WAIT_SECONDS = 300.0
+_ARGO_429_MAX_ATTEMPTS = 5
 
 
 def _next_month_start(d: date) -> date:
@@ -821,6 +827,8 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
     started = time.monotonic()
     months_done = 0
     total_inserted = 0
+    rate_limited_waits = 0
+    failed_chunk: str | None = None
 
     async with db.pool.acquire() as conn:
         row = await conn.fetchrow("SELECT done_through FROM argo_backfill_state WHERE id = 1")
@@ -843,15 +851,46 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
             try:
                 start_dt = datetime(month_start.year, month_start.month, month_start.day, tzinfo=timezone.utc)
                 end_dt   = datetime(month_end.year, month_end.month, month_end.day, tzinfo=timezone.utc)
-                profiles = await _fetch_argo_window(client, start_dt, end_dt, params)
+                # ⛔ ArgoVis rate-limits, and it says so with 429 and NO
+                # Retry-After header. Measured on the first production run
+                # 2026-09-09: the very first backfill invocation walked two
+                # months and then every request came back 429, while the run
+                # still returned HTTP 200 with months_done=0 — a silent stall
+                # reporting success. Waiting ~20s cleared it. So: back off and
+                # RETRY the same month; a 429 is "come back later", never a
+                # reason to abandon the chunk.
+                profiles = None
+                wait = _ARGO_429_BASE_WAIT_SECONDS
+                for attempt in range(1, _ARGO_429_MAX_ATTEMPTS + 1):
+                    try:
+                        profiles = await _fetch_argo_window(client, start_dt, end_dt, params)
+                        break
+                    except httpx.HTTPStatusError as he:
+                        if he.response is None or he.response.status_code != 429:
+                            raise
+                        if attempt == _ARGO_429_MAX_ATTEMPTS:
+                            raise
+                        rate_limited_waits += 1
+                        log.info(
+                            "argo backfill: 429 on %s, waiting %.0fs (attempt %d/%d)",
+                            month_start, wait, attempt, _ARGO_429_MAX_ATTEMPTS,
+                        )
+                        await asyncio.sleep(wait)
+                        wait = min(wait * 2, _ARGO_429_MAX_WAIT_SECONDS)
                 inserted, _ = await _upsert_argo_profiles(profiles, params)
             except Exception as e:
                 # Chunk failed — the cursor must NOT advance, so a restart
                 # retries exactly this month rather than silently skipping it.
+                # ⚠️ Log the MESSAGE, not just the type. Logging only
+                # type(e).__name__ made a real NameError unreadable on
+                # 2026-09-09 — "NameError" alone says nothing about which name.
+                # ArgoVis needs no credential, so its URL is safe to surface;
+                # the message is truncated so a huge body cannot flood the log.
                 log.error(
-                    "argo backfill: chunk %s..%s failed, cursor NOT advanced: %s",
-                    month_start, month_end, type(e).__name__,
+                    "argo backfill: chunk %s..%s failed, cursor NOT advanced: %s: %.300s",
+                    month_start, month_end, type(e).__name__, e,
                 )
+                failed_chunk = f"{month_start}..{month_end}: {type(e).__name__}"
                 break
 
             async with db.pool.acquire() as conn:
@@ -874,7 +913,17 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
         "argo backfill: %d month(s) processed, %d row(s) inserted, done_through=%s",
         months_done, total_inserted, cursor,
     )
-    return {"months_done": months_done, "inserted": total_inserted, "done_through": cursor.isoformat()}
+    return {
+        "months_done": months_done,
+        "inserted": total_inserted,
+        "done_through": cursor.isoformat(),
+        "rate_limited_waits": rate_limited_waits,
+        # ⛔ A run that walked zero months is NOT a success. Saying so here is
+        # what stops an operator (or a cron) from reading a silent stall as
+        # healthy — the shape this exact endpoint shipped with.
+        "stalled": months_done == 0,
+        "failed_chunk": failed_chunk,
+    }
 
 
 # A shrink of more than this fraction of the currently-stored row count is

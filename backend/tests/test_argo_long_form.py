@@ -13,6 +13,7 @@ run code, not grep it.
 import os
 from datetime import date, datetime, timezone
 
+import httpx
 import pytest
 
 pytestmark = pytest.mark.skipif(
@@ -390,3 +391,96 @@ def test_extraction_keeps_a_parameter_the_caller_never_named():
     )
     surface = next(r for r in rows if r["param"] == "bbp700" and r["level"] == "surface")
     assert surface["value"] == 0.0012 and surface["qc"] == 1
+
+
+@pytest.mark.asyncio
+async def test_backfill_retries_a_429_instead_of_treating_it_as_a_dead_chunk(monkeypatch):
+    """⛔ ArgoVis rate-limits with 429 and sends NO Retry-After header.
+
+    Observed on the first production backfill 2026-09-09: it walked two months,
+    then every request came back 429 — and the endpoint still answered HTTP 200
+    with months_done=0. A silent stall reporting success, which is how it could
+    have sat there for days. Waiting ~20s cleared the limit, so a 429 means
+    "come back later", never "this chunk is dead".
+    """
+    import db
+    from domains import sensors
+    import asyncpg
+    pool = await asyncpg.create_pool(os.environ["TEST_DATABASE_URL"])
+    db.pool = pool
+    async with pool.acquire() as conn:
+        await _clean_argo_tables(conn)
+        await conn.execute(
+            "INSERT INTO argo_backfill_state (id, done_through, updated_at) "
+            "VALUES (1, $1, NOW()) ON CONFLICT (id) DO UPDATE SET done_through = $1",
+            date(2020, 1, 1),
+        )
+    monkeypatch.setattr(sensors, "_ARGO_429_BASE_WAIT_SECONDS", 0.01)
+    monkeypatch.setattr(sensors, "_ARGO_BACKFILL_CHUNK_PACING_SECONDS", 0)
+
+    calls = {"n": 0}
+
+    async def fake_window(client, start, end, params):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            req = httpx.Request("GET", "https://argovis-api.colorado.edu/argo")
+            raise httpx.HTTPStatusError(
+                "429", request=req, response=httpx.Response(429, request=req))
+        return []
+
+    monkeypatch.setattr(sensors, "_fetch_argo_window", fake_window)
+    async def fake_vocab(client):
+        return ["temperature"]
+    monkeypatch.setattr(sensors, "_fetch_argo_param_vocabulary", fake_vocab)
+
+    result = await sensors.sync_argo_profiles_backfill(budget_seconds=5)
+    await pool.close()
+
+    assert calls["n"] >= 2, (
+        "the 429 was not retried — a rate limit was treated as a permanent "
+        "chunk failure and the backfill stalls forever"
+    )
+    assert result["months_done"] >= 1, (
+        "the cursor never advanced despite the retry succeeding"
+    )
+    assert result["stalled"] is False
+
+
+@pytest.mark.asyncio
+async def test_a_run_that_walked_no_months_reports_itself_stalled(monkeypatch):
+    """A backfill that made zero progress must SAY so. It used to answer
+    HTTP 200 with months_done=0 and nothing else — indistinguishable from a
+    healthy no-op, which is what hid the 429 stall on 2026-09-09."""
+    import db
+    from domains import sensors
+    import asyncpg
+    pool = await asyncpg.create_pool(os.environ["TEST_DATABASE_URL"])
+    db.pool = pool
+    async with pool.acquire() as conn:
+        await _clean_argo_tables(conn)
+        await conn.execute(
+            "INSERT INTO argo_backfill_state (id, done_through, updated_at) "
+            "VALUES (1, $1, NOW()) ON CONFLICT (id) DO UPDATE SET done_through = $1",
+            date(2020, 1, 1),
+        )
+    monkeypatch.setattr(sensors, "_ARGO_429_BASE_WAIT_SECONDS", 0.01)
+    monkeypatch.setattr(sensors, "_ARGO_429_MAX_ATTEMPTS", 2)
+
+    async def always_429(client, start, end, params):
+        req = httpx.Request("GET", "https://argovis-api.colorado.edu/argo")
+        raise httpx.HTTPStatusError(
+            "429", request=req, response=httpx.Response(429, request=req))
+
+    async def fake_vocab(client):
+        return ["temperature"]
+
+    monkeypatch.setattr(sensors, "_fetch_argo_window", always_429)
+    monkeypatch.setattr(sensors, "_fetch_argo_param_vocabulary", fake_vocab)
+
+    result = await sensors.sync_argo_profiles_backfill(budget_seconds=5)
+    await pool.close()
+
+    assert result["stalled"] is True, (
+        "a run that walked zero months called itself healthy"
+    )
+    assert result["failed_chunk"], "the failing chunk was not named"
