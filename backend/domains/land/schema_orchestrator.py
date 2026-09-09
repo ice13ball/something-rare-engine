@@ -231,6 +231,14 @@ async def ensure_land_schema():
 
         # Enrich schema — safe to run on populated table
         for col_sql in [
+            # Rotation key for the readings sweep. ⛔ Without it the queue was
+            # ordered by "has no readings yet", so the ~4% of OpenAQ locations
+            # whose /sensors endpoint returns HTTP 500 (measured 2026-09-09,
+            # their fault) stayed candidates forever and blocked the head of
+            # every run. readings_error keeps an upstream failure telling itself
+            # apart from a station that genuinely reports nothing.
+            "ALTER TABLE air_quality_stations ADD COLUMN IF NOT EXISTS readings_attempted_at TIMESTAMPTZ",
+            "ALTER TABLE air_quality_stations ADD COLUMN IF NOT EXISTS readings_error TEXT",
             "ALTER TABLE air_quality_stations ADD COLUMN IF NOT EXISTS locality TEXT",
             "ALTER TABLE air_quality_stations ADD COLUMN IF NOT EXISTS timezone TEXT",
             "ALTER TABLE air_quality_stations ADD COLUMN IF NOT EXISTS is_mobile BOOLEAN DEFAULT FALSE",

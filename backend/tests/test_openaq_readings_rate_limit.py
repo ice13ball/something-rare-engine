@@ -229,3 +229,71 @@ async def test_incomplete_run_visible_in_sync_log(ctx, monkeypatch):
         "SELECT records_added, total_records FROM sync_log WHERE source = 'air_quality_readings'"
     )
     assert log_row["total_records"] > 0  # 2 stations still uncovered → incomplete
+
+
+@pytest.mark.asyncio
+async def test_a_station_that_500s_still_rotates_out_of_the_queue(ctx, monkeypatch):
+    """⛔ A station OpenAQ cannot serve must not block the queue forever.
+
+    Measured against the live API 2026-09-09: about 4% of locations answer
+    /v3/locations/{id}/sensors with HTTP 500 — OpenAQ's fault, and they never
+    produce an air_quality_params row. The sweep used to pick candidates with
+    `NOT EXISTS (... params ...) ORDER BY location_id`, so those stations
+    stayed candidates on every future run and sat at the head of the queue.
+    With ~1,000 of them the sweep would grind on the same broken block and
+    never reach the other 24,000 stations. Nothing errors; coverage simply
+    stops growing.
+
+    The fix is to stamp the ATTEMPT, whatever the outcome, and order by it.
+    """
+    import db
+    from domains.land import hazards
+
+    pool = ctx
+    async with db.pool.acquire() as conn:
+        await conn.execute("DELETE FROM air_quality_params WHERE location_id IN (77001, 77002)")
+        await conn.execute("DELETE FROM air_quality_stations WHERE location_id IN (77001, 77002)")
+        await conn.executemany(
+            "INSERT INTO air_quality_stations (location_id, name, geom) "
+            "VALUES ($1, $2, ST_SetSRID(ST_MakePoint(0, 0), 4326))",
+            [(77001, "Broken upstream"), (77002, "Healthy")],
+        )
+
+    def handler(request):
+        if "77001" in str(request.url):
+            return httpx.Response(500, text="Internal Server Error")
+        return httpx.Response(200, json={"results": [{
+            "id": 5001, "parameter": {"name": "pm25", "units": "ug/m3"},
+            "latest": {"value": 7.0, "datetime": {"utc": "2026-09-01T00:00:00Z"}},
+        }]})
+
+    monkeypatch.setattr(hazards.httpx, "AsyncClient", _client_factory(handler))
+    await hazards._sync_air_quality_readings()
+
+    async with db.pool.acquire() as conn:
+        broken = await conn.fetchrow(
+            "SELECT readings_attempted_at, readings_error FROM air_quality_stations "
+            "WHERE location_id = 77001")
+        healthy = await conn.fetchrow(
+            "SELECT readings_attempted_at, readings_error FROM air_quality_stations "
+            "WHERE location_id = 77002")
+
+    assert broken["readings_attempted_at"] is not None, (
+        "the 500 station was never stamped — it stays at the head of the queue "
+        "on every future run and the sweep can never move past it"
+    )
+    assert broken["readings_error"] is not None, (
+        "an upstream 500 was recorded as if the station simply had no data — "
+        "missing and broken must not share a code path"
+    )
+    assert healthy["readings_attempted_at"] is not None
+    assert healthy["readings_error"] is None, (
+        "a healthy station was marked as an upstream failure"
+    )
+
+    # ⚠️ Clean up. The candidate query is now "every station, oldest attempt
+    # first" rather than "only stations with no readings", so anything a test
+    # leaves behind is swept by the NEXT test and shows up as an extra update.
+    async with db.pool.acquire() as conn:
+        await conn.execute("DELETE FROM air_quality_params WHERE location_id IN (77001, 77002)")
+        await conn.execute("DELETE FROM air_quality_stations WHERE location_id IN (77001, 77002)")

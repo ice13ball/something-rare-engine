@@ -347,15 +347,22 @@ async def _sync_air_quality_readings() -> int:
 
     async with db.pool.acquire() as conn:
         rows = await conn.fetch(
+            # ⛔ Ordered by LAST ATTEMPT, not by "has no readings yet".
+            # Verified against the live API 2026-09-09: ~4% of OpenAQ locations
+            # answer /v3/locations/{id}/sensors with HTTP 500 — their fault, not
+            # ours, and they never produce a params row. Under the previous
+            # `NOT EXISTS (... params ...) ORDER BY location_id` they therefore
+            # stayed candidates FOREVER and sat at the head of every future run,
+            # so the sweep would grind on the same ~1,000 broken stations and
+            # never reach the rest. Recording the attempt is what lets a station
+            # rotate out of the queue whatever the outcome.
             "SELECT s.location_id FROM air_quality_stations s "
-            "WHERE s.pm25 IS NULL AND s.no2 IS NULL AND s.o3 IS NULL "
-            "  AND NOT EXISTS (SELECT 1 FROM air_quality_params p WHERE p.location_id = s.location_id) "
-            "ORDER BY s.location_id LIMIT 500"
+            "ORDER BY s.readings_attempted_at ASC NULLS FIRST, s.location_id "
+            "LIMIT 500"
         )
         total_remaining_before = await conn.fetchval(
             "SELECT COUNT(*) FROM air_quality_stations s "
-            "WHERE s.pm25 IS NULL AND s.no2 IS NULL AND s.o3 IS NULL "
-            "  AND NOT EXISTS (SELECT 1 FROM air_quality_params p WHERE p.location_id = s.location_id)"
+            "WHERE s.readings_attempted_at IS NULL"
         )
 
     if not rows:
@@ -374,6 +381,10 @@ async def _sync_air_quality_readings() -> int:
     requests_made = 0
     started = asyncio.get_event_loop().time()
     stopped_early_reason: str | None = None
+    # location_id -> HTTP status or exception name. Kept apart from `skipped`
+    # so an upstream outage is never recorded as an absence of measurements.
+    upstream_errors: dict[int, object] = {}
+    attempted: list[int] = []
 
     async with httpx.AsyncClient(timeout=30, headers=headers) as client:
         idx = 0
@@ -382,6 +393,7 @@ async def _sync_air_quality_readings() -> int:
             if elapsed >= _READINGS_MAX_RUNTIME_S:
                 stopped_early_reason = f"wall-clock budget ({_READINGS_MAX_RUNTIME_S}s) reached"
                 break
+            attempted.append(loc_id)
             if requests_made >= _READINGS_MAX_REQUESTS:
                 stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
                 break
@@ -394,7 +406,8 @@ async def _sync_air_quality_readings() -> int:
                 requests_made += 1
                 try:
                     resp = await client.get(f"https://api.openaq.org/v3/locations/{loc_id}/sensors")
-                except Exception:
+                except Exception as exc:
+                    upstream_errors[loc_id] = type(exc).__name__
                     skipped += 1
                     break
 
@@ -420,6 +433,11 @@ async def _sync_air_quality_readings() -> int:
                     continue
 
                 if resp.status_code != 200:
+                    # ⛔ missing and broken must not share a code path. A 500 is
+                    # OpenAQ failing, NOT a station without measurements; storing
+                    # it as "no data" would quietly turn their outage into our
+                    # fact. Record the reason so the two stay distinguishable.
+                    upstream_errors[loc_id] = resp.status_code
                     skipped += 1
                     break
 
@@ -569,6 +587,26 @@ async def _sync_air_quality_readings() -> int:
     # run finished the whole backlog (a complete sweep); >0 means it stopped
     # early (throttled or budget-bound) and the next run must resume — the
     # sync log itself carries that distinction, no separate status column.
+    # Stamp EVERY station this run touched, whatever the outcome, so it rotates
+    # out of the queue instead of blocking the head of it forever. Broken ones
+    # carry the reason, so "OpenAQ is failing here" stays distinguishable from
+    # "this station reports nothing".
+    if attempted:
+        async with db.pool.acquire() as conn:
+            await conn.executemany(
+                "UPDATE air_quality_stations "
+                "SET readings_attempted_at = NOW(), readings_error = $2 "
+                "WHERE location_id = $1",
+                [(lid, str(upstream_errors[lid]) if lid in upstream_errors else None)
+                 for lid in attempted],
+            )
+    if upstream_errors:
+        log.warning(
+            "air_quality_readings: %d stations failed UPSTREAM (not empty) — sample: %s",
+            len(upstream_errors),
+            ", ".join(f"{k}:{v}" for k, v in list(upstream_errors.items())[:5]),
+        )
+
     await _log_land_sync("air_quality_readings", updated, total_remaining_after)
     if stopped_early_reason:
         log.warning(
