@@ -359,3 +359,67 @@ async def test_budget_stop_does_not_stamp_the_station_it_never_asked_about(ctx, 
         "budget stopped on was recorded as attempted-with-no-data and rotated "
         "to the back of the queue without a single request being sent."
     )
+
+
+@pytest.mark.asyncio
+async def test_progress_survives_the_sweep_dying_mid_run(ctx, monkeypatch):
+    """⛔ A restart mid-sweep must not discard the queue movement already made.
+
+    Observed in production 2026-09-09: readings_attempted_at was written in
+    one batch after the loop. This backend redeploys on a 60 s git poll, so
+    two consecutive 8-minute sweeps wrote readings for ~600 stations and were
+    then killed by a deploy restart before that batch ran. The driver log
+    showed `left_before=24877` for both runs — identical — and the next sweep
+    re-fetched the same stations. Coverage moved; the queue did not.
+
+    Here the sweep is killed after two stations. Both must already carry a
+    stamp.
+    """
+    import asyncio as _asyncio
+
+    import db
+    from domains.land import hazards
+
+    async with db.pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE air_quality_stations SET readings_attempted_at = NOW() "
+            "WHERE location_id NOT BETWEEN 900000 AND 900002")
+        await conn.execute(
+            "UPDATE air_quality_stations SET readings_attempted_at = NULL, readings_error = NULL "
+            "WHERE location_id BETWEEN 900000 AND 900002")
+
+    def handler(request):
+        return httpx.Response(200, json={"results": [{
+            "id": 7001, "parameter": {"name": "pm25", "units": "ug/m3"},
+            "latest": {"value": 4.0},
+        }]})
+
+    sleeps = {"n": 0}
+
+    async def dying_sleep(_s):
+        sleeps["n"] += 1
+        if sleeps["n"] >= 2:
+            raise _asyncio.CancelledError("deploy restart")
+
+    monkeypatch.setattr(hazards.asyncio, "sleep", dying_sleep)
+    monkeypatch.setattr(hazards.httpx, "AsyncClient", _client_factory(handler))
+
+    with pytest.raises(_asyncio.CancelledError):
+        await hazards._sync_air_quality_readings()
+
+    async with db.pool.acquire() as conn:
+        stamped = await conn.fetch(
+            "SELECT location_id FROM air_quality_stations "
+            "WHERE location_id BETWEEN 900000 AND 900002 "
+            "  AND readings_attempted_at IS NOT NULL ORDER BY location_id")
+        readings = await conn.fetchval(
+            "SELECT count(DISTINCT location_id) FROM air_quality_params "
+            "WHERE location_id BETWEEN 900000 AND 900002")
+
+    ids = [r["location_id"] for r in stamped]
+    assert readings >= 2, f"the fixture did not actually fetch anything: {readings}"
+    assert ids == [900000, 900001], (
+        f"stamped {ids}, expected [900000, 900001]. Readings were written for "
+        f"{readings} stations but the queue did not move — the next sweep "
+        "re-fetches exactly the same stations, forever."
+    )

@@ -386,6 +386,24 @@ async def _sync_air_quality_readings() -> int:
     upstream_errors: dict[int, object] = {}
     attempted: list[int] = []
 
+    async def _stamp(lid: int) -> None:
+        # ⛔ Stamp per station, inside the loop, NOT in one batch at the end.
+        # readings_attempted_at is the queue order, and this backend restarts
+        # on every dev push (git poll, 60 s). Observed 2026-09-09: two
+        # consecutive 8-minute sweeps wrote readings for ~600 stations and
+        # then died to a deploy restart before the end-of-run UPDATE, so the
+        # queue never moved — left_before was identical (24,877) on both runs
+        # and the next sweep re-fetched the same stations. One small UPDATE
+        # per station is free next to the 1.2 s pacing sleep it sits beside.
+        async with db.pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE air_quality_stations "
+                "SET readings_attempted_at = NOW(), readings_error = $2 "
+                "WHERE location_id = $1",
+                lid,
+                str(upstream_errors[lid]) if lid in upstream_errors else None,
+            )
+
     async with httpx.AsyncClient(timeout=30, headers=headers) as client:
         idx = 0
         for idx, loc_id in enumerate(location_ids):
@@ -453,6 +471,7 @@ async def _sync_air_quality_readings() -> int:
                 break
 
             if data is None:
+                await _stamp(loc_id)
                 if requests_made >= _READINGS_MAX_REQUESTS:
                     stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
                     break
@@ -575,6 +594,8 @@ async def _sync_air_quality_readings() -> int:
             else:
                 skipped += 1
 
+            await _stamp(loc_id)
+
             # Log progress every 50 stations
             if (idx + 1) % 50 == 0:
                 log.info("air_quality_readings: %d/%d processed, %d updated, %d skipped, %d rate-limit events",
@@ -595,19 +616,9 @@ async def _sync_air_quality_readings() -> int:
     # run finished the whole backlog (a complete sweep); >0 means it stopped
     # early (throttled or budget-bound) and the next run must resume — the
     # sync log itself carries that distinction, no separate status column.
-    # Stamp EVERY station this run touched, whatever the outcome, so it rotates
-    # out of the queue instead of blocking the head of it forever. Broken ones
-    # carry the reason, so "OpenAQ is failing here" stays distinguishable from
-    # "this station reports nothing".
-    if attempted:
-        async with db.pool.acquire() as conn:
-            await conn.executemany(
-                "UPDATE air_quality_stations "
-                "SET readings_attempted_at = NOW(), readings_error = $2 "
-                "WHERE location_id = $1",
-                [(lid, str(upstream_errors[lid]) if lid in upstream_errors else None)
-                 for lid in attempted],
-            )
+    # Every station this run touched was already stamped by _stamp() as its
+    # outcome became known, so a restart mid-sweep keeps the progress made so
+    # far instead of discarding the whole run's queue movement.
     if upstream_errors:
         log.warning(
             "air_quality_readings: %d stations failed UPSTREAM (not empty) — sample: %s",

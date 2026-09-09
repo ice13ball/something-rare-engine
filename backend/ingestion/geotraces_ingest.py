@@ -458,7 +458,7 @@ async def load(pool, samples: list[dict], stations: list[dict], units: dict[str,
                     embl_ebi_metagenome_analysis,csv_row,geom)
                    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,
                           $20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,
-                          $37,
+                          $37,$38,
                           ST_SetSRID(ST_MakePoint($6,$5),4326))""",
                 samples_args,
             )
@@ -568,10 +568,47 @@ def fetch_and_extract(dest_dir: str) -> str:
     """Download the IDP2025 ZIP via curl -4, extract the seawater CSV, return its path."""
     os.makedirs(dest_dir, exist_ok=True)
     zip_path = os.path.join(dest_dir, "idp2025.zip")
+    # ⛔ --retry is not optional here. Measured against the live BODC endpoint
+    # 2026-09-09: three of four plain transfers died mid-stream with
+    # `OpenSSL SSL_read: ... unexpected eof while reading` (curl exit 56),
+    # the last at 240 of 260 MB. curl exits non-zero, check=True raises, and
+    # the whole 260 MB sync fails — on a frozen archive that is only ever
+    # pulled by hand, that reads as "GEOTRACES is broken" rather than "the
+    # transfer dropped". BODC answers HEAD with a Content-Length but rejects
+    # Range (curl: (33) server does not seem to support byte ranges), so a
+    # retry must restart the transfer; --retry-all-errors is what makes curl
+    # treat a mid-stream TLS drop as retryable at all.
+    head = subprocess.run(
+        ["/usr/bin/curl", "-4", "-sS", "-L", "-I", "-o", "/dev/null",
+         "-w", "%{size_download}\n%{header_json}", IDP2025_ZIP_URL],
+        capture_output=True, text=True, timeout=300,
+    )
+    expected = 0
+    if head.returncode == 0:
+        import json as _json
+        try:
+            hdrs = _json.loads(head.stdout.split("\n", 1)[1])
+            expected = int((hdrs.get("content-length") or ["0"])[0])
+        except Exception:
+            expected = 0
     subprocess.run(
-        ["/usr/bin/curl", "-4", "-sS", "-L", "-o", zip_path, IDP2025_ZIP_URL],
+        ["/usr/bin/curl", "-4", "-sS", "-L",
+         "--retry", "5", "--retry-delay", "5", "--retry-all-errors",
+         "-o", zip_path, IDP2025_ZIP_URL],
         check=True, timeout=1800,
     )
+    # ⛔ Compare against what THIS response promised, never against a constant.
+    # A fixed floor cannot catch the truncation actually observed here (240 of
+    # 260 MB would clear any floor low enough to survive BODC republishing the
+    # archive at a new size). Content-Length moves with the release; a short
+    # file does not. `expected == 0` means BODC answered without the header —
+    # skip the check rather than invent a threshold.
+    if expected and os.path.getsize(zip_path) != expected:
+        raise RuntimeError(
+            f"geotraces: download is {os.path.getsize(zip_path)} bytes against the "
+            f"{expected} the server promised — the transfer was truncated. The "
+            "archive was NOT parsed and nothing was written; re-run the sync."
+        )
     with zipfile.ZipFile(zip_path) as z:
         inner = z.read(SEAWATER_MEMBER)
     inner_path = os.path.join(dest_dir, "seawater_inner.zip")
