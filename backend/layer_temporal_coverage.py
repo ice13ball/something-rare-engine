@@ -491,6 +491,43 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-09-08",
     ),
     Coverage(
+        layer_id="onc",
+        # Measured on our own copy 2026-09-09: every stored reading carries the
+        # sample time ONC gave it (139/139), and the sweep asks for a 365-day
+        # window, so a shown value is at most a year old. The 2009 start is the
+        # earliest deployment_start across the 937 instruments we hold.
+        start_year=2009, end_year=None,
+        kind="observations",
+        wording="Each reading carries the measurement time ONC published for "
+                "it, and the readings on one station can differ in age because "
+                "each instrument category is fetched separately. ⛔ This layer "
+                "holds only the LATEST value per measurement, requested within "
+                "a 365-day window — it is a snapshot, not a time series, and "
+                "nothing here can be pooled into a trend. ONC's own archive "
+                "goes back further than what we store; the 2009 start is the "
+                "earliest instrument deployment in our copy, not a figure the "
+                "publisher states. Their pages render client-side and give no "
+                "machine-readable coverage span.",
+        source_url="https://data.oceannetworks.ca/",
+        verified_on="2026-09-09",
+    ),
+    Coverage(
+        layer_id="onc-instruments",
+        # Measured 2026-09-09: 937 instruments, 571 with deployment_start
+        # (61%), 79 with deployment_end. Range 2009-09-01 to 2026-08-26, open.
+        start_year=2009, end_year=None,
+        kind="observations",
+        wording="Deployment windows for individual instruments: 571 of 937 "
+                "carry a start date and 79 an end date, the rest none — so "
+                "⚠️ a filter on this span silently excludes the 39% we cannot "
+                "date. A deployment window is when the instrument was in the "
+                "water, not when any particular measurement was taken. The "
+                "range is read from our own copy; the publisher states no "
+                "network-wide span.",
+        source_url="https://data.oceannetworks.ca/",
+        verified_on="2026-09-09",
+    ),
+    Coverage(
         layer_id="oceansites",
         # Measured at the source 2026-09-08: 5,788 of 5,795 platforms carry a real
         # deployment date, running 1948-10-01 to 2026-04-12. The earliest is Ocean

@@ -291,6 +291,11 @@ async def test_sync_onc_refuses_to_truncate_on_categories_fetch_failure(monkeypa
                 records_added INTEGER, total_records INTEGER
             )
         """)
+        # ⚠️ sync_log survives the DROP/CREATE above, so a sibling test that
+        # completed a successful sync leaves a row here. Any assertion of the
+        # form "a failed sync must not stamp last_synced_at" then passes or
+        # fails purely on test ORDER. Clear our own source.
+        await conn.execute("DELETE FROM sync_log WHERE source LIKE 'onc%'")
         # Simulate the widened table: 1000 pre-existing locations.
         await conn.executemany(
             "INSERT INTO onc_locations (location_code, name, lat, lon) "
@@ -360,6 +365,11 @@ async def test_sync_onc_shrink_guard_refuses_dramatic_drop(monkeypatch):
                 records_added INTEGER, total_records INTEGER
             )
         """)
+        # ⚠️ sync_log survives the DROP/CREATE above, so a sibling test that
+        # completed a successful sync leaves a row here. Any assertion of the
+        # form "a failed sync must not stamp last_synced_at" then passes or
+        # fails purely on test ORDER. Clear our own source.
+        await conn.execute("DELETE FROM sync_log WHERE source LIKE 'onc%'")
         await conn.executemany(
             "INSERT INTO onc_locations (location_code, name, lat, lon) "
             "VALUES ($1, 'X', 48.0, -126.0)",
@@ -387,3 +397,114 @@ async def test_sync_onc_shrink_guard_refuses_dramatic_drop(monkeypatch):
     assert count == 1000, "sync_onc truncated the table despite a >50% shrink"
 
     await pool.close()
+
+
+@pytestmark_db
+@pytest.mark.asyncio
+async def test_sync_onc_keeps_sensor_readings_it_did_not_fetch(monkeypatch):
+    """A location sync must not destroy the readings the sensor sync collected.
+
+    Found on production 2026-09-09: reading coverage had walked BACKWARDS from
+    207 locations to 54 overnight. sync_onc() was doing TRUNCATE + INSERT, so
+    every run cleared `latest_sensors`/`sensors_fetched_at` for the whole table,
+    and sync_onc_sensors() — incremental at 400 locations per run — could only
+    put back one batch before the next onc run wiped it again. With the old
+    183-location layer this self-healed in a single pass and nobody noticed;
+    at ~1,975 locations the two schedules can never converge.
+
+    ⛔ Nothing raises when this regresses. The map still renders, the sync log
+    still says success, and only the reading coverage rots. This test is the
+    only thing that would notice.
+    """
+    import asyncpg
+    import db
+    from domains import onc
+
+    pool = await asyncpg.create_pool(os.environ["TEST_DATABASE_URL"])
+    db.pool = pool
+    async with pool.acquire() as conn:
+        await conn.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+        await conn.execute("DROP TABLE IF EXISTS onc_locations")
+        await conn.execute("DROP TABLE IF EXISTS onc_location_categories")
+        await conn.execute("""
+            CREATE TABLE onc_locations (
+                location_code TEXT PRIMARY KEY, name TEXT NOT NULL,
+                lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL,
+                depth_m DOUBLE PRECISION, description TEXT DEFAULT '',
+                geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(),
+                latest_sensors JSONB, sensors_fetched_at TIMESTAMPTZ
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE onc_location_categories (
+                location_code TEXT NOT NULL, device_category_code TEXT NOT NULL,
+                PRIMARY KEY (location_code, device_category_code)
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS sync_log (
+                source TEXT PRIMARY KEY, last_synced_at TIMESTAMPTZ,
+                records_added INTEGER, total_records INTEGER
+            )
+        """)
+        # ⚠️ sync_log survives the DROP/CREATE above, so a sibling test that
+        # completed a successful sync leaves a row here. Any assertion of the
+        # form "a failed sync must not stamp last_synced_at" then passes or
+        # fails purely on test ORDER. Clear our own source.
+        await conn.execute("DELETE FROM sync_log WHERE source LIKE 'onc%'")
+        # KEEPME already carries a reading. GONE is no longer served by ONC.
+        await conn.execute(
+            "INSERT INTO onc_locations (location_code, name, lat, lon, "
+            "latest_sensors, sensors_fetched_at) VALUES "
+            "('KEEPME', 'Has Reading', 48.0, -126.0, "
+            "'{\"CTD\": {\"temperature\": 8.1}}'::jsonb, NOW())"
+        )
+        await conn.execute(
+            "INSERT INTO onc_locations (location_code, name, lat, lon) "
+            "VALUES ('GONE', 'Retired', 49.0, -127.0)"
+        )
+
+    async def fake_fetch_onc_locations():
+        # ONC still serves KEEPME (and a new one); GONE has disappeared.
+        return (
+            [{"location_code": "KEEPME", "name": "Has Reading", "lat": 48.0,
+              "lon": -126.0, "depth_m": None, "description": ""},
+             {"location_code": "NEWLOC", "name": "New", "lat": 50.0,
+              "lon": -128.0, "depth_m": None, "description": ""}],
+            [("KEEPME", "CTD"), ("NEWLOC", "OXYSENSOR")],
+            True,
+        )
+
+    import ingestion.onc_ingest as onc_ingest_mod
+    monkeypatch.setattr(onc_ingest_mod, "fetch_onc_locations", fake_fetch_onc_locations)
+    # The location sync calls the sensor sync at the end; stub it out so this
+    # test measures the location sync alone.
+    async def _noop(*a, **k):
+        return 0
+    monkeypatch.setattr(onc, "sync_onc_sensors", _noop)
+
+    await onc.sync_onc()
+
+    async with pool.acquire() as conn:
+        kept = await conn.fetchrow(
+            "SELECT latest_sensors, sensors_fetched_at FROM onc_locations "
+            "WHERE location_code = 'KEEPME'"
+        )
+        gone = await conn.fetchval(
+            "SELECT COUNT(*) FROM onc_locations WHERE location_code = 'GONE'"
+        )
+        new = await conn.fetchval(
+            "SELECT COUNT(*) FROM onc_locations WHERE location_code = 'NEWLOC'"
+        )
+    await pool.close()
+
+    assert kept is not None, "KEEPME was removed even though ONC still serves it"
+    assert kept["latest_sensors"] is not None, (
+        "sync_onc destroyed a reading it never fetched — the TRUNCATE regression"
+    )
+    assert kept["sensors_fetched_at"] is not None, (
+        "sensors_fetched_at was reset, so this location goes to the front of the "
+        "refresh queue forever and coverage never converges"
+    )
+    assert gone == 0, "a location ONC stopped serving should be removed"
+    assert new == 1, "a newly served location should be inserted"

@@ -57,6 +57,8 @@ OURS_NOT_THEIRS = (
     "seabed-substrate",       # Seabed Substrate — ours/ONC's interest, not IO PAN's ask
     "oceansites",             # OceanSITES — our own catalogue, not an IO PAN ask
     "air-quality",            # OpenAQ — our own catalogue, not an IO PAN ask
+    "onc",                    # ONC observatories — ours; IO PAN never asked
+    "onc-instruments",        # ONC instruments — ours; IO PAN never asked
 )
 
 # The "Life & Geology" menu group, raised by Michal on 2026-09-08. ⛔ Deliberately
@@ -225,6 +227,9 @@ def test_no_variant_of_an_anchored_layer_is_left_without_its_frame():
     block = re.search(r"DECK_TO_TOGGLE[^{]*\{(.*?)\n\};", lc, re.S).group(1)
     mapping = dict(re.findall(r'"([^"]+)"\s*:\s*"([^"]+)"', block))
     anchored = {c.layer_id for c in COVERAGE}
+    # Every layer the app really has, so a redirect to a real-but-unanchored
+    # layer can be told apart from a redirect to nothing.
+    known_layers = set(re.findall(r'id:\s*"([a-z0-9-]+)"', lc)) | set(mapping.values())
 
     orphans = []
     for deck_id in sorted(set(re.findall(r'layer\s*===\s*"([^"]+)"', dp))):
@@ -233,6 +238,17 @@ def test_no_variant_of_an_anchored_layer_is_left_without_its_frame():
             continue
         # A variant like "<anchored>-hexes" / "-raster" / "-stations" that resolves
         # to something with no frame is the defect.
+        #
+        # ⚠️ But sharing a prefix does NOT make something a variant. `onc-cables`
+        # begins with `onc-` and yet is a different dataset entirely — ONC's
+        # submarine cable geometry, which correctly resolves to the
+        # `submarine-cables` layer. Flagging it as "should be onc" sent a reader
+        # to fix a mapping that was already right. When a deck id resolves to a
+        # DIFFERENT layer that the registry really has, the resolution is
+        # correct; what may be missing is a frame for THAT layer, which is a
+        # separate gap and must not be reported under this name.
+        if resolved != deck_id and resolved in known_layers:
+            continue
         for lid in anchored:
             if deck_id.startswith(lid + "-"):
                 orphans.append(f"{deck_id} → {resolved} (should be {lid})")

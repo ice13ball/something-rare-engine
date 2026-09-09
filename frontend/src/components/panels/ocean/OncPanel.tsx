@@ -15,9 +15,25 @@ import { latLonFromProps } from "../shared/format";
 import { Row, Section, Badge, PanelHeader, BodyText, SourceAttribution } from "../shared/primitives";
 import { SeafloorDepthRow } from "../shared/chips";
 
-interface OncSensor { value: number; unit: string; label: string; time: string | null }
+interface OncSensor { value: number; unit: string | null; label: string; time: string | null }
 
-const SENSOR_ORDER = ["temperature", "salinity", "pressure", "oxygen", "density", "conductivity", "turbidity", "fluorescence", "chlorophyll"];
+// Keys are ONC propertyCodes, and this list only sets ORDER — anything absent
+// still renders, appended after these (see sensorKeys below). Kept in "what a
+// reader looks for first" order: core hydrography, then chemistry, then optics.
+// ⚠️ `seawatertemperature` and `temperature` are two distinct ONC properties;
+// both appear here on purpose rather than being merged, because ONC labels and
+// measures them separately.
+const SENSOR_ORDER = [
+  "temperature", "seawatertemperature", "salinity", "pressure", "oxygen",
+  "density", "sigmat", "sigmatheta", "conductivity", "soundspeed",
+  "ph", "redox", "nitrateconcentration",
+  "co2concentration", "co2concentrationlinearized", "co2partialpressure",
+  "methaneconcentration", "methanemolarconcentration", "methanepartialpressure",
+  "chlorophyll", "cdom", "cdomfluorescence", "fluorescence",
+  "turbidityntu", "turbidityftu", "turbidity",
+  "par", "parphotonbased", "absorbance", "beamattenuationcoefficient",
+  "crudeoilfluoroscence", "refinedfuelfluorescene",
+];
 
 interface SparklineData { unit: string; samples: [number, number][] }
 interface AdcpData {
@@ -56,7 +72,6 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
 
   const sensorKeys = SENSOR_ORDER.filter(k => k in sensors)
     .concat(Object.keys(sensors).filter(k => !SENSOR_ORDER.includes(k)));
-  const latestTime = sensorKeys.map(k => sensors[k]?.time).filter(Boolean)[0] ?? fetchedAt;
 
   // Lazy-fetch enrichment data when panel opens
   const [sparklines, setSparklines] = useState<Record<string, SparklineData> | null>(null);
@@ -152,11 +167,31 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
                 </div>
               );
             })}
-            {latestTime && (
-              <p className="text-xs text-white/60 mt-1">
-                As of {latestTime.slice(0, 16).replace("T", " ")} UTC
-              </p>
-            )}
+            {/* ⛔ One "as of" for the whole panel was a claim we could not
+                support once readings started arriving from several instrument
+                categories, each its own API call with its own sample time.
+                Show the span when the readings really do differ, and a single
+                date only when they genuinely share one. */}
+            {(() => {
+              const times = sensorKeys
+                .map(k => sensors[k]?.time)
+                .filter((t): t is string => Boolean(t))
+                .sort();
+              if (!times.length) return fetchedAt ? (
+                <p className="text-xs text-white/60 mt-1">
+                  Fetched {fetchedAt.slice(0, 16).replace("T", " ")} UTC · ONC gave no measurement time
+                </p>
+              ) : null;
+              const first = times[0].slice(0, 16).replace("T", " ");
+              const last = times[times.length - 1].slice(0, 16).replace("T", " ");
+              return (
+                <p className="text-xs text-white/60 mt-1">
+                  {first === last
+                    ? `Measured ${first} UTC`
+                    : `Measured ${first} — ${last} UTC (readings differ in age)`}
+                </p>
+              );
+            })()}
             {sparklines === null && (
               <p className="text-[10px] text-white/50 mt-1 italic">Loading trends…</p>
             )}

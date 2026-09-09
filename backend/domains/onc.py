@@ -29,7 +29,7 @@ leading underscore, matching that precedent: `_ONC_INSTRUMENTS_WFS`,
 `_ONC_RAW_BEAM_PREFIXES`, `_ONC_ENV_PROPERTIES`,
 `_ONC_HOUSEKEEPING_LABEL_KEYWORDS`, `_SPARKLINE_PROPERTIES`,
 `_SPARKLINE_MAX_SAMPLES`, `_ADCP_WINDOW_H`, `_ADCP_MAX_CONCURRENT`,
-`_CTD_PROFILE_PROPERTIES`, `_ONC_CODE_MAP`, `_ONC_LABEL_MAP`, `_ONC_API_BASE`,
+`_CTD_PROFILE_PROPERTIES`, `_ONC_PROPERTY_LABELS`, `_ONC_API_BASE`,
 `_ONC_DEVICE_CATEGORIES`, and the six cache globals.
 
 ## Measured line count vs. the task brief's estimate
@@ -619,16 +619,45 @@ async def sync_onc() -> int:
             )
             return 0
         async with conn.transaction():
-            await conn.execute("TRUNCATE TABLE onc_locations")
+            # ⛔ NOT a TRUNCATE. This used to clear the table and re-insert, which
+            # silently destroyed `latest_sensors`/`sensors_fetched_at` for every
+            # location on every run.
+            #
+            # That was harmless while the layer held 183 locations and
+            # sync_onc_sensors() swept all of them in one pass — the readings came
+            # straight back. Widening to ~1,975 locations against a 400-per-run
+            # batch broke it: the two syncs run on independent schedules, so each
+            # onc run wiped the lot and each sensors run rebuilt at most 400.
+            # Observed 2026-09-08/09: coverage walked back from 207 to 54 overnight
+            # and could never converge.
+            #
+            # An UPSERT keeps the readings on rows that still exist, and the DELETE
+            # below removes only what ONC has genuinely stopped returning. ⚠️ Never
+            # reintroduce a TRUNCATE here: nothing would raise, the map would still
+            # render, and only the reading coverage would quietly rot.
             await conn.executemany(
                 """INSERT INTO onc_locations
                    (location_code, name, lat, lon, depth_m, description, geom, updated_at)
                    VALUES ($1, $2, $3, $4, $5, $6,
                            ST_SetSRID(ST_MakePoint($4, $3), 4326),
-                           NOW())""",
+                           NOW())
+                   ON CONFLICT (location_code) DO UPDATE SET
+                       name        = EXCLUDED.name,
+                       lat         = EXCLUDED.lat,
+                       lon         = EXCLUDED.lon,
+                       depth_m     = EXCLUDED.depth_m,
+                       description = EXCLUDED.description,
+                       geom        = EXCLUDED.geom,
+                       updated_at  = NOW()""",
                 [(l["location_code"], l["name"], l["lat"], l["lon"],
                   l["depth_m"], l["description"])
                  for l in locations],
+            )
+            # Gone from ONC entirely -> remove. Reaching here means the shrink
+            # guard above already accepted this fetch as plausible.
+            await conn.execute(
+                "DELETE FROM onc_locations WHERE location_code != ALL($1::text[])",
+                [l["location_code"] for l in locations],
             )
             await conn.execute("TRUNCATE TABLE onc_location_categories")
             if location_categories:
@@ -716,9 +745,27 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
     date_to   = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
     sem = asyncio.Semaphore(8)
+    # Visibility into the next silent gap: every unrecognised propertyCode is
+    # counted and named once per run instead of being dropped without a trace.
+    dropped_count = 0
+    unrecognised_props: set[str] = set()
+    collision_count = 0
 
     async def _fetch_one(client: httpx.AsyncClient, code: str) -> tuple[str, dict | None]:
+        nonlocal dropped_count, collision_count
         async with sem:
+            # ⛔ ACCUMULATE ACROSS EVERY CATEGORY THIS LOCATION CARRIES.
+            # This used to `return` on the first category that yielded data,
+            # which was invisible while only CTD and OXYSENSOR were ingested —
+            # one of the two nearly always answered first and the other held
+            # little we recognised. After the 2026-09-08 widening to ~120
+            # categories it became the dominant truncation: a location with a
+            # CTD *and* a pH sensor *and* a CO2 sensor *and* a fluorometer
+            # reported whichever the loop reached first, and every other
+            # measurement was never requested at all. Nothing raised; the
+            # location simply looked like it only had one instrument.
+            all_sensors: dict[str, dict] = {}
+            all_codes: dict[str, str] = {}   # propertyCode -> winning sensorCode
             for category in categories_by_location.get(code, []):
                 params = {
                     "method":             "getByLocation",
@@ -734,25 +781,51 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
                     if r.status_code != 200:
                         continue
                     sensors: dict[str, dict] = {}
+                    sensor_codes: dict[str, str] = {}  # propertyCode -> winning sensorCode
                     for sensor in r.json().get("sensorData", []):
-                        raw = sensor.get("sensorCode", "").lower()
-                        friendly = _ONC_CODE_MAP.get(raw)
-                        if not friendly:
+                        raw = (sensor.get("sensorCode") or "").lower()
+                        prop = (sensor.get("propertyCode") or "").lower()
+                        label = _ONC_PROPERTY_LABELS.get(prop)
+                        if not label:
+                            if prop:
+                                dropped_count += 1
+                                unrecognised_props.add(prop)
                             continue
                         vals  = sensor.get("data", {}).get("values", [])
                         times = sensor.get("data", {}).get("sampleTimes", [])
                         val = vals[-1] if vals else None
                         # ONC sometimes returns NaN which is invalid JSON — skip
-                        if val is not None and not (isinstance(val, float) and math.isnan(val)):
-                            label, unit = _ONC_LABEL_MAP.get(friendly, (friendly, ""))
-                            sensors[friendly] = {
-                                "value": val,
-                                "unit":  sensor.get("unitOfMeasure") or unit,
-                                "label": label,
-                                "time":  times[-1] if times else None,
-                            }
-                    if sensors:
-                        return code, sensors
+                        if val is None or (isinstance(val, float) and math.isnan(val)):
+                            continue
+                        # ⚠️ Check against all_codes, NOT a per-category dict.
+                        # Several categories on one location can report the same
+                        # propertyCode (a CTD and an OXYSENSOR both give oxygen).
+                        # Guarding only within a category let the later category
+                        # overwrite the earlier one through the merge below —
+                        # silently, and dependent on category order.
+                        if prop in all_codes:
+                            winner, collided = _pick_onc_sensor_for_property(all_codes[prop], raw)
+                            if collided:
+                                collision_count += 1
+                            if winner != raw:
+                                continue  # an earlier sensorCode already won this propertyCode
+                        sensor_codes[prop] = raw
+                        all_codes[prop] = raw
+                        sensors[prop] = {
+                            "value": val,
+                            # ⛔ never assert a unit ONC did not declare — NULL, not a guess
+                            "unit":  sensor.get("unitOfMeasure"),
+                            "label": label,
+                            # Each category is its own API call with its own
+                            # sampleTimes, so once several categories merge, the
+                            # readings on one location genuinely carry DIFFERENT
+                            # times. Keep each reading's own time and name the
+                            # category it came from — a single "as of" for the
+                            # whole location would be a claim we cannot support.
+                            "time":  times[-1] if times else None,
+                            "category": category,
+                        }
+                    all_sensors.update(sensors)
                 except Exception as exc:
                     # ⛔ Never interpolate the raw exception: httpx embeds the
                     # full request URL in str(exc), and this one carries
@@ -760,7 +833,7 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
                     # a credential must not depend on a single backstop.
                     log.debug("onc sensor fetch %s/%s: %s", code, category,
                               onc_ingest.safe_exc(exc))
-        return code, None
+        return (code, all_sensors) if all_sensors else (code, None)
 
     async with httpx.AsyncClient() as client:
         results = await asyncio.gather(
@@ -803,6 +876,12 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
     _onc_cache = None
     log.info("onc sensors: %d with data, %d with no data (batch of %d locations)",
               len(with_data), len(no_data_codes), len(codes))
+    if dropped_count or collision_count:
+        log.warning(
+            "onc: %d readings dropped, unrecognised propertyCodes: %s "
+            "(%d propertyCode collisions resolved deterministically)",
+            dropped_count, ", ".join(sorted(unrecognised_props)), collision_count,
+        )
     await _log_sync("onc-sensors", len(with_data), len(with_data))
     return len(with_data)
 
@@ -1153,14 +1232,32 @@ async def sync_onc_ctd_profiles() -> int:
                 # (common when ONC has no data for the period); `or []` keeps iteration safe.
                 sensor_data = r.json().get("sensorData") or []
                 sensors: dict[str, list] = {}
+                sensor_codes: dict[str, str] = {}  # propertyCode -> winning sensorCode
                 for sensor in sensor_data:
-                    raw = sensor.get("sensorCode", "").lower()
-                    friendly = _ONC_CODE_MAP.get(raw)
-                    if friendly and friendly in ("temperature", "salinity", "pressure", "oxygen"):
+                    raw = (sensor.get("sensorCode") or "").lower()
+                    prop = (sensor.get("propertyCode") or "").lower()
+                    friendly = prop if prop in ("seawatertemperature", "temperature", "salinity",
+                                                 "pressure", "oxygen") else None
+                    if friendly:
+                        # ⛔ Collapse FIRST, then guard on the collapsed name.
+                        # `seawatertemperature` and `temperature` are two distinct
+                        # ONC propertyCodes that both land in sensors["temperature"]
+                        # here, because the profile builder below needs exactly that
+                        # key. Guarding on the pre-collapse `prop` meant the two
+                        # never looked like a collision, so whichever ONC listed
+                        # second silently overwrote the first — order-dependent,
+                        # nothing logged. Keying the guard on `friendly` is what
+                        # makes the tie-break actually run.
+                        friendly = "temperature" if friendly == "seawatertemperature" else friendly
+                        if friendly in sensor_codes:
+                            winner, _ = _pick_onc_sensor_for_property(sensor_codes[friendly], raw)
+                            if winner != raw:
+                                continue
+                        sensor_codes[friendly] = raw
                         vals  = sensor.get("data", {}).get("values", [])
                         times = sensor.get("data", {}).get("sampleTimes", [])
                         sensors[friendly] = {"values": vals, "times": times,
-                                             "unit": sensor.get("unitOfMeasure", "")}
+                                             "unit": sensor.get("unitOfMeasure")}
 
                 if "pressure" not in sensors or "temperature" not in sensors:
                     return
@@ -1372,43 +1469,79 @@ async def get_onc():
     return Response(content=result, media_type="application/json")
 
 
-_ONC_CODE_MAP: dict[str, str] = {
-    "temp":        "temperature",
-    "temperature": "temperature",
-    "sal":         "salinity",
-    "salinity":    "salinity",
-    "pres":        "pressure",
-    "pressure":    "pressure",
-    "doxy":        "oxygen",
-    "oxygen":      "oxygen",
-    "o2":          "oxygen",
-    "turb":        "turbidity",
-    "turbidity":   "turbidity",
-    "cdom":        "cdom",
-    "par":         "par",
-    "fluor":       "fluorescence",
-    "chlorophyll": "chlorophyll",
-    "cond":        "conductivity",
-    "conductivity":"conductivity",
-    "density":     "density",
-    "sigmat":      "density",
-    "sigma_theta": "density",
+# Matching key is ONC's own `propertyCode` (stable scientific vocabulary),
+# never `sensorCode` (device-specific naming). Rewritten 2026-09-09: the old
+# sensorCode-exact-match dict silently dropped every oxygen reading whose
+# sensorCode was `oxygen_corrected`/`oxygen_uncorrected` (propertyCode
+# `oxygen`, carried by 584 OXYSENSOR locations) because neither string was an
+# exact key. Labels are ONC's own names verbatim from `GET /api/properties`
+# (2026-09-09) — including their spelling of `crudeoilfluoroscence` and
+# `refinedfuelfluorescene`, which are typos in ONC's own vocabulary and must
+# not be "corrected" here or the match breaks.
+_ONC_PROPERTY_LABELS: dict[str, str] = {
+    # legacy / already-live properties
+    "seawatertemperature":        "Temperature",
+    "temperature":                "Temperature",
+    "salinity":                   "Salinity",
+    "pressure":                   "Pressure",
+    "oxygen":                     "Oxygen",
+    "turbidity":                  "Turbidity",
+    "cdom":                       "CDOM",
+    "par":                        "PAR",
+    # ONC publishes two separate PAR properties; this one is the photon-flux
+    # variant and is a different measurement, not a spelling of the one above.
+    "parphotonbased":             "PAR Photon-based",
+    "fluorescence":               "Fluorescence",
+    "chlorophyll":                "Chlorophyll",
+    "conductivity":               "Conductivity",
+    "density":                    "Density",
+    "sigmat":                     "Sigma-t",
+    "sigmatheta":                 "Sigma-theta",
+    # 28 bio/chem properties added 2026-09-09 (GET /api/properties)
+    "absorbance":                 "Absorbance",
+    "beamattenuationcoefficient": "Beam Attenuation Coefficient",
+    "cdomfluorescence":           "CDOM Fluorescence",
+    "co2concentration":           "CO2 Concentration",
+    "co2concentrationlinearized": "CO2 Concentration Linearized",
+    "co2partialpressure":         "CO2 Partial Pressure",
+    "crudeoilfluoroscence":       "Crude Oil Fluorescence",
+    "methaneconcentration":       "Methane Concentration",
+    "methanemolarconcentration":  "Methane Molar Concentration",
+    "methanepartialpressure":     "Methane Partial Pressure",
+    "nitrateconcentration":       "Nitrate Concentration",
+    "ph":                         "pH",
+    "redox":                      "Redox",
+    "refinedfuelfluorescene":     "Refined Fuel Fluorescence",
+    "soundspeed":                 "Sound Speed",
+    "turbidityftu":               "Turbidity FTU",
+    "turbidityntu":               "Turbidity NTU",
+    "upwardirradianceofdetector": "Upward Irradiance of Detector",
+    "airdensity":                 "Air Density",
 }
 
-# Human-readable labels and units for display
-_ONC_LABEL_MAP: dict[str, tuple[str, str]] = {
-    "temperature": ("Temperature",  "°C"),
-    "salinity":    ("Salinity",     "PSU"),
-    "pressure":    ("Pressure",     "dbar"),
-    "oxygen":      ("Oxygen",       "mL/L"),
-    "turbidity":   ("Turbidity",    "NTU"),
-    "cdom":        ("CDOM",         "ppb"),
-    "par":          ("PAR",           "µmol/m²/s"),
-    "fluorescence": ("Fluorescence",  "mg/m³"),
-    "chlorophyll":  ("Chlorophyll",   "mg/m³"),
-    "conductivity": ("Conductivity",  "S/m"),
-    "density":      ("Density",       "kg/m³"),
-}
+
+def _pick_onc_sensor_for_property(existing_code: str, new_code: str) -> tuple[str, bool]:
+    """Two sensors at one location can share a propertyCode (e.g.
+    `oxygen_corrected` and `oxygen_uncorrected` both report `oxygen`).
+    Naively keying on propertyCode alone would let the second overwrite the
+    first with nothing raising — the same silent-flattening shape already
+    paid for once (WOD ragged arrays, MEMENTO methane ocean/atmosphere).
+
+    Deterministic rule: prefer a `corrected` reading over an `uncorrected`/raw
+    one. If neither sensorCode decides it, keep whichever was seen first —
+    never "whichever the loop saw last".
+
+    Returns (winning_sensor_code, collided) — collided is True whenever two
+    different sensorCodes competed for the same propertyCode, so the caller
+    can record that an alternative reading existed.
+    """
+    if existing_code == new_code:
+        return existing_code, False
+    new_is_corrected = "corrected" in new_code and "uncorrected" not in new_code
+    existing_is_corrected = "corrected" in existing_code and "uncorrected" not in existing_code
+    if new_is_corrected and not existing_is_corrected:
+        return new_code, True
+    return existing_code, True
 
 
 _ONC_API_BASE = "https://data.oceannetworks.ca/api"
@@ -1432,18 +1565,25 @@ async def live_onc(location_code: str):
 
     def _parse_sensors(payload: dict) -> dict:
         sensors: dict[str, dict] = {}
+        sensor_codes: dict[str, str] = {}  # propertyCode -> winning sensorCode
         for sensor in payload.get("sensorData", []):
-            raw_code = sensor.get("sensorCode", "").lower()
-            friendly = _ONC_CODE_MAP.get(raw_code)
-            if not friendly:
+            raw_code = (sensor.get("sensorCode") or "").lower()
+            prop = (sensor.get("propertyCode") or "").lower()
+            label = _ONC_PROPERTY_LABELS.get(prop)
+            if not label:
                 continue
             values = sensor.get("data", {}).get("values", [])
             times  = sensor.get("data", {}).get("sampleTimes", [])
             if values and values[-1] is not None:
-                label, unit = _ONC_LABEL_MAP.get(friendly, (friendly, ""))
-                sensors[friendly] = {
+                if prop in sensor_codes:
+                    winner, _ = _pick_onc_sensor_for_property(sensor_codes[prop], raw_code)
+                    if winner != raw_code:
+                        continue
+                sensor_codes[prop] = raw_code
+                sensors[prop] = {
                     "value": values[-1],
-                    "unit":  sensor.get("unitOfMeasure") or unit,
+                    # ⛔ never assert a unit ONC did not declare
+                    "unit":  sensor.get("unitOfMeasure"),
                     "label": label,
                     "time":  times[-1] if times else None,
                 }
