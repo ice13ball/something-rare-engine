@@ -77,6 +77,13 @@ async def ensure_core(conn) -> None:
             sal_qc           SMALLINT,
             oxygen_qc        SMALLINT,
             ph_qc            SMALLINT,
+            -- Argo POSITION_QC, from Argovis's `geolocation_argoqc`.
+            -- ⛔ NOT the same thing as the measurement flags above: this one
+            -- says whether the FIX itself is trustworthy. 4 = bad, 9 = missing,
+            -- 8 = interpolated (under-ice floats get an estimated track).
+            -- A missing fix arrives as the literal coordinate (0, -90) — the
+            -- South Pole — which is a placeholder, not a position.
+            position_qc      SMALLINT,
             near_mining           BOOLEAN NOT NULL DEFAULT FALSE,
             mining_zone           TEXT,
             mining_dist_km        FLOAT,
@@ -100,6 +107,20 @@ async def ensure_core(conn) -> None:
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS sal_qc    SMALLINT;
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS oxygen_qc SMALLINT;
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS ph_qc     SMALLINT;
+        ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS position_qc SMALLINT;
+        -- ⛔ Backfill, not a guess. Measured against the live Argovis API
+        -- 2026-09-09 over 15,567 profiles from August 2026: EVERY profile
+        -- carrying the literal coordinate (0, -90) had geolocation_argoqc 9
+        -- (missing, 137 of them) or 4 (bad, 10) — none was a real position,
+        -- and no float can be at the South Pole and in the Beaufort Sea six
+        -- days apart. 286 stored rows across 120 floats sit on it, drawing
+        -- 18,000 km trail segments straight across the map.
+        -- Only rows we have no flag for are touched; a real flag is never
+        -- overwritten, and the coordinate itself is left exactly as the
+        -- source sent it.
+        UPDATE argo_profiles SET position_qc = 9
+         WHERE position_qc IS NULL
+           AND ST_Y(geom) = -90 AND ST_X(geom) = 0;
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_surface_temp_c     DOUBLE PRECISION;
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_surface_sal        DOUBLE PRECISION;
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_temp_c        DOUBLE PRECISION;
@@ -204,6 +225,22 @@ async def ensure_argo_long_form(conn) -> None:
             n_values  INTEGER
         );
 
+        -- ⛔ A SEPARATE cursor from argo_backfill_state, not a second row in
+        -- it. That table's CHECK (id = 1) documents "there is exactly one
+        -- full-history bookmark", and the recent-history top-up must never be
+        -- able to move it — pointing the long walk at 2026 would silently
+        -- declare 2008..2025 done.
+        --
+        -- Without a cursor of its own the top-up restarted at the 180-day floor
+        -- on every invocation and spent each budget re-fetching months that
+        -- were already dense, so the newest months in the window were never
+        -- reached. Measured 2026-09-09: March and April filled, May sat at 466
+        -- profiles across six consecutive runs.
+        CREATE TABLE IF NOT EXISTS argo_topup_state (
+            id            INTEGER PRIMARY KEY CHECK (id = 1),
+            done_through  DATE,
+            updated_at    TIMESTAMPTZ DEFAULT NOW()
+        );
         CREATE TABLE IF NOT EXISTS argo_backfill_state (
             id            INTEGER PRIMARY KEY CHECK (id = 1),
             done_through  DATE,

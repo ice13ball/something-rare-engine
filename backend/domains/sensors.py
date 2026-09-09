@@ -117,6 +117,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import date, datetime, timedelta, timezone
 
@@ -246,6 +247,7 @@ def argo_row_to_float_props(row) -> dict:
         "oxygen_umol_kg":        row["oxygen_umol_kg"],
         "ph":                    row["ph"],
         "temp_qc":               row["temp_qc"],
+        "position_qc":           row["position_qc"],
         "sal_qc":                row["sal_qc"],
         "oxygen_qc":             row["oxygen_qc"],
         "ph_qc":                 row["ph_qc"],
@@ -286,6 +288,7 @@ def argo_row_to_trail_props(row) -> dict:
         "oxygen_umol_kg":   row["oxygen_umol_kg"],
         "ph":               row["ph"],
         "temp_qc":          row["temp_qc"],
+        "position_qc":      row["position_qc"],
         "sal_qc":           row["sal_qc"],
         "oxygen_qc":        row["oxygen_qc"],
         "ph_qc":            row["ph_qc"],
@@ -303,6 +306,24 @@ def argo_row_to_trail_props(row) -> dict:
     }
 
 
+# ⛔ A profile whose FIX the source distrusts must not be drawn.
+# Argo POSITION_QC: 3 probably bad, 4 bad, 9 missing. A missing fix arrives as
+# the literal coordinate (0, -90) — the South Pole — so an under-ice float in
+# the Beaufort Sea rendered as an 18,000 km trail segment straight across the
+# Pacific, six days long. 286 stored rows across 120 floats sat on that point.
+#
+# ⛔ This is a SERVING filter, not a delete. The profile keeps its row, its
+# date and its temperature and salinity — those are real measurements taken at
+# an unknown place. Only the claim "the float was HERE" is withheld.
+#
+# NULL is allowed through: 281k rows predate this column, and hiding every one
+# of them until the whole archive re-syncs would be a far bigger lie than the
+# handful of bad fixes. The ingest now stamps 9 on any (0, -90) even when the
+# source omits the flag, so the visible case is covered from here on.
+# 8 (interpolated) is also allowed: an estimated under-ice track is the best
+# position that exists for that profile, and the flag travels with the row.
+_ARGO_USABLE_POSITION = "(position_qc IS NULL OR position_qc NOT IN (3, 4, 9))"
+
 _ARGO_FLOAT_SQL = """
     SELECT DISTINCT ON (platform_id)
         profile_id, platform_id,
@@ -319,7 +340,7 @@ _ARGO_FLOAT_SQL = """
             THEN oxygen_umol_kg END AS oxygen_umol_kg,
        CASE WHEN ph_qc IS NOT NULL AND ph_qc NOT IN (3, 4, 9)
             THEN ph END AS ph,
-        temp_qc, sal_qc, oxygen_qc, ph_qc,
+        temp_qc, sal_qc, oxygen_qc, ph_qc, position_qc,
         woa_surface_temp_c, woa_surface_sal,
         woa_deep_temp_c, woa_deep_sal, woa_deep_oxygen_umol_kg,
         woa_deep_aou, woa_deep_o2sat,
@@ -349,7 +370,7 @@ _ARGO_TRAIL_SQL = """
             THEN oxygen_umol_kg END AS oxygen_umol_kg,
        CASE WHEN ph_qc IS NOT NULL AND ph_qc NOT IN (3, 4, 9)
             THEN ph END AS ph,
-        temp_qc, sal_qc, oxygen_qc, ph_qc,
+        temp_qc, sal_qc, oxygen_qc, ph_qc, position_qc,
         woa_surface_temp_c, woa_surface_sal,
         woa_deep_temp_c, woa_deep_sal, woa_deep_oxygen_umol_kg,
         woa_deep_aou, woa_deep_o2sat,
@@ -371,6 +392,37 @@ _ARGO_TRAIL_SQL = """
 # Bounding both to a recent window keeps `/v1/map/argo` and
 # `/v1/map/argo/trails` answering "current state of the ocean" (which is what
 # a live map wants) instead of silently trying to serve the whole archive.
+#
+# ⛔ 90 is a decision, not a leftover. Michal ruled on it 2026-09-09, after
+# ARGO_HISTORY_FLOOR_DAYS made six months of history real in the database.
+#
+# Measured that day, all four numbers from live responses:
+#
+#     this endpoint, 90 days, 14,870 points ....... 13.98 MB   (940 B/point)
+#     the same bytes reaching the browser .........  1.80 MB   (gzip, 7.4x)
+#     29 properties per point, of which a trail
+#       strictly needs three (position, date, id) .  2.87 MB uncompressed
+#     the same shape at 180 days and full coverage . ~67 MB uncompressed
+#
+# ⚠️ This backend does NOT compress — it answers 13,978,807 bytes even to a
+# request advertising gzip. The BFF (Express `compression()`, frontend/
+# server.js) is what gzips, so the large number travels VPS -> Cloud Run and
+# the small one reaches the user.
+#
+# ⛔ Which side of that the 32 MiB Cloud Run response cap applies to has NOT
+# been verified here, and the project has a recorded incident behind that cap
+# (200 in the service log, 500 in the browser). Treat the uncompressed figure
+# as the one at risk until someone measures it properly.
+#
+# ⚠️ The database window and the map window are different numbers on purpose.
+# ARGO_HISTORY_FLOOR_DAYS (180) is what we KEEP; this is what we SEND. Raising
+# this one to match is not a config tweak: the trail payload would have to be
+# stripped to position/date/id first — an option considered and DECLINED on
+# 2026-09-09 because it moves every trail detail behind a second request.
+#
+# ⚠️ Watch this even at 90 days. The window is not yet dense — June and July
+# 2026 held ~400 profiles each against August's 10,717 — so the recent-history
+# top-up filling them will roughly double this payload on its own.
 _ARGO_CACHE_WINDOW_DAYS = 90
 
 
@@ -380,7 +432,8 @@ async def populate_argo_cache(conn) -> None:
     Bounded to `_ARGO_CACHE_WINDOW_DAYS` — see the module note above the
     constant for why an unbounded cache is not an option now that history
     persists indefinitely."""
-    where = f"WHERE profile_date > NOW() - INTERVAL '{_ARGO_CACHE_WINDOW_DAYS} days'"
+    where = (f"WHERE profile_date > NOW() - INTERVAL '{_ARGO_CACHE_WINDOW_DAYS} days'"
+             f" AND {_ARGO_USABLE_POSITION}")
     float_rows  = await conn.fetch(_ARGO_FLOAT_SQL.format(where=where))
     trail_rows  = await conn.fetch(_ARGO_TRAIL_SQL.format(where=where))
     _argo_float_cache.clear()
@@ -405,7 +458,8 @@ async def refresh_argo_platforms(conn, platform_ids: set[str]) -> None:
     # ~3.3 M profiles across thousands of floats it walks straight back to the
     # 32 MiB Cloud Run proxy ceiling this windowing exists to avoid — and it
     # does it in RAM first, where nothing reports it.
-    _window = f"AND profile_date > NOW() - INTERVAL '{_ARGO_CACHE_WINDOW_DAYS} days'"
+    _window = (f"AND profile_date > NOW() - INTERVAL '{_ARGO_CACHE_WINDOW_DAYS} days'"
+               f" AND {_ARGO_USABLE_POSITION}")
     float_rows = await conn.fetch(
         _ARGO_FLOAT_SQL.format(where=f"WHERE platform_id = ANY($1::text[]) {_window}"),
         pid_list,
@@ -592,6 +646,19 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
             if len(geo) < 2:
                 continue
             lon, lat = geo[0], geo[1]
+            # ⛔ Argo POSITION_QC. Argovis calls it `geolocation_argoqc`, NOT
+            # `position_qc` — asking for the latter returns None on every
+            # profile, which is how this went unread. 4 = bad, 9 = missing,
+            # 8 = interpolated (an under-ice float's track is estimated).
+            position_qc = profile.get("geolocation_argoqc")
+            # A missing fix arrives as the literal (0, -90). Measured against
+            # the live API 2026-09-09 over 15,567 August profiles: all 147
+            # occurrences carried flag 9 or 4, none a real position. Treat the
+            # coordinate itself as the flag when the source sends no flag, so a
+            # future feed that drops the QC field cannot put a float on the
+            # South Pole again.
+            if lat == -90 and lon == 0 and position_qc is None:
+                position_qc = 9
             ts = profile.get("timestamp")
             if not ts:
                 continue
@@ -612,22 +679,22 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
                         surface_temp_c, surface_salinity,
                         deep_temp_c, deep_salinity, deep_pressure_m,
                         oxygen_umol_kg, ph,
-                        temp_qc, sal_qc, oxygen_qc, ph_qc,
+                        temp_qc, sal_qc, oxygen_qc, ph_qc, position_qc,
                         woa_surface_temp_c, woa_surface_sal,
                         woa_deep_temp_c, woa_deep_sal, woa_deep_oxygen_umol_kg,
                         woa_deep_aou, woa_deep_o2sat,
                         woa_deep_phosphate, woa_deep_silicate, woa_deep_nitrate,
                         geom)
                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
-                           $12,$13,$14,$15,
-                           $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,
-                           ST_SetSRID(ST_MakePoint($26,$27),4326))
+                           $12,$13,$14,$15,$16,
+                           $17,$18,$19,$20,$21,$22,$23,$24,$25,$26,
+                           ST_SetSRID(ST_MakePoint($27,$28),4326))
                    ON CONFLICT (profile_id) DO NOTHING""",
                 profile_id, platform_id, profile_date, m["max_depth"],
                 m["surface_temp"], m["surface_sal"],
                 m["deep_temp"], m["deep_sal"], m["deep_press"],
                 m["oxygen"], m["ph"],
-                m["temp_qc"], m["sal_qc"], m["oxygen_qc"], m["ph_qc"],
+                m["temp_qc"], m["sal_qc"], m["oxygen_qc"], m["ph_qc"], position_qc,
                 w["woa_surface_temp_c"], w["woa_surface_sal"],
                 w["woa_deep_temp_c"], w["woa_deep_sal"], w["woa_deep_oxygen_umol_kg"],
                 w["woa_deep_aou"], w["woa_deep_o2sat"],
@@ -806,6 +873,49 @@ async def sync_argo_profiles() -> int:
 # (well under Cloud Run's 60-minute ceiling) while still making many months
 # of progress per call. Re-invoke (e.g. via a cron hitting the admin
 # endpoint) until `done_through` reaches today.
+# ⛔ How much recent history we guarantee in our OWN database, independent of
+# what any one fetch returns. Michal's requirement, 2026-09-09: six months.
+#
+# The periodic sync refreshes only _ARGO_RECENT_WINDOW_DAYS (30). Anything that
+# falls out of that window is never revisited, so a period the sync missed —
+# or covered while the ingest was still narrow — stays sparse forever. That is
+# exactly what happened here: measured 2026-09-09, March..July 2026 held about
+# 400 profiles per month against August's 10,717, roughly 4% coverage, left
+# over from the pre-widening ingest. The long backfill would have repaired it
+# eventually, by walking 2008..2025 first — tens of hours away.
+#
+# So a separate rolling pass re-walks the last ARGO_HISTORY_FLOOR_DAYS in month
+# chunks. Upserts are idempotent and settled months return nothing new, so
+# after the first fill this is cheap; it is the self-healing the 30-day window
+# cannot provide.
+# ⛔ Only one Argo history walk at a time, across the whole service.
+#
+# 2026-09-09: the recent-history top-up was started while a full-backfill
+# request was still executing inside the API — killing the shell driver that
+# issued it does NOT cancel work already in flight. Both walk months and upsert
+# into argo_profiles, and they deadlocked:
+#
+#   failed_chunk: "2026-03-13..2026-04-01: DeadlockDetectedError"
+#
+# A Postgres advisory lock is the right shape here: it lives in the database
+# both walks already talk to, it is released automatically if the connection
+# dies, and it needs no new table. The number is arbitrary but must not collide
+# with another advisory lock in this codebase.
+_ARGO_WALK_LOCK_KEY = 8_421_337
+
+
+async def _connect_for_lock():
+    """One connection outside the pool, purely to hold the walk lock.
+
+    Outside the pool so it can be terminate()d without costing the pool a
+    warm connection, and so a connection that somehow keeps the lock cannot
+    be handed to unrelated work.
+    """
+    import asyncpg
+    return await asyncpg.connect(os.environ["DATABASE_URL"])
+
+ARGO_HISTORY_FLOOR_DAYS = 180
+
 ARGO_BACKFILL_START = date(1999, 1, 1)  # Argo programme's earliest profiles
 ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS = 1200
 _ARGO_BACKFILL_CHUNK_PACING_SECONDS = 5
@@ -821,18 +931,73 @@ def _next_month_start(d: date) -> date:
     return date(d.year + 1, 1, 1) if d.month == 12 else date(d.year, d.month + 1, 1)
 
 
-async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS) -> dict:
+async def sync_argo_profiles_backfill(
+    budget_seconds: int = ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS,
+    since: date | None = None,
+) -> dict:
     """Resumable, chunked-by-month walk over full Argo history. See the
-    module note above ARGO_BACKFILL_START for pacing/budget/resumability."""
+    module note above ARGO_BACKFILL_START for pacing/budget/resumability.
+
+    `since` runs a BOUNDED walk from that date to today and deliberately does
+    NOT touch argo_backfill_state. The stored cursor is the long walk's only
+    bookmark; moving it forward to repair a recent gap would silently declare
+    every year in between already done. Used by the recent-history top-up.
+    """
+    bounded = since is not None
+    # ⛔ A DEDICATED connection, and terminate() rather than an unlock query.
+    #
+    # The first version took the lock on a POOLED connection and released it
+    # with `await pg_advisory_unlock(...)` in a finally. Measured 2026-09-09:
+    # after the driving curl was killed, uvicorn cancelled the request task,
+    # the finally ran, and its very first `await` was cancelled too — so the
+    # unlock never executed. The connection went back to the pool still holding
+    # the lock, and pg_stat_activity showed it idle for 20 minutes with
+    # `SELECT pg_try_advisory_lock($1)` as its last query. Every later walk was
+    # refused by a lock nobody held.
+    #
+    # terminate() is NOT a coroutine: it drops the socket synchronously, so a
+    # cancelled task cannot skip it, and Postgres releases the session's
+    # advisory locks when the backend goes away. Taking the connection outside
+    # the pool means closing it that hard costs the pool nothing.
+    lock_conn = await _connect_for_lock()
+    got_lock = await lock_conn.fetchval("SELECT pg_try_advisory_lock($1)", _ARGO_WALK_LOCK_KEY)
+    if not got_lock:
+        lock_conn.terminate()
+        log.warning("argo backfill: another Argo history walk is already running — "
+                    "refusing to start a second one (they deadlock on argo_profiles)")
+        return {
+            "months_done": 0, "inserted": 0, "bounded": bounded,
+            "done_through": (since or ARGO_BACKFILL_START).isoformat(),
+            "rate_limited_waits": 0,
+            # ⛔ NOT "stalled". A stall is a run that tried and got nowhere;
+            # this one correctly declined to start. Reporting them the same way
+            # would make a healthy refusal look like the silent-stall bug.
+            "stalled": False,
+            "skipped_reason": "another argo walk holds the lock",
+            "failed_chunk": None,
+        }
+    try:
+        return await _argo_backfill_walk(budget_seconds, since, bounded)
+    finally:
+        # Synchronous on purpose — see the note above the acquire.
+        lock_conn.terminate()
+
+
+async def _argo_backfill_walk(budget_seconds: int, since: date | None, bounded: bool) -> dict:
+    """The walk itself. Callers come through sync_argo_profiles_backfill, which
+    holds the single-walk advisory lock for the whole duration."""
     started = time.monotonic()
     months_done = 0
     total_inserted = 0
     rate_limited_waits = 0
     failed_chunk: str | None = None
 
-    async with db.pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT done_through FROM argo_backfill_state WHERE id = 1")
-    cursor: date = row["done_through"] if row and row["done_through"] else ARGO_BACKFILL_START
+    if bounded:
+        cursor: date = since
+    else:
+        async with db.pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT done_through FROM argo_backfill_state WHERE id = 1")
+        cursor = row["done_through"] if row and row["done_through"] else ARGO_BACKFILL_START
     today = datetime.now(timezone.utc).date()
 
     async with httpx.AsyncClient(timeout=120) as client:
@@ -877,6 +1042,29 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
                         )
                         await asyncio.sleep(wait)
                         wait = min(wait * 2, _ARGO_429_MAX_WAIT_SECONDS)
+                    except httpx.TransportError as te:
+                        # ⛔ A dropped connection is not a reason to abandon a
+                        # six-month fill. Measured 2026-09-09: the top-up filled
+                        # May (15,053 rows) and then died on
+                        #   failed_chunk: "2026-06-01..2026-07-01: RemoteProtocolError"
+                        # — Argovis closed the connection mid-response on a
+                        # single month. Only 429 was retried, so one transient
+                        # network event stopped the whole pass, and June and
+                        # July stayed at ~400 profiles each.
+                        # httpx.TransportError covers connect, read, write,
+                        # protocol and timeout failures — every case where the
+                        # request never got a complete answer, and none where
+                        # the server answered something we should respect.
+                        if attempt == _ARGO_429_MAX_ATTEMPTS:
+                            raise
+                        rate_limited_waits += 1
+                        log.info(
+                            "argo backfill: %s on %s, waiting %.0fs (attempt %d/%d)",
+                            type(te).__name__, month_start, wait,
+                            attempt, _ARGO_429_MAX_ATTEMPTS,
+                        )
+                        await asyncio.sleep(wait)
+                        wait = min(wait * 2, _ARGO_429_MAX_WAIT_SECONDS)
                 inserted, _ = await _upsert_argo_profiles(profiles, params)
             except Exception as e:
                 # Chunk failed — the cursor must NOT advance, so a restart
@@ -893,13 +1081,14 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
                 failed_chunk = f"{month_start}..{month_end}: {type(e).__name__}"
                 break
 
-            async with db.pool.acquire() as conn:
-                await conn.execute(
-                    """INSERT INTO argo_backfill_state (id, done_through, updated_at)
-                       VALUES (1, $1, NOW())
-                       ON CONFLICT (id) DO UPDATE SET done_through = $1, updated_at = NOW()""",
-                    month_end,
-                )
+            if not bounded:
+                async with db.pool.acquire() as conn:
+                    await conn.execute(
+                        """INSERT INTO argo_backfill_state (id, done_through, updated_at)
+                           VALUES (1, $1, NOW())
+                           ON CONFLICT (id) DO UPDATE SET done_through = $1, updated_at = NOW()""",
+                        month_end,
+                    )
             cursor = month_end
             months_done += 1
             total_inserted += inserted
@@ -916,6 +1105,10 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
     return {
         "months_done": months_done,
         "inserted": total_inserted,
+        # ⛔ On a bounded run this is how far THIS walk got, not the long
+        # backfill's bookmark — that one was not touched. Naming it the same
+        # thing in both modes would read as the cursor having jumped forward.
+        "bounded": bounded,
         "done_through": cursor.isoformat(),
         "rate_limited_waits": rate_limited_waits,
         # ⛔ A run that walked zero months is NOT a success. Saying so here is
@@ -923,6 +1116,55 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
         # healthy — the shape this exact endpoint shipped with.
         "stalled": months_done == 0,
         "failed_chunk": failed_chunk,
+    }
+
+
+async def sync_argo_recent_history(
+    budget_seconds: int = ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS,
+) -> dict:
+    """Keep the last ARGO_HISTORY_FLOOR_DAYS dense in our own database.
+
+    Bounded walk — never advances argo_backfill_state, so it cannot be
+    mistaken for progress on the full-history backfill and cannot skip the
+    years that walk has not reached yet.
+    """
+    today = datetime.now(timezone.utc).date()
+    floor = today - timedelta(days=ARGO_HISTORY_FLOOR_DAYS)
+
+    # ⛔ Resume where the last pass stopped. Without this the top-up restarted
+    # at the floor every invocation and spent each budget re-fetching months
+    # that were already dense — measured 2026-09-09, March and April filled
+    # while May sat at 466 profiles across six consecutive runs, because no run
+    # ever got past April within its budget.
+    async with db.pool.acquire() as conn:
+        stored = await conn.fetchval("SELECT done_through FROM argo_topup_state WHERE id = 1")
+    # A finished pass starts the next one at the floor: the window slides, and
+    # a month that was still filling upstream when we walked it gets another
+    # look. `stored` before the floor means the floor moved past it.
+    since = stored if (stored and floor <= stored < today) else floor
+    pass_restarted = since == floor and stored is not None and stored >= today
+
+    result = await sync_argo_profiles_backfill(budget_seconds=budget_seconds, since=since)
+
+    if not result.get("skipped_reason") and not result.get("failed_chunk"):
+        reached = date.fromisoformat(result["done_through"])
+        async with db.pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO argo_topup_state (id, done_through, updated_at)
+                   VALUES (1, $1, NOW())
+                   ON CONFLICT (id) DO UPDATE SET done_through = $1, updated_at = NOW()""",
+                reached,
+            )
+    log.info(
+        "argo recent-history top-up: %d month(s), %d row(s) inserted, %s..%s%s",
+        result["months_done"], result["inserted"], since, result["done_through"],
+        " (new pass)" if pass_restarted else "",
+    )
+    return {
+        **result,
+        "floor_days": ARGO_HISTORY_FLOOR_DAYS,
+        "since": since.isoformat(),
+        "pass_restarted": pass_restarted,
     }
 
 
@@ -1272,6 +1514,21 @@ async def admin_argo_backfill(
     """Advance the resumable Argo full-history backfill by up to
     `budget_seconds`. Safe to call repeatedly — see sync_argo_profiles_backfill."""
     return await sync_argo_profiles_backfill(budget_seconds=budget_seconds)
+
+
+@router.post("/v1/admin/argo-recent-history", dependencies=[Depends(require_admin_token)])
+async def admin_argo_recent_history(
+    budget_seconds: int = Query(
+        ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS, ge=60, le=3600,
+        description="Wall-clock budget; re-call until months_done is 0.",
+    ),
+):
+    """Top up the last ARGO_HISTORY_FLOOR_DAYS so our own database holds them
+    densely, whatever any single fetch returned at the time.
+
+    ⛔ Does NOT move the full-history cursor — see sync_argo_profiles_backfill.
+    """
+    return await sync_argo_recent_history(budget_seconds=budget_seconds)
 
 
 @router.get("/v1/map/argo", dependencies=[Depends(get_api_key)])

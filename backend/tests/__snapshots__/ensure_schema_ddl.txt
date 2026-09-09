@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS reserved_areas ( arcgis_id INTEGER PRIMARY KEY, contr
 CREATE INDEX IF NOT EXISTS reserved_areas_geom_idx ON reserved_areas USING GIST(geom)
 CREATE TABLE IF NOT EXISTS isa_apeis ( arcgis_id INTEGER PRIMARY KEY, area_km2 DOUBLE PRECISION, status TEXT, remarks TEXT, geom GEOMETRY(GEOMETRY, 4326), synced_at TIMESTAMPTZ DEFAULT NOW() )
 CREATE INDEX IF NOT EXISTS isa_apeis_geom_idx ON isa_apeis USING GIST(geom)
-CREATE TABLE IF NOT EXISTS argo_profiles ( profile_id TEXT PRIMARY KEY, platform_id TEXT, profile_date TIMESTAMPTZ NOT NULL, max_depth_m DOUBLE PRECISION, surface_temp_c DOUBLE PRECISION, surface_salinity DOUBLE PRECISION, deep_temp_c DOUBLE PRECISION, deep_salinity DOUBLE PRECISION, deep_pressure_m DOUBLE PRECISION, oxygen_umol_kg DOUBLE PRECISION, ph DOUBLE PRECISION, temp_qc SMALLINT, sal_qc SMALLINT, oxygen_qc SMALLINT, ph_qc SMALLINT, near_mining BOOLEAN NOT NULL DEFAULT FALSE, mining_zone TEXT, mining_dist_km FLOAT, nearest_contract_lon FLOAT, nearest_contract_lat FLOAT, mining_zones JSONB DEFAULT '[]'::jsonb, geom GEOMETRY(Point, 4326) NOT NULL, synced_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE TABLE IF NOT EXISTS argo_profiles ( profile_id TEXT PRIMARY KEY, platform_id TEXT, profile_date TIMESTAMPTZ NOT NULL, max_depth_m DOUBLE PRECISION, surface_temp_c DOUBLE PRECISION, surface_salinity DOUBLE PRECISION, deep_temp_c DOUBLE PRECISION, deep_salinity DOUBLE PRECISION, deep_pressure_m DOUBLE PRECISION, oxygen_umol_kg DOUBLE PRECISION, ph DOUBLE PRECISION, temp_qc SMALLINT, sal_qc SMALLINT, oxygen_qc SMALLINT, ph_qc SMALLINT, position_qc SMALLINT, near_mining BOOLEAN NOT NULL DEFAULT FALSE, mining_zone TEXT, mining_dist_km FLOAT, nearest_contract_lon FLOAT, nearest_contract_lat FLOAT, mining_zones JSONB DEFAULT '[]'::jsonb, geom GEOMETRY(Point, 4326) NOT NULL, synced_at TIMESTAMPTZ DEFAULT NOW() )
 COMMENT ON COLUMN argo_profiles.max_depth_m IS 'Max of the Argo profile''s PRES (pressure, dbar) readings, taken as metres. ' 'The Argo GDAC format documents PRES as sea pressure, conventionally positive ' 'and increasing with depth, but we have not confirmed this column''s sign in ' 'production - treat "positive down" here as unverified, not a claim.'
 CREATE INDEX IF NOT EXISTS argo_profiles_geom_idx ON argo_profiles USING GIST(geom)
 CREATE INDEX IF NOT EXISTS argo_profiles_date_idx ON argo_profiles (profile_date)
@@ -16,6 +16,8 @@ ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS temp_qc SMALLINT
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS sal_qc SMALLINT
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS oxygen_qc SMALLINT
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS ph_qc SMALLINT
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS position_qc SMALLINT
+UPDATE argo_profiles SET position_qc = 9 WHERE position_qc IS NULL AND ST_Y(geom) = -90 AND ST_X(geom) = 0
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_surface_temp_c DOUBLE PRECISION
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_surface_sal DOUBLE PRECISION
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_temp_c DOUBLE PRECISION
@@ -39,6 +41,7 @@ CREATE INDEX IF NOT EXISTS protected_marine_sites_geom_idx ON protected_marine_s
 CREATE TABLE IF NOT EXISTS argo_profile_values ( profile_id TEXT NOT NULL, level TEXT NOT NULL, param TEXT NOT NULL, value DOUBLE PRECISION NOT NULL, qc SMALLINT, PRIMARY KEY (profile_id, level, param) )
 CREATE INDEX IF NOT EXISTS argo_profile_values_param_idx ON argo_profile_values (param)
 CREATE TABLE IF NOT EXISTS argo_params ( param TEXT PRIMARY KEY, label TEXT, unit TEXT, n_values INTEGER )
+CREATE TABLE IF NOT EXISTS argo_topup_state ( id INTEGER PRIMARY KEY CHECK (id = 1), done_through DATE, updated_at TIMESTAMPTZ DEFAULT NOW() )
 CREATE TABLE IF NOT EXISTS argo_backfill_state ( id INTEGER PRIMARY KEY CHECK (id = 1), done_through DATE, updated_at TIMESTAMPTZ )
 ALTER TABLE argo_profile_values OWNER TO abyssal_user
 ALTER TABLE argo_params OWNER TO abyssal_user

@@ -209,6 +209,9 @@ _startup_profiles_cache_ts: float = 0.0
 # Argo sync cadence — used only by _argo_sync_task, which stays in main.py
 # (the sync body it calls now lives in domains/sensors.py).
 ARGO_SYNC_INTERVAL_SECONDS = 12 * 3600   # 12 hours
+# The six-month floor is repair work, not freshness — a settled window returns
+# nothing and the pass is cheap. Six-hourly so a gap closes within a day.
+ARGO_HISTORY_FLOOR_INTERVAL_SECONDS = 6 * 3600
 
 # ── Sync helpers ──────────────────────────────────────────────────────────────
 
@@ -459,6 +462,30 @@ async def _argo_sync_task():
         except Exception:
             log.exception("Argo 12h sync failed")
         await asyncio.sleep(ARGO_SYNC_INTERVAL_SECONDS)
+
+
+async def _argo_history_floor_task():
+    """Keep the last six months dense in our own database.
+
+    ⛔ Without a cadence, ARGO_HISTORY_FLOOR_DAYS is a number in a constant, not
+    a guarantee: the window was filled once by hand on 2026-09-09 and nothing
+    would have kept it filled. sync_argo_profiles only ever refreshes the last
+    30 days, so any month that falls out of that window is never revisited —
+    which is exactly how March..July 2026 ended up at ~4% coverage.
+
+    Each pass resumes from argo_topup_state and walks one month-chunk at a
+    time within its budget, so a settled window costs one cheap pass and a
+    gap gets filled a couple of months per run. Runs on a long delay after
+    boot: it is repair work, not something to fight the cold start over.
+    """
+    await asyncio.sleep(2700)  # 45 min after boot — behind every live sync
+    while True:
+        try:
+            await _run_unless_paused(
+                "argo-recent-history", sensors.sync_argo_recent_history, "argo_history_floor")
+        except Exception:
+            log.exception("Argo history-floor top-up failed")
+        await asyncio.sleep(ARGO_HISTORY_FLOOR_INTERVAL_SECONDS)
 
 
 async def _worms_sync_task():
@@ -1170,6 +1197,7 @@ async def lifespan(app: FastAPI):
         # Scheduled syncs — actual data refresh happens here, not on boot
         asyncio.create_task(_weekly_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_argo_sync_task()).add_done_callback(_watch)
+        asyncio.create_task(_argo_history_floor_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_sensor_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_instruments_daily_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_sparkline_task()).add_done_callback(_watch)
@@ -1839,6 +1867,7 @@ _SYNC_SOURCES = {
     "plumes":           lambda: _compute_plume_paths(_pool, max_batch=500),
     "oceansites":       lambda: sensors.sync_oceansites(),
     "oceansites-obs":   lambda: sensors.sync_oceansites_obs(),
+    "argo-recent-history": lambda: sensors.sync_argo_recent_history(),
     "onc":              lambda: onc.sync_onc(),
     "onc-sensors":      lambda: onc.sync_onc_sensors(),
     "noise-risk":       lambda: acoustic.sync_noise_risk(),
