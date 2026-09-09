@@ -37,7 +37,19 @@ def test_air_quality_update_coerces_every_pollutant():
     from backend.domains.land import hazards
 
     src = inspect.getsource(hazards._sync_air_quality_readings)
-    update_call = src.split("UPDATE air_quality_stations")[1]
+
+    # ⛔ Anchor on the statement that WRITES POLLUTANTS, not on "the first
+    # UPDATE air_quality_stations". The function contains a second one — the
+    # per-station queue stamp — and it is written first. Splitting on the bare
+    # table name pointed this test at the stamp on 2026-09-09 and turned it red
+    # against production code that was entirely correct.
+    updates = [seg for seg in src.split("UPDATE air_quality_stations")[1:]
+               if "SET pm25" in seg.split('"""')[0]]
+    assert len(updates) == 1, (
+        f"expected exactly one pollutant UPDATE, found {len(updates)}. If the "
+        "write was split across statements this test now covers only part of it."
+    )
+    update_call = updates[0]
     for param in ("pm25", "so2", "no2", "o3", "co", "pm10",
                   "bc", "no", "nox", "co2", "pm1", "pm4", "ch4", "ufp"):
         assert f'_concentration_or_none(values.get("{param}"))' in update_call, (
