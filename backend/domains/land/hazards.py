@@ -393,10 +393,18 @@ async def _sync_air_quality_readings() -> int:
             if elapsed >= _READINGS_MAX_RUNTIME_S:
                 stopped_early_reason = f"wall-clock budget ({_READINGS_MAX_RUNTIME_S}s) reached"
                 break
-            attempted.append(loc_id)
             if requests_made >= _READINGS_MAX_REQUESTS:
                 stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
                 break
+            # ⛔ AFTER the budget check, never before. `attempted` is what
+            # stamps readings_attempted_at, and a stamp says "we asked OpenAQ
+            # about this station". Appending first meant the one station the
+            # budget stops on was stamped as attempted with readings_error
+            # NULL — indistinguishable from "asked, station reports nothing" —
+            # while no request was ever sent. It then rotated to the BACK of
+            # the queue, so a station skipped this way would not be retried
+            # until the whole 25,824-station sweep came round again.
+            attempted.append(loc_id)
 
             backoff = 2.0
             attempt = 0

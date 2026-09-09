@@ -297,3 +297,65 @@ async def test_a_station_that_500s_still_rotates_out_of_the_queue(ctx, monkeypat
     async with db.pool.acquire() as conn:
         await conn.execute("DELETE FROM air_quality_params WHERE location_id IN (77001, 77002)")
         await conn.execute("DELETE FROM air_quality_stations WHERE location_id IN (77001, 77002)")
+
+
+@pytest.mark.asyncio
+async def test_budget_stop_does_not_stamp_the_station_it_never_asked_about(ctx, monkeypatch):
+    """⛔ A stamp means "we asked OpenAQ about this station". Nothing else.
+
+    `attempted` drives readings_attempted_at, and readings_attempted_at is the
+    queue order. The request-budget break used to sit AFTER
+    `attempted.append(loc_id)`, so the one station each run stopped on was
+    stamped with readings_error NULL — byte-identical to "we asked and the
+    station reports nothing" — while no HTTP request was ever sent for it.
+    It then sorted to the BACK of the queue, so that station would not be
+    looked at again until the whole 25,824-station sweep came round.
+
+    Nothing errors. The station simply has no readings and no reason why.
+    """
+    import db
+    from domains.land import hazards
+
+    async with db.pool.acquire() as conn:
+        # Everything else already attempted, so the three fixture stations
+        # (readings_attempted_at IS NULL) sort to the head under NULLS FIRST.
+        await conn.execute(
+            "UPDATE air_quality_stations SET readings_attempted_at = NOW() "
+            "WHERE location_id NOT BETWEEN 900000 AND 900002")
+        await conn.execute(
+            "UPDATE air_quality_stations SET readings_attempted_at = NULL, readings_error = NULL "
+            "WHERE location_id BETWEEN 900000 AND 900002")
+
+    asked: list[str] = []
+
+    def handler(request):
+        asked.append(str(request.url))
+        return httpx.Response(200, json={"results": [{
+            "id": 6001, "parameter": {"name": "pm25", "units": "ug/m3"},
+            "latest": {"value": 3.0},
+        }]})
+
+    async def fake_sleep(_s):
+        return None
+
+    monkeypatch.setattr(hazards.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(hazards.httpx, "AsyncClient", _client_factory(handler))
+    monkeypatch.setattr(hazards, "_READINGS_MAX_REQUESTS", 1)
+
+    await hazards._sync_air_quality_readings()
+
+    assert len(asked) == 1, f"the request budget was not respected: {asked}"
+    assert "900000" in asked[0], f"unexpected station order: {asked}"
+
+    async with db.pool.acquire() as conn:
+        stamped = await conn.fetch(
+            "SELECT location_id FROM air_quality_stations "
+            "WHERE location_id BETWEEN 900000 AND 900002 "
+            "  AND readings_attempted_at IS NOT NULL ORDER BY location_id")
+
+    ids = [r["location_id"] for r in stamped]
+    assert ids == [900000], (
+        f"stamped {ids}, but only 900000 was ever requested. A station the "
+        "budget stopped on was recorded as attempted-with-no-data and rotated "
+        "to the back of the queue without a single request being sent."
+    )
