@@ -216,8 +216,18 @@ ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS obs_fetched_at TIMESTAM
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS age_days DOUBLE PRECISION
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS model TEXT
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS obs_source TEXT
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS wigos_id TEXT
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS country TEXT
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS sensor_models TEXT
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS deploy_ship TEXT
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS deployment_count INTEGER
 ALTER TABLE oceansites_stations ALTER COLUMN deploy_date TYPE DATE USING CASE WHEN deploy_date IS NULL OR deploy_date = '' THEN NULL WHEN deploy_date ~ '^\d{4}-\d{2}-\d{2}' THEN deploy_date::DATE ELSE NULL END
 CREATE INDEX IF NOT EXISTS oceansites_geom_idx ON oceansites_stations USING GIST(geom)
+CREATE TABLE IF NOT EXISTS oceansites_deployments ( ref TEXT PRIMARY KEY, base_ref TEXT NOT NULL, deploy_num INTEGER NOT NULL DEFAULT 0, name TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, geom GEOMETRY(Point, 4326), position_flag TEXT, status TEXT, network TEXT, deploy_date DATE, deploy_ship TEXT, age_days DOUBLE PRECISION, model TEXT, wigos_id TEXT, country TEXT, sensor_models TEXT, oceanops_id BIGINT, updated_at TIMESTAMPTZ DEFAULT NOW() )
+CREATE INDEX IF NOT EXISTS oceansites_depl_base_idx ON oceansites_deployments (base_ref, deploy_num)
+CREATE INDEX IF NOT EXISTS oceansites_depl_geom_idx ON oceansites_deployments USING GIST(geom)
+CREATE INDEX IF NOT EXISTS oceansites_depl_wigos_idx ON oceansites_deployments (wigos_id) WHERE wigos_id IS NOT NULL
+ALTER TABLE oceansites_deployments OWNER TO abyssal_user
 ALTER TABLE oceansites_stations OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS onc_locations ( location_code TEXT PRIMARY KEY, name TEXT NOT NULL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, description TEXT DEFAULT '', geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(), latest_sensors JSONB, sensors_fetched_at TIMESTAMPTZ )
 ALTER TABLE onc_locations ADD COLUMN IF NOT EXISTS latest_sensors JSONB

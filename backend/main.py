@@ -417,19 +417,26 @@ async def _run_with_log(fn, label: str):
 async def _startup_data_check():
     """Light check on startup: log table counts, no heavy network calls."""
     tables = [
-        "mining_contracts", "reserved_areas", "apeis", "relinquished_areas",
+        "mining_contracts", "reserved_areas", "isa_apeis", "relinquished_areas",
         "biodiversity_hotspots", "seamounts", "argo_profiles",
-        "hydrothermal_vents", "eez", "protected_marine_sites",
-        "submarine_cables", "onc_cables", "ooi_cables", "noaa_cables", "nz_cables", "au_cables", "port_locations", "oceansites", "onc_stations",
-        "chess_sites",
+        "hydrothermal_vents", "maritime_boundaries", "protected_marine_sites",
+        "submarine_cables", "onc_cables", "ooi_cables", "noaa_cables", "nz_cables", "au_cables", "port_locations", "oceansites_stations", "onc_locations",
+        "chess_occurrences",
     ]
     async with _pool.acquire() as conn:
         for t in tables:
             try:
+                exists = await conn.fetchval("SELECT to_regclass($1)", t)
+                if exists is None:
+                    log.warning("startup check: %s — table MISSING", t)
+                    continue
                 n = await conn.fetchval(f"SELECT COUNT(*) FROM {t}")  # noqa: S608
-                log.info("startup check: %s = %d rows", t, n)
-            except Exception:
-                log.warning("startup check: %s — table missing or empty", t)
+                if n == 0:
+                    log.warning("startup check: %s — table EMPTY (0 rows)", t)
+                else:
+                    log.info("startup check: %s = %d rows", t, n)
+            except Exception as exc:
+                log.warning("startup check: %s — query failed: %s: %s", t, type(exc).__name__, exc)
 
 
 async def _weekly_sync_task():

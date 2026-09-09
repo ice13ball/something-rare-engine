@@ -17,16 +17,37 @@ requested a deployment date. Now returns every platform regardless of status
 and parses the real deployment date. Status filtering is a caller/query concern
 (`sensors.sync_oceansites` / the SEO layer), not an ingest concern.
 
-`fields=` — every name here was probed against the live API on 2026-09-08 and
-confirmed to return data:
-  ref, name, deplLat, deplLon, wigosId, status, age, model, deplDate
-⛔ These return NOTHING, silently, with HTTP 200 — do not add them:
-  deploymentDate, ptfDepl.deplDate, startDate, obsDate, ptfDepl
-  (the API only echoes fields it recognises by exact name; an unknown name is
-  silently dropped, not an error).
+`fields=` — every name here was probed against the live API and confirmed to
+return data. ⛔ The API only echoes fields it recognises BY EXACT NAME; an
+unknown name is silently dropped, not an error, so a typo costs a whole column
+with an HTTP 200 and no log line.
 
-`deplDate` comes back NESTED as `deployment.date` (ISO 8601 string, e.g.
-"2006-06-08T00:00:00"), not as a top-level `deplDate` key.
+⚠️ The REQUEST name and the RESPONSE key are different things, and the request
+name is not guessable from the response. Measured 2026-09-09:
+
+  request name   response key                        non-empty / 5,795
+  ------------   ---------------------------------   -----------------
+  deplLat/Lon    deployment.latitude / .longitude    5,795
+  deplDate       deployment.date                     5,789
+  deplShip       deployment.ship.name                2,764
+  wigosId        identifiers.wigos_id                5,063
+  country        program.country.name                5,792
+  sensors        sensor_lists.models                 4,113
+  model          model.name                          5,795
+  status         status.name                         5,795
+  age            age (string, "NaN" when unknown)      556
+
+⛔ Asking for `deployment`, `identifiers`, `program` or `sensor_lists` — the
+RESPONSE key names — returns nothing. Verified 2026-09-09: a request built
+from response names came back carrying only `model` and `status`.
+
+⛔ These also return NOTHING, silently, with HTTP 200 — do not add them:
+  deploymentDate, ptfDepl.deplDate, startDate, obsDate, ptfDepl, agency,
+  variables, masterProgram, manufacturer, telecom, ptfDepth, waterDepth,
+  wmo, serialNumber
+
+Always empty in this feed, so nothing is lost by not storing them:
+  program.name, model.manufacturer.name (0 of 5,795 each).
 
 Exactly one sentinel has been observed in this feed: `1900-01-01`, on a
 nameless CLOSED platform (ref 2300495_001). Rejected to NULL here and counted
@@ -46,6 +67,7 @@ _OCEANOPS_URL = (
     "https://www.ocean-ops.org/api/data/oceanjson/platforms"
     "?pageSize=100000"
     "&fields=ref,name,deplLat,deplLon,wigosId,status,age,model,deplDate"
+    ",country,sensors,deplShip"
     "&filters=%7B%22networks%22%3A%221000175%22%7D"
 )
 
@@ -113,21 +135,17 @@ async def fetch_oceansites_stations() -> list[dict]:
 
     records = payload.get("data") or []
     best: dict[str, dict] = {}  # base_ref -> record with highest deployment number
+    deployments: list[dict] = []
     sentinel_count = 0
 
     for r in records:
         raw_ref = r.get("ref") or ""
+        if not raw_ref:
+            continue
 
         depl = r.get("deployment") or {}
         lat = depl.get("latitude")
         lon = depl.get("longitude")
-
-        if lat is None or lon is None:
-            continue
-        if lat == 0 and lon == 0:
-            continue
-
-        status_name = (r.get("status") or {}).get("name") or "UNKNOWN"
 
         # Strip _NNN redeployment suffix to get canonical base ref
         if "_" in raw_ref:
@@ -136,16 +154,63 @@ async def fetch_oceansites_stations() -> list[dict]:
         else:
             base_ref, deploy_num = raw_ref, 0
 
+        status_name = (r.get("status") or {}).get("name") or "UNKNOWN"
         raw_age = r.get("age")
         age_days = float(raw_age) if isinstance(raw_age, (int, float)) and str(raw_age) != "NaN" else None
         station_name = r.get("name") or base_ref
         model_name = (r.get("model") or {}).get("name") or None
+        wigos_id = (r.get("identifiers") or {}).get("wigos_id") or None
+        country = ((r.get("program") or {}).get("country") or {}).get("name") or None
+        sensor_models = (r.get("sensor_lists") or {}).get("models") or None
+        deploy_ship = ((depl.get("ship") or {}).get("name")) or None
 
         deploy_date = _parse_deploy_date(r)
         if deploy_date is None and depl.get("date"):
             # depl.get("date") was truthy but _parse_deploy_date rejected it —
             # that only happens for the sentinel.
             sentinel_count += 1
+
+        # ⛔ (0,0) is a PLACEHOLDER, not a position in the Gulf of Guinea.
+        # 23 of 5,795 records carry it (measured 2026-09-09; none is missing
+        # lat/lon outright). The deployment row is still kept — the platform,
+        # its date, ship, WIGOS id and instruments are all real — but its
+        # coordinates are NULLed and the reason recorded, so "we do not know
+        # where this was" never renders as a point off West Africa.
+        null_island = (lat == 0 and lon == 0)
+        has_position = lat is not None and lon is not None and not null_island
+
+        # ⛔ EVERY source record becomes a deployment row. 4,735 of the 5,795
+        # carry an _NNN suffix and the station table keeps only the highest per
+        # base ref — one mooring (5100007) has 61 deployments spanning
+        # 1988-05-27 to 2026-03-27, and each one has its OWN WIGOS identifier
+        # (0-22000-<n>-<base>), its own ship and its own position; 31 base refs
+        # hold deployments more than 1 degree apart, the widest 7.9 degrees.
+        # Collapsing them is right for the map; discarding them is not.
+        deployments.append({
+            "ref":           raw_ref,
+            "base_ref":      base_ref,
+            "deploy_num":    deploy_num,
+            "name":          station_name,
+            "lat":           float(lat) if has_position else None,
+            "lon":           float(lon) if has_position else None,
+            "position_flag": None if has_position else ("null-island" if null_island else "missing"),
+            "status":        status_name,
+            "network":       _network_from_ref(base_ref),
+            "deploy_date":   deploy_date,
+            "deploy_ship":   deploy_ship,
+            "age_days":      age_days,
+            "model":         model_name,
+            "wigos_id":      wigos_id,
+            "country":       country,
+            "sensor_models": sensor_models,
+            "oceanops_id":   r.get("id"),
+        })
+
+        # The station table stays one row per base ref, positioned — that is
+        # what the map, the panel and the SEO pages consume, and none of them
+        # changed. A record without a usable position cannot be a map point.
+        if not has_position:
+            continue
 
         # Keep the record with the highest deployment number
         existing = best.get(base_ref)
@@ -160,17 +225,27 @@ async def fetch_oceansites_stations() -> list[dict]:
                 "deploy_date": deploy_date,
                 "age_days":    age_days,
                 "model":       model_name,
+                "wigos_id":    wigos_id,
+                "country":     country,
+                "sensor_models": sensor_models,
+                "deploy_ship": deploy_ship,
                 "_deploy_num": deploy_num,
             }
 
+    for st in best.values():
+        st["deployment_count"] = sum(1 for d in deployments if d["base_ref"] == st["ref"])
     stations = [{k: v for k, v in s.items() if k != "_deploy_num"} for s in best.values()]
     log.info(
         "oceansites: fetched %d stations from OceanOPS (%d statuses collapsed from %d raw records; "
-        "%d sentinel deploy dates rejected to NULL)",
-        len(stations), len({s["status"] for s in stations}), len(records), sentinel_count,
+        "%d deployment rows kept; %d sentinel deploy dates rejected to NULL; "
+        "%d records without a usable position)",
+        len(stations), len({s["status"] for s in stations}), len(records),
+        len(deployments), sentinel_count,
+        sum(1 for d in deployments if d["position_flag"]),
     )
-    global last_sentinel_count
+    global last_sentinel_count, last_deployments
     last_sentinel_count = sentinel_count
+    last_deployments = deployments
     return stations
 
 
@@ -179,3 +254,13 @@ async def fetch_oceansites_stations() -> list[dict]:
 # this function's return type (a list of station dicts, as domains/sensors.py
 # already expects).
 last_sentinel_count: int = 0
+
+# Every source record from the most recent fetch, one dict per DEPLOYMENT —
+# 5,795 of them against the 1,072 station rows the function returns. Same
+# idiom as last_sentinel_count above: the return type stays the list of
+# station dicts domains/sensors.py already expects, and one HTTP call feeds
+# both tables.
+# ⛔ Read it in the SAME call as fetch_oceansites_stations(); it is overwritten
+# by the next fetch, and reading a stale value would write one sync's
+# deployments against another's stations.
+last_deployments: list[dict] = []

@@ -123,7 +123,7 @@ from datetime import date, datetime, timedelta, timezone
 import db
 import httpx
 from auth import get_api_key, require_admin_token
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from indexnow import notify_indexnow as _notify_indexnow
 from indexnow import SITE_HOST
@@ -935,6 +935,79 @@ async def sync_argo_profiles_backfill(budget_seconds: int = ARGO_BACKFILL_DEFAUL
 _OCEANSITES_SHRINK_GUARD_FRACTION = 0.20
 
 
+async def _upsert_oceansites_deployments(conn, deployments: list[dict]) -> int:
+    """Write one row per OceanOPS deployment record.
+
+    ⛔ Carries its own shrink guard, separate from the station one. The two
+    counts move independently — a station can lose every deployment but one
+    without the station count changing at all — so a guard on stations says
+    nothing about this table.
+
+    ⛔ Not a TRUNCATE. Same reasoning as the ONC locations fix (2026-09-08):
+    re-creating the table every run destroys anything later enrichment adds to
+    these rows, and a run that dies halfway leaves the table empty rather than
+    stale. UPSERT, then delete only refs OceanOPS has stopped returning.
+    """
+    from datetime import date as _date
+
+    if not deployments:
+        log.error("oceansites: parse yielded zero deployment rows — table left untouched")
+        return 0
+
+    existing = await conn.fetchval("SELECT COUNT(*) FROM oceansites_deployments") or 0
+    if existing and len(deployments) < existing * (1 - _OCEANSITES_SHRINK_GUARD_FRACTION):
+        log.error(
+            "oceansites: refusing deployment write — parse returned %d rows against %d "
+            "already stored (%.0f%% shrink guard). Existing rows kept.",
+            len(deployments), existing, _OCEANSITES_SHRINK_GUARD_FRACTION * 100,
+        )
+        return existing
+
+    await conn.executemany(
+        """INSERT INTO oceansites_deployments
+           (ref, base_ref, deploy_num, name, lat, lon, position_flag, status, network,
+            deploy_date, deploy_ship, age_days, model, wigos_id, country, sensor_models,
+            oceanops_id, geom, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+                   $16, $17,
+                   -- ⛔ Casts are load-bearing. `$5 IS NULL` gives Postgres
+                   -- nothing to infer a type from, and the same parameter is
+                   -- used again inside ST_MakePoint, so the prepare fails with
+                   -- AmbiguousParameterError rather than a wrong result.
+                   CASE WHEN $5::double precision IS NULL
+                          OR $6::double precision IS NULL THEN NULL
+                        ELSE ST_SetSRID(
+                            ST_MakePoint($6::double precision, $5::double precision), 4326)
+                   END,
+                   NOW())
+           ON CONFLICT (ref) DO UPDATE
+           SET base_ref=EXCLUDED.base_ref, deploy_num=EXCLUDED.deploy_num,
+               name=EXCLUDED.name, lat=EXCLUDED.lat, lon=EXCLUDED.lon,
+               position_flag=EXCLUDED.position_flag, status=EXCLUDED.status,
+               network=EXCLUDED.network, deploy_date=EXCLUDED.deploy_date,
+               deploy_ship=EXCLUDED.deploy_ship, age_days=EXCLUDED.age_days,
+               model=EXCLUDED.model, wigos_id=EXCLUDED.wigos_id,
+               country=EXCLUDED.country, sensor_models=EXCLUDED.sensor_models,
+               oceanops_id=EXCLUDED.oceanops_id, geom=EXCLUDED.geom, updated_at=NOW()""",
+        [(d["ref"], d["base_ref"], d["deploy_num"], d["name"], d["lat"], d["lon"],
+          d["position_flag"], d["status"], d["network"],
+          (_date.fromisoformat(d["deploy_date"]) if d.get("deploy_date") else None),
+          d["deploy_ship"], d["age_days"], d["model"], d["wigos_id"], d["country"],
+          d["sensor_models"], d["oceanops_id"])
+         for d in deployments],
+    )
+    removed = await conn.fetchval(
+        "WITH d AS (DELETE FROM oceansites_deployments WHERE ref != ALL($1::text[]) RETURNING 1) "
+        "SELECT COUNT(*) FROM d",
+        [d["ref"] for d in deployments],
+    )
+    total = await conn.fetchval("SELECT COUNT(*) FROM oceansites_deployments")
+    log.info("oceansites: %d deployment rows stored (%d removed, %d without a position)",
+             total, removed or 0,
+             sum(1 for d in deployments if d["position_flag"]))
+    return total
+
+
 async def sync_oceansites() -> int:
     """Fetch ALL OceanSITES mooring platforms (every status) and upsert.
 
@@ -945,8 +1018,14 @@ async def sync_oceansites() -> int:
     """
     from datetime import date as _date
 
-    from ingestion.oceansites_ingest import fetch_oceansites_stations, last_sentinel_count
+    import ingestion.oceansites_ingest as _os_ingest
+    from ingestion.oceansites_ingest import fetch_oceansites_stations
     stations = await fetch_oceansites_stations()
+    # ⛔ Read BOTH module globals from the same call. They are overwritten by
+    # the next fetch, and `from ... import last_sentinel_count` would bind the
+    # value at import time — always 0 — instead of the one this fetch set.
+    last_sentinel_count = _os_ingest.last_sentinel_count
+    deployments = _os_ingest.last_deployments
     if not stations:
         # FAILED sync — do not stamp last_synced_at (rule: a failed sync must
         # not look like a successful one to the monitor).
@@ -969,22 +1048,30 @@ async def sync_oceansites() -> int:
 
         await conn.executemany(
             """INSERT INTO oceansites_stations
-               (ref, name, lat, lon, status, network, deploy_date, age_days, model, geom, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+               (ref, name, lat, lon, status, network, deploy_date, age_days, model,
+                wigos_id, country, sensor_models, deploy_ship, deployment_count,
+                geom, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
                        ST_SetSRID(ST_MakePoint($4, $3), 4326),
                        NOW())
                ON CONFLICT (ref) DO UPDATE
                SET name=EXCLUDED.name, lat=EXCLUDED.lat, lon=EXCLUDED.lon,
                    status=EXCLUDED.status, network=EXCLUDED.network,
                    deploy_date=EXCLUDED.deploy_date, age_days=EXCLUDED.age_days,
-                   model=EXCLUDED.model, geom=EXCLUDED.geom,
-                   updated_at=NOW()""",
+                   model=EXCLUDED.model, wigos_id=EXCLUDED.wigos_id,
+                   country=EXCLUDED.country, sensor_models=EXCLUDED.sensor_models,
+                   deploy_ship=EXCLUDED.deploy_ship,
+                   deployment_count=EXCLUDED.deployment_count,
+                   geom=EXCLUDED.geom, updated_at=NOW()""",
             [(s["ref"], s["name"], s["lat"], s["lon"],
               s["status"], s["network"],
               (_date.fromisoformat(s["deploy_date"]) if s.get("deploy_date") else None),
-              s.get("age_days"), s.get("model"))
+              s.get("age_days"), s.get("model"),
+              s.get("wigos_id"), s.get("country"), s.get("sensor_models"),
+              s.get("deploy_ship"), s.get("deployment_count"))
              for s in stations],
         )
+        await _upsert_oceansites_deployments(conn, deployments)
         # A ref is removed only when OceanOPS stops returning it entirely —
         # NOT merely when its status changes (that's an UPDATE above).
         deleted = await conn.fetchval(
@@ -1244,7 +1331,8 @@ async def get_oceansites():
     async with db.pool.acquire() as conn:
         rows = await conn.fetch("""
             SELECT ref, name, lat, lon, status, network, deploy_date,
-                   age_days, model, latest_obs, obs_source, obs_fetched_at
+                   age_days, model, latest_obs, obs_source, obs_fetched_at,
+                   wigos_id, country, sensor_models, deploy_ship, deployment_count
             FROM oceansites_stations
             ORDER BY ref
         """)
@@ -1258,7 +1346,14 @@ async def get_oceansites():
                 "name":           r["name"],
                 "status":         r["status"],
                 "network":        r["network"],
-                "deploy_date":    r["deploy_date"],
+                # ⛔ json.dumps cannot serialise a datetime.date. This column
+                # was TEXT until the 2026-09-08 OceanOPS widening migrated it to
+                # DATE; the endpoint kept passing the raw value, so every rebuild has
+                # raised TypeError since. It survived review because the
+                # module-level cache serves the last string built while the
+                # column was still TEXT — the 500 only appears after a restart
+                # clears the cache, which is exactly when nobody is looking.
+                "deploy_date":    r["deploy_date"].isoformat() if r["deploy_date"] else None,
                 "age_days":       r["age_days"],
                 "model":          r["model"],
                 "lat":            r["lat"],
@@ -1266,6 +1361,16 @@ async def get_oceansites():
                 "latest_obs":     json.loads(r["latest_obs"]) if r["latest_obs"] else None,
                 "obs_source":     r["obs_source"],
                 "obs_fetched_at": r["obs_fetched_at"].isoformat() if r["obs_fetched_at"] else None,
+                # All scalars — five short strings and an int per station over
+                # 1,072 features. The deployment ROWS are deliberately not here:
+                # 5,795 of them would more than quintuple this payload for data
+                # only ever looked at one station at a time. They live behind
+                # /v1/oceansites/{ref}/deployments.
+                "wigos_id":         r["wigos_id"],
+                "country":          r["country"],
+                "sensor_models":    r["sensor_models"],
+                "deploy_ship":      r["deploy_ship"],
+                "deployment_count": r["deployment_count"],
             },
         }
         for r in rows
@@ -1273,6 +1378,56 @@ async def get_oceansites():
     result = json.dumps({"type": "FeatureCollection", "features": features})
     _oceansites_cache = result
     return Response(content=result, media_type="application/json")
+
+
+@router.get("/v1/oceansites/{ref}/deployments", dependencies=[Depends(get_api_key)])
+async def get_oceansites_deployments(ref: str):
+    """Every deployment OceanOPS holds for one mooring, newest first.
+
+    `ref` is the STATION ref (no _NNN suffix) — the same value the map serves.
+    One mooring can carry dozens: 5100007 has 61, from 1988 to 2026.
+    """
+    async with db.pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT ref, deploy_num, name, lat, lon, position_flag, status, network,
+                      deploy_date, deploy_ship, age_days, model, wigos_id, country,
+                      sensor_models, oceanops_id
+               FROM oceansites_deployments
+               WHERE base_ref = $1
+               ORDER BY deploy_num DESC""",
+            ref,
+        )
+    if not rows:
+        # ⛔ 404 means "no such station", and that is what this is: the station
+        # table and this one are filled by the same sync from the same fetch,
+        # so a known ref always has at least its own row. Never a 200 with an
+        # empty list — that would read as "this mooring was never deployed".
+        raise HTTPException(status_code=404, detail=f"No OceanSITES station '{ref}'")
+    return {
+        "ref": ref,
+        "count": len(rows),
+        "deployments": [
+            {
+                "ref":           r["ref"],
+                "deploy_num":    r["deploy_num"],
+                "name":          r["name"],
+                "lat":           r["lat"],
+                "lon":           r["lon"],
+                "position_flag": r["position_flag"],
+                "status":        r["status"],
+                "network":       r["network"],
+                "deploy_date":   r["deploy_date"].isoformat() if r["deploy_date"] else None,
+                "deploy_ship":   r["deploy_ship"],
+                "age_days":      r["age_days"],
+                "model":         r["model"],
+                "wigos_id":      r["wigos_id"],
+                "country":       r["country"],
+                "sensor_models": r["sensor_models"],
+                "oceanops_id":   r["oceanops_id"],
+            }
+            for r in rows
+        ],
+    }
 
 
 @router.get("/v1/live/oceansites/{ref}", dependencies=[Depends(get_api_key)])

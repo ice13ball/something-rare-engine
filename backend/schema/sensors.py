@@ -90,6 +90,16 @@ async def ensure_oceansites(conn) -> None:
         ("age_days",       "DOUBLE PRECISION"),
         ("model",          "TEXT"),
         ("obs_source",     "TEXT"),  # NDBC | PMEL | CMEMS | GDAC
+        # 2026-09-09 widening. OceanOPS was already being asked for wigosId and
+        # answered on 5,063 of 5,795 records — under `identifiers.wigos_id`,
+        # which nothing read. `country` and `sensors` are two request names that
+        # were never sent at all; they carry the operating country (5,792) and
+        # the instrument models on the mooring (4,113).
+        ("wigos_id",       "TEXT"),
+        ("country",        "TEXT"),
+        ("sensor_models",  "TEXT"),
+        ("deploy_ship",    "TEXT"),
+        ("deployment_count", "INTEGER"),
     ]:
         try:
             await conn.execute(
@@ -118,6 +128,57 @@ async def ensure_oceansites(conn) -> None:
         CREATE INDEX IF NOT EXISTS oceansites_geom_idx
         ON oceansites_stations USING GIST(geom)
     """)
+    # ⛔ One row per DEPLOYMENT, against oceansites_stations' one row per
+    # STATION. OceanOPS returns 5,795 platform records with 5,795 distinct
+    # refs — there are no duplicates to remove. The station table keeps the
+    # highest _NNN per base ref, which is right for a map point and wrong as a
+    # place to stop: one mooring (5100007) has 61 deployments from 1988-05-27
+    # to 2026-03-27, each with its own WIGOS identifier, ship and position,
+    # and 31 base refs hold deployments more than a degree apart.
+    # Additive by design — nothing that reads oceansites_stations changed.
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS oceansites_deployments (
+            ref            TEXT PRIMARY KEY,
+            base_ref       TEXT NOT NULL,
+            deploy_num     INTEGER NOT NULL DEFAULT 0,
+            name           TEXT,
+            lat            DOUBLE PRECISION,
+            lon            DOUBLE PRECISION,
+            geom           GEOMETRY(Point, 4326),
+            position_flag  TEXT,
+            status         TEXT,
+            network        TEXT,
+            deploy_date    DATE,
+            deploy_ship    TEXT,
+            age_days       DOUBLE PRECISION,
+            model          TEXT,
+            wigos_id       TEXT,
+            country        TEXT,
+            sensor_models  TEXT,
+            oceanops_id    BIGINT,
+            updated_at     TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS oceansites_depl_base_idx
+        ON oceansites_deployments (base_ref, deploy_num)
+    """)
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS oceansites_depl_geom_idx
+        ON oceansites_deployments USING GIST(geom)
+    """)
+    # A WIGOS id is how WMO systems refer to this platform, so it is the key
+    # an outside dataset will join on. Not UNIQUE: 732 of 5,795 records carry
+    # none, and this ingest does not get to assert uniqueness on a field it
+    # does not mint.
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS oceansites_depl_wigos_idx
+        ON oceansites_deployments (wigos_id) WHERE wigos_id IS NOT NULL
+    """)
+    try:
+        await conn.execute("ALTER TABLE oceansites_deployments OWNER TO abyssal_user")
+    except Exception:
+        pass
     try:
         await conn.execute("ALTER TABLE oceansites_stations OWNER TO abyssal_user")
     except Exception:
