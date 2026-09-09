@@ -69,6 +69,7 @@ from ais_sync import (
     run_partition_maintenance,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response, HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
@@ -1245,6 +1246,26 @@ _log_pipe = LogPipe()
 
 app = FastAPI(title="Abyssal Claims API", lifespan=lifespan)
 
+# ⛔ Compress before the response leaves this box. Added 2026-09-09, after
+# /v1/map/argo/trails started returning 500 in the browser while this backend
+# logged 200:
+#
+#     backend  -> HTTP 200, 42,029,422 bytes (40.1 MB), 44,780 points
+#     browser  -> HTTP 500, 0 bytes
+#
+# Cloud Run caps a response at 32 MiB and enforces it on the bytes it receives
+# from the origin, BEFORE the BFF's Express compression() runs. So the cap bites
+# on the uncompressed payload — a question an earlier comment in
+# domains/sensors.py explicitly left unverified; this incident answered it.
+#
+# The trigger was filling the six-month history floor: the 90-day map window
+# went from 14,870 points (13.98 MB) to 44,780 (40.1 MB) in one afternoon. The
+# same growth is coming for every layer whose coverage improves, which is why
+# this belongs on the app rather than on one endpoint.
+#
+# GeoJSON compresses ~7x (repeated keys), so 40 MB leaves here as ~6 MB.
+# minimum_size skips the small responses, where the CPU is not worth it.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(RequestLogMiddleware, pipe=_log_pipe)
 app.add_middleware(
     CORSMiddleware,

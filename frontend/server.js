@@ -359,6 +359,23 @@ app.use('/api', createProxyMiddleware({
       if (ABYSSAL_API_KEY) {
         proxyReq.setHeader('X-API-Key', ABYSSAL_API_KEY);
       }
+      // ⛔ ALWAYS ask the origin for gzip, whatever the client asked for.
+      //
+      // Cloud Run refuses a response over 32 MiB and enforces it on the bytes
+      // it RECEIVES from the origin. /v1/map/argo/trails is 40.1 MB
+      // uncompressed and 4.69 MB gzipped, so the header decides whether the
+      // request works at all. Measured 2026-09-09:
+      //
+      //     curl --compressed  -> 200, 4,687,536 B
+      //     curl (no header)   -> 500, 0 B
+      //
+      // Browsers always advertise gzip, so the map looked fine while every
+      // script, curl and API consumer got a 500. Forwarding the client's
+      // header made that difference invisible from here — the origin hop is
+      // ours, and it should never depend on what a caller happened to send.
+      // Express `compression()` re-encodes for the client, so a client that
+      // cannot take gzip still gets plain bytes.
+      proxyReq.setHeader('Accept-Encoding', 'gzip');
     },
     proxyRes: (proxyRes, req) => {
       console.log(`VPS response: ${proxyRes.statusCode} for ${req.url}`);
