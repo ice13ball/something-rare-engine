@@ -214,11 +214,11 @@
     },
     "activeFires": {
       "label": "Incendies actifs (FIRMS)",
-      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. MODIS (résolution 1 km, satellites Aqua+Terra) et VIIRS (375 m, Suomi-NPP + NOAA-20).",
+      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. VIIRS (375 m) depuis trois satellites : Suomi-NPP, NOAA-20 et NOAA-21.",
       "updateFreq": "Synchronisé toutes les 6 heures ; NASA traite les passages satellites dans les 3 heures suivant le survol",
-      "description": "Détections d'anomalies thermiques quasi en temps réel de deux familles d'instruments satellitaires. MODIS fournit une couverture mondiale biquotidienne à 1 km ; VIIRS ajoute quatre passages quotidiens à 375 m de résolution avec une meilleure détection des incendies petits et de faible intensité. Chaque détection comprend la température de luminosité, la puissance radiative du feu (FRP — un indicateur de l'intensité du feu), la date/heure d'acquisition, le niveau de confiance et le type d'instrument.",
-      "reading": "Point jaune = détection à faible confiance. Point orange = confiance nominale. Point rouge = haute confiance. Cliquez pour la date/heure exacte, la température de luminosité en Kelvin, le FRP en MW, l'instrument (MODIS/VIIRS) et le nom du satellite.",
-      "limitations": "La couverture nuageuse bloque la détection satellitaire — les incendies sous les nuages épais sont totalement manqués. Les pixels MODIS à 1 km peuvent signaler des grandes sources de chaleur industrielles comme des faux positifs.",
+      "description": "Détections d'anomalies thermiques quasi en temps réel de l'instrument VIIRS de la NASA, issues de trois satellites — Suomi-NPP, NOAA-20 et NOAA-21 — à 375 m de résolution, ce qui donne plusieurs passages par jour et permet de détecter des feux plus petits et moins intenses qu'un capteur kilométrique. Chaque détection comprend la température de luminosité, la puissance radiative du feu (FRP, indicateur d'intensité), la date et l'heure d'acquisition en UTC, le niveau de confiance, ainsi que l'instrument et le satellite tels que la NASA les nomme.",
+      "reading": "Point jaune = détection à faible confiance. Point orange = confiance nominale. Point rouge = haute confiance. Cliquez pour la date et l'heure d'acquisition en UTC, la température de luminosité en Kelvin, le FRP en MW, ainsi que l'instrument et le satellite exactement tels que la NASA les nomme. Activez Empreintes minières pour vérifier si des feux brûlent dans une mine ou à proximité — cela peut indiquer un feu de veine de charbon, un brûlage de déchets ou un défrichement.",
+      "limitations": "La couverture nuageuse bloque la détection satellitaire — les incendies sous les nuages épais sont totalement manqués. De grandes sources de chaleur industrielles, torchères ou fonderies, peuvent être enregistrées comme des détections. Une détection correspond à un seul passage, pas à une mesure de la durée du feu.",
       "colorStandard": "Convention de confiance NASA FIRMS — jaune (faible) → orange (nominal) → rouge (élevé)."
     },
     "airQualityStations": {

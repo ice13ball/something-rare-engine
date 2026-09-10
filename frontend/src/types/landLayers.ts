@@ -62,7 +62,7 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
     color: "#ff6b00",
     fillRgba: [255, 107, 0, 200],
     lineRgba: [255, 107, 0, 255],
-    description: "Near-real-time fire detection from MODIS & VIIRS — NASA LANCE, updated within 3 hours",
+    description: "Near-real-time fire detection from NASA's three VIIRS satellites — NASA LANCE, updated within 3 hours",
     phase: 2,
   },
   {

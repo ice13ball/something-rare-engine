@@ -214,11 +214,11 @@
     },
     "activeFires": {
       "label": "Aktywne pożary (FIRMS)",
-      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. MODIS (rozdzielczość 1 km, satelity Aqua+Terra) i VIIRS (375 m, Suomi-NPP + NOAA-20).",
+      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. VIIRS (375 m) z trzech satelitów: Suomi-NPP, NOAA-20 i NOAA-21.",
       "updateFreq": "Synchronizowane co 6 godzin; NASA przetwarza przejścia satelitarne w ciągu 3 godzin od przejścia",
-      "description": "Detekcje anomalii termicznych w czasie prawie rzeczywistym z dwóch rodzin instrumentów satelitarnych. MODIS zapewnia dwukrotną dzienną globalną pokrycie przy 1 km; VIIRS dodaje cztery dzienne przejścia przy 375 m z lepszą detekcją małych i słabych pożarów. Każda detekcja zawiera temperaturę jasności, moc radiacyjną pożaru (FRP), datę/czas pobrania, poziom pewności i typ instrumentu.",
-      "reading": "Żółty punkt = detekcja o niskiej pewności. Pomarańczowy punkt = nominalna pewność. Czerwony punkt = wysoka pewność. Kliknij, aby zobaczyć dokładną datę/czas, temperaturę jasności w Kelwinach, FRP w MW, instrument (MODIS/VIIRS) i nazwę satelity.",
-      "limitations": "Zachmurzenie blokuje detekcję satelitarną — pożary pod grubymi chmurami są przeoczone. Piksele MODIS 1 km mogą oznaczać duże przemysłowe źródła ciepła jako fałszywe pozytywy.",
+      "description": "Detekcje anomalii termicznych w czasie prawie rzeczywistym z przyrządu VIIRS należącego do NASA, pobierane z trzech satelitów — Suomi-NPP, NOAA-20 i NOAA-21 — w rozdzielczości 375 m, co daje kilka przejść dziennie i pozwala wykryć mniejsze i chłodniejsze pożary niż czujnik kilometrowy. Każda detekcja niesie temperaturę jasności, moc radiacyjną pożaru (FRP, wskaźnik intensywności), datę i godzinę pobrania w UTC, poziom pewności oraz przyrząd i satelitę tak, jak nazywa je NASA.",
+      "reading": "Żółty punkt = detekcja o niskiej pewności. Pomarańczowy punkt = nominalna pewność. Czerwony punkt = wysoka pewność. Kliknij, aby zobaczyć datę i godzinę detekcji w UTC, temperaturę jasności w Kelwinach, FRP w MW oraz przyrząd i satelitę dokładnie tak, jak nazywa je NASA. Włącz Ślady górnicze, aby sprawdzić, czy pożary palą się w obrębie kopalń lub przy nich — może to wskazywać na pożary pokładów węgla, spalanie odpadów albo wypalanie terenu.",
+      "limitations": "Zachmurzenie blokuje detekcję satelitarną — pożary pod grubymi chmurami są przeoczone w całości. Duże przemysłowe źródła ciepła, jak pochodnie czy huty, potrafią zarejestrować się jako detekcja. Detekcja to jedno przejście satelity, a nie pomiar tego, jak długo pożar się palił.",
       "colorStandard": "Konwencja pewności NASA FIRMS — żółty (niski) → pomarańczowy (nominalny) → czerwony (wysoki)."
     },
     "airQualityStations": {
@@ -921,7 +921,7 @@
     "kba_title": "Kluczowe obszary bioróżnorodności — Data oceny",
     "kba": "Granice KBA odzwierciedlają najnowszą ocenę opublikowaną przez BirdLife/KBA Partnership. Rok wyznaczenia w wyskakującym okienku pokazuje, kiedy obszar został po raz pierwszy potwierdzony.",
     "fires_title": "Aktywne pożary (FIRMS) — Data/czas pobrania",
-    "fires": "Dokładna data i czas (UTC), kiedy przejście satelity wykryło anomalię termiczną. Pożary są prawie w czasie rzeczywistym — zazwyczaj w ciągu 3 godzin od przejścia satelity. MODIS zapewnia 2 przejścia/dzień; VIIRS zapewnia 4 przejścia/dzień.",
+    "fires": "Data i godzina pobrania w UTC, dokładnie tak, jak NASA je publikuje dla tego przejścia. Detekcje są prawie w czasie rzeczywistym — zwykle w ciągu 3 godzin od przejścia satelity. Trzy satelity VIIRS razem dają kilka przejść dziennie. Detekcja to pojedyncza obserwacja, a nie oszacowanie, jak długo pożar trwał.",
     "airQuality_title": "Jakość powietrza — Znacznik czasu odczytu",
     "airQuality": "Odczyty zanieczyszczeń pokazują czas najnowszego pomiaru buforowanego z sieci źródłowej. Odczyty są odświeżane co 2 godziny. Jeśli stacja pokazuje odczyt sprzed kilku dni, stacja może być offline.",
     "landslides_title": "Osuwiska — Data zdarzenia",
@@ -1044,7 +1044,7 @@
     "tailings_title": "Tamy hałdowe",
     "tailings": "Lokalizacje bazowe: Hudson-Edwards, K. i in. (2023) WAPHA global metal mines database na doi.org/10.5061/dryad.j3tx95xmg, kopia na zenodo.org/records/8324697 (11 587 obiektów). Wzbogacenie ryzyka: GRID-Arendal Global Tailings Portal na tailing.grida.no (~2 100 obiektów z klasyfikacją zagrożeń, wysokością, objętością, własnością). Dane ujawnione przez 222 firmy górnicze dla Investor Mining & Tailings Safety Initiative.",
     "fires_title": "Aktywne pożary (FIRMS)",
-    "fires": "NASA LANCE FIRMS na firms.modaps.eosdis.nasa.gov. Weryfikuj dowolną detekcję, szukając współrzędnych w przeglądarce map FIRMS. Algorytmy MODIS Collection 6.1 i VIIRS V2. Dane są w domenie publicznej (praca rządu USA).",
+    "fires": "NASA LANCE FIRMS na firms.modaps.eosdis.nasa.gov. Zweryfikuj detekcję, szukając jej współrzędnych w przeglądarce map FIRMS i dopasowując datę, godzinę i satelitę. Algorytm VIIRS V2, produkt prawie w czasie rzeczywistym. Dane są w domenie publicznej (praca rządu USA).",
     "airQuality_title": "Jakość powietrza",
     "airQuality": "OpenAQ na openaq.org. Agreguje rządowe monitory referencyjne — nie tanie czujniki. Każda stacja linkuje z powrotem do krajowej sieci monitoringu. Weryfikuj odczyty w źródłowej sieci do celów regulacyjnych. CC BY 4.0.",
     "landslides_title": "Osuwiska",

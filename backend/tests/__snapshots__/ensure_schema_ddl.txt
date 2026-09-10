@@ -253,7 +253,18 @@ ALTER TABLE onc_adcp_strips ADD COLUMN IF NOT EXISTS units TEXT
 CREATE TABLE IF NOT EXISTS onc_location_categories ( location_code TEXT NOT NULL, device_category_code TEXT NOT NULL, PRIMARY KEY (location_code, device_category_code) )
 CREATE INDEX IF NOT EXISTS onc_location_categories_category_idx ON onc_location_categories (device_category_code)
 CREATE TABLE IF NOT EXISTS onc_ctd_profiles ( location_code TEXT, device_code TEXT, cast_time TIMESTAMPTZ, profile JSONB, updated_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (location_code, device_code, cast_time) )
+ALTER TABLE onc_ctd_profiles ADD COLUMN IF NOT EXISTS sample_start TIMESTAMPTZ
+ALTER TABLE onc_ctd_profiles ADD COLUMN IF NOT EXISTS sample_end TIMESTAMPTZ
+ALTER TABLE onc_ctd_profiles ADD COLUMN IF NOT EXISTS n_samples INTEGER
+ALTER TABLE onc_ctd_profiles ADD COLUMN IF NOT EXISTS depth_min_m DOUBLE PRECISION
+ALTER TABLE onc_ctd_profiles ADD COLUMN IF NOT EXISTS depth_max_m DOUBLE PRECISION
+CREATE TABLE IF NOT EXISTS onc_ctd_series ( location_code TEXT NOT NULL, device_code TEXT NOT NULL, property_code TEXT NOT NULL, sample_time TIMESTAMPTZ NOT NULL, value DOUBLE PRECISION, unit TEXT, qaqc_flag SMALLINT, raw_count INTEGER, resample_s INTEGER NOT NULL, first_seen_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (location_code, device_code, property_code, sample_time) )
+CREATE INDEX IF NOT EXISTS idx_onc_series_time ON onc_ctd_series (location_code, property_code, sample_time DESC)
+CREATE TABLE IF NOT EXISTS onc_deployment_citations ( location_code TEXT NOT NULL, device_code TEXT NOT NULL, doi TEXT NOT NULL, citation TEXT, landing_page TEXT, first_seen_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (location_code, device_code, doi) )
 CREATE TABLE IF NOT EXISTS usgs_earthquakes ( usgs_id TEXT PRIMARY KEY, occurred_at TIMESTAMPTZ NOT NULL, magnitude REAL, depth_km REAL, place TEXT, geom GEOGRAPHY(POINT, 4326) )
+ALTER TABLE usgs_earthquakes ADD COLUMN IF NOT EXISTS mag_type TEXT
+ALTER TABLE usgs_earthquakes ADD COLUMN IF NOT EXISTS status TEXT
+ALTER TABLE usgs_earthquakes ADD COLUMN IF NOT EXISTS usgs_updated_at TIMESTAMPTZ
 COMMENT ON COLUMN usgs_earthquakes.depth_km IS 'Kilometres below sea level. NEGATIVE values are correct - USGS reports events ' 'above sea level that way. Not a defect.'
 CREATE INDEX IF NOT EXISTS usgs_earthquakes_geom_gix ON usgs_earthquakes USING GIST (geom)
 CREATE INDEX IF NOT EXISTS usgs_earthquakes_time ON usgs_earthquakes (occurred_at DESC)

@@ -438,7 +438,7 @@
       "kbas": "16,000+ sites identified as the most important places on Earth for species and ecosystems. Overlap with mining footprints reveals direct biodiversity conflict.",
       "forest-loss": "Annual deforestation at 30m (2001–2024) + weekly alerts. Roads from mines radiate outward and deforestation follows — the mine's footprint extends far beyond the pit.",
       "tailings": "11,800+ tailings facilities globally, ~1,500 with hazard classification. Color-coded by risk: dark red (Extreme) to green (Low). Upstream-raised dams are historically most failure-prone.",
-      "fires": "Near-real-time fire detections from MODIS & VIIRS satellites, updated within 3 hours. Filter by confidence level. Fire season often overlaps with mining land-clearing.",
+      "fires": "Near-real-time fire detections from NASA's three VIIRS satellites, updated within 3 hours. Filter by confidence level. Fire season often overlaps with land clearing for mining.",
       "air-quality": "Real-time PM2.5, SO₂, NO₂, O₃, CO readings from government monitoring stations worldwide. Mining and fire smoke create pollution hotspots.",
       "landslides": "Rainfall-triggered landslides since 2007. Tailings dams in landslide-prone terrain are a red flag for structural failure risk.",
       "surface-water": "Surface water occurrence and change 1984–2021 at 30m. Shows whether mines have created artificial water bodies or destroyed natural ones.",
@@ -709,7 +709,9 @@
     "frpLabel": "Fire Radiative Power",
     "instrumentLabel": "Instrument",
     "panelBadge": "Active Fire",
-    "panelTitle": "Fire Detection"
+    "panelTitle": "Fire Detection",
+    "observedLabel": "Detected (UTC)",
+    "satelliteLabel": "Satellite"
   },
   "kba": {
     "areaLabel": "Area",
@@ -822,7 +824,7 @@
   "onc": {
     "body": "A station in Ocean Networks Canada's observing network — cabled seafloor nodes alongside drifting buoys and expedition instruments. Readings shown are the most recent ONC holds, which for a retired station may be historical (CC BY 4.0).",
     "adcpSectionTitle": "ADCP Backscatter (24h)",
-    "ctdSectionTitle": "CTD Cast Profile",
+    "ctdSectionTitle": "CTD Measurements",
     "depthLabel": "Depth",
     "earthquakesSectionTitle": "Earthquakes ≥M3 (200 km, 30d)",
     "latestReadingsSectionTitle": "Latest Readings",
@@ -840,7 +842,12 @@
     "earthquakesNone": "No earthquakes recorded within 200 km in the last 30 days.",
     "earthquakesUnavailable": "Nearby earthquakes could not be loaded — this is our fetch failing, not a quiet seafloor.",
     "earthquakesTotal_one": "{{count}} event total",
-    "earthquakesTotal_other": "{{count}} events total"
+    "earthquakesTotal_other": "{{count}} events total",
+    "ctdWindowCaption": "ONC samples {{from}} → {{to}} UTC",
+    "ctdDepthRangeLabel": "Instrument depth range",
+    "ctdSampleCountLabel": "Samples in window",
+    "earthquakeAutomatic": "Automatic solution — USGS has not reviewed this event yet.",
+    "earthquakeAutomaticShort": "auto"
   },
   "noaaCable": {
     "detailsSectionTitle": "Cable corridor details",

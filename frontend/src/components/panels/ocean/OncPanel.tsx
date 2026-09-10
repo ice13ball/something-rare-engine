@@ -105,8 +105,27 @@ interface AdcpData {
   depths: number[];
   strip: (number | null)[][];
 }
-interface CtdCast { device_code: string; cast_time: string; profile: Record<string, (number | null)[]> }
+// ⛔ "Cast" is our word, not ONC's. These are moored, fixed-depth instruments:
+// 27 of 28 device-locations span under 5 m of pressure (RCNW4: 10,080 samples
+// across 1.2 m). What ONC gives is a stream of samples; what we hold is a
+// window of it. The extra fields are ONC's own numbers, shown so the reader
+// can see the window rather than be told a cast happened.
+interface CtdCast {
+  device_code: string;
+  cast_time: string;
+  sample_start?: string | null;
+  sample_end?: string | null;
+  n_samples?: number | null;
+  depth_min_m?: number | null;
+  depth_max_m?: number | null;
+  profile: Record<string, (number | null)[]>;
+}
 
+// ⛔ USGS says which magnitude SCALE it used and whether the solution was
+// human-reviewed; both were fetched and discarded. Measured over the live M>=3
+// feed 2026-09-10 (1,577 events): mb 1,048 · ml 328 · mww 96 · md 82, and
+// 1,572 reviewed against 5 automatic. "M4.2" alone is a number the feed never
+// states on its own.
 interface EarthquakeRow {
   usgs_id: string;
   occurred_at: string;
@@ -114,6 +133,8 @@ interface EarthquakeRow {
   depth_km: number | null;
   place: string;
   distance_km: number;
+  mag_type?: string | null;
+  status?: string | null;
 }
 
 function magColor(m: number | null) {
@@ -186,6 +207,33 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
         values: (cast.profile[key] as (number | null)[]).map(v => v ?? 0),
       }));
   }, [ctdCasts]);
+
+  // ⛔ What ONC gives us is a window of samples, so that is what we state.
+  // `sample_start` / `sample_end` are ONC's own timestamps, unmodified; the
+  // window's edges are ours only in the sense that we chose when to ask.
+  // Rows written before 2026-09-10 have no span — they say nothing rather
+  // than borrowing cast_time, which would put our request time back on screen.
+  const ctdSpan = useMemo(() => {
+    const cast = ctdCasts?.[0];
+    const fmt = (t?: string | null) =>
+      t ? t.slice(0, 16).replace("T", " ") : null;
+    const from = fmt(cast?.sample_start);
+    const to   = fmt(cast?.sample_end);
+    const lo = cast?.depth_min_m, hi = cast?.depth_max_m;
+    return {
+      from, to,
+      depthRange: typeof lo === "number" && typeof hi === "number"
+        ? `${lo.toFixed(1)} – ${hi.toFixed(1)} m`
+        : null,
+    };
+  }, [ctdCasts]);
+
+  const ctdCaption = useMemo(() => {
+    if (ctdSpan.from && ctdSpan.to) {
+      return t("onc.ctdWindowCaption", { from: ctdSpan.from, to: ctdSpan.to });
+    }
+    return undefined;
+  }, [ctdSpan, t]);
 
   const ctdDepths = useMemo(() => {
     const cast = ctdCasts?.[0];
@@ -298,14 +346,21 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
         </Section>
       )}
 
-      {/* CTD profile */}
+      {/* CTD samples — ONC's window, described as ONC's window. */}
       {ctdCasts !== null && ctdCasts.length > 0 && ctdVariables.length > 0 && (
         <Section title={t("onc.ctdSectionTitle")}>
           <ProfilePlot
             depths={ctdDepths}
             variables={ctdVariables}
-            castTime={ctdCasts[0].cast_time}
+            caption={ctdCaption}
           />
+          {ctdSpan.depthRange && (
+            <Row label={t("onc.ctdDepthRangeLabel")} value={ctdSpan.depthRange} />
+          )}
+          {typeof ctdCasts[0].n_samples === "number" && (
+            <Row label={t("onc.ctdSampleCountLabel")}
+                 value={ctdCasts[0].n_samples.toLocaleString()} />
+          )}
         </Section>
       )}
 
@@ -323,7 +378,13 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
             {earthquakes.slice(0, 8).map(eq => (
               <div key={eq.usgs_id} className="flex items-center justify-between text-[11px]">
                 <span className={`font-mono font-bold ${magColor(eq.magnitude)}`}>
-                  M{eq.magnitude?.toFixed(1) ?? "?"}
+                  {eq.mag_type ? eq.mag_type : "M"}{eq.magnitude?.toFixed(1) ?? "?"}
+                  {eq.status === "automatic" && (
+                    <span className="ml-1 text-[9px] font-normal text-amber-400"
+                          title={t("onc.earthquakeAutomatic")}>
+                      {t("onc.earthquakeAutomaticShort")}
+                    </span>
+                  )}
                 </span>
                 <span className="text-white/70 flex-1 mx-2 truncate">{eq.place}</span>
                 <span className="text-white/60 shrink-0">{eq.distance_km} km</span>

@@ -854,6 +854,23 @@ async def _onc_ctd_task():
         await asyncio.sleep(12 * 3600)
 
 
+async def _onc_ctd_series_task():
+    """Grow our archive of ONC's own 10-minute CTD series, every 12 hours.
+
+    ⛔ Deliberately offset from _onc_ctd_task by half an hour: both hit the same
+    ONC endpoint for the same 28 locations, and firing them together doubles the
+    burst for no benefit. The 7-day request window means a missed run costs
+    nothing as long as the next one lands within a week.
+    """
+    await asyncio.sleep(2700)  # 45 min startup delay
+    while True:
+        try:
+            await onc.sync_onc_ctd_series()
+        except Exception:
+            log.exception("ONC CTD series archive sync failed")
+        await asyncio.sleep(12 * 3600)
+
+
 async def _usgs_earthquakes_task():
     """Refresh USGS earthquake catalog every 6 hours."""
     await asyncio.sleep(300)  # 5 min startup delay
@@ -1208,6 +1225,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_onc_sparkline_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_adcp_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_ctd_task()).add_done_callback(_watch)
+        asyncio.create_task(_onc_ctd_series_task()).add_done_callback(_watch)
         asyncio.create_task(_usgs_earthquakes_task()).add_done_callback(_watch)
         asyncio.create_task(_oceansites_obs_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_land_sync_task()).add_done_callback(_watch)
@@ -1822,6 +1840,7 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "onc-sparklines":         "onc-sparklines",
     "onc-adcp":               "onc-adcp",
     "onc-ctd":                "onc-ctd",
+    "onc-ctd-series":         "onc-ctd-series",
     "usgs-earthquakes":       "usgs-earthquakes",
     "wod_profiles":           "wod",
     "pangaea_records":        "pangaea",
@@ -1933,6 +1952,7 @@ _SYNC_SOURCES = {
     "onc-sparklines":         lambda: onc.sync_onc_sparklines(),
     "onc-adcp":               lambda: onc.sync_onc_adcp_strips(),
     "onc-ctd":                lambda: onc.sync_onc_ctd_profiles(),
+    "onc-ctd-series":         lambda: onc.sync_onc_ctd_series(),
     "usgs-earthquakes":       lambda: onc.sync_usgs_earthquakes(),
     "monitoring-density-grid": lambda: refresh_monitoring_density(),
     "wod":              lambda: _sync_wod_profiles(),
@@ -2298,7 +2318,7 @@ _INVENTORY: list[tuple[str, str, str, str, str | None, str, str]] = [
     # ── Land ────────────────────────────────────────────────────────────────
     ("mining-foot",    "Global mining footprints",      "land",      "mining_footprints",      "mining_footprints",     "Maus et al. 2022/2023 — PANGAEA",         "https://doi.org/10.1594/PANGAEA.942325"),
     ("tailings",       "Tailings dams",                 "land",      "tailings_dams",          "tailings",              "GRID-Arendal / UNEP",                     "https://tailing.grida.no/"),
-    ("fires",          "Active fires (rolling 24h)",    "land",      "active_fires",           "active_fires",          "NASA FIRMS (MODIS / VIIRS)",              "https://firms.modaps.eosdis.nasa.gov/"),
+    ("fires",          "Active fires (rolling 24h)",    "land",      "active_fires",           "active_fires",          "NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)",              "https://firms.modaps.eosdis.nasa.gov/"),
     ("landslides",     "Landslides",                    "land",      "landslides",             "landslides",            "NASA COOLR / GSFC",                       "https://gpm.nasa.gov/landslides/"),
     ("openaq",         "Air quality stations",          "land",      "air_quality_stations",   "air_quality",           "OpenAQ v3",                               "https://openaq.org/"),
     ("water-risk",     "Water risk sub-basins",         "land",      "water_risk",             "water_risk",            "WRI Aqueduct 4.0",                        "https://www.wri.org/aqueduct"),

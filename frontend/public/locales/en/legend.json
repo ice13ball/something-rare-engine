@@ -214,11 +214,11 @@
     },
     "activeFires": {
       "label": "Active Fires (FIRMS)",
-      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. MODIS (1km resolution, Aqua+Terra satellites) and VIIRS (375m, Suomi-NPP + NOAA-20).",
+      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. VIIRS (375 m) from three satellites: Suomi-NPP, NOAA-20 and NOAA-21.",
       "updateFreq": "Synced every 6 hours; NASA processes satellite passes within 3 hours of overpass",
-      "description": "Near-real-time thermal anomaly detections from two satellite instrument families. MODIS provides twice-daily global coverage at 1km; VIIRS adds four daily passes at 375m resolution with better detection of small and low-intensity fires. Each detection includes brightness temperature, fire radiative power (FRP — a proxy for fire intensity), acquisition date/time, confidence level, and instrument type. This layer is critical for monitoring illegal land clearing near mining concessions, wildfire threats to tailings dams, and slash-and-burn agriculture in KBA buffer zones.",
-      "reading": "Yellow dot = low-confidence detection. Orange dot = nominal confidence. Red dot = high confidence. Click for exact date/time, brightness temperature in Kelvin, FRP in MW, instrument (MODIS/VIIRS), and satellite name. Enable Mining Footprints to check if fires are burning inside or adjacent to mine sites — this may indicate controlled burning for land clearing or spontaneous combustion in coal tailings. Enable KBAs to detect fires threatening biodiversity hotspots.",
-      "limitations": "Cloud cover blocks satellite detection — fires under thick cloud are missed entirely. MODIS 1km pixels can flag large industrial heat sources (smelters, flares) as false positives. VIIRS 375m reduces but doesn't eliminate this. Nighttime detections are more reliable than daytime (less solar glare). Detection is a snapshot — a fire burning for 8 hours may appear as only 1-2 detections depending on satellite overpass timing.",
+      "description": "Near-real-time thermal anomaly detections from NASA's VIIRS instrument, pulled from three satellites — Suomi-NPP, NOAA-20 and NOAA-21 — at 375 m resolution, which together give several overpasses a day and resolve smaller, cooler fires than a 1 km sensor can. Each detection carries brightness temperature, fire radiative power (FRP, an indicator of fire intensity), the acquisition date and time in UTC, a confidence level, and the instrument and satellite as NASA labels them.",
+      "reading": "Yellow dot = low-confidence detection. Orange dot = nominal confidence. Red dot = high confidence. Click for the acquisition date and time in UTC, brightness temperature in Kelvin, FRP in MW, and the instrument and satellite exactly as NASA labels them. Enable Mining Footprints to check if fires are burning inside or adjacent to mine sites — this may indicate coal-seam fires, waste burning or land clearing.",
+      "limitations": "Cloud cover blocks satellite detection — fires under thick cloud are missed entirely. Large industrial heat sources such as flares and smelters can register as detections. A detection is one satellite overpass, not a measurement of how long a fire burned.",
       "colorStandard": "NASA FIRMS confidence convention — yellow (low) → orange (nominal) → red (high)."
     },
     "airQualityStations": {
@@ -921,7 +921,7 @@
     "kba_title": "Key Biodiversity Areas — Assessment date",
     "kba": "KBA boundaries reflect the latest assessment published by BirdLife/KBA Partnership. Some sites were first assessed in the 2000s; boundaries are periodically revised. The designation year in the popup shows when the site was first confirmed.",
     "fires_title": "Active Fires (FIRMS) — Acquisition date/time",
-    "fires": "The exact date and time (UTC) when the satellite overpass detected the thermal anomaly. Fires are near-real-time — typically within 3 hours of satellite pass. MODIS provides 2 passes/day; VIIRS provides 4 passes/day. A fire detection is a single observation, not a fire duration estimate.",
+    "fires": "The acquisition date and time in UTC, exactly as NASA publishes them for that overpass. Detections are near-real-time — typically within 3 hours of the satellite pass. The three VIIRS satellites together give several passes a day. A detection is a single observation, not an estimate of how long the fire burned.",
     "airQuality_title": "Air Quality — Reading timestamp",
     "airQuality": "Pollutant readings show the time of the most recent measurement cached from the source network. Readings are refreshed every 2 hours. If a station shows a reading from several days ago, the station may be offline.",
     "landslides_title": "Landslides — Event date",
@@ -1044,7 +1044,7 @@
     "tailings_title": "Tailings Dams",
     "tailings": "Base locations: Hudson-Edwards, K. et al. (2023) WAPHA global metal mines database at doi.org/10.5061/dryad.j3tx95xmg, mirrored at zenodo.org/records/8324697 (11,587 facilities). Risk enrichment: GRID-Arendal Global Tailings Portal at tailing.grida.no (~2,100 facilities with hazard classification, height, volume, ownership). Data disclosed by 222 mining companies to the Investor Mining & Tailings Safety Initiative.",
     "fires_title": "Active Fires (FIRMS)",
-    "fires": "NASA LANCE FIRMS at firms.modaps.eosdis.nasa.gov. Verify any detection by searching coordinates in the FIRMS map viewer. MODIS Collection 6.1 and VIIRS V2 algorithms. Data is public domain (US Government work).",
+    "fires": "NASA LANCE FIRMS at firms.modaps.eosdis.nasa.gov. Verify any detection by searching its coordinates in the FIRMS map viewer, matching on date, time and satellite. VIIRS V2 algorithm, near-real-time product. Data is public domain (US Government work).",
     "airQuality_title": "Air Quality",
     "airQuality": "OpenAQ at openaq.org. Aggregates government reference-grade monitors — not low-cost sensors. Each station links back to its national monitoring network. Verify readings against the original source network for regulatory purposes. CC BY 4.0.",
     "landslides_title": "Landslides",

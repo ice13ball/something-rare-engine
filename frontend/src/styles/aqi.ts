@@ -148,14 +148,61 @@ export function aqiCategory(aqi: number): AqiCategory {
   return aqi > 500 ? "Hazardous" : "Good";
 }
 
+// ── Units ───────────────────────────────────────────────────────────────────
+// ⛔ The comment below used to assert "p.o3, p.no2, p.so2, p.co → ppb" as if it
+// were a fact. OpenAQ publishes whatever the operator reports, and the mix is
+// not close. Measured on production 2026-09-10 over air_quality_params:
+//
+//     o3    µg/m³ 6,692   ppm 3,583   ppb     7   -> ppb on 0.07% of stations
+//     no2   µg/m³ 8,093   ppm 4,114   ppb   586   -> ppb on 4.6%
+//     co    µg/m³ 4,345   ppm 2,126   ppb   563   -> ppb on 8.0%
+//     pm25 / pm10 / pm1 / pm4          µg/m³ throughout — those were always fine
+//
+// Ozone reported in ppm (0.05, an ordinary value) scored on the ppb scale
+// becomes 0.00005 ppm and yields AQI 0, so ozone dropped out of the
+// worst-pollutant rule for 3,583 stations. Ozone in µg/m³ (100) scored as ppb
+// yields AQI ~137 where the truth is ~84. The dot colours were wrong in both
+// directions.
+//
+// ⛔ The stored value is never touched — the portal mirrors its sources 1:1.
+// The conversion below exists only to feed the EPA breakpoints, which are
+// DEFINED in specific units. A unit we cannot map yields null for that
+// pollutant, never a guess: a wrongly-coloured dot is worse than a grey one.
+//
+// µg/m³ → ppb at 25 °C and 1 atm: ppb = µg/m³ × 24.45 / molecular weight.
+const _MOLECULAR_WEIGHT: Record<string, number> = {
+  o3: 48.00, no2: 46.0055, so2: 64.066, co: 28.010,
+};
+
+/** Normalise a published concentration to the unit the EPA breakpoints use.
+ *
+ * Returns null when the unit is absent or unrecognised — the caller must then
+ * skip that pollutant rather than score it.
+ */
+export function toAqiUnit(key: string, value: number, unit: string | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const mw = _MOLECULAR_WEIGHT[key];
+  const u = (unit ?? "").trim().toLowerCase();
+
+  if (mw === undefined) {
+    // Particulates: the breakpoints are in µg/m³ and so is every source we see.
+    // ⛔ Still refuse an unexpected unit rather than assume.
+    return u === "µg/m³" || u === "ug/m3" || u === "µg/m3" ? value : null;
+  }
+  if (u === "ppb") return value;
+  if (u === "ppm") return value * 1000;
+  if (u === "µg/m³" || u === "ug/m3" || u === "µg/m3") return value * 24.45 / mw;
+  return null;   // unknown or missing unit — say nothing
+}
+
 /**
  * Compute station AQI from any pollutant concentrations present in `props`.
- * EPA convention: station AQI = MAX(per-pollutant AQI). Unknown / missing
- * pollutants are silently skipped. Returns null if no pollutant was usable.
+ * EPA convention: station AQI = MAX(per-pollutant AQI). A pollutant whose unit
+ * is missing or unrecognised is SKIPPED, not guessed at. Returns null if no
+ * pollutant was usable — the caller then paints AQI_NO_DATA_COLOR.
  *
- * Property keys come from the OpenAQ enrichment in main.py:
- *   p.pm25, p.pm10  → µg/m³
- *   p.o3, p.no2, p.so2, p.co → ppb
+ * `props.units` is the per-pollutant unit map the /air-quality endpoint carries
+ * straight from OpenAQ.
  */
 export interface AqiResult {
   aqi: number;
@@ -167,13 +214,21 @@ export interface AqiResult {
 export function stationAqi(props: Record<string, unknown> | null | undefined): AqiResult | null {
   if (!props) return null;
 
+  const units = (props.units ?? null) as Record<string, string> | null;
+  const at = (key: string, fn: (v: number) => number | null): number | null => {
+    const raw = props[key];
+    if (typeof raw !== "number") return null;
+    const v = toAqiUnit(key, raw, units?.[key]);
+    return v === null ? null : fn(v);
+  };
+
   const candidates: Array<{ key: string; aqi: number | null }> = [
-    { key: "pm25", aqi: typeof props.pm25 === "number" ? aqiFromPm25(props.pm25) : null },
-    { key: "pm10", aqi: typeof props.pm10 === "number" ? aqiFromPm10(props.pm10) : null },
-    { key: "o3",   aqi: typeof props.o3   === "number" ? aqiFromO3  (props.o3)   : null },
-    { key: "no2",  aqi: typeof props.no2  === "number" ? aqiFromNo2 (props.no2)  : null },
-    { key: "so2",  aqi: typeof props.so2  === "number" ? aqiFromSo2 (props.so2)  : null },
-    { key: "co",   aqi: typeof props.co   === "number" ? aqiFromCo  (props.co)   : null },
+    { key: "pm25", aqi: at("pm25", aqiFromPm25) },
+    { key: "pm10", aqi: at("pm10", aqiFromPm10) },
+    { key: "o3",   aqi: at("o3",   aqiFromO3)   },
+    { key: "no2",  aqi: at("no2",  aqiFromNo2)  },
+    { key: "so2",  aqi: at("so2",  aqiFromSo2)  },
+    { key: "co",   aqi: at("co",   aqiFromCo)   },
   ];
 
   let best: { key: string; aqi: number } | null = null;

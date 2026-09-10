@@ -48,9 +48,13 @@ RETURNING (xmax = 0) AS was_insert
 
 
 def _sync_onc_ctd_source() -> str:
+    # ⛔ Bounded by the archive banner, not the USGS one. sync_onc_ctd_series
+    # was added between them on 2026-09-10; the old boundary swallowed it, so
+    # these guards would have been reading a function they were never written
+    # for and could have gone green on the wrong code.
     src = ONC.read_text(encoding="utf-8")
-    start = src.index("async def sync_onc_ctd")
-    return src[start:src.index("\n# ── USGS Earthquakes", start)]
+    start = src.index("async def sync_onc_ctd_profiles")
+    return src[start:src.index("\n# ── ONC CTD archive", start)]
 
 
 def test_the_fixture_actually_isolated_the_function():

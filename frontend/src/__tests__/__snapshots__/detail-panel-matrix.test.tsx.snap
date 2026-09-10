@@ -270,7 +270,7 @@ exports[`DetailPanel dispatch matrix > renders air-quality without throwing and 
             <span
               class="text-white/90 text-[14px] text-right font-mono"
             >
-              1.2 ppb
+              1.2 µg/m³
             </span>
           </div>
           <div
@@ -284,7 +284,7 @@ exports[`DetailPanel dispatch matrix > renders air-quality without throwing and 
             <span
               class="text-white/90 text-[14px] text-right font-mono"
             >
-              1.2 ppb
+              1.2 µg/m³
             </span>
           </div>
           <div
@@ -326,7 +326,7 @@ exports[`DetailPanel dispatch matrix > renders air-quality without throwing and 
             <span
               class="text-white/90 text-[14px] text-right font-mono"
             >
-              1.2 ppb
+              1.2 ppm
             </span>
           </div>
           <div
@@ -340,7 +340,7 @@ exports[`DetailPanel dispatch matrix > renders air-quality without throwing and 
             <span
               class="text-white/90 text-[14px] text-right font-mono"
             >
-              1.2 ppb
+              1.2 ppm
             </span>
           </div>
           <div
@@ -4487,7 +4487,7 @@ exports[`DetailPanel dispatch matrix > renders fires without throwing and matche
             target="_blank"
             title="Open the source organisation's homepage"
           >
-            NASA FIRMS (MODIS / VIIRS)
+            NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)
              
             <span
               aria-hidden="true"
@@ -11687,15 +11687,13 @@ exports[`DetailPanel dispatch matrix > renders onc after data loads 1`] = `
           <p
             class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
           >
-            CTD Cast Profile
+            CTD Measurements
           </p>
           <div>
             <p
               class="text-[10px] text-white/60 mb-1"
             >
-              Cast: 
-              2020-06-15 00:00
-               UTC
+              ONC samples 2020-06-15 00:00 → 2020-06-22 00:00 UTC
             </p>
             <svg
               style="display: block;"
@@ -11794,6 +11792,34 @@ exports[`DetailPanel dispatch matrix > renders onc after data loads 1`] = `
               </span>
             </div>
           </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Instrument depth range
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              10.0 – 30.0 m
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Samples in window
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              10,080
+            </span>
+          </div>
         </div>
         <div
           class="mb-4"
@@ -11812,7 +11838,7 @@ exports[`DetailPanel dispatch matrix > renders onc after data loads 1`] = `
               <span
                 class="font-mono font-bold text-amber-400"
               >
-                M
+                mb
                 4.5
               </span>
               <span
@@ -11833,8 +11859,14 @@ exports[`DetailPanel dispatch matrix > renders onc after data loads 1`] = `
               <span
                 class="font-mono font-bold text-white/70"
               >
-                M
+                ml
                 3.2
+                <span
+                  class="ml-1 text-[9px] font-normal text-amber-400"
+                  title="Automatic solution — USGS has not reviewed this event yet."
+                >
+                  auto
+                </span>
               </span>
               <span
                 class="text-white/70 flex-1 mx-2 truncate"

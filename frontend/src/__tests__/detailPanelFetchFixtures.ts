@@ -108,10 +108,27 @@ export const ONC_ADCP = {
 };
 
 // CtdCast (:1614) — >=3 depth points per profiled variable so ProfilePlot draws.
-export const ONC_CTD: Array<{ device_code: string; cast_time: string; profile: Record<string, (number | null)[]> }> = [
+// ⛔ The span fields are ONC's own and must be present here, or the matrix
+// snapshot records the pre-2026-09-10 shape as if it were current: no caption,
+// no depth range, no sample count — exactly the state we just left behind.
+export const ONC_CTD: Array<{
+  device_code: string;
+  cast_time: string;
+  sample_start: string;
+  sample_end: string;
+  n_samples: number;
+  depth_min_m: number;
+  depth_max_m: number;
+  profile: Record<string, (number | null)[]>;
+}> = [
   {
     device_code: "TEST-CTD",
     cast_time: "2020-06-15T00:00:00Z",
+    sample_start: "2020-06-15T00:00:00Z",
+    sample_end: "2020-06-22T00:00:00Z",
+    n_samples: 10080,
+    depth_min_m: 10,
+    depth_max_m: 30,
     profile: {
       depth: [10, 20, 30],
       temperature: [12.1, 10.4, 8.7],
@@ -121,10 +138,14 @@ export const ONC_CTD: Array<{ device_code: string; cast_time: string; profile: R
 ];
 
 // EarthquakeRow (:1616) — 3 rows so the "N events total" list has real content.
+// ⛔ mag_type and status must be here, and MIXED. USGS labels every event with
+// the scale it used (mb 1,048 · ml 328 · mww 96 of 1,577 measured 2026-09-10)
+// and marks the rare unreviewed one. A fixture without them snapshots the old
+// bare-"M" world in which the defect could not be seen.
 export const ONC_EARTHQUAKES = [
-  { usgs_id: "TEST-EQ-1", occurred_at: "2020-06-14T00:00:00Z", magnitude: 4.5, depth_km: 10, place: "TEST place 1", distance_km: 50 },
-  { usgs_id: "TEST-EQ-2", occurred_at: "2020-06-13T00:00:00Z", magnitude: 3.2, depth_km: 5, place: "TEST place 2", distance_km: 80 },
-  { usgs_id: "TEST-EQ-3", occurred_at: "2020-06-12T00:00:00Z", magnitude: 5.1, depth_km: 20, place: "TEST place 3", distance_km: 120 },
+  { usgs_id: "TEST-EQ-1", occurred_at: "2020-06-14T00:00:00Z", magnitude: 4.5, depth_km: 10, place: "TEST place 1", distance_km: 50, mag_type: "mb", status: "reviewed" },
+  { usgs_id: "TEST-EQ-2", occurred_at: "2020-06-13T00:00:00Z", magnitude: 3.2, depth_km: 5, place: "TEST place 2", distance_km: 80, mag_type: "ml", status: "automatic" },
+  { usgs_id: "TEST-EQ-3", occurred_at: "2020-06-12T00:00:00Z", magnitude: 5.1, depth_km: 20, place: "TEST place 3", distance_km: 120, mag_type: null, status: "reviewed" },
 ];
 
 // ---- HydrophoneStationPanel — SoundscapeRow[] (DetailPanel.tsx:1803) -------

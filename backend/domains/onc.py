@@ -1370,6 +1370,21 @@ async def sync_onc_ctd_profiles() -> int:
                     return
                 cast_time = datetime.fromisoformat(cast_time_raw.replace("Z", "+00:00"))
 
+                # ⛔ cast_time above is the FIRST sample inside the 7-day window
+                # we asked for, so it sits exactly 7.00 days before every sync.
+                # It is a real ONC timestamp, but WHICH one is decided by our
+                # request, not by ONC — so on its own it says when we asked.
+                # These five figures are ONC's own, straight off the response we
+                # already hold, so the panel can state the window it covers.
+                # Nothing here filters, drops or recomputes an ONC value.
+                p_times = sensors["pressure"]["times"] or []
+                sample_end_raw = p_times[-1] if p_times else None
+                sample_end = (datetime.fromisoformat(sample_end_raw.replace("Z", "+00:00"))
+                              if sample_end_raw else None)
+                n_samples   = len(depths)
+                depth_min_m = min(depths)
+                depth_max_m = max(depths)
+
                 profile: dict[str, list] = {"depth": depths}
                 for key in ("temperature", "salinity", "oxygen"):
                     if key in sensors:
@@ -1395,15 +1410,23 @@ async def sync_onc_ctd_profiles() -> int:
                     # re-fetch returns no row and counts as neither.
                     row = await conn.fetchrow(
                         """INSERT INTO onc_ctd_profiles
-                           (location_code, device_code, cast_time, profile, updated_at)
-                           VALUES ($1, $2, $3, $4::jsonb, NOW())
+                           (location_code, device_code, cast_time, profile, updated_at,
+                            sample_start, sample_end, n_samples, depth_min_m, depth_max_m)
+                           VALUES ($1, $2, $3, $4::jsonb, NOW(), $3, $5, $6, $7, $8)
                            ON CONFLICT (location_code, device_code, cast_time) DO UPDATE
-                              SET profile    = EXCLUDED.profile,
-                                  updated_at = NOW()
+                              SET profile      = EXCLUDED.profile,
+                                  updated_at   = NOW(),
+                                  sample_start = EXCLUDED.sample_start,
+                                  sample_end   = EXCLUDED.sample_end,
+                                  n_samples    = EXCLUDED.n_samples,
+                                  depth_min_m  = EXCLUDED.depth_min_m,
+                                  depth_max_m  = EXCLUDED.depth_max_m
                             WHERE onc_ctd_profiles.profile
                                   IS DISTINCT FROM EXCLUDED.profile
+                               OR onc_ctd_profiles.sample_end IS NULL
                            RETURNING (xmax = 0) AS was_insert""",
                         location_code, device_code, cast_time, json.dumps(profile),
+                        sample_end, n_samples, depth_min_m, depth_max_m,
                     )
                     # Keep only the 3 most recent casts per (location, device)
                     await conn.execute(
@@ -1441,6 +1464,186 @@ async def sync_onc_ctd_profiles() -> int:
     return inserted
 
 
+# ── ONC CTD archive (our own accumulating history) ───────────────────────────
+
+#: The cadence we ask ONC to resample to. ⛔ Recorded on every row as
+#: `resample_s` so a future change is visible in the data, not only in git.
+_ONC_SERIES_RESAMPLE_S = 600
+
+#: How far back each run asks. Consecutive runs overlap heavily on purpose: an
+#: overlap is what closes a hole left by a failed run, and a re-fetched bin
+#: costs nothing because it is byte-identical unless ONC revised it.
+_ONC_SERIES_LOOKBACK_DAYS = 7
+
+
+async def sync_onc_ctd_series() -> int:
+    """Accumulate ONC's own 10-minute CTD series into our archive.
+
+    ⛔ This does not modify ONC's data — it collects it. The averaging is done
+    by ONC, under their method, and we store their answer verbatim together
+    with the `counts` that says how many raw samples went into each bin.
+
+    Why resampled rather than raw. ONC caps a response at 100,000 samples per
+    property. Measured 2026-09-10 against BACAX: 7 days of the raw 1 Hz stream
+    came back as 100,000 samples covering 1.2 days — the other 5.8 were dropped
+    without a word. The same 7 days at resamplePeriod=600 came back as 1,009
+    samples covering the whole window. The resampled series is the only one
+    that arrives complete.
+
+    Nothing is ever deleted here. A bin ONC revises is refreshed and stamped;
+    an unchanged one is not touched, so `updated_at` keeps meaning something.
+    """
+    token = os.getenv("ONC_TOKEN")
+    if not token:
+        log.warning("onc-ctd-series: ONC_TOKEN not set — skipping")
+        await _log_sync("onc-ctd-series", 0, 0)
+        return 0
+
+    async with db.pool.acquire() as conn:
+        devices = await conn.fetch(
+            "SELECT DISTINCT ON (location_code) location_code, device_code "
+            "FROM onc_instruments "
+            "WHERE (device_category ILIKE '%CTD%' OR device_category ILIKE 'Conductivity%') "
+            "  AND location_code IS NOT NULL AND location_code <> ''"
+        )
+    if not devices:
+        await _log_sync("onc-ctd-series", 0, 0)   # ran, found nothing to ask for
+        return 0
+
+    now = datetime.now(timezone.utc)
+    date_from = (now - timedelta(days=_ONC_SERIES_LOOKBACK_DAYS)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    date_to = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+    sem = asyncio.Semaphore(4)
+    fetched = 0
+
+    async def _one(client: httpx.AsyncClient, location_code: str, device_code: str) -> None:
+        nonlocal fetched
+        async with sem:
+            params = {
+                "method":             "getByLocation",
+                "locationCode":       location_code,
+                "deviceCategoryCode": "CTD",
+                "dateFrom":           date_from,
+                "dateTo":             date_to,
+                "resampleType":       "avg",
+                "resamplePeriod":     _ONC_SERIES_RESAMPLE_S,
+                "token":              token,
+            }
+            try:
+                r = await client.get(f"{_ONC_API_BASE}/scalardata/location",
+                                     params=params, timeout=180)
+                if r.status_code != 200:
+                    # ⛔ Never log the URL: the token rides in the query string.
+                    log.warning("onc-ctd-series[%s]: HTTP %s", location_code, r.status_code)
+                    return
+                payload = r.json()
+            except Exception as exc:
+                log.warning("onc-ctd-series[%s]: %s", location_code, type(exc).__name__)
+                return
+
+            rows: list[tuple] = []
+            for sensor in payload.get("sensorData") or []:
+                prop = (sensor.get("propertyCode") or "").strip()
+                if not prop:
+                    continue
+                unit = sensor.get("unitOfMeasure")
+                data = sensor.get("data") or {}
+                times = data.get("sampleTimes") or []
+                values = data.get("values") or []
+                # ⛔ These four are ONC's own and are the difference between an
+                # average you can read and a bare number. A response that omits
+                # one yields None for it, never a substitute.
+                flags = data.get("qaqcFlags") or []
+                counts = data.get("counts") or []
+                for i, t in enumerate(times):
+                    if i >= len(values):
+                        break
+                    try:
+                        ts = datetime.fromisoformat(str(t).replace("Z", "+00:00"))
+                    except ValueError:
+                        continue
+                    # ⛔ ONC sends a bare NaN for a bin with no data, and marks
+                    # it with their own flag 6. Measured on BACAX 2026-09-10:
+                    # 18 of 9,081 samples were NaN and EVERY ONE carried flag 6,
+                    # while all 9,063 others carried flag 7 (averaged — a
+                    # processing note, not an error). NULL is SQL's word for the
+                    # same thing their flag already says, and it is what keeps
+                    # the value out of a JSON response, where a bare NaN is not
+                    # valid JSON and takes the client's .map() down with it.
+                    val = values[i]
+                    if isinstance(val, float) and math.isnan(val):
+                        val = None
+                    rows.append((
+                        location_code, device_code, prop, ts,
+                        val, unit,
+                        int(flags[i]) if i < len(flags) and flags[i] is not None else None,
+                        int(counts[i]) if i < len(counts) and counts[i] is not None else None,
+                        _ONC_SERIES_RESAMPLE_S,
+                    ))
+
+            if not rows:
+                return
+            fetched += len(rows)
+
+            async with db.pool.acquire() as conn:
+                await conn.executemany(
+                    """INSERT INTO onc_ctd_series
+                         (location_code, device_code, property_code, sample_time,
+                          value, unit, qaqc_flag, raw_count, resample_s)
+                       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                       ON CONFLICT (location_code, device_code, property_code, sample_time)
+                       DO UPDATE SET
+                           value      = EXCLUDED.value,
+                           unit       = EXCLUDED.unit,
+                           qaqc_flag  = EXCLUDED.qaqc_flag,
+                           raw_count  = EXCLUDED.raw_count,
+                           resample_s = EXCLUDED.resample_s,
+                           updated_at = NOW()
+                       WHERE onc_ctd_series.value IS DISTINCT FROM EXCLUDED.value
+                          OR onc_ctd_series.qaqc_flag IS DISTINCT FROM EXCLUDED.qaqc_flag""",
+                    rows,
+                )
+
+            # ONC's DOI and citation for the deployment these numbers came from.
+            for cit in payload.get("citations") or []:
+                doi = (cit.get("doi") or "").strip()
+                if not doi:
+                    continue
+                async with db.pool.acquire() as conn:
+                    await conn.execute(
+                        """INSERT INTO onc_deployment_citations
+                             (location_code, device_code, doi, citation, landing_page)
+                           VALUES ($1,$2,$3,$4,$5)
+                           ON CONFLICT (location_code, device_code, doi) DO UPDATE
+                           SET citation = EXCLUDED.citation,
+                               landing_page = EXCLUDED.landing_page""",
+                        location_code, device_code, doi,
+                        cit.get("citation"), cit.get("landingPageUrl") or cit.get("landingPage"),
+                    )
+
+    # ⛔ Counted ONCE around the whole run, never per device. The first version
+    # took a before/after count inside each concurrent task, and the windows
+    # overlapped: production reported "232,807 samples returned, 239,678 new
+    # rows, 231,798 in archive" — more arrivals than arrivals, which is exactly
+    # the shape of counter this audit has been correcting all week. Written by
+    # me, four fixes into correcting other people's.
+    async with db.pool.acquire() as conn:
+        before = await conn.fetchval("SELECT count(*) FROM onc_ctd_series")
+
+    async with httpx.AsyncClient() as client:
+        await asyncio.gather(*[_one(client, d["location_code"], d["device_code"])
+                               for d in devices])
+
+    async with db.pool.acquire() as conn:
+        in_table = await conn.fetchval("SELECT count(*) FROM onc_ctd_series")
+    stored = in_table - before
+    await _log_sync("onc-ctd-series", stored, in_table)
+    log.info("onc_ctd_series: %d samples returned, %d new rows, %d in archive",
+             fetched, stored, in_table)
+    return stored
+
+
 # ── USGS Earthquakes ──────────────────────────────────────────────────────────
 
 async def sync_usgs_earthquakes() -> int:
@@ -1455,14 +1658,20 @@ async def sync_usgs_earthquakes() -> int:
 
     async with db.pool.acquire() as conn:
         await conn.executemany(
-            """INSERT INTO usgs_earthquakes (usgs_id, occurred_at, magnitude, depth_km, place, geom)
+            """INSERT INTO usgs_earthquakes
+                   (usgs_id, occurred_at, magnitude, depth_km, place, geom,
+                    mag_type, status, usgs_updated_at)
                VALUES ($1, $2, $3, $4, $5,
-                       ST_SetSRID(ST_MakePoint($7, $6), 4326)::geography)
+                       ST_SetSRID(ST_MakePoint($7, $6), 4326)::geography,
+                       $8, $9, $10)
                ON CONFLICT (usgs_id) DO UPDATE
                SET occurred_at=EXCLUDED.occurred_at, magnitude=EXCLUDED.magnitude,
-                   depth_km=EXCLUDED.depth_km, place=EXCLUDED.place, geom=EXCLUDED.geom""",
+                   depth_km=EXCLUDED.depth_km, place=EXCLUDED.place, geom=EXCLUDED.geom,
+                   mag_type=EXCLUDED.mag_type, status=EXCLUDED.status,
+                   usgs_updated_at=EXCLUDED.usgs_updated_at""",
             [(e["usgs_id"], e["occurred_at"], e["magnitude"], e["depth_km"],
-              e["place"], e["lat"], e["lon"])
+              e["place"], e["lat"], e["lon"],
+              e.get("mag_type"), e.get("status"), e.get("updated_at"))
              for e in events],
         )
         # Prune events older than 35 days
@@ -1811,22 +2020,36 @@ async def get_onc_adcp_strip(location_code: str):
 
 @router.get("/v1/onc/ctd/{location_code}", dependencies=[Depends(get_api_key)])
 async def get_onc_ctd(location_code: str):
-    """Return latest CTD cast profile(s) for an ONC location.
+    """Return ONC's most recent CTD sample windows for a location.
 
-    Response: [{device_code, cast_time, profile: {depth, temperature, salinity, oxygen}}, ...]
+    ⛔ NOT casts. These are moored, fixed-depth instruments — 27 of 28
+    device-locations span under 5 m of pressure — and `cast_time` is the first
+    sample inside the 7-day window we request, which is why it lands exactly
+    7.00 days before every sync. The span, count and depth range travel with
+    the profile so the panel can state what ONC actually covers.
+
+    Response: [{device_code, cast_time, sample_start, sample_end, n_samples,
+                depth_min_m, depth_max_m,
+                profile: {depth, temperature, salinity, oxygen}}, ...]
     """
     if location_code in _onc_ctd_cache:
         return Response(content=_onc_ctd_cache[location_code], media_type="application/json")
     async with db.pool.acquire() as conn:
         rows = await conn.fetch(
-            """SELECT device_code, cast_time, profile
+            """SELECT device_code, cast_time, profile,
+                      sample_start, sample_end, n_samples, depth_min_m, depth_max_m
                FROM onc_ctd_profiles WHERE location_code = $1
                ORDER BY cast_time DESC LIMIT 3""",
             location_code,
         )
-    result = [{"device_code": r["device_code"],
-               "cast_time":   r["cast_time"].isoformat(),
-               "profile":     r["profile"]} for r in rows]
+    result = [{"device_code":  r["device_code"],
+               "cast_time":    r["cast_time"].isoformat(),
+               "sample_start": r["sample_start"].isoformat() if r["sample_start"] else None,
+               "sample_end":   r["sample_end"].isoformat() if r["sample_end"] else None,
+               "n_samples":    r["n_samples"],
+               "depth_min_m":  r["depth_min_m"],
+               "depth_max_m":  r["depth_max_m"],
+               "profile":      r["profile"]} for r in rows]
     payload = json.dumps(result, default=str)
     _onc_ctd_cache[location_code] = payload
     return Response(content=payload, media_type="application/json")
@@ -1853,6 +2076,7 @@ async def get_earthquakes_near_onc(
             return Response(content="[]", media_type="application/json")
         rows = await conn.fetch(
             """SELECT usgs_id, occurred_at, magnitude, depth_km, place,
+                      mag_type, status,
                       ROUND((ST_Distance(geom, $1::geometry::geography) / 1000)::numeric, 1)
                           AS distance_km
                FROM usgs_earthquakes
@@ -1867,6 +2091,10 @@ async def get_earthquakes_near_onc(
                "magnitude":  r["magnitude"],
                "depth_km":   r["depth_km"],
                "place":      r["place"],
+               # USGS's own scale label and review state. "M4.2" alone states a
+               # number the feed never states without saying which scale it is.
+               "mag_type":   r["mag_type"],
+               "status":     r["status"],
                "distance_km": float(r["distance_km"])} for r in rows]
     payload = json.dumps(result, default=str)
     _usgs_eq_cache[cache_key] = payload

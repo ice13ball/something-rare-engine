@@ -683,14 +683,37 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
             year = fac.get("construction_year")
             hazard_raw = (fac.get("hazard_categorization") or "").strip() or None
             country = (fac.get("country") or "").strip() or None
+            # GRID's stable key for this facility. Stored so the enrichment link
+            # is auditable instead of being re-guessed from distance each run.
+            ubc = str(fac.get("ubc_number")).strip() if fac.get("ubc_number") else None
 
-            # Try to match to existing WAPHA dam within 5km
+            # Try to match to an existing WAPHA dam within 5 km.
+            #
+            # ⛔ The exclusion used to be `data_source IS DISTINCT FROM 'grid'`,
+            # which skipped GRID's own inserted rows but NOT the ones a previous
+            # facility had already enriched ('grid-enriched'). So a second GRID
+            # facility could claim a dam that already carried a first one's
+            # attributes and overwrite risk_class, owner_company and operator —
+            # none of which are COALESCEd.
+            #
+            # Measured against the live GRID API on 2026-09-10: 2,144
+            # facilities, 1,406 dams matched, 224 of them the nearest match for
+            # MORE THAN ONE facility, giving 473 overwrites. Dam id 7832 was
+            # claimed by 22 different facilities; its hazard rating and owner
+            # were simply whichever came last in the API's ordering.
+            #
+            # This portal mirrors its sources 1:1. Attributing GRID's record of
+            # facility A to dam B is not mirroring, it is misattribution — and
+            # risk_class is a safety rating. A facility that cannot claim an
+            # unclaimed dam is stored as its own row instead, below, which keeps
+            # both sources intact and invents no link.
             match_id = await conn.fetchval("""
                 SELECT id FROM tailings_dams
                 WHERE ST_DWithin(geom::geography,
                       ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
                       5000)
                   AND data_source IS DISTINCT FROM 'grid'
+                  AND data_source IS DISTINCT FROM 'grid-enriched'
                 ORDER BY geom <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
                 LIMIT 1
             """, lon, lat)
@@ -706,10 +729,16 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
                         owner_company = $6, operator = $7,
                         mine_name = COALESCE(mine_name, $8),
                         construction_year = $9, hazard_raw = $10,
-                        raise_type = $11, data_source = 'grid-enriched'
+                        raise_type = $11, data_source = 'grid-enriched',
+                        -- GRID's own key for the facility these attributes came
+                        -- from. Without it the link was re-derived from bare
+                        -- proximity on every run and nobody could audit which
+                        -- facility a dam's hazard rating actually describes.
+                        grid_facility_id = $13
                     WHERE id = $12
                 """, risk_class, dam_type, height, volume, status,
-                     owner, operator, mine, year, hazard_raw, dam_type, match_id)
+                     owner, operator, mine, year, hazard_raw, dam_type, match_id,
+                     ubc)
                 matched += 1
             else:
                 # Insert as new dam
@@ -717,12 +746,13 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
                     INSERT INTO tailings_dams
                         (dam_name, mine_name, country, dam_type, height_m,
                          volume_m3, risk_class, status, owner_company, operator,
-                         construction_year, hazard_raw, raise_type, data_source, geom)
+                         construction_year, hazard_raw, raise_type, data_source,
+                         grid_facility_id, geom)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-                            'grid', ST_SetSRID(ST_MakePoint($14, $15), 4326))
+                            'grid', $16, ST_SetSRID(ST_MakePoint($14, $15), 4326))
                 """, tsf_name, mine, country, dam_type, height,
                      volume, risk_class, status, owner, operator,
-                     year, hazard_raw, dam_type, lon, lat)
+                     year, hazard_raw, dam_type, lon, lat, ubc)
                 inserted += 1
 
     global _tailings_cache

@@ -115,6 +115,13 @@ async def ensure_land_schema():
                 created_at      TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+        # ⛔ GRID-Arendal's own key for the facility an enriched dam's
+        # attributes came from. Before this column the link was re-derived from
+        # bare 5 km proximity on every run, so nobody could tell which facility
+        # a dam's hazard rating actually describes — and 224 dams carried a
+        # neighbour's rating (measured 2026-09-10, 473 overwrites in one pass).
+        await conn.execute(
+            "ALTER TABLE tailings_dams ADD COLUMN IF NOT EXISTS grid_facility_id TEXT")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_tailings_geom ON tailings_dams USING GIST (geom)")
 
         await conn.execute("""
@@ -133,6 +140,20 @@ async def ensure_land_schema():
         """)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_fires_geom ON active_fires USING GIST (geom)")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_fires_date ON active_fires (acq_date)")
+        # ⛔ FIRMS publishes acq_time (HHMM UTC) beside acq_date on EVERY row —
+        # confirmed against the live CSV 2026-09-10, whose columns are:
+        # acq_date, acq_time, bright_ti4, bright_ti5, confidence, daynight, frp,
+        # instrument, latitude, longitude, satellite, scan, track, version.
+        # We kept a bare DATE while four locales promised "click for exact
+        # date/time". It also publishes `instrument` and `satellite` as separate
+        # fields; the `instrument` column held OUR composite ("VIIRS_SNPP"),
+        # which is a label we invented, not one NASA gave us.
+        for ddl in (
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS acq_time    TEXT",
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS observed_at TIMESTAMPTZ",
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS satellite   TEXT",
+        ):
+            await conn.execute(ddl)
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS air_quality_stations (

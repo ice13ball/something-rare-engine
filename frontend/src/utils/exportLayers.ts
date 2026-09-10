@@ -367,7 +367,7 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     kind: "vector",
     geomKind: "point",
     family: "Land",
-    source: "NASA FIRMS (MODIS / VIIRS)",
+    source: "NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)",
     sourceUrl: "https://firms.modaps.eosdis.nasa.gov/",
   },
   {

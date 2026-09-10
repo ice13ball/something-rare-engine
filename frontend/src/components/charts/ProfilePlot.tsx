@@ -14,7 +14,15 @@ export interface ProfileVariable {
 interface Props {
   depths: number[];
   variables: ProfileVariable[];
-  castTime?: string;
+  /** Caption above the plot, supplied verbatim by the caller.
+   *
+   * ⛔ This used to be `castTime` and the chart printed "Cast: <t> UTC" around
+   * it. Its only caller is ONC, whose CTDs are moored at a fixed depth — 27 of
+   * 28 device-locations span under 5 m of pressure — so nothing there is a
+   * cast, and the timestamp passed in was the first sample of the 7-day window
+   * we request, landing exactly 7.00 days before every sync. The chart cannot
+   * know what a timestamp means; the caller can, so the caller says it. */
+  caption?: string;
   width?: number;
   height?: number;
 }
@@ -22,7 +30,7 @@ interface Props {
 export const ProfilePlot = memo(function ProfilePlot({
   depths,
   variables,
-  castTime,
+  caption,
   width = 280,
   height = 180,
 }: Props) {
@@ -52,10 +60,8 @@ export const ProfilePlot = memo(function ProfilePlot({
 
   return (
     <div>
-      {castTime && (
-        <p className="text-[10px] text-white/60 mb-1">
-          Cast: {castTime.slice(0, 16).replace("T", " ")} UTC
-        </p>
+      {caption && (
+        <p className="text-[10px] text-white/60 mb-1">{caption}</p>
       )}
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" style={{ display: "block" }}>
         {/* Depth axis */}

@@ -14,11 +14,24 @@ export function FirePanel({ properties: p }: { properties: Record<string, unknow
       <Badge label={t("fire.panelBadge")} color="text-orange-300 border-orange-500/40" />
       <PanelHeader>{t("fire.panelTitle")}</PanelHeader>
       <Section title={t("fire.detailsSectionTitle")}>
-        {p.acq_date != null && <Row label={t("fire.dateLabel")}       value={String(p.acq_date)} />}
+        {/* ⛔ FIRMS publishes acq_time (HHMM UTC) beside acq_date on every row
+            and four locales promised "click for exact date/time", while the
+            table kept a bare DATE. `observed_at` is the two of them combined;
+            when it is absent (a row from before 2026-09-10, or a stamp FIRMS
+            gave that would not parse) the date shows alone rather than a
+            midnight that NASA never observed. */}
+        {p.observed_at != null
+          ? <Row label={t("fire.observedLabel")}
+                 value={String(p.observed_at).slice(0, 16).replace("T", " ") + " UTC"} />
+          : p.acq_date != null && <Row label={t("fire.dateLabel")} value={String(p.acq_date)} />}
         {p.confidence != null && <Row label={t("fire.confidenceLabel")} value={String(p.confidence)} />}
         {p.brightness != null && <Row label={t("fire.brightnessLabel")} value={`${Number(p.brightness).toFixed(1)} K`} />}
         {p.frp != null && <Row label={t("fire.frpLabel")}             value={`${Number(p.frp).toFixed(1)} MW`} />}
         {p.instrument != null && <Row label={t("fire.instrumentLabel")} value={String(p.instrument)} />}
+        {/* NASA ships instrument and satellite as two separate fields. This
+            column used to hold OUR fused label ("VIIRS_SNPP") — a name we
+            invented, not one NASA gave. Both are now stored as published. */}
+        {p.satellite != null && <Row label={t("fire.satelliteLabel")} value={String(p.satellite)} />}
       </Section>
       <SourceAttribution link={sourceLinkFor("firms", p)} />
       <ExternalLinks>

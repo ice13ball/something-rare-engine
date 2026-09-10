@@ -319,6 +319,15 @@ export const LAYER_FIXTURES: LayerFixture[] = [
       last_updated: DATE, locality: "TEST Locality", location_id: 1, name: "TEST Station",
       no: 1.23, no2: 1.23, nox: 1.23, o3: 1.23, owner: "TEST Owner", pm1: 1.23, pm10: 1.23,
       pm25: 1.23, pm4: 1.23, provider: "OpenAQ", so2: 1.23, temperature: 15, timezone: "UTC", ufp: 1.23,
+      // ⛔ Deliberately MIXED, because OpenAQ's real answers are mixed: on
+      // production 2026-09-10 ozone was ppb on 7 stations of 10,282 and µg/m³
+      // or ppm on the rest. A fixture with one unit throughout would snapshot a
+      // world where the bug could not have happened.
+      units: {
+        pm25: "µg/m³", pm10: "µg/m³", pm1: "µg/m³", pm4: "µg/m³", bc: "µg/m³",
+        no2: "µg/m³", o3: "ppm", co: "ppm", so2: "ppb", no: "µg/m³", nox: "ppb",
+        co2: "ppm", ch4: "ppb", ufp: "particles/cm³",
+      },
     },
   },
   {

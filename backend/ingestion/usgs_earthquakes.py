@@ -66,10 +66,26 @@ async def fetch_usgs_earthquakes(
         if ts_ms is None:
             continue
         occurred_at = datetime.fromtimestamp(int(ts_ms) / 1000, tz=timezone.utc)
+        # ⛔ `mag` alone is not a magnitude. USGS says WHICH SCALE it used, and
+        # the scales are not interchangeable. Measured over the live M>=3 feed
+        # on 2026-09-10 (1,577 events): mb 1,048 · ml 328 · mww 96 · md 82 ·
+        # mwr 11 · mw 7. Printing "M4.2" with no scale states a number the feed
+        # never states on its own.
+        #
+        # `status` separates a reviewed solution from an automatic one — 1,572
+        # reviewed against 5 automatic in that same window, so it is rare and
+        # exactly the case a reader would want flagged.
+        #
+        # `updated` is USGS's own revision stamp, present on 100% of events.
+        upd_ms = props.get("updated")
         out.append({
             "usgs_id":    usgs_id,
             "occurred_at": occurred_at,
             "magnitude":  props.get("mag"),
+            "mag_type":   (props.get("magType") or "").strip() or None,
+            "status":     (props.get("status") or "").strip() or None,
+            "updated_at": (datetime.fromtimestamp(int(upd_ms) / 1000, tz=timezone.utc)
+                           if upd_ms is not None else None),
             "depth_km":   depth_km,
             "place":      props.get("place", ""),
             "lat":        lat,

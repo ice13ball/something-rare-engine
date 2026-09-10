@@ -438,7 +438,7 @@
       "kbas": "Ponad 16 000 obszarów uznanych za najważniejsze miejsca na Ziemi dla gatunków i ekosystemów. Nakładanie się z obszarami górniczymi ujawnia bezpośredni konflikt z bioróżnorodnością.",
       "forest-loss": "Roczna wycinka lasów w rozdzielczości 30 m (2001–2024) + tygodniowe alerty. Drogi z kopalni rozchodzą się na zewnątrz, a wycinka podąża za nimi — ślad kopalni sięga daleko poza wyrobisko.",
       "tailings": "Ponad 11 800 obiektów składowania odpadów flotacyjnych na świecie, z czego ok. 1 500 sklasyfikowanych pod kątem ryzyka. Oznaczenia kolorystyczne: ciemnoczerwony (ekstremalny) do zielonego (niski). Zapory budowane metodą wznoszenia górnego są historycznie najbardziej awaryjne.",
-      "fires": "Wykrycia pożarów w czasie zbliżonym do rzeczywistego z satelitów MODIS i VIIRS, aktualizowane co 3 godziny. Filtruj według poziomu pewności. Sezon pożarów często pokrywa się z oczyszczaniem terenu pod górnictwo.",
+      "fires": "Wykrycia pożarów w czasie zbliżonym do rzeczywistego z trzech satelitów VIIRS należących do NASA, aktualizowane w ciągu 3 godzin. Filtruj po poziomie pewności. Sezon pożarowy często pokrywa się z wypalaniem terenu pod górnictwo.",
       "air-quality": "Odczyty PM2.5, SO₂, NO₂, O₃, CO w czasie rzeczywistym ze stacji monitoringu rządowego na całym świecie. Górnictwo i dym z pożarów tworzą obszary podwyższonego zanieczyszczenia.",
       "landslides": "Osuwiska wywołane opadami deszczu od 2007 r. Zapory piętrze w terenie podatnym na osuwiska to sygnał ostrzegawczy ryzyka awarii konstrukcyjnej.",
       "surface-water": "Występowanie i zmiany wód powierzchniowych 1984–2021 w rozdzielczości 30 m. Pokazuje, czy kopalnie stworzyły sztuczne zbiorniki wodne lub zniszczyły naturalne.",
@@ -709,7 +709,9 @@
     "frpLabel": "Moc radiacyjna pożaru",
     "instrumentLabel": "Instrument",
     "panelBadge": "Aktywny pożar",
-    "panelTitle": "Wykrycie pożaru"
+    "panelTitle": "Wykrycie pożaru",
+    "observedLabel": "Wykryto (UTC)",
+    "satelliteLabel": "Satelita"
   },
   "kba": {
     "areaLabel": "Obszar",
@@ -821,7 +823,7 @@
   },
   "onc": {
     "adcpSectionTitle": "Rozproszenie zwrotne ADCP (24h)",
-    "ctdSectionTitle": "Profil sondy CTD",
+    "ctdSectionTitle": "Pomiary CTD",
     "depthLabel": "Głębokość",
     "earthquakesSectionTitle": "Trzęsienia ziemi ≥M3 (200 km, 30d)",
     "latestReadingsSectionTitle": "Najnowsze odczyty",
@@ -842,7 +844,12 @@
     "earthquakesTotal_one": "{{count}} zdarzenie łącznie",
     "earthquakesTotal_few": "{{count}} zdarzenia łącznie",
     "earthquakesTotal_many": "{{count}} zdarzeń łącznie",
-    "earthquakesTotal_other": "{{count}} zdarzeń łącznie"
+    "earthquakesTotal_other": "{{count}} zdarzeń łącznie",
+    "ctdWindowCaption": "Próbki ONC {{from}} → {{to}} UTC",
+    "ctdDepthRangeLabel": "Zakres głębokości przyrządu",
+    "ctdSampleCountLabel": "Próbek w oknie",
+    "earthquakeAutomatic": "Rozwiązanie automatyczne — USGS jeszcze go nie zweryfikował.",
+    "earthquakeAutomaticShort": "auto"
   },
   "noaaCable": {
     "detailsSectionTitle": "Szczegóły korytarza",

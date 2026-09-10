@@ -54,6 +54,29 @@ FIRMS_MAP_KEY = os.environ.get("FIRMS_MAP_KEY", "")
 OPENAQ_API_KEY = os.environ.get("OPENAQ_API_KEY", "")
 
 _FIRMS_SENSORS = ["VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT"]
+
+
+def _firms_instant(acq_date, acq_time: "str | None"):
+    """Combine FIRMS's acq_date + acq_time (HHMM, UTC) into one instant.
+
+    ⛔ FIRMS drops the leading zero: 09:30 arrives as "930", not "0930", and
+    00:05 arrives as "5". zfill(4) is what makes both parse. A naive slice of
+    "930" reads hour 93.
+
+    Returns None when either half is missing or the time is not four digits of
+    a real clock — an unparseable stamp must read as "no time", never as
+    midnight, which would invent an observation NASA never made.
+    """
+    if acq_date is None or not acq_time:
+        return None
+    digits = acq_time.strip().zfill(4)
+    if not digits.isdigit() or len(digits) != 4:
+        return None
+    hh, mm = int(digits[:2]), int(digits[2:])
+    if hh > 23 or mm > 59:
+        return None
+    return datetime(acq_date.year, acq_date.month, acq_date.day, hh, mm,
+                    tzinfo=timezone.utc)
 _FIRMS_CONFIDENCE = {"l": "Low", "n": "Nominal", "h": "High"}
 
 async def _sync_active_fires() -> int:
@@ -108,10 +131,16 @@ async def _sync_active_fires() -> int:
         await _log_land_sync("active_fires", 0, 0)
         return 0
 
-    # Deduplicate: same lat/lon/acq_date from multiple sensors → keep highest FRP
+    # Deduplicate: the same pixel seen by more than one satellite → keep highest FRP.
+    # ⛔ acq_time belongs in the key. Without it, two genuine detections of the
+    # same pixel at different hours collapsed into one. Measured against the live
+    # FIRMS CSV 2026-09-10: 294,496 rows, the old key dropped 20 of them and only
+    # 2 were genuinely different times — small, but they were NASA's records and
+    # this portal mirrors its sources 1:1.
     seen: dict[tuple, dict] = {}
     for r in rows:
-        key = (r.get("latitude"), r.get("longitude"), r.get("acq_date"))
+        key = (r.get("latitude"), r.get("longitude"),
+               r.get("acq_date"), r.get("acq_time"))
         existing = seen.get(key)
         if not existing or float(r.get("frp", 0) or 0) > float(existing.get("frp", 0) or 0):
             seen[key] = r
@@ -127,18 +156,28 @@ async def _sync_active_fires() -> int:
                 lon = float(r.get("longitude", 0))
                 acq_str = r.get("acq_date", "")
                 acq_date = datetime.strptime(acq_str, "%Y-%m-%d").date() if acq_str else None
+                # FIRMS gives acq_time as HHMM (or HMM), UTC. Keep the raw string
+                # exactly as published AND the instant it denotes, so a reader
+                # gets the time the legend has always promised.
+                acq_time = (r.get("acq_time") or "").strip() or None
+                observed_at = _firms_instant(acq_date, acq_time)
                 await conn.execute("""
                     INSERT INTO active_fires
-                        (latitude, longitude, brightness, confidence, frp, instrument, acq_date, geom)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7,
-                            ST_SetSRID(ST_MakePoint($8, $9), 4326))
+                        (latitude, longitude, brightness, confidence, frp,
+                         instrument, satellite, acq_date, acq_time, observed_at, geom)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                            ST_SetSRID(ST_MakePoint($11, $12), 4326))
                 """,
                     lat, lon,
                     float(r.get("bright_ti4", 0) or 0),
                     _FIRMS_CONFIDENCE.get(r.get("confidence", ""), r.get("confidence", "")),
                     float(r.get("frp", 0) or 0),
-                    r.get("_sensor", "VIIRS"),
-                    acq_date,
+                    # ⛔ NASA's own two fields, not our fused "VIIRS_SNPP" label.
+                    # `_sensor` is the request we made; instrument and satellite
+                    # are what FIRMS answered with.
+                    (r.get("instrument") or "").strip() or None,
+                    (r.get("satellite") or "").strip() or None,
+                    acq_date, acq_time, observed_at,
                     lon, lat,
                 )
                 inserted += 1
@@ -173,7 +212,10 @@ async def get_fires():
                             'confidence', confidence,
                             'frp', frp,
                             'instrument', instrument,
-                            'acq_date', acq_date::text
+                            'satellite', satellite,
+                            'acq_date', acq_date::text,
+                            'acq_time', acq_time,
+                            'observed_at', observed_at
                         )
                     )
                 ), '[]'::json)
@@ -654,44 +696,61 @@ async def get_air_quality():
                 'features', COALESCE(json_agg(
                     json_build_object(
                         'type', 'Feature',
-                        'geometry', ST_AsGeoJSON(geom)::json,
+                        'geometry', ST_AsGeoJSON(s.geom)::json,
                         'properties', json_build_object(
-                            'id', id,
-                            'location_id', location_id,
-                            'name', name,
-                            'city', city,
-                            'country', country,
-                            'pm25', pm25,
-                            'so2', so2,
-                            'no2', no2,
-                            'o3', o3,
-                            'co', co,
-                            'last_updated', last_updated::text,
-                            'locality', locality,
-                            'timezone', timezone,
-                            'is_mobile', is_mobile,
-                            'is_monitor', is_monitor,
-                            'provider', provider,
-                            'owner', owner,
-                            'datetime_first', datetime_first::text,
-                            'datetime_last', datetime_last::text,
-                            'pm10', pm10,
-                            'bc', bc,
-                            'no', no,
-                            'nox', nox,
-                            'humidity', humidity,
-                            'temperature', temperature,
-                            'co2', co2,
-                            'pm1', pm1,
-                            'pm4', pm4,
-                            'ch4', ch4,
-                            'ufp', ufp,
-                            'coverage_pct', coverage_pct
+                            'id', s.id,
+                            'location_id', s.location_id,
+                            'name', s.name,
+                            'city', s.city,
+                            'country', s.country,
+                            'pm25', s.pm25,
+                            'so2', s.so2,
+                            'no2', s.no2,
+                            'o3', s.o3,
+                            'co', s.co,
+                            'last_updated', s.last_updated::text,
+                            'locality', s.locality,
+                            'timezone', s.timezone,
+                            'is_mobile', s.is_mobile,
+                            'is_monitor', s.is_monitor,
+                            'provider', s.provider,
+                            'owner', s.owner,
+                            'datetime_first', s.datetime_first::text,
+                            'datetime_last', s.datetime_last::text,
+                            'pm10', s.pm10,
+                            'bc', s.bc,
+                            'no', s.no,
+                            'nox', s.nox,
+                            'humidity', s.humidity,
+                            'temperature', s.temperature,
+                            'co2', s.co2,
+                            'pm1', s.pm1,
+                            'pm4', s.pm4,
+                            'ch4', s.ch4,
+                            'ufp', s.ufp,
+                            'coverage_pct', s.coverage_pct,
+                            -- ⛔ The unit OpenAQ published, per pollutant, verbatim.
+                            -- Without it every consumer had to guess, and both
+                            -- guessed wrong: the panel printed "ppb" on every
+                            -- NO2/O3/CO row, and stationAqi() scored them on a
+                            -- ppb scale. Measured on production 2026-09-10:
+                            --   o3  ppb on     7 of 10,282 stations (0.07%)
+                            --   no2 ppb on   586 of 12,793 (4.6%)
+                            --   co  ppb on   563 of  7,034 (8.0%)
+                            -- The rest report µg/m³ or ppm. Ozone in ppm scored
+                            -- as ppb collapses to AQI 0 and drops out of the
+                            -- worst-pollutant rule entirely.
+                            'units', u.units
                         )
                     )
                 ), '[]'::json)
             )::text
-            FROM air_quality_stations
+            FROM air_quality_stations s
+            LEFT JOIN LATERAL (
+                SELECT json_object_agg(p.parameter, p.unit) AS units
+                FROM air_quality_params p
+                WHERE p.location_id = s.location_id AND p.unit IS NOT NULL
+            ) u ON TRUE
         """)
     _air_quality_cache = row
     return Response(content=row, media_type="application/json")

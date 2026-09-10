@@ -214,10 +214,10 @@
     },
     "activeFires": {
       "label": "Aktive Feuer (FIRMS)",
-      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. MODIS (1 km Auflösung, Aqua+Terra Satelliten) und VIIRS (375 m, Suomi-NPP + NOAA-20).",
+      "source": "NASA LANCE FIRMS — Fire Information for Resource Management System. VIIRS (375 m) von drei Satelliten: Suomi-NPP, NOAA-20 und NOAA-21.",
       "updateFreq": "Alle 6 Stunden synchronisiert; NASA verarbeitet Satellitenpässe innerhalb von 3 Stunden nach dem Überflug",
-      "description": "Nahezu-Echtzeit-Thermalanomaliedetektionen von zwei Satellitengerätefamilien. MODIS bietet zweimal tägliche globale Abdeckung bei 1 km; VIIRS fügt vier tägliche Pässe bei 375 m Auflösung hinzu.",
-      "reading": "Gelber Punkt = Detektion mit niedriger Konfidenz. Oranger Punkt = nominale Konfidenz. Roter Punkt = hohe Konfidenz. Klicken für genaues Datum/Uhrzeit, Helligkeitstemperatur in Kelvin, FRP in MW.",
+      "description": "Nahezu-Echtzeit-Thermalanomaliedetektionen des NASA-Instruments VIIRS, bezogen von drei Satelliten — Suomi-NPP, NOAA-20 und NOAA-21 — mit 375 m Auflösung, was mehrere Überflüge pro Tag ergibt und kleinere, kühlere Feuer erfasst als ein Kilometer-Sensor. Jede Detektion enthält Helligkeitstemperatur, Feuerstrahlungsleistung (FRP, ein Maß für die Intensität), Datum und Uhrzeit der Aufnahme in UTC, ein Konfidenzniveau sowie Instrument und Satellit so, wie die NASA sie bezeichnet.",
+      "reading": "Gelber Punkt = Detektion mit niedriger Konfidenz. Oranger Punkt = nominale Konfidenz. Roter Punkt = hohe Konfidenz. Klicken für Datum und Uhrzeit der Aufnahme in UTC, Helligkeitstemperatur in Kelvin, FRP in MW sowie Instrument und Satellit genau so, wie die NASA sie bezeichnet. Aktivieren Sie Bergbau-Fußabdrücke, um zu prüfen, ob Feuer innerhalb oder neben Minen brennen — das kann auf Flözbrände, Abfallverbrennung oder Rodung hindeuten.",
       "limitations": "Bewölkung blockiert die Satellitendetektion — Feuer unter dichter Bewölkung werden vollständig übersehen.",
       "colorStandard": "NASA FIRMS Konfidenznorm — gelb (niedrig) → orange (nominal) → rot (hoch)."
     },

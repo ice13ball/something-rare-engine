@@ -278,7 +278,7 @@ const LAYER_SOURCES: Record<string, SourceEntry> = {
     },
   },
   "firms": {
-    org: "NASA FIRMS (MODIS / VIIRS)",
+    org: "NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)",
     homepage: "https://firms.modaps.eosdis.nasa.gov/",
   },
   "openaq": {

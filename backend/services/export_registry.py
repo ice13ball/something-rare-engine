@@ -847,7 +847,7 @@ _VECTORS: dict[str, VectorExport] = {
         fields=("id", "latitude", "longitude", "brightness", "confidence",
                 "frp", "instrument", "acq_date", "created_at"),
         prov=Provenance(
-            source="NASA FIRMS (MODIS / VIIRS)",
+            source="NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)",
             source_url="https://firms.modaps.eosdis.nasa.gov/",
             note="Near-real-time fire detection (NRT). Rolling window; older detections may be pruned.",
         ),

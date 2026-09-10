@@ -438,7 +438,7 @@
       "kbas": "Plus de 16 000 sites identifiés comme les lieux les plus importants de la Terre pour les espèces et les écosystèmes. Le chevauchement avec les empreintes minières révèle un conflit direct avec la biodiversité.",
       "forest-loss": "Déforestation annuelle à 30 m (2001–2024) + alertes hebdomadaires. Les routes issues des mines rayonnent vers l'extérieur et la déforestation suit — l'empreinte de la mine s'étend bien au-delà de la fosse.",
       "tailings": "Plus de 11 800 installations de résidus miniers à l'échelle mondiale, dont environ 1 500 avec une classification de risque. Codées par couleur selon le risque : rouge foncé (Extrême) à vert (Faible). Les digues construites par la méthode en amont sont historiquement les plus sujettes aux défaillances.",
-      "fires": "Détections d'incendies en quasi-temps réel depuis les satellites MODIS et VIIRS, mises à jour toutes les 3 heures. Filtrez par niveau de confiance. La saison des incendies coïncide souvent avec le défrichement lié à l'exploitation minière.",
+      "fires": "Détections d'incendies en quasi-temps réel depuis les trois satellites VIIRS de la NASA, mises à jour sous 3 heures. Filtrez par niveau de confiance. La saison des feux recoupe souvent le défrichement pour l'exploitation minière.",
       "air-quality": "Relevés en temps réel de PM2.5, SO₂, NO₂, O₃, CO depuis des stations de surveillance gouvernementales dans le monde entier. L'exploitation minière et la fumée des incendies créent des points chauds de pollution.",
       "landslides": "Glissements de terrain déclenchés par les pluies depuis 2007. Les digues de résidus en terrain sujet aux glissements constituent un signal d'alarme pour le risque de défaillance structurelle.",
       "surface-water": "Occurrence et évolution des eaux de surface 1984–2021 à 30 m. Indique si les mines ont créé des plans d'eau artificiels ou détruit des plans d'eau naturels.",
@@ -709,7 +709,9 @@
     "frpLabel": "Puissance radiative du feu",
     "instrumentLabel": "Instrument",
     "panelBadge": "Incendie actif",
-    "panelTitle": "Détection d'incendie"
+    "panelTitle": "Détection d'incendie",
+    "observedLabel": "Détecté (UTC)",
+    "satelliteLabel": "Satellite"
   },
   "kba": {
     "areaLabel": "Superficie",
@@ -821,7 +823,7 @@
   },
   "onc": {
     "adcpSectionTitle": "Rétrodiffusion ADCP (24 h)",
-    "ctdSectionTitle": "Profil CTD",
+    "ctdSectionTitle": "Mesures CTD",
     "depthLabel": "Profondeur",
     "earthquakesSectionTitle": "Séismes ≥M3 (200 km, 30 j)",
     "latestReadingsSectionTitle": "Dernières lectures",
@@ -840,7 +842,12 @@
     "earthquakesNone": "Aucun séisme enregistré dans un rayon de 200 km au cours des 30 derniers jours.",
     "earthquakesUnavailable": "Les séismes proches n'ont pas pu être chargés — c'est notre récupération qui a échoué, pas un plancher océanique calme.",
     "earthquakesTotal_one": "{{count}} événement au total",
-    "earthquakesTotal_other": "{{count}} événements au total"
+    "earthquakesTotal_other": "{{count}} événements au total",
+    "ctdWindowCaption": "Échantillons ONC {{from}} → {{to}} UTC",
+    "ctdDepthRangeLabel": "Plage de profondeur de l'instrument",
+    "ctdSampleCountLabel": "Échantillons dans la fenêtre",
+    "earthquakeAutomatic": "Solution automatique — l'USGS n'a pas encore revu cet événement.",
+    "earthquakeAutomaticShort": "auto"
   },
   "noaaCable": {
     "detailsSectionTitle": "Détails du couloir",
