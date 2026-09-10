@@ -17,6 +17,7 @@ from datetime import datetime, date
 from typing import Any
 
 import httpx
+from ingestion.http_retry import get_with_retry
 
 log = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ async def fetch_ooi_stations() -> list[dict[str, Any]]:
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         for url in _ARRAY_CSV_URLS:
             try:
-                resp = await client.get(url)
+                resp = await get_with_retry(client, url, label="ooi asset")
                 resp.raise_for_status()
             except Exception as exc:
                 log.warning("fetch_ooi_stations: %s failed: %s", url, exc)

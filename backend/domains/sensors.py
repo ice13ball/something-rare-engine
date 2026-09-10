@@ -1934,7 +1934,13 @@ async def sync_oceansites_obs() -> int:
       3. OceanSITES GDAC THREDDS — IFREMER NetCDF backstop for stations PMEL
          missed and a handful of regional moorings (Stratus, etc.)
 
-    Stations with no source data are set to NULL and hidden from the map endpoint.
+    Stations with no source data have latest_obs set back to NULL. ⛔ They are
+    NOT hidden from the map endpoint — /v1/map/oceansites has no WHERE clause
+    and returns the whole OceanOPS register. That was true before the
+    2026-09-08 widening too, but with 65 rows it did not show; with ~1,070 it
+    does, and the legend spent two days telling readers only ~20 NDBC-fed
+    stations were on the map. Measured 2026-09-10: 1,072 rows rendered, 50
+    carrying an observation, obs_source = PMEL 49 / GDAC 1 / NDBC 0.
     Returns count of stations with cached observations.
     """
     from ingestion.oceansites_gdac import fetch_gdac_observations

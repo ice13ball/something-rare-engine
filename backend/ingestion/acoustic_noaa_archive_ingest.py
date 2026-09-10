@@ -57,6 +57,7 @@ from datetime import date, datetime
 from typing import Any, Callable
 
 import httpx
+from ingestion.http_retry import get_with_retry
 
 log = logging.getLogger(__name__)
 
@@ -231,7 +232,7 @@ async def _list_all(client: httpx.AsyncClient, prefix: str, delimiter: str | Non
             params["delimiter"] = delimiter
         if page_token:
             params["pageToken"] = page_token
-        resp = await client.get(_GCS_LIST, params=params)
+        resp = await get_with_retry(client, _GCS_LIST, params=params, label="noaa archive listing")
         resp.raise_for_status()
         data = resp.json()
         prefixes.extend(data.get("prefixes") or [])
@@ -291,7 +292,7 @@ async def _discover_metadata_jsons(client: httpx.AsyncClient, root_prefix: str, 
 async def _fetch_json(client: httpx.AsyncClient, object_name: str) -> dict[str, Any] | None:
     url = f"{_GCS_OBJECT}/{object_name}"
     try:
-        resp = await client.get(url)
+        resp = await get_with_retry(client, url, label="noaa archive object")
         resp.raise_for_status()
         return resp.json()
     except Exception as exc:

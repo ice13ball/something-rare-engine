@@ -15,6 +15,7 @@ from datetime import datetime, date
 from typing import Any
 
 import httpx
+from ingestion.http_retry import get_with_retry
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ async def fetch_imos_stations() -> list[dict[str, Any]]:
     """
     rows: list[dict[str, Any]] = []
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.get(_STATIONS_URL)
+        resp = await get_with_retry(client, _STATIONS_URL, label="imos stations")
         resp.raise_for_status()
         data = resp.json()
     for feat in data.get("features", []):

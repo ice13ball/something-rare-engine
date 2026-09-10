@@ -3,9 +3,23 @@
 
 """Field-export sampler for the ocean-currents layer.
 
-Decodes the RGBA u/v textures baked by services.currents_bake (surface + 1000 m)
-back into velocity grids, exposing the standard field-export contract so Area
-Export can emit u/v cells over an AOI. No new bake — reads the existing holdings."""
+Reads the u/v grids baked by services.currents_bake (surface + 1000 m) and
+exposes the standard field-export contract so Area Export can emit u/v cells
+over an AOI. No new bake — reads the existing holdings.
+
+⛔ Prefers the float grid (`latest.npz`) and falls back to decoding the RGBA
+texture only when it is absent. The texture is a RENDERING TARGET: u and v are
+squeezed into one byte each across a ±3 m/s span, so one step is 6/255 =
+2.35 cm/s. Measured on the live bake 2026-09-10:
+
+    surface   median speed 11.6 cm/s —  5.8% of wet cells below one step
+    1000 m    median speed  3.7 cm/s — 38.4% of wet cells below one step
+
+Exporting the 1,000 m field from the texture handed a downloader a number with
+less than one step of resolution over a third of the ocean — and the 1,000 m
+field is the one this platform describes as carrying mining sediment plumes.
+The ±3 m/s clamp is not the problem: no wet cell reached it in either depth.
+The step size is."""
 from __future__ import annotations
 import json
 import numpy as np
@@ -28,6 +42,7 @@ class _Grid:
 
 def reset_cache() -> None:
     _cache.clear()
+    GRID_PRECISION.clear()
 
 
 def _axes_from_meta(meta) -> "tuple[np.ndarray, np.ndarray]":
@@ -39,19 +54,39 @@ def _axes_from_meta(meta) -> "tuple[np.ndarray, np.ndarray]":
     return lats, lons
 
 
+#: Which grid the last load actually used, per depth. Read by the export's
+#: provenance so a download cannot silently claim float precision it lacks.
+GRID_PRECISION: "dict[int, str]" = {}
+
+
 def _decode_depth(depth: int):
     d = _DEPTH_DIR[depth]
     png = CACHE_DIR / d / "latest.png"
-    js = CACHE_DIR / d / "latest.json"
-    if not png.is_file() or not js.is_file():
+    js  = CACHE_DIR / d / "latest.json"
+    npz = CACHE_DIR / d / "latest.npz"
+    if not js.is_file():
         return None
     meta = json.loads(js.read_text())
+
+    if npz.is_file():
+        with np.load(npz) as z:
+            u = z["u"].astype("float32")
+            v = z["v"].astype("float32")
+        if u.shape == (int(meta["height"]), int(meta["width"])):
+            GRID_PRECISION[depth] = "float32"
+            return meta, u, v
+        # A grid that disagrees with the metadata would silently shift every
+        # sampled cell. Fall through to the texture rather than guess.
+
+    if not png.is_file():
+        return None
     arr = np.asarray(Image.open(png).convert("RGBA"))
     a = arr[..., 3]
     u = arr[..., 0].astype("float32") / 255.0 * _SPAN + UNSCALE_MIN
     v = arr[..., 1].astype("float32") / 255.0 * _SPAN + UNSCALE_MIN
     u[a == 0] = np.nan
     v[a == 0] = np.nan
+    GRID_PRECISION[depth] = "uint8-texture"
     return meta, u, v
 
 

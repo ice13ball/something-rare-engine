@@ -20,10 +20,21 @@ import numpy as np
 
 # Heavy deps imported lazily inside bake_depth() so the encoder functions
 # remain importable in test environments where these packages are absent.
+#
+# ⛔ Pillow is imported SEPARATELY from copernicusmarine on purpose. They were
+# one try-block, so an environment without the CMEMS client left `_Image`
+# unbound and every write path — including _write_dated, which only needs
+# Pillow — became untestable outside the VPS. A guard that cannot run in CI is
+# not a guard.
+try:
+    from PIL import Image as _Image
+    _PIL_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _PIL_AVAILABLE = False
+
 try:
     import copernicusmarine as _copernicusmarine
-    from PIL import Image as _Image
-    _DEPS_AVAILABLE = True
+    _DEPS_AVAILABLE = _PIL_AVAILABLE
 except ImportError:  # pragma: no cover
     _DEPS_AVAILABLE = False
 
@@ -186,7 +197,7 @@ def bake_depth(depth_slug: str, target_date: "datetime | date | None" = None) ->
             "width": int(rgba.shape[1]),
             "height": int(rgba.shape[0]),
         }
-        _write_dated(out_dir, actual_time, rgba, meta)
+        _write_dated(out_dir, actual_time, rgba, meta, u=u, v=v)
         _refresh_latest_pointer(out_dir)
         log.info("currents bake %s: %dx%d, date=%s", depth_slug, rgba.shape[1], rgba.shape[0], actual_time)
         return meta
@@ -194,10 +205,29 @@ def bake_depth(depth_slug: str, target_date: "datetime | date | None" = None) ->
         ds.close()
 
 
-def _write_dated(out_dir: pathlib.Path, date_str: str, rgba: "np.ndarray", meta: dict) -> None:
+def _write_dated(out_dir: pathlib.Path, date_str: str, rgba: "np.ndarray", meta: dict,
+                 *, u: "np.ndarray | None" = None, v: "np.ndarray | None" = None) -> None:
     png_tmp = out_dir / f"{date_str}.png.tmp"
     _Image.fromarray(rgba, "RGBA").save(png_tmp, format="PNG", optimize=True)
     os.replace(png_tmp, out_dir / f"{date_str}.png")
+    # ⛔ The PNG is a RENDERING TARGET: u and v are squeezed into one byte each
+    # across a ±3 m/s span, so a step is 6/255 = 2.35 cm/s. That is fine for
+    # drawing particles and wrong for exporting numbers. Measured on the live
+    # bake 2026-09-10:
+    #     surface  median speed 11.6 cm/s — 5.8% of wet cells below one step
+    #     1000 m   median speed  3.7 cm/s — 38.4% of wet cells below one step
+    # The 1,000 m field is the one this platform describes as carrying mining
+    # sediment plumes, and Area Export was reading its values back out of the
+    # texture. The float grid goes beside it: ~0.3 MB compressed per day per
+    # depth, pruned on the same schedule as the PNG.
+    if u is not None and v is not None:
+        # ⚠️ np.savez_compressed APPENDS ".npz" to a path that lacks it, so the
+        # temp file is written through an open handle instead — otherwise the
+        # atomic rename would chase a name numpy invented.
+        npz_tmp = out_dir / f"{date_str}.npz.tmp"
+        with open(npz_tmp, "wb") as fh:
+            np.savez_compressed(fh, u=u.astype("float32"), v=v.astype("float32"))
+        os.replace(npz_tmp, out_dir / f"{date_str}.npz")
     json_tmp = out_dir / f"{date_str}.json.tmp"
     json_tmp.write_text(json.dumps(meta))
     os.replace(json_tmp, out_dir / f"{date_str}.json")
@@ -217,6 +247,14 @@ def _refresh_latest_pointer(out_dir):
     png_tmp = out_dir / "latest.png.tmp"
     shutil.copyfile(out_dir / f"{newest}.png", png_tmp)
     os.replace(png_tmp, out_dir / "latest.png")
+
+    # The float grid follows the pointer, or Area Export keeps reading numbers
+    # out of the texture for whichever day happens to be newest.
+    newest_npz = out_dir / f"{newest}.npz"
+    if newest_npz.is_file():
+        npz_tmp = out_dir / "latest.npz.tmp"
+        shutil.copyfile(newest_npz, npz_tmp)
+        os.replace(npz_tmp, out_dir / "latest.npz")
     meta = json.loads(json_path.read_text())
     meta = {**meta, "url": f"/v1/currents/{out_dir.name}.png"}  # no-date pointer
     json_tmp = out_dir / "latest.json.tmp"
@@ -244,6 +282,7 @@ def prune_old(depth_slug: str, keep_days: int = CURRENTS_PRUNE_KEEP_DAYS) -> int
         if p.stem < cutoff:
             p.unlink(missing_ok=True)
             (out_dir / f"{p.stem}.json").unlink(missing_ok=True)
+            (out_dir / f"{p.stem}.npz").unlink(missing_ok=True)
             removed += 1
     return removed
 

@@ -67,6 +67,25 @@ router = APIRouter()
 # so one hung source can't freeze the whole sync.
 _ACOUSTIC_SOURCE_TIMEOUT_S = 120
 
+# ── Honest sync counters ────────────────────────────────────────────────────
+# ⛔ `records_added += len(rows)` after an `ON CONFLICT DO UPDATE` counts every
+# row we TOUCHED, not every row we ADDED. On 2026-09-10 sync_log carried
+# `acoustic-stations records_added=5738 total_records=5738` against a table
+# holding 641 rows — nine times the table, reported as new arrivals, and
+# `total_records` was the same inflated figure rather than the table's size.
+#
+# `executemany` cannot RETURNING, so the count comes from the table itself.
+# Safe here because every sync in this process is serialised behind the single
+# `_sync_lock`, and neither function deletes: the table only grows, so the
+# difference is exactly the number of inserts.
+async def _upsert_and_count(conn, table: str, sql: str, params: list) -> int:
+    """Run an upsert and return how many rows it genuinely INSERTED."""
+    before = await conn.fetchval(f"SELECT count(*) FROM {table}")
+    await conn.executemany(sql, params)
+    after = await conn.fetchval(f"SELECT count(*) FROM {table}")
+    return after - before
+
+
 # ── Caches ──────────────────────────────────────────────────────────────────
 _noise_risk_cache:     str | None = None
 _noise_stations_cache: str | None = None
@@ -145,6 +164,7 @@ async def sync_acoustic_stations(force: bool = False) -> int:
         ("ims",        acoustic_ims_ingest.fetch_ims_stations),                 # 11 global IMS hydroacoustic stations
     ]
     total_inserted = 0
+    total_fetched = 0
     succeeded = 0
     # Per-source timeout: a hanging fetch (e.g. a NOAA-archive GCS walk that
     # never returns) used to freeze the whole chain, so _log_sync never fired
@@ -162,7 +182,8 @@ async def sync_acoustic_stations(force: bool = False) -> int:
             continue
         try:
             async with db.pool.acquire() as conn:
-                await conn.executemany(
+                inserted = await _upsert_and_count(
+                    conn, "acoustic_stations",
                     """
                     INSERT INTO acoustic_stations (
                         station_id, source, name, operator, lat, lon, depth_m,
@@ -185,17 +206,21 @@ async def sync_acoustic_stations(force: bool = False) -> int:
                       r.get("model"), r.get("hz_range_lo"), r.get("hz_range_hi"),
                       r.get("portal_url"), r.get("license")) for r in rows],
                 )
-            total_inserted += len(rows)
+            total_inserted += inserted
+            total_fetched += len(rows)
             succeeded += 1
-            log.info("acoustic stations %s: %d rows", name, len(rows))
+            log.info("acoustic stations %s: %d rows fetched, %d new", name, len(rows), inserted)
         except Exception as exc:
             log.warning("acoustic stations %s upsert failed: %s", name, exc)
 
     global _acoustic_stations_cache
     _acoustic_stations_cache = None
-    await _log_sync("acoustic-stations", total_inserted, total_inserted)
-    log.info("_sync_acoustic_stations: %d/%d sources succeeded, %d total rows",
-             succeeded, len(sources), total_inserted)
+    async with db.pool.acquire() as conn:
+        in_table = await conn.fetchval("SELECT count(*) FROM acoustic_stations")
+    await _log_sync("acoustic-stations", total_inserted, in_table)
+    log.info("_sync_acoustic_stations: %d/%d sources succeeded, %d rows fetched, "
+             "%d genuinely new, %d in table",
+             succeeded, len(sources), total_fetched, total_inserted, in_table)
     return total_inserted
 
 
@@ -268,6 +293,7 @@ async def sync_acoustic_soundscape(force: bool = False) -> int:
         )
 
     total_inserted = 0
+    total_fetched = 0
     for st in stations:
         fn = fetchers.get(st["source"])
         if fn is None:
@@ -281,7 +307,8 @@ async def sync_acoustic_soundscape(force: bool = False) -> int:
             continue
         try:
             async with db.pool.acquire() as conn:
-                await conn.executemany(
+                inserted = await _upsert_and_count(
+                    conn, "acoustic_soundscape",
                     """
                     INSERT INTO acoustic_soundscape (
                         station_id, day,
@@ -311,14 +338,18 @@ async def sync_acoustic_soundscape(force: bool = False) -> int:
                       r.get("n_minutes_recorded"), r.get("source_url"))
                      for r in rows],
                 )
-            total_inserted += len(rows)
+            total_inserted += inserted
+            total_fetched += len(rows)
         except Exception as exc:
             log.warning("acoustic soundscape upsert failed for %s: %s", st["station_id"], exc)
 
     global _acoustic_soundscape_cache
     _acoustic_soundscape_cache = {}
-    await _log_sync("acoustic-soundscape", total_inserted, total_inserted)
-    log.info("_sync_acoustic_soundscape: %d total daily rows", total_inserted)
+    async with db.pool.acquire() as conn:
+        in_table = await conn.fetchval("SELECT count(*) FROM acoustic_soundscape")
+    await _log_sync("acoustic-soundscape", total_inserted, in_table)
+    log.info("_sync_acoustic_soundscape: %d daily rows fetched, %d genuinely new, "
+             "%d in table", total_fetched, total_inserted, in_table)
     return total_inserted
 
 
@@ -331,6 +362,18 @@ async def sync_noise_risk():
     from ingestion.noise_ingest import main as _noise_ingest
     from ingestion.cetacean_ingest import main as _cet_ingest
     from ingestion.noise_risk_compute import main as _compute
+
+    # noise_cells and cetacean_cells are upserted `ON CONFLICT (cell_key) DO
+    # UPDATE` by their ingest modules, which return nothing. Counting the table
+    # afterwards and calling that figure `records_added` reported the entire
+    # grid as new arrivals on every run — sync_log carried noise_cells 101/101
+    # and cetacean_cells 7189/7189 on 2026-09-10, exactly the table sizes, so a
+    # stalled ingest was indistinguishable from a healthy one. Bracketing the
+    # call is the smallest honest measurement that does not reach into the
+    # ingest modules.
+    async with db.pool.acquire() as conn:
+        noise_before = await conn.fetchval("SELECT COUNT(*) FROM noise_cells")
+        cet_before   = await conn.fetchval("SELECT COUNT(*) FROM cetacean_cells")
 
     await _noise_ingest()
     log.info("noise_risk: noise_cells populated")
@@ -345,8 +388,10 @@ async def sync_noise_risk():
         noise_count = await conn.fetchval("SELECT COUNT(*) FROM noise_cells")
         cet_count   = await conn.fetchval("SELECT COUNT(*) FROM cetacean_cells")
         grid_count  = await conn.fetchval("SELECT COUNT(*) FROM noise_risk_grid")
-        await _log_sync("noise_cells",   noise_count, noise_count)
-        await _log_sync("cetacean_cells", cet_count,   cet_count)
+        await _log_sync("noise_cells",   noise_count - noise_before, noise_count)
+        await _log_sync("cetacean_cells", cet_count - cet_before,    cet_count)
+        # ⛔ The only honest same-value pair in this file: noise_risk_compute
+        # TRUNCATEs noise_risk_grid and rebuilds it, so every row really is new.
         await _log_sync("noise_risk",    grid_count,  grid_count)
 
     _noise_risk_cache = None

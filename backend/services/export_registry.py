@@ -224,7 +224,12 @@ _FIELDS: dict[str, FieldSource] = {
             source_url="https://data.marine.copernicus.eu/",
             license="Copernicus Marine Service licence",
             note="Eastward (u) / northward (v) velocity in m/s at surface and 1000 m. Exported "
-                 "from the platform's baked ~0.5° field; native CMEMS resolution at source.",
+                 "from the platform's baked ~0.5° field; native CMEMS resolution at source. "
+                 "Values come from the model's float grid. Where that grid is missing for a "
+                 "depth the sampler falls back to the 8-bit rendering texture, whose step is "
+                 "6/255 = 0.0235 m/s across a ±3 m/s span — at 1000 m, where the median speed "
+                 "is about 0.037 m/s, that fallback resolves most of the ocean to one or two "
+                 "steps. Measured 2026-09-10.",
         ),
     ),
 }

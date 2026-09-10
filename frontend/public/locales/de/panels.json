@@ -794,7 +794,13 @@
     "statusLabel": "Status",
     "waveHeightLabel": "Wellenhöhe",
     "windLabel": "Wind",
-    "body": "Stationäre Tiefsee-Verankerungsstation zur Messung von Temperatur, Salzgehalt und Strömungen über mehrjährige Zeiträume. Teil des globalen OceanSITES-Netzwerks, betrieben über OceanOPS."
+    "body": "Stationäre Tiefsee-Verankerungsstation zur Messung von Temperatur, Salzgehalt und Strömungen über mehrjährige Zeiträume. Teil des globalen OceanSITES-Netzwerks, betrieben über OceanOPS.",
+    "modelLabel": "Plattformmodell",
+    "ageDaysLabel": "Einsatzdauer",
+    "ageDaysValue": "{{days}} Tage",
+    "ageDaysWithYears": "{{days}} Tage (~{{years}} J.)",
+    "qcWithheld": "PMEL hat {{count}} Messwert(e) als fragwürdig oder schlecht markiert; sie werden nicht angezeigt: {{fields}}. Das ist das Qualitätskennzeichen des Herausgebers, keine Lücke in unserem Abruf.",
+    "qcLowered": "PMEL stuft {{count}} dieser Messwerte als geringere Qualität ein: {{fields}}."
   },
   "offshore": {
     "areaLabel": "Fläche",
@@ -830,7 +836,11 @@
     "qcDoubtfulTooltip": "Ocean Networks Canada hat diese Messung als zweifelhaft gekennzeichnet (Qualitätsflag {{flag}}). Der Wert wird wie veröffentlicht angezeigt; mit Vorsicht zu behandeln.",
     "panelBadge": "ONC-Observatorium",
     "stationSectionTitle": "Station",
-    "body": "Eine Station im Beobachtungsnetz von Ocean Networks Canada — kabelgebundene Meeresbodenknoten sowie Driftbojen und Expeditionsinstrumente. Die angezeigten Messwerte sind die neuesten, die ONC vorliegen; bei einer stillgelegten Station können sie historisch sein (CC BY 4.0)."
+    "body": "Eine Station im Beobachtungsnetz von Ocean Networks Canada — kabelgebundene Meeresbodenknoten sowie Driftbojen und Expeditionsinstrumente. Die angezeigten Messwerte sind die neuesten, die ONC vorliegen; bei einer stillgelegten Station können sie historisch sein (CC BY 4.0).",
+    "earthquakesNone": "Keine Erdbeben im Umkreis von 200 km in den letzten 30 Tagen erfasst.",
+    "earthquakesUnavailable": "Nahe Erdbeben konnten nicht geladen werden — hier ist unser Abruf gescheitert, nicht der Meeresboden ruhig.",
+    "earthquakesTotal_one": "{{count}} Ereignis insgesamt",
+    "earthquakesTotal_other": "{{count}} Ereignisse insgesamt"
   },
   "noaaCable": {
     "detailsSectionTitle": "Korridor-Details",

@@ -794,7 +794,13 @@
     "statusLabel": "Statut",
     "waveHeightLabel": "Hauteur des vagues",
     "windLabel": "Vent",
-    "body": "Station de mouillage fixe en haute mer mesurant la température, la salinité et les courants sur des périodes pluriannuelles. Fait partie du réseau mondial OceanSITES opéré via OceanOPS."
+    "body": "Station de mouillage fixe en haute mer mesurant la température, la salinité et les courants sur des périodes pluriannuelles. Fait partie du réseau mondial OceanSITES opéré via OceanOPS.",
+    "modelLabel": "Modèle de plateforme",
+    "ageDaysLabel": "Âge du déploiement",
+    "ageDaysValue": "{{days}} jours",
+    "ageDaysWithYears": "{{days}} jours (~{{years}} ans)",
+    "qcWithheld": "PMEL a signalé {{count}} relevé(s) comme douteux ou mauvais ; ils ne sont pas affichés : {{fields}}. Il s'agit du drapeau qualité de l'éditeur, pas d'une lacune de notre récupération.",
+    "qcLowered": "PMEL classe {{count}} de ces relevés en qualité inférieure : {{fields}}."
   },
   "offshore": {
     "areaLabel": "Superficie",
@@ -830,7 +836,11 @@
     "qcDoubtfulTooltip": "Ocean Networks Canada a signalé cette mesure comme douteuse (indicateur qualité {{flag}}). La valeur est affichée telle que publiée ; à interpréter avec prudence.",
     "panelBadge": "Observatoire ONC",
     "stationSectionTitle": "Station",
-    "body": "Une station du réseau d'observation d'Ocean Networks Canada — nœuds câblés au fond marin, bouées dérivantes et instruments d'expédition. Les lectures affichées sont les plus récentes dont dispose ONC ; pour une station retirée, elles peuvent être historiques (CC BY 4.0)."
+    "body": "Une station du réseau d'observation d'Ocean Networks Canada — nœuds câblés au fond marin, bouées dérivantes et instruments d'expédition. Les lectures affichées sont les plus récentes dont dispose ONC ; pour une station retirée, elles peuvent être historiques (CC BY 4.0).",
+    "earthquakesNone": "Aucun séisme enregistré dans un rayon de 200 km au cours des 30 derniers jours.",
+    "earthquakesUnavailable": "Les séismes proches n'ont pas pu être chargés — c'est notre récupération qui a échoué, pas un plancher océanique calme.",
+    "earthquakesTotal_one": "{{count}} événement au total",
+    "earthquakesTotal_other": "{{count}} événements au total"
   },
   "noaaCable": {
     "detailsSectionTitle": "Détails du couloir",

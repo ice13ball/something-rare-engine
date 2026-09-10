@@ -1302,10 +1302,12 @@ async def sync_onc_ctd_profiles() -> int:
     date_to   = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
     sem = asyncio.Semaphore(8)
-    inserted = 0
+    inserted = 0   # casts we had never seen
+    revised  = 0   # casts ONC re-published with a different profile
+    fetched  = 0   # casts that came back with usable data at all
 
     async def _fetch_profile(client: httpx.AsyncClient, location_code: str, device_code: str):
-        nonlocal inserted
+        nonlocal inserted, revised, fetched
         async with sem:
             # Fetch pressure as the depth proxy + temperature as scalar
             params_base = {
@@ -1375,11 +1377,32 @@ async def sync_onc_ctd_profiles() -> int:
                                         for v in sensors[key]["values"]]
 
                 async with db.pool.acquire() as conn:
-                    await conn.execute(
+                    # ⛔ This was DO NOTHING against a table that carries
+                    # updated_at. The sync re-fetches a rolling 7-day window
+                    # every run, so ONC had seven chances to hand us a
+                    # delayed-mode QC revision of the same cast and we threw
+                    # every one of them away — the first version ever seen was
+                    # frozen, and updated_at recorded when we first stored it
+                    # rather than anything about the data.
+                    #
+                    # ⚠️ Unlike sios_datasets, no TRUNCATE precedes this insert
+                    # (checked: onc.py TRUNCATEs onc_instruments and
+                    # onc_location_categories only), so the DO NOTHING really
+                    # was inert-looking but load-bearing.
+                    #
+                    # The WHERE keeps updated_at meaningful: it moves only when
+                    # the payload actually changed, so an unchanged daily
+                    # re-fetch returns no row and counts as neither.
+                    row = await conn.fetchrow(
                         """INSERT INTO onc_ctd_profiles
                            (location_code, device_code, cast_time, profile, updated_at)
                            VALUES ($1, $2, $3, $4::jsonb, NOW())
-                           ON CONFLICT (location_code, device_code, cast_time) DO NOTHING""",
+                           ON CONFLICT (location_code, device_code, cast_time) DO UPDATE
+                              SET profile    = EXCLUDED.profile,
+                                  updated_at = NOW()
+                            WHERE onc_ctd_profiles.profile
+                                  IS DISTINCT FROM EXCLUDED.profile
+                           RETURNING (xmax = 0) AS was_insert""",
                         location_code, device_code, cast_time, json.dumps(profile),
                     )
                     # Keep only the 3 most recent casts per (location, device)
@@ -1393,7 +1416,15 @@ async def sync_onc_ctd_profiles() -> int:
                              )""",
                         location_code, device_code,
                     )
-                inserted += 1
+                # ⛔ `inserted += 1` here counted every profile we FETCHED,
+                # including the ones the old DO NOTHING silently dropped:
+                # sync_log read onc-ctd 15/15 against a table of 84 rows.
+                fetched += 1
+                if row is not None:
+                    if row["was_insert"]:
+                        inserted += 1
+                    else:
+                        revised += 1
             except Exception as exc:
                 log.warning("onc_ctd_profiles[%s]: %s", location_code, exc)
 
@@ -1402,8 +1433,11 @@ async def sync_onc_ctd_profiles() -> int:
 
     global _onc_ctd_cache
     _onc_ctd_cache = {}
-    await _log_sync("onc-ctd", inserted, inserted)
-    log.info("onc_ctd_profiles: %d profiles stored", inserted)
+    async with db.pool.acquire() as conn:
+        in_table = await conn.fetchval("SELECT count(*) FROM onc_ctd_profiles")
+    await _log_sync("onc-ctd", inserted, in_table)
+    log.info("onc_ctd_profiles: %d fetched, %d new, %d revised, %d in table",
+             fetched, inserted, revised, in_table)
     return inserted
 
 

@@ -29,6 +29,17 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
   const fetchedAt = p.obs_fetched_at ? String(p.obs_fetched_at) : null;
   const obsSource = p.obs_source ? String(p.obs_source) : null;
 
+  // PMEL attaches a quality flag to every value it publishes and states the
+  // rule in its own metadata: "To get probably valid data only, request
+  // QT_5025>=1 and QT_5025<=3." The ingest drops 4 (questionable) and 5 (bad)
+  // but keeps the flag, so a value we withheld can be named as withheld
+  // instead of leaving the same blank a station with no sensor leaves.
+  // ⛔ Measured 2026-09-10 across the live query: 345 readings, all flag 2,
+  // none rejected. This section is a guard, not a description of today.
+  const qc = (obs?.qc ?? null) as Record<string, number> | null;
+  const withheld = qc ? Object.keys(qc).filter(k => qc[k] >= 4).sort() : [];
+  const lowered  = qc ? Object.keys(qc).filter(k => qc[k] === 3).sort() : [];
+
   const obsAgeDays = obs?.obs_time
     ? Math.floor((Date.now() - new Date(String(obs.obs_time)).getTime()) / 86_400_000)
     : null;
@@ -56,11 +67,28 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
         {p.wigos_id != null && <Row label={t("oceansites.wigosLabel")} value={String(p.wigos_id)} />}
         <Row label={t("oceansites.statusLabel")}    value={tEnum(t, "status", String(p.status ?? ""))} />
         <Row label={t("oceansites.networkLabel")}   value={String(p.network ?? "—")} />
+        {/* OceanOPS `model.name` — the platform type, populated on all 1,072
+            stations and rendered nowhere until 2026-09-10. It is what tells a
+            reader whether they clicked a TAO_REFRESH tropical mooring or a
+            generic met buoy, and the two measure different things. */}
+        {p.model != null && <Row label={t("oceansites.modelLabel")} value={String(p.model)} />}
         {p.country != null && <Row label={t("oceansites.countryLabel")} value={String(p.country)} />}
         {p.deploy_date != null && <Row label={t("oceansites.deployedLabel")} value={String(p.deploy_date).slice(0, 10)} />}
         {p.deploy_ship != null && <Row label={t("oceansites.deployShipLabel")} value={String(p.deploy_ship)} />}
         {typeof p.deployment_count === "number" && p.deployment_count > 0 && (
           <Row label={t("oceansites.deploymentCountLabel")} value={String(p.deployment_count)} />
+        )}
+        {/* ⚠️ OceanOPS reports `age` for only 122 of 1,072 stations (9-5,568
+            days). Conditional for the same reason as wigos_id above: an em
+            dash on the other 950 would read as a fetch that failed. */}
+        {typeof p.age_days === "number" && p.age_days > 0 && (
+          <Row label={t("oceansites.ageDaysLabel")}
+               value={p.age_days >= 365
+                 ? t("oceansites.ageDaysWithYears", {
+                     days: Math.round(p.age_days),
+                     years: (p.age_days / 365.25).toFixed(1),
+                   })
+                 : t("oceansites.ageDaysValue", { days: Math.round(p.age_days) })} />
         )}
         {p.sensor_models != null && String(p.sensor_models).trim() !== "" && (
           <Row label={t("oceansites.sensorModelsLabel")} value={groupSensorModels(String(p.sensor_models))} />
@@ -86,6 +114,16 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
             {obs.wvht != null && <Row label={t("oceansites.waveHeightLabel")} value={`${Number(obs.wvht).toFixed(1)} m`} />}
             {obs.pres != null && <Row label={t("oceansites.pressureLabel")}   value={`${Number(obs.pres).toFixed(1)} hPa`} />}
             {obs.sss != null && <Row label={t("oceansites.salinityLabel")} value={`${Number(obs.sss).toFixed(2)} PSU`} />}
+            {withheld.length > 0 && (
+              <WarningBanner color="orange">
+                {t("oceansites.qcWithheld", { fields: withheld.join(", "), count: withheld.length })}
+              </WarningBanner>
+            )}
+            {lowered.length > 0 && (
+              <p className="text-xs text-white/60 mt-1">
+                {t("oceansites.qcLowered", { fields: lowered.join(", "), count: lowered.length })}
+              </p>
+            )}
             {fetchedAt && (
               <p className="text-xs text-white/60 mt-1">
                 Cached {fetchedAt.slice(0, 10)}

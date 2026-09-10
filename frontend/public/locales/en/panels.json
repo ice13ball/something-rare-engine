@@ -794,7 +794,13 @@
     "stationSectionTitle": "Station",
     "statusLabel": "Status",
     "waveHeightLabel": "Wave height",
-    "windLabel": "Wind"
+    "windLabel": "Wind",
+    "modelLabel": "Platform model",
+    "ageDaysLabel": "Deployment age",
+    "ageDaysValue": "{{days}} days",
+    "ageDaysWithYears": "{{days}} days (~{{years}} yr)",
+    "qcWithheld": "PMEL flagged {{count}} reading(s) as questionable or bad and they are not shown: {{fields}}. This is the publisher's own quality flag, not a gap in our fetch.",
+    "qcLowered": "PMEL rates {{count}} of these reading(s) as lower quality: {{fields}}."
   },
   "offshore": {
     "areaLabel": "Area",
@@ -830,7 +836,11 @@
     "qcDoubtfulBadge": "QC",
     "qcDoubtfulTooltip": "Ocean Networks Canada flagged this measurement as doubtful (quality flag {{flag}}). The value is shown as published; treat it with caution.",
     "panelBadge": "ONC Observatory",
-    "stationSectionTitle": "Station"
+    "stationSectionTitle": "Station",
+    "earthquakesNone": "No earthquakes recorded within 200 km in the last 30 days.",
+    "earthquakesUnavailable": "Nearby earthquakes could not be loaded — this is our fetch failing, not a quiet seafloor.",
+    "earthquakesTotal_one": "{{count}} event total",
+    "earthquakesTotal_other": "{{count}} events total"
   },
   "noaaCable": {
     "detailsSectionTitle": "Cable corridor details",

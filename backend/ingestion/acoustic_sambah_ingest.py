@@ -31,6 +31,7 @@ from datetime import date
 from typing import Any
 
 import httpx
+from ingestion.http_retry import get_with_retry
 
 log = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ async def fetch_sambah_stations() -> list[dict[str, Any]]:
         # Step 1: fetch dataset metadata to get current version ID
         encoded_doi = _DATASET_DOI.replace("/", "%2F").replace(":", "%3A")
         meta_url = f"{_DRYAD_API}/datasets/doi%3A{encoded_doi}"
-        r = await client.get(meta_url, headers=headers)
+        r = await get_with_retry(client, meta_url, headers=headers, label="sambah metadata")
         r.raise_for_status()
         meta = r.json()
 
@@ -105,7 +106,7 @@ async def fetch_sambah_stations() -> list[dict[str, Any]]:
 
         # Step 2: fetch file list for this version
         files_url = f"{_DRYAD_API}/versions/{version_id}/files"
-        r = await client.get(files_url, headers=headers)
+        r = await get_with_retry(client, files_url, headers=headers, label="sambah file list")
         r.raise_for_status()
         files_data = r.json()
 
@@ -135,7 +136,7 @@ async def fetch_sambah_stations() -> list[dict[str, Any]]:
 
         # Step 3: download station_info.csv
         download_url = f"{_DRYAD_BASE}{download_href}"
-        r = await client.get(download_url, headers=headers)
+        r = await get_with_retry(client, download_url, headers=headers, label="sambah download")
         r.raise_for_status()
         csv_text = r.text
 

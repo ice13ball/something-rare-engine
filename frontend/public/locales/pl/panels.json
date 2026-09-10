@@ -794,7 +794,13 @@
     "statusLabel": "Status",
     "waveHeightLabel": "Wysokość fali",
     "windLabel": "Wiatr",
-    "body": "Stacjonarna stacja głębinowa mierząca temperaturę, zasolenie i prądy przez wiele lat. Część globalnej sieci OceanSITES obsługiwanej przez OceanOPS."
+    "body": "Stacjonarna stacja głębinowa mierząca temperaturę, zasolenie i prądy przez wiele lat. Część globalnej sieci OceanSITES obsługiwanej przez OceanOPS.",
+    "modelLabel": "Model platformy",
+    "ageDaysLabel": "Wiek rozstawienia",
+    "ageDaysValue": "{{days}} dni",
+    "ageDaysWithYears": "{{days}} dni (~{{years}} lat)",
+    "qcWithheld": "PMEL oznaczył {{count}} odczyt(y) jako wątpliwe lub złe i nie są pokazane: {{fields}}. To flaga jakości samego wydawcy, nie luka w naszym pobraniu.",
+    "qcLowered": "PMEL ocenia {{count}} z tych odczytów jako niższej jakości: {{fields}}."
   },
   "offshore": {
     "areaLabel": "Obszar",
@@ -830,7 +836,13 @@
     "qcDoubtfulTooltip": "Ocean Networks Canada oznaczyło ten pomiar jako wątpliwy (flaga jakości {{flag}}). Wartość pokazujemy tak, jak ją opublikowano — traktuj ją ostrożnie.",
     "panelBadge": "Obserwatorium ONC",
     "stationSectionTitle": "Stacja",
-    "body": "Stacja w sieci obserwacyjnej Ocean Networks Canada — węzły kablowe na dnie morskim oraz boje dryfujące i przyrządy z rejsów badawczych. Pokazane odczyty to najnowsze, jakimi dysponuje ONC; dla stacji wycofanej mogą być historyczne (CC BY 4.0)."
+    "body": "Stacja w sieci obserwacyjnej Ocean Networks Canada — węzły kablowe na dnie morskim oraz boje dryfujące i przyrządy z rejsów badawczych. Pokazane odczyty to najnowsze, jakimi dysponuje ONC; dla stacji wycofanej mogą być historyczne (CC BY 4.0).",
+    "earthquakesNone": "Brak trzęsień ziemi w promieniu 200 km w ciągu ostatnich 30 dni.",
+    "earthquakesUnavailable": "Nie udało się pobrać pobliskich trzęsień ziemi — to nasze pobranie zawiodło, a nie cisza na dnie.",
+    "earthquakesTotal_one": "{{count}} zdarzenie łącznie",
+    "earthquakesTotal_few": "{{count}} zdarzenia łącznie",
+    "earthquakesTotal_many": "{{count}} zdarzeń łącznie",
+    "earthquakesTotal_other": "{{count}} zdarzeń łącznie"
   },
   "noaaCable": {
     "detailsSectionTitle": "Szczegóły korytarza",

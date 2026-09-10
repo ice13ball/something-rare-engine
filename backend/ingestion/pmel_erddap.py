@@ -29,26 +29,55 @@ log = logging.getLogger(__name__)
 
 _BASE = "https://data.pmel.noaa.gov/pmel/erddap/tabledap"
 
-# (dataset_id, [variables]) — variables map to keys in our normalized obs dict.
+# (dataset_id, [value variables], [quality variables]) — value variables map to
+# keys in our normalized obs dict, quality variables to PMEL's own flag for them.
 # WU_422/WV_423 are u/v wind components (m/s); we derive speed + direction.
-_DATASETS: list[tuple[str, list[str]]] = [
-    ("pmelTaoDySst",  ["T_25"]),                # sea surface temp (°C)
-    ("pmelTaoDyW",    ["WU_422", "WV_423"]),   # wind u/v (m/s)
-    ("pmelTaoDyAirt", ["AT_21"]),               # air temp (°C)
-    ("pmelTaoDyBp",   ["BP_915"]),              # barometric pressure (hPa)
-    ("pmelTaoDySss",  ["S_41"]),                # sea surface salinity (PSU)
+#
+# ⛔ The quality columns were absent from this list until 2026-09-10, while the
+# sync's docstring called PMEL "daily QC'd". PMEL publishes the flag next to
+# every value and says what to do with it, verbatim from its own metadata:
+#
+#   QT_5025 description: "Quality: 0=missing data, 1=highest, 2=standard,
+#   3=lower, 4=questionable, 5=bad, -9=contact ... To get probably valid data
+#   only, request QT_5025>=1 and QT_5025<=3."
+#
+# We asked for none of them. Measured the same day across the exact query this
+# module runs, every value came back flag 2 — 57 stations for SST, 53 for SSS,
+# 65 for air temperature, zero above 3 anywhere. So nothing bad was reaching
+# readers; there was simply nothing stopping it.
+_ACCEPTABLE_QC = (1, 2, 3)
+
+_DATASETS: list[tuple[str, list[str], list[str]]] = [
+    ("pmelTaoDySst",  ["T_25"],              ["QT_5025"]),    # sea surface temp (°C)
+    ("pmelTaoDyW",    ["WU_422", "WV_423"],  ["QWS_5401", "QWD_5410"]),  # wind u/v (m/s)
+    ("pmelTaoDyAirt", ["AT_21"],             ["QAT_5021"]),   # air temp (°C)
+    ("pmelTaoDyBp",   ["BP_915"],            ["QBP_5915"]),   # pressure (hPa)
+    ("pmelTaoDySss",  ["S_41"],              ["QS_5041"]),    # sea surface salinity (PSU)
 ]
 
 
+def _qc_verdict(row: list[Any], first_flag_index: int, n_flags: int) -> int | None:
+    """The worst flag PMEL attached to this row, or None if it attached none.
+
+    Wind is the reason this takes several: we ask for u/v components and derive
+    speed and direction from BOTH, so a reading is only usable if PMEL vouches
+    for the speed AND the direction. The worst of the two decides.
+    """
+    flags = [row[first_flag_index + i] for i in range(n_flags)]
+    present = [int(f) for f in flags if isinstance(f, (int, float))]
+    return max(present) if present else None
+
+
 async def _fetch_dataset(
-    client: httpx.AsyncClient, dataset: str, variables: list[str], since_iso: str
+    client: httpx.AsyncClient, dataset: str, variables: list[str],
+    quality: list[str], since_iso: str
 ) -> list[list[Any]]:
     """Bulk-fetch latest reading per station for one ERDDAP dataset.
 
     Returns ERDDAP rows: [station, time, var1, var2, ...]. Empty list on any
     error or 404 (no rows in the time window).
     """
-    cols = "station,time," + ",".join(variables)
+    cols = "station,time," + ",".join(variables + quality)
     # ERDDAP requires the orderByMax argument quoted with %22; raw quotes get
     # rejected by the coastwatch mirror (where pmel.noaa.gov silently redirects).
     url = (
@@ -95,13 +124,19 @@ async def fetch_pmel_observations(lookback_days: int = 365) -> dict[str, dict[st
 
     async with httpx.AsyncClient() as client:
         results = await asyncio.gather(
-            *[_fetch_dataset(client, ds, vars_, since) for ds, vars_ in _DATASETS]
+            *[_fetch_dataset(client, ds, vars_, qc_, since)
+              for ds, vars_, qc_ in _DATASETS]
         )
 
     # Merge per-dataset results by station ID.
     merged: dict[str, dict[str, Any]] = {}
 
-    for (dataset, variables), rows in zip(_DATASETS, results):
+    #: dataset -> the obs keys it fills, so a rejected reading can be named.
+    _KEYS = {"pmelTaoDySst": ("wtmp",), "pmelTaoDyW": ("wspd", "wdir"),
+             "pmelTaoDyAirt": ("atmp",), "pmelTaoDyBp": ("pres",),
+             "pmelTaoDySss": ("sss",)}
+
+    for (dataset, variables, quality), rows in zip(_DATASETS, results):
         for row in rows:
             station = row[0]
             obs_time = row[1]
@@ -111,6 +146,18 @@ async def fetch_pmel_observations(lookback_days: int = 365) -> dict[str, dict[st
             existing_time = station_obs.get("obs_time")
             if existing_time is None or obs_time > existing_time:
                 station_obs["obs_time"] = obs_time
+
+            # ⛔ "Missing" and "broken" must not share a code path. A value PMEL
+            # flagged as questionable is dropped, but the flag is kept under
+            # `qc`, so the panel can say "PMEL flagged this reading" instead of
+            # showing the same blank a station with no sensor shows.
+            flag = _qc_verdict(row, 2 + len(variables), len(quality))
+            qc = station_obs.setdefault("qc", {})
+            for key in _KEYS[dataset]:
+                if flag is not None:
+                    qc[key] = flag
+            if flag is not None and flag not in _ACCEPTABLE_QC:
+                continue
 
             if dataset == "pmelTaoDySst":
                 station_obs["wtmp"] = row[2]
@@ -126,8 +173,10 @@ async def fetch_pmel_observations(lookback_days: int = 365) -> dict[str, dict[st
             elif dataset == "pmelTaoDySss":
                 station_obs["sss"] = row[2]
 
-    # Drop entries that ended up with no usable variables (only obs_time).
+    # Drop entries that ended up with no usable variables. ⛔ `qc` and
+    # `obs_time` are metadata, not readings — a station whose every value PMEL
+    # rejected must not survive here as if it carried data.
     return {
         sid: obs for sid, obs in merged.items()
-        if any(k != "obs_time" and v is not None for k, v in obs.items())
+        if any(k not in ("obs_time", "qc") and v is not None for k, v in obs.items())
     }

@@ -138,6 +138,11 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
   const [adcpLoaded, setAdcpLoaded] = useState(false);
   const [ctdCasts, setCtdCasts] = useState<CtdCast[] | null>(null);
   const [earthquakes, setEarthquakes] = useState<EarthquakeRow[] | null>(null);
+  // ⛔ The list alone cannot carry three states. `[]` meant both "no quakes in
+  // the window" and "the fetch failed" — the catch below set the same empty
+  // array — and the render gate hid the section for both, and for loading too.
+  // A reader could not tell a quiet seafloor from a broken endpoint.
+  const [quakeState, setQuakeState] = useState<"loading" | "ok" | "error">("loading");
 
   useEffect(() => {
     if (!locationCode) return;
@@ -150,7 +155,9 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
       fetch(`${API}/api/v1/onc/ctd/${encodeURIComponent(locationCode)}`)
         .then(r => r.ok ? r.json() : []).then(setCtdCasts).catch(() => setCtdCasts([])),
       fetch(`${API}/api/v1/onc/earthquakes-near/${encodeURIComponent(locationCode)}?radius_km=200&days=30`)
-        .then(r => r.ok ? r.json() : []).then(setEarthquakes).catch(() => setEarthquakes([])),
+        .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then(d => { setEarthquakes(Array.isArray(d) ? d : []); setQuakeState("ok"); })
+        .catch(() => { setEarthquakes([]); setQuakeState("error"); }),
     ]);
   }, [locationCode]);
 
@@ -302,9 +309,16 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
         </Section>
       )}
 
-      {/* Earthquakes */}
-      {earthquakes !== null && earthquakes.length > 0 && (
+      {/* Earthquakes — silent only while loading. */}
+      {quakeState !== "loading" && (
         <Section title={t("onc.earthquakesSectionTitle")}>
+          {quakeState === "error" && (
+            <p className="text-xs text-white/65 italic">{t("onc.earthquakesUnavailable")}</p>
+          )}
+          {quakeState === "ok" && earthquakes?.length === 0 && (
+            <p className="text-xs text-white/65 italic">{t("onc.earthquakesNone")}</p>
+          )}
+          {quakeState === "ok" && !!earthquakes?.length && (
           <div className="space-y-1">
             {earthquakes.slice(0, 8).map(eq => (
               <div key={eq.usgs_id} className="flex items-center justify-between text-[11px]">
@@ -316,9 +330,12 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-white/50 mt-1">
-            {earthquakes.length} event{earthquakes.length !== 1 ? "s" : ""} total
-          </p>
+          )}
+          {quakeState === "ok" && !!earthquakes?.length && (
+            <p className="text-[10px] text-white/50 mt-1">
+              {t("onc.earthquakesTotal", { count: earthquakes.length })}
+            </p>
+          )}
         </Section>
       )}
 

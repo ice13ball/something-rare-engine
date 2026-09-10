@@ -11873,10 +11873,7 @@ exports[`DetailPanel dispatch matrix > renders onc after data loads 1`] = `
           <p
             class="text-[10px] text-white/50 mt-1"
           >
-            3
-             event
-            s
-             total
+            3 events total
           </p>
         </div>
         <p
