@@ -568,3 +568,41 @@ def test_the_frontend_export_menu_does_not_offer_them_either():
            / "frontend" / "src" / "utils" / "exportLayers.ts").read_text()
     for layer_id in NOT_EXPORTABLE:
         assert f'id: "{layer_id}"' not in src, f"{layer_id} still offered in the export menu"
+
+
+def test_every_registry_entry_the_menu_can_reach_is_actually_in_the_menu():
+    """The other direction of the same door, and the one nobody was watching.
+
+    `test_the_frontend_export_menu_does_not_offer_them_either` guards against
+    offering too much. Nothing guarded against offering too little — and the
+    registry does NOT auto-discover, so a backend entry with no row in
+    `EXPORT_LAYERS_FE` is reachable by curl and invisible to every user.
+
+    Found 2026-09-10 by check 20f of the abyssal-new-layer-check skill:
+    `permafrost-thaw`, `arctic-sediment-carbon` and `seabed-substrate` had
+    served real rows (539 / 200 / 441 over a small bbox) for as long as they
+    had existed, and no user could see any of them.
+
+    ⛔ A member of a CompositeExport is exempt, and that exemption is real
+    rather than a loophole: the six `cables-*` members are only meaningful
+    inside `submarine-cables`, while the four `marine-carbon` members ARE
+    listed individually. So membership PERMITS absence, it does not require
+    it — and everything that is nobody's member must be present.
+    """
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[2]
+           / "frontend" / "src" / "utils" / "exportLayers.ts").read_text()
+
+    members = {m for e in EXPORT_LAYERS.values()
+               if isinstance(e, CompositeExport) for m in e.members}
+    standalone = sorted(k for k in EXPORT_LAYERS if k not in members)
+    assert len(standalone) > 20, (
+        "fixture problem: only %d standalone entries — the registry did not "
+        "load, so this test proves nothing" % len(standalone)
+    )
+
+    missing = [k for k in standalone if f'id: "{k}"' not in src]
+    assert not missing, (
+        "registered on the backend, absent from EXPORT_LAYERS_FE, therefore "
+        "invisible in the ExportPanel: " + ", ".join(missing)
+    )

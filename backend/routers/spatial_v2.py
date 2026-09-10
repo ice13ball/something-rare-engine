@@ -1116,7 +1116,8 @@ async def wod_oxygen_by_id(feature_id: int):
     async with db.pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT id, wod_cast_id, lat, lon, profile_date, decade, cruise, dataset,
+            SELECT id, wod_cast_id, lat, lon, profile_date, profile_time, time_precision,
+                   decade, cruise, dataset,
                    country, probe_type, max_depth_m, n_levels, o2_profile, o2_units, qc_flag, qc_note
             FROM wod_oxygen_profiles WHERE id = $1
             """,
@@ -1129,6 +1130,8 @@ async def wod_oxygen_by_id(feature_id: int):
         d["o2_profile"] = json.loads(d["o2_profile"])   # asyncpg returns JSONB as str
     if d.get("profile_date") is not None:
         d["profile_date"] = d["profile_date"].isoformat()
+    if d.get("profile_time") is not None:
+        d["profile_time"] = d["profile_time"].isoformat()
     return d
 
 
@@ -1195,7 +1198,16 @@ async def geotraces_by_id(station_id: str):
         raise HTTPException(503, "Database pool unavailable")
     async with db.pool.acquire() as conn:
         st = await conn.fetchrow(
+            # ⛔ sample_time, n_samples and the three depth columns were absent
+            # from this SELECT while GeotracesStationPanel read all five. Every
+            # one is gated on `!= null` in the panel, so five rows — including
+            # the sampling DATE and the depth range — silently rendered nothing
+            # on every one of the 3,874 stations. Measured 2026-09-10: all five
+            # are 100% populated in the table (bottom_depth_m 99.7%), so this
+            # was data we had, stored, and hid. Checks 21e and 24d at once.
             """SELECT station_id, cruise, station, lat, lon, decade,
+                      sample_time, n_samples,
+                      min_depth_m, max_depth_m, bottom_depth_m,
                       has_mn, has_fe, has_co, has_ni, has_cu,
                       mn_max, fe_max, co_max, ni_max, cu_max
                FROM geotraces_stations WHERE station_id = $1""",
@@ -1254,6 +1266,11 @@ async def geotraces_by_id(station_id: str):
             else []
         )
     d = dict(st)
+    # asyncpg hands back a datetime; the panel and every JSON consumer want ISO.
+    # The per-sample rows below already do this — the station rollup never did,
+    # because it was never selected.
+    if d.get("sample_time") is not None:
+        d["sample_time"] = d["sample_time"].isoformat()
     units = {r["param"]: r["unit"] for r in units_rows}
     out = []
     measurements: dict[str, list[dict]] = {}

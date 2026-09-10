@@ -684,7 +684,8 @@ _VECTORS: dict[str, VectorExport] = {
     "wod-oxygen": VectorExport(
         id="wod-oxygen", label="WOD oxygen profiles", table="wod_oxygen_profiles",
         geom_col="t.geom", id_col="wod_cast_id", geom_kind="point", cap=50_000,
-        fields=("id", "wod_cast_id", "lat", "lon", "profile_date", "decade",
+        fields=("id", "wod_cast_id", "lat", "lon", "profile_date", "profile_time",
+                "time_precision", "decade",
                 "cruise", "dataset", "country", "probe_type",
                 "max_depth_m", "n_levels", "o2_profile", "o2_units",
                 "qc_flag", "qc_note"),

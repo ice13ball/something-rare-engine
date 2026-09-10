@@ -378,6 +378,34 @@ def mosaic_tiles(step: int = 30):
     return tiles
 
 
+async def _mosaic_get_with_retry(client, url, *, label, params=None, retries=3):
+    """Same backoff `fetch_mosaic_analysis` already used, made callable.
+
+    ⛔ The seed request had none of it. `_MOSAIC_GEO_URL` is the FIRST call of
+    the sync and the one that produces every core; a single transient failure
+    there aborted the run with zero cores written, while each of the ~200
+    per-tile sample requests below it retried three times. That is the exact
+    shape of the /argo/vocabulary defect (2026-09-09): one 429 on the opening
+    call threw away a whole run whose every later call was protected.
+
+    Returns the parsed body, or raises the last error — the caller decides,
+    because a seed failure and a tile failure do not mean the same thing.
+    """
+    last = None
+    for attempt in range(retries):
+        try:
+            r = await client.get(url, params=params, timeout=180)
+            if r.status_code == 200:
+                return r.json()
+            last = RuntimeError(f"HTTP {r.status_code}")
+            log.warning("mosaic: %s -> HTTP %s (attempt %d)", label, r.status_code, attempt + 1)
+        except Exception as exc:
+            last = exc
+            log.warning("mosaic: %s -> %s (attempt %d)", label, exc, attempt + 1)
+        await asyncio.sleep(2 * (attempt + 1))
+    raise last if last else RuntimeError(f"mosaic: {label} failed")
+
+
 async def fetch_mosaic_analysis(client, api_name, tile, retries=3):
     lat0, lat1, lon0, lon1 = tile
     params = {
@@ -412,7 +440,7 @@ async def sync_mosaic(force: bool = False) -> int:
     import httpx
     async with httpx.AsyncClient() as client:
         # 1) cores
-        geo = (await client.get(_MOSAIC_GEO_URL, timeout=180)).json()
+        geo = await _mosaic_get_with_retry(client, _MOSAIC_GEO_URL, label="geopoints seed")
         cores = mi.parse_geopoints(geo)
         # 2) per-analysis, bbox-tiled sections
         by_analysis = {}

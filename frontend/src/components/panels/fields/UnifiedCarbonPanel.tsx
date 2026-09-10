@@ -128,7 +128,18 @@ export function UnifiedCarbonPanel({ props: p }: { props: Record<string, unknown
           </p>
         ) : nearestObs === null ? (
           <p className="text-white/40 text-[11px] animate-pulse">Loading…</p>
-        ) : nearestObs.length === 0 ? null : (
+        ) : nearestObs.length === 0 ? (
+          // ⛔ NOT null. The section header and its caption render above this,
+          // so an empty array left a titled section with nothing under it —
+          // which reads as our panel being broken, not as the ocean being
+          // unsampled here. "we found none" and "we did not look" must not
+          // render the same (check 24e / 23a).
+          <p className="text-white/50 text-[11px]">
+            {t("unifiedCarbon.nearestObs.none", {
+              defaultValue: "No in-situ measurement within the search radius.",
+            })}
+          </p>
+        ) : (
           <div className="overflow-x-auto rounded border border-white/10">
             <table className="w-full text-[11px] font-mono">
               <tbody>

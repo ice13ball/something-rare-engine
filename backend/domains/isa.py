@@ -185,6 +185,7 @@ async def sync_mining_contracts(conn: asyncpg.Connection) -> int:
         32, "OBJECTID,AreaKey,ContractID,AreaType,AreaKM2,ActDate,Status"
     )
     inserted = 0
+    updated = 0
     for f in features:
         p = f.get("properties") or {}
         geom = f.get("geometry")
@@ -205,7 +206,7 @@ async def sync_mining_contracts(conn: asyncpg.Connection) -> int:
             act_date = datetime.fromtimestamp(p["ActDate"] / 1000, tz=timezone.utc)
             expiry_date = act_date.replace(year=act_date.year + 15)
 
-        result = await conn.execute(
+        row = await conn.fetchrow(
             """INSERT INTO mining_contracts
                    (isa_id, contractor_name, resource_type, area_km2, act_date, expiry_date, geom, is_high_risk)
                VALUES ($1, $2, $3, $4, $5, $6, ST_SetSRID(ST_GeomFromGeoJSON($7), 4326), FALSE)
@@ -215,11 +216,30 @@ async def sync_mining_contracts(conn: asyncpg.Connection) -> int:
                                               THEN EXCLUDED.resource_type
                                               ELSE mining_contracts.resource_type END,
                        act_date        = COALESCE(EXCLUDED.act_date, mining_contracts.act_date),
-                       expiry_date     = COALESCE(EXCLUDED.expiry_date, mining_contracts.expiry_date)""",
+                       expiry_date     = COALESCE(EXCLUDED.expiry_date, mining_contracts.expiry_date),
+                       -- ⛔ geom and area_km2 were absent from this SET, so an
+                       -- ISA boundary amendment could never reach the live
+                       -- table: the map kept whatever shape we saw first. ISA
+                       -- does amend contract areas, which is the whole reason
+                       -- this statement is DO UPDATE and not DO NOTHING.
+                       -- COALESCE, not a bare assignment: a feature arriving
+                       -- without geometry must not erase the boundary we hold.
+                       area_km2        = COALESCE(EXCLUDED.area_km2, mining_contracts.area_km2),
+                       geom            = COALESCE(EXCLUDED.geom, mining_contracts.geom)
+               RETURNING (xmax = 0) AS was_insert""",
             area_key, contractor, res_type, p.get("AreaKM2"), act_date, expiry_date, geom_json,
         )
-        if result == "INSERT 0 1":
+        # ⛔ `result == "INSERT 0 1"` cannot tell an insert from an update — an
+        # updated row reports the same string. Measured on production
+        # 2026-09-10: the sync logged records_added=1817 against
+        # total_records=1318. You cannot add 1,817 rows to a table holding
+        # 1,318; every amended contract counted as new, and the IndexNow ping
+        # below fired on every run because of it. `xmax = 0` is true only for a
+        # genuine insert.
+        if row is not None and row["was_insert"]:
             inserted += 1
+        elif row is not None:
+            updated += 1
 
     # Single batch spatial join - uses GIST indexes, avoids 300K x 1300 per-row checks
     await conn.execute("""
@@ -233,7 +253,7 @@ async def sync_mining_contracts(conn: asyncpg.Connection) -> int:
     """)
     total = await conn.fetchval("SELECT COUNT(*) FROM mining_contracts")
     await _log_sync("mining_contracts", inserted, total)
-    log.info("mining_contracts: %d new / %d total", inserted, total)
+    log.info("mining_contracts: %d new / %d updated / %d total", inserted, updated, total)
     if inserted > 0:
         await _notify_indexnow([f"https://{SITE_HOST}/sitemap.xml"])
     return inserted

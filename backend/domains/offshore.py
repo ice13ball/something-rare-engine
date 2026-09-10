@@ -139,14 +139,51 @@ async def fetch_arcgis_features_url(url: str, out_fields: str = "*", extra_param
                 "resultOffset": offset,
                 **(extra_params or {}),
             }
-            r = await client.get(url, params=params)
-            r.raise_for_status()
+            r = await _get_with_retry(client, url, params=params, label="arcgis page")
             features = r.json().get("features", [])
             all_features.extend(features)
             if len(features) < 1000:
                 break
             offset += 1000
     return all_features
+
+
+async def _get_with_retry(client, url, *, params=None, label="", attempts=3):
+    """One GET, retried on transport failure and on 5xx.
+
+    ⛔ `grep -cE 'retry|backoff|tenacity' offshore.py` returned ZERO across a
+    file holding 26 sync functions, every one talking to a government ArcGIS or
+    WFS endpoint. A single transient failure on an opening fetch aborted that
+    source's whole sync — check 25e, the same shape as the ArgoVis vocabulary
+    call, the MOSAIC seed fetch and the MEMENTO login, all found the same week.
+
+    ⛔ A 4xx is NOT retried. A 404 or a 400 is the server saying the layer moved
+    or the query is wrong; repeating it cannot change the answer and only
+    hammers a public registry. Only 5xx and transport errors earn another try.
+
+    Raises the last error on exhaustion — "this source is unreachable" and
+    "this source has nothing" must not share a code path.
+    """
+    last = None
+    for attempt in range(attempts):
+        try:
+            resp = await client.get(url, params=params)
+            if resp.status_code < 500:
+                resp.raise_for_status()    # 4xx raises here and is not retried
+                return resp
+            last = httpx.HTTPStatusError(
+                f"HTTP {resp.status_code}", request=resp.request, response=resp)
+            log.warning("offshore: %s -> HTTP %s (attempt %d/%d)",
+                        label or url, resp.status_code, attempt + 1, attempts)
+        except httpx.HTTPStatusError:
+            raise                          # deliberate: see above
+        except Exception as exc:
+            last = exc
+            log.warning("offshore: %s -> %s (attempt %d/%d)",
+                        label or url, type(exc).__name__, attempt + 1, attempts)
+        if attempt + 1 < attempts:
+            await asyncio.sleep(2 * (attempt + 1))
+    raise last if last else RuntimeError(f"offshore: {label or url} failed")
 
 
 # ── Phase 2: EMODnet Human Activities ────────────────────────────────────────
@@ -173,8 +210,7 @@ async def sync_emodnet_offshore() -> int:
         for type_name, activity_type in type_map:
             url = f"{WFS_BASE}&typeName={type_name}"
             try:
-                r = await client.get(url)
-                r.raise_for_status()
+                r = await _get_with_retry(client, url, label=f"emodnet {type_name}")
                 data = r.json()
             except Exception as exc:
                 log.warning("emodnet-offshore %s: fetch failed — %s", type_name, exc)
@@ -230,8 +266,7 @@ async def sync_boem_offshore() -> int:
 
     async def _resolve_layer(base: str, layer_name: str) -> str | None:
         async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.get(f"{base}?f=json")
-            r.raise_for_status()
+            r = await _get_with_retry(client, f"{base}?f=json", label="arcgis layer index")
             for L in r.json().get("layers", []):
                 if L.get("name") == layer_name:
                     return f"{base}/{L['id']}/query"
@@ -791,8 +826,7 @@ async def fetch_arcgis_no_ssl(url: str, out_fields: str = "*", extra_params: dic
                 "resultOffset": offset,
                 **(extra_params or {}),
             }
-            r = await client.get(url, params=params)
-            r.raise_for_status()
+            r = await _get_with_retry(client, url, params=params, label="arcgis page")
             features = r.json().get("features", [])
             all_features.extend(features)
             if len(features) < 1000:
@@ -1217,9 +1251,12 @@ async def sync_sbma_ck() -> int:
         async with httpx.AsyncClient(timeout=30) as client:
             for base in CANDIDATE_BASES:
                 try:
-                    r = await client.get(f"{base}?f=json")
-                    if r.status_code != 200:
-                        continue
+                    try:
+                        r = await _get_with_retry(
+                            client, f"{base}?f=json", label="arcgis probe")
+                    except Exception:
+                        continue   # this candidate base is not the one; try the next
+
                     data = r.json()
                     layers = data.get("layers", [])
                     for L in layers:
@@ -1479,8 +1516,7 @@ async def sync_dea_dk_petroleum() -> int:
     rows: list[dict] = []
     try:
         async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.get(WFS_URL)
-            r.raise_for_status()
+            r = await _get_with_retry(client, WFS_URL, label="dea-dk wfs")
             data = r.json()
     except Exception as exc:
         log.warning("dea-dk: fetch failed — %s", exc)
@@ -1980,8 +2016,7 @@ async def sync_pmp_guyana() -> int:
     try:
         import shapefile as _shapefile
         async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
-            r = await client.get(ZIP_URL)
-            r.raise_for_status()
+            r = await _get_with_retry(client, ZIP_URL, label="zip download")
         with zipfile.ZipFile(io.BytesIO(r.content)) as z:
             names = z.namelist()
             shp_name = next((n for n in names if n.lower().endswith(".shp")), None)

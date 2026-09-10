@@ -16,6 +16,9 @@ import hashlib
 import io
 import re
 from datetime import datetime, timezone
+import logging
+
+log = logging.getLogger(__name__)
 
 NO_VALUE = -999.0
 # Columns promoted to first-class table columns (everything else -> params JSONB).
@@ -68,14 +71,83 @@ def _num(v):
     return None if f == NO_VALUE else f
 
 
+#: What the SOURCE gave, decided by which format matched — never by looking at
+#: the parsed value afterwards.
+_TIME_FORMATS = (
+    ("%Y-%m-%d %H:%M",    "minute"),
+    ("%Y-%m-%d %H:%M:%S", "minute"),
+    ("%Y-%m-%d",          "day"),
+)
+
+
 def _parse_time(v):
+    """Return (datetime, precision) — precision is 'minute', 'day', or None.
+
+    ⛔ The precision CANNOT be recovered from the value. Measured on production
+    2026-09-10: 59,295 of 218,271 samples (27%) sit at exactly 00:00, and 8,822
+    of those on the first of a month. Midnight is a real time and the first is
+    a real day, so a cast genuinely taken at 00:00 on the 1st is
+    indistinguishable from a bare date the parser padded — unless we record
+    which format matched, at the moment it matched.
+
+    Before this, all three formats fell into one column and a date-only record
+    read as a precise sampling minute.
+
+    ⚠️ The '%Y-%m-%d' fallback is real but, measured against every leg on
+    production 2026-09-10, NEVER TAKEN: MEMENTO always ships a full
+    'YYYY-MM-DD HH:MM' string, padding the time to 00:00 INSIDE it when the
+    time is unknown. So this function alone labels 100% of samples 'minute',
+    including all 59,295 that sit at midnight. It is kept because it is
+    correct about the string, and because a future export could omit the time.
+    The padding is caught one level up — see `_leg_is_month_dated`.
+    """
     s = (v or "").strip()
-    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+    for fmt, precision in _TIME_FORMATS:
         try:
-            return datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)
+            return datetime.strptime(s, fmt).replace(tzinfo=timezone.utc), precision
         except ValueError:
             continue
-    return None
+    return None, None
+
+
+def _is_month_stamp(t) -> bool:
+    """Midnight on the first of a month — the shape MEMENTO pads a month into."""
+    return t is not None and (t.day, t.hour, t.minute, t.second) == (1, 0, 0, 0)
+
+
+def _leg_is_month_dated(rows: list[dict]) -> bool:
+    """True when EVERY sample of a leg is stamped midnight-on-the-first.
+
+    MEMENTO pads inside the timestamp string, so `_parse_time` cannot see it:
+    a month-only record arrives as a full 'YYYY-MM-01 00:00' and matches the
+    minute format like any other. Measured on production 2026-09-10, 100% of
+    218,271 samples came back "minute", including all 59,295 at midnight.
+
+    What does show is the SHAPE OF A WHOLE LEG. Real fixture
+    `leg_300_baltic.csv`: 978 rows, 11 distinct timestamps, every one of them
+    midnight on the first of a month (2011-08-01, 2011-11-01, 2012-02-01 …).
+    A cruise does not sample only on the first of the month at midnight.
+
+    Measured over all 294 legs:
+
+        legs where EVERY sample is midnight-on-the-1st .... 27  -> 6,724 samples
+        legs MIXED (some are, some are not) .............. 41  -> 2,098 samples
+
+    ⛔ The 41 mixed legs are deliberately NOT touched. In a leg carrying real
+    varying minutes, a sample at exactly 00:00 on the 1st may be a genuine
+    cast; nothing in the data separates it from a pad, so 2,098 samples stay
+    labelled "minute" and the ambiguity is recorded in the layer rule instead
+    of being guessed away.
+
+    ⛔ Midnight alone is not enough either — 59,295 samples sit at midnight and
+    most belong to legs whose other samples carry real minutes.
+    """
+    times = [r["sample_time"] for r in rows if r["sample_time"] is not None]
+    if len(times) <= 1:
+        # A leg of one shows no pattern. The smallest real all-padded leg on
+        # production holds 4 samples, so this costs nothing.
+        return False
+    return all(_is_month_stamp(t) for t in times)
 
 
 def build_samples(csv_text: str, set_name: str) -> list[dict]:
@@ -99,7 +171,7 @@ def build_samples(csv_text: str, set_name: str) -> list[dict]:
         lon = _num(row[idx["longitude"]])
         if lat is None or lon is None:
             continue
-        sample_time = _parse_time(row[idx["time"]])
+        sample_time, time_precision = _parse_time(row[idx["time"]])
         params: dict = {}
         for p in param_cols:
             params[p] = _num(row[idx[p]])
@@ -111,6 +183,8 @@ def build_samples(csv_text: str, set_name: str) -> list[dict]:
             "set_name": set_name,
             "station": (row[idx["station"]].strip() or None) if "station" in idx else None,
             "sample_time": sample_time,
+            # ⛔ Carried beside the value, never derived from it. See _parse_time.
+            "time_precision": time_precision,
             "lat": lat,
             "lon": lon,
             "depth_m": _num(row[idx["depth [m]"]]),
@@ -123,6 +197,14 @@ def build_samples(csv_text: str, set_name: str) -> list[dict]:
         rec["decade"] = (sample_time.year // 10 * 10) if sample_time else None
         rec["cast_id"] = _cast_id(rec)
         out.append(rec)
+
+    # ⛔ Decided per LEG, after the whole leg is parsed, because the evidence is
+    # cardinality and a single row cannot show it. `_parse_time` sees only one
+    # string at a time and MEMENTO pads inside the string, so this is the only
+    # level at which the padding is visible.
+    if _leg_is_month_dated(out):
+        for rec in out:
+            rec["time_precision"] = "month"
     return out
 
 
@@ -169,6 +251,7 @@ def derive_casts(samples: list[dict]) -> list[dict]:
             "set_name": first["set_name"],
             "station": first["station"],
             "sample_time": first["sample_time"],
+            "time_precision": first["time_precision"],
             "lat": first["lat"],
             "lon": first["lon"],
             "decade": first["decade"],
@@ -185,23 +268,57 @@ def derive_casts(samples: list[dict]) -> list[dict]:
 
 # ── Authenticated download (one-time scrape; creds from env, never stored) ──
 
-def login_session(email: str, password: str):
+#: How many times to re-attempt the login handshake before giving up.
+LOGIN_ATTEMPTS = 3
+
+
+def login_session(email: str, password: str, *, attempts: int = LOGIN_ATTEMPTS,
+                  sleep=None):
     """VERIFIED flow (2026-06-22): the login form POSTs to /user/authenticate (NOT
     /user/login) with fields `email` + `password`; a successful POST sets JSESSIONID
     and redirects to /user/agree. Visiting /user/agree + / finalises the session so
-    /bottle/list CSV downloads work."""
+    /bottle/list CSV downloads work.
+
+    ⛔ Retried, because this is the FIRST call of the whole sync and everything
+    downstream depends on it. Observed live 2026-09-10: a forced run died on
+    `ReadTimeout: portal.geomar.de ... read timeout=60` during the handshake and
+    the entire ingest was discarded, credentials perfectly valid. Check 25e —
+    the same shape as the ArgoVis vocabulary call.
+
+    ⛔ A REJECTED credential is not retried. Hammering a login form with a
+    password the server has already refused is how an account gets locked; only
+    transport failures earn another attempt. That is why the JSESSIONID check
+    raises immediately instead of continuing the loop.
+    """
+    import time as _time
+
     import requests
-    s = requests.Session()
-    s.headers["User-Agent"] = "Mozilla/5.0 abyssal-claims/1.0 (data ingest)"
-    s.get(_BASE + "/user/login", timeout=60)
-    r = s.post(_BASE + "/user/authenticate",
-               data={"email": email, "password": password}, timeout=60,
-               allow_redirects=False)
-    if "JSESSIONID" not in s.cookies:
-        raise RuntimeError(f"MEMENTO login failed (status {r.status_code}); check credentials")
-    s.get(_BASE + "/user/agree", timeout=60)
-    s.get(_BASE + "/", timeout=60)
-    return s
+
+    sleep = sleep or _time.sleep
+    last = None
+    for attempt in range(attempts):
+        s = requests.Session()
+        s.headers["User-Agent"] = "Mozilla/5.0 abyssal-claims/1.0 (data ingest)"
+        try:
+            s.get(_BASE + "/user/login", timeout=60)
+            r = s.post(_BASE + "/user/authenticate",
+                       data={"email": email, "password": password}, timeout=60,
+                       allow_redirects=False)
+        except requests.exceptions.RequestException as exc:
+            last = exc
+            log.warning("memento: login transport failure (attempt %d/%d): %s",
+                        attempt + 1, attempts, type(exc).__name__)
+            if attempt + 1 < attempts:
+                sleep(2 * (attempt + 1))
+            continue
+        if "JSESSIONID" not in s.cookies:
+            # ⛔ Deliberately NOT retried. See the docstring.
+            raise RuntimeError(
+                f"MEMENTO login failed (status {r.status_code}); check credentials")
+        s.get(_BASE + "/user/agree", timeout=60)
+        s.get(_BASE + "/", timeout=60)
+        return s
+    raise last if last else RuntimeError("MEMENTO login failed: no attempt was made")
 
 
 def fetch_leg_index(session) -> list[dict]:
@@ -241,22 +358,24 @@ async def load_memento(pool, samples: list[dict], casts: list[dict]) -> int:
             await conn.execute("TRUNCATE memento_samples, memento_casts")
             await conn.executemany(
                 """INSERT INTO memento_samples
-                   (cast_id,set_name,station,sample_time,lat,lon,depth_m,label,decade,
+                   (cast_id,set_name,station,sample_time,time_precision,lat,lon,depth_m,label,decade,
                     ch4,n2o,n2o_perc,o2,temp,sal,params,geom)
-                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,
+                   VALUES ($1,$2,$3,$4,$17,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,
                            ST_SetSRID(ST_MakePoint($6,$5),4326))""",
                 [(s["cast_id"], s["set_name"], s["station"], s["sample_time"], s["lat"], s["lon"],
                   s["depth_m"], s["label"], s["decade"], s["ch4"], s["n2o"], s["n2o_perc"],
-                  s["o2"], s["temp"], s["sal"], json.dumps(s["params"])) for s in samples],
+                  s["o2"], s["temp"], s["sal"], json.dumps(s["params"]),
+                  s["time_precision"]) for s in samples],
             )
             await conn.executemany(
                 """INSERT INTO memento_casts
-                   (cast_id,set_name,station,sample_time,lat,lon,decade,n_samples,min_depth_m,
+                   (cast_id,set_name,station,sample_time,time_precision,lat,lon,decade,n_samples,min_depth_m,
                     max_depth_m,has_ch4,has_n2o,ch4_surf,n2o_surf,geom)
-                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+                   VALUES ($1,$2,$3,$4,$15,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
                            ST_SetSRID(ST_MakePoint($6,$5),4326))""",
                 [(c["cast_id"], c["set_name"], c["station"], c["sample_time"], c["lat"], c["lon"],
                   c["decade"], c["n_samples"], c["min_depth_m"], c["max_depth_m"],
-                  c["has_ch4"], c["has_n2o"], c["ch4_surf"], c["n2o_surf"]) for c in casts],
+                  c["has_ch4"], c["has_n2o"], c["ch4_surf"], c["n2o_surf"],
+                  c["time_precision"]) for c in casts],
             )
     return len(samples)

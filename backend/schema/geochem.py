@@ -109,6 +109,14 @@ async def ensure_geotraces(conn) -> None:
             ni_max DOUBLE PRECISION, cu_max DOUBLE PRECISION,
             geom geometry(Point, 4326)
         );
+
+        -- ⛔ What the SOURCE gave, recorded at parse time by which format
+        -- matched — not derived from the value. 59,295 of 218,271 samples sit
+        -- at exactly 00:00 and 8,822 of those on the first of a month;
+        -- midnight is a real time and the first is a real day, so the value
+        -- alone cannot tell a precise cast from a padded date.
+        ALTER TABLE memento_samples ADD COLUMN IF NOT EXISTS time_precision TEXT;
+        ALTER TABLE memento_casts   ADD COLUMN IF NOT EXISTS time_precision TEXT;
         CREATE TABLE IF NOT EXISTS geotraces_samples (
             sample_id BIGSERIAL PRIMARY KEY,
             station_id TEXT NOT NULL,

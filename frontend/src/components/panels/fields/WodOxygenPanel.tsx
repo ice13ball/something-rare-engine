@@ -13,6 +13,10 @@ export interface WodByIdDetail {
   lon: number;
   max_depth_m: number | null;
   profile_date: string | null;
+  profile_time: string | null;
+  /** "time" = the source recorded a time of day; "day" = it did not.
+   *  null = this row predates the 2026-09-10 re-ingest. */
+  time_precision: string | null;
   decade: number | null;
   cruise: string | null;
   dataset: string | null;
@@ -166,6 +170,16 @@ export function WodOxygenPanel({ id }: { id: number | string }) {
 
       <Section title="Profile details">
         {dateStr           != null && <Row label="Date"        value={dateStr} />}
+        {/* ⛔ Three states, three sentences. WOD encodes the time as a fraction
+            of a day and we used to drop it; 94% of casts carry one, 6% carry an
+            exact whole day, which is "not recorded" and must not read as
+            midnight. A row we have not re-ingested yet says neither. */}
+        {data.time_precision === "time" && data.profile_time != null && (
+          <Row label="Time (UTC)" value={String(data.profile_time).slice(11, 19)} />
+        )}
+        {data.time_precision === "day" && (
+          <Row label="Time (UTC)" value={<span className="text-white/50">not recorded at source</span>} />
+        )}
         {data.decade       != null && <Row label="Decade"      value={`${data.decade}s`} />}
         {data.cruise       != null && <Row label="Cruise"      value={String(data.cruise)} />}
         {data.country      != null && <Row label="Country"     value={String(data.country)} />}

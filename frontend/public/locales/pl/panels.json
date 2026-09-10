@@ -1315,7 +1315,8 @@
     "nearestObs": {
       "title": "Najbliższe pomiary",
       "caption": "Najbliższy rzeczywisty pomiar in situ z każdego źródła — niekoniecznie reprezentatywny dla tego dokładnego miejsca.",
-      "unavailable": "Pomiary niedostępne."
+      "unavailable": "Pomiary niedostępne.",
+      "none": "Brak pomiaru in situ w promieniu wyszukiwania."
     }
   }
 }

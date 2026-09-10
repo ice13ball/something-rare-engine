@@ -12,6 +12,8 @@ Every value carries <analysis>_DOI/_title/_method."""
 from __future__ import annotations
 
 import datetime as _dt
+
+from ingestion.date_sentinels import is_epoch_fill_date
 import math
 
 MOSAIC_ANALYSES = [
@@ -111,6 +113,18 @@ def parse_geopoints(rows):
                 # like). Leave sdate None and let the parts stand on their own
                 # rather than snapping to a neighbouring day nobody sampled.
                 pass
+        # ⛔ An epoch zero is not a sampling day. Before this guard, 55 cores
+        # carried 1900-01-01 or 1970-01-01 in year/month/day AND were labelled
+        # date_precision="day" — the most confident label we have, attached to
+        # the least real date we hold. 25 of them also carry campaign_name
+        # "1980-1993", which the date contradicts outright.
+        #
+        # Null the PARTS, not only the compound date: _date_precision reads
+        # day/month/year, so leaving (1900, 1, 1) behind would keep saying
+        # "day" while sampling_date went quietly empty — the same lie with
+        # less evidence for the next reader.
+        if is_epoch_fill_date(sdate) or (yr, mo, dy) in ((1900, 1, 1), (1970, 1, 1)):
+            sdate = yr = mo = dy = None
         cs = _epoch_ms_to_date(r.get("sampling_campaign_date_start"))
         ce = _epoch_ms_to_date(r.get("sampling_campaign_date_end"))
         out.append({

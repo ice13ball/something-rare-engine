@@ -119,3 +119,126 @@ def test_negative_depth_levels_are_rejected():
     row = next(r for r in _rows(z=z) if r["wod_cast_id"] == str(CAST_OMZ))
     assert all(d >= 0 for d, _ in row["o2_profile"])
     assert row["n_levels"] == 5
+
+
+# ── what the source publishes and we were throwing away ─────────────────────
+# ⛔ `cruise` and `probe_type` were hardcoded `None` at the single row-building
+# call site, so both columns were 0.000% populated across all 978,476 live
+# rows — while being exported in the public Area Export `fields` tuple and
+# rendered as panel Rows. Nobody had asked the source.
+#
+# Measured against the real wod_osd_2015.nc (8,987 casts) on 2026-09-10:
+#     WOD_cruise_identifier .... 82.1% populated, e.g. 'AU006994'
+#     Oxygen_Instrument ........  3.3% populated, e.g. 'CTD: TYPE UNKNOWN'
+# So one was a real loss, and the other is sparse AT SOURCE — a distinction
+# these tests keep, because "we dropped it" and "they barely have it" call for
+# opposite responses.
+
+def test_the_cruise_identifier_the_source_publishes_is_kept():
+    ids = _fixture()["wod_cast_id"]
+    cruise = np.array([b"AU006994"] * len(ids))
+    row = next(r for r in _rows(cruise=cruise) if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["cruise"] == "AU006994", (
+        "WOD_cruise_identifier is populated on 82.1% of casts and reached the "
+        "row as None — the column is exported and rendered, so this is a "
+        "dead panel row and a dead export column at once"
+    )
+
+
+def test_the_instrument_the_source_publishes_is_kept():
+    ids = _fixture()["wod_cast_id"]
+    probe = np.array([b"CTD: TYPE UNKNOWN"] * len(ids))
+    row = next(r for r in _rows(probe=probe) if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["probe_type"] == "CTD: TYPE UNKNOWN"
+
+
+def test_a_file_without_those_variables_still_parses():
+    """⛔ Not every WOD year carries every variable — `country` is already read
+    this way. Absence must give None, never raise, or one old year kills the
+    whole backfill."""
+    row = next(r for r in _rows(cruise=None, probe=None)
+               if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["cruise"] is None and row["probe_type"] is None
+
+
+def test_an_empty_string_from_the_source_is_None_not_an_empty_cell():
+    """WOD pads its |S170 fields with spaces. A blank must read as absent, not
+    as a cruise whose name is nothing."""
+    ids = _fixture()["wod_cast_id"]
+    row = next(r for r in _rows(cruise=np.array([b"   "] * len(ids)))
+               if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["cruise"] is None
+
+
+# ── the time of day WOD records ─────────────────────────────────────────────
+# ⛔ `_EPOCH` is a `date`, and `date + timedelta` uses only the whole days. So
+# `_EPOCH + timedelta(days=float(t))` silently discarded the fraction: a cast
+# at 06:02 UTC and one at 23:58 the same day produced the identical value.
+#
+# Measured on the real wod_osd_2015.nc (8,987 casts) 2026-09-10:
+#     fraction != 0 (time recorded) .... 8,450 = 94.0%
+#     fraction == 0 (no time) .........    537 =  6.0%
+# 6% landing on exactly 00:00:00.000 is not a distribution — a uniform day puts
+# ~1 cast in 86,400 there. Zero means "not recorded", and must not read as
+# midnight.
+#
+# ⚠️ The label is "time", not "minute": 89% of non-zero fractions are whole
+# minutes, 11% are not (quarter-minute steps and float noise), so claiming
+# minute granularity would be a claim the data does not support.
+import datetime as _dt
+
+
+def _one_cast_at(fraction_of_day):
+    """The OMZ cast, re-timed. `t` is days since 1770-01-01 UTC."""
+    args = _fixture()
+    t = np.array(args["time_days"], dtype="float64")
+    base = np.floor(t)
+    t = base + fraction_of_day
+    return _rows(time_days=t)
+
+
+def test_the_time_of_day_is_kept():
+    rows = _one_cast_at(0.25138888888)          # 06:02:00 UTC
+    row = next(r for r in rows if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["profile_time"] is not None, (
+        "the source recorded a time of day and it was discarded — two casts "
+        "eighteen hours apart became the same value"
+    )
+    assert (row["profile_time"].hour, row["profile_time"].minute) == (6, 2)
+    assert row["time_precision"] == "time"
+
+
+def test_the_stored_time_is_UTC_aware():
+    """⛔ The units attribute says 'days since 1770-01-01 00:00:00 UTC'. A naive
+    datetime would be a guess, and comparing it with an aware one raises."""
+    row = next(r for r in _one_cast_at(0.5) if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["profile_time"].tzinfo is not None
+    assert row["profile_time"].utcoffset() == _dt.timedelta(0)
+
+
+def test_a_whole_day_means_no_time_recorded_not_midnight():
+    rows = _one_cast_at(0.0)
+    row = next(r for r in rows if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["profile_time"] is None, (
+        "an exact whole day is WOD's 'time not recorded'; storing it as "
+        "00:00 would invent a midnight cast for 6% of the layer"
+    )
+    assert row["time_precision"] == "day"
+
+
+def test_the_date_is_unchanged_by_the_fraction():
+    """⛔ profile_date is indexed, exported and queried. Recovering the hour
+    must not move the day."""
+    a = next(r for r in _one_cast_at(0.0) if r["wod_cast_id"] == str(CAST_OMZ))
+    b = next(r for r in _one_cast_at(0.99) if r["wod_cast_id"] == str(CAST_OMZ))
+    assert a["profile_date"] == b["profile_date"]
+    assert a["decade"] == b["decade"]
+
+
+def test_a_fraction_that_rounds_to_a_full_day_stays_inside_the_day():
+    """0.9999999 * 86400 rounds to 86400 seconds — that would be tomorrow."""
+    row = next(r for r in _one_cast_at(0.9999999) if r["wod_cast_id"] == str(CAST_OMZ))
+    assert row["profile_time"].date() == row["profile_date"], (
+        "the recovered time rolled over into the next day"
+    )
+    assert (row["profile_time"].hour, row["profile_time"].minute) == (23, 59)

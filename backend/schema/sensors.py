@@ -62,6 +62,13 @@ async def ensure_wod_oxygen(conn) -> None:
     """)
     await conn.execute("CREATE INDEX IF NOT EXISTS wod_oxygen_geom_gix ON wod_oxygen_profiles USING GIST (geom)")
     await conn.execute("CREATE INDEX IF NOT EXISTS wod_oxygen_decade_idx ON wod_oxygen_profiles (decade)")
+    # ⛔ Additive, no rewrite: `profile_date` stays a DATE, keeps its index and
+    # every query and export that filters on it. The time of day the source
+    # recorded goes beside it.
+    # `time_precision` exists so NULL means "not re-ingested yet" rather than
+    # "the source gave no time" — those two must not share a value.
+    await conn.execute("ALTER TABLE wod_oxygen_profiles ADD COLUMN IF NOT EXISTS profile_time TIMESTAMPTZ")
+    await conn.execute("ALTER TABLE wod_oxygen_profiles ADD COLUMN IF NOT EXISTS time_precision TEXT")
     await conn.execute("CREATE INDEX IF NOT EXISTS wod_oxygen_date_idx ON wod_oxygen_profiles (profile_date)")
     await conn.execute("ALTER TABLE wod_oxygen_profiles OWNER TO abyssal_user")
 

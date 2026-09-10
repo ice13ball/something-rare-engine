@@ -27,6 +27,36 @@ EPOCH_SENTINEL_MS = -2209161600000
 _PLACEHOLDER_DATES = frozenset({dt.date(1899, 12, 30)})
 
 
+#: Epoch zeros that a spreadsheet or a Unix conversion leaves behind when a
+#: date was never entered. ⛔ NOT usable as a global rule — see the warning on
+#: `is_epoch_fill_date`.
+_EPOCH_FILL_DATES = frozenset({dt.date(1900, 1, 1), dt.date(1970, 1, 1)})
+
+
+def is_epoch_fill_date(d: dt.date | None) -> bool:
+    """True for a date that is an epoch zero rather than a sampling day.
+
+    ⛔ **Never apply this blindly to a new source.** `1970-01-01` is a real
+    day and some sources really did sample on it. Proved on 2026-09-10:
+
+      wod_oxygen_profiles   1970-01-01 -> 19 rows, neighbouring days 18-38,
+                            and a by-id fetch returns a real 7-level profile.
+                            REAL. This function must not touch WOD.
+
+      mosaic_cores          1900-01-01 -> 49 rows, and ZERO cores anywhere in
+                            1896-1935 beside them; 1970-01-01 -> 6 rows with
+                            no neighbour within eight days. Decisive extra
+                            evidence: 25 of the 55 carry campaign_name
+                            "1980-1993", so the core cannot have been taken
+                            in 1900. FILL.
+
+    The test that separates them is the same both times: look at the
+    NEIGHBOURHOOD and at what else the row says about itself. A spike with no
+    shoulders, or a date that contradicts its own campaign, is a fill.
+    """
+    return d is not None and d in _EPOCH_FILL_DATES
+
+
 def is_placeholder_date(d: dt.date | None) -> bool:
     """True only for a known upstream fill value.
 

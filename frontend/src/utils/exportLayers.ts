@@ -291,6 +291,43 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     sourceUrl: "https://www.ncei.noaa.gov/products/world-ocean-database",
     citation: "doi:10.7289/V5H70CVX",
   },
+  // --- 2026-09-10: three entries the backend registry has always served but
+  // the panel never listed. Found by check 20f of abyssal-new-layer-check:
+  // the registry does NOT auto-discover, so a backend entry with no row here
+  // is reachable by curl and invisible to every user. Counts verified live
+  // before adding: permafrost-thaw 539, arctic-sediment-carbon 200,
+  // seabed-substrate 441 over a small bbox each.
+  {
+    id: "permafrost-thaw",
+    label: "Permafrost Thaw",
+    kind: "vector",
+    geomKind: "point",
+    family: "Arctic & carbon",
+    source: "Alaska Permafrost Thaw DB v2.0.0 (Webb et al. 2026) + ARTS v6.0.0",
+    sourceUrl: "https://doi.org/10.5281/zenodo.16996415",
+    citation: "alaska_webb: CC-BY 4.0; arts_panarctic: CC0",
+  },
+  {
+    id: "arctic-sediment-carbon",
+    label: "Arctic Sediment Carbon (CASCADE stations)",
+    kind: "vector",
+    geomKind: "point",
+    family: "Arctic & carbon",
+    source: "CASCADE v2, Bolin Centre for Climate Research",
+    sourceUrl: "https://doi.org/10.17043/cascade-2",
+    citation: "CC-BY 4.0",
+  },
+  {
+    id: "seabed-substrate",
+    label: "Seabed Substrate (Dutkiewicz 2015)",
+    kind: "field",
+    family: "Ocean fields",
+    source: "Dutkiewicz et al. 2015 seafloor lithology (EarthByte)",
+    sourceUrl: "https://www.earthbyte.org/seafloor-lithology-of-the-ocean-basins/",
+    // ⛔ CC-BY-NC. Publishable only while this platform is not monetised —
+    // see rules/layers/nc-licence-lineage.md before any paid tier.
+    citation: "Dutkiewicz, A. et al. 2015, Geology, doi:10.1130/G36883.1 — CC-BY-NC 4.0",
+  },
   // --- Task 7: Infrastructure — cable composite ---
   {
     id: "submarine-cables",

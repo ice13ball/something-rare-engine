@@ -81,6 +81,8 @@ ALTER TABLE plume_paths OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS wod_oxygen_profiles ( id SERIAL PRIMARY KEY, wod_cast_id TEXT UNIQUE, lat DOUBLE PRECISION, lon DOUBLE PRECISION, geom geometry(Point, 4326), profile_date DATE, decade SMALLINT, cruise TEXT, dataset TEXT, country TEXT, probe_type TEXT, max_depth_m DOUBLE PRECISION, n_levels SMALLINT, o2_profile JSONB, o2_units TEXT, qc_flag SMALLINT, qc_note TEXT )
 CREATE INDEX IF NOT EXISTS wod_oxygen_geom_gix ON wod_oxygen_profiles USING GIST (geom)
 CREATE INDEX IF NOT EXISTS wod_oxygen_decade_idx ON wod_oxygen_profiles (decade)
+ALTER TABLE wod_oxygen_profiles ADD COLUMN IF NOT EXISTS profile_time TIMESTAMPTZ
+ALTER TABLE wod_oxygen_profiles ADD COLUMN IF NOT EXISTS time_precision TEXT
 CREATE INDEX IF NOT EXISTS wod_oxygen_date_idx ON wod_oxygen_profiles (profile_date)
 ALTER TABLE wod_oxygen_profiles OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS memento_samples ( id BIGSERIAL PRIMARY KEY, cast_id TEXT NOT NULL, set_name TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, label TEXT, decade INTEGER, ch4 DOUBLE PRECISION, n2o DOUBLE PRECISION, n2o_perc DOUBLE PRECISION, o2 DOUBLE PRECISION, temp DOUBLE PRECISION, sal DOUBLE PRECISION, params JSONB, geom geometry(Point, 4326) )
@@ -94,6 +96,8 @@ CREATE INDEX IF NOT EXISTS memento_samples_atm_idx ON memento_samples (ch4_is_at
 ALTER TABLE memento_samples OWNER TO abyssal_user
 ALTER TABLE memento_casts OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS geotraces_stations ( station_id TEXT PRIMARY KEY, cruise TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, decade INTEGER, n_samples INTEGER, min_depth_m DOUBLE PRECISION, max_depth_m DOUBLE PRECISION, bottom_depth_m DOUBLE PRECISION, has_mn BOOLEAN, has_fe BOOLEAN, has_co BOOLEAN, has_ni BOOLEAN, has_cu BOOLEAN, mn_max DOUBLE PRECISION, fe_max DOUBLE PRECISION, co_max DOUBLE PRECISION, ni_max DOUBLE PRECISION, cu_max DOUBLE PRECISION, geom geometry(Point, 4326) )
+ALTER TABLE memento_samples ADD COLUMN IF NOT EXISTS time_precision TEXT
+ALTER TABLE memento_casts ADD COLUMN IF NOT EXISTS time_precision TEXT
 CREATE TABLE IF NOT EXISTS geotraces_samples ( sample_id BIGSERIAL PRIMARY KEY, station_id TEXT NOT NULL, cruise TEXT, station TEXT, sample_time TIMESTAMPTZ, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, bottom_depth_m DOUBLE PRECISION, mn_d DOUBLE PRECISION, fe_d DOUBLE PRECISION, co_d DOUBLE PRECISION, ni_d DOUBLE PRECISION, cu_d DOUBLE PRECISION, mn_d_qc SMALLINT, fe_d_qc SMALLINT, co_d_qc SMALLINT, ni_d_qc SMALLINT, cu_d_qc SMALLINT, params JSONB, geom geometry(Point, 4326) )
 CREATE TABLE IF NOT EXISTS geotraces_param_units ( param TEXT PRIMARY KEY, unit TEXT )
 CREATE TABLE IF NOT EXISTS geotraces_params ( param_code TEXT PRIMARY KEY, label TEXT, unit TEXT, family TEXT, n_values INTEGER DEFAULT 0 )

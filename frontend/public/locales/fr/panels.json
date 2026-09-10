@@ -1313,7 +1313,8 @@
     "nearestObs": {
       "title": "Mesures les plus proches",
       "caption": "Mesure in situ réelle la plus proche pour chaque source — pas nécessairement représentative de ce point exact.",
-      "unavailable": "Mesures indisponibles."
+      "unavailable": "Mesures indisponibles.",
+      "none": "Aucune mesure in situ dans le rayon de recherche."
     }
   }
 }

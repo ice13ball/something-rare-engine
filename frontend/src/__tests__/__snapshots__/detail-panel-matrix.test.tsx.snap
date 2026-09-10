@@ -9122,6 +9122,62 @@ exports[`DetailPanel dispatch matrix > renders mosaic-sediment after data loads 
             <span
               class="text-white/70 text-[14px] shrink-0"
             >
+              Decade
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              2010s
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              TOC, surface
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              1.5 %
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              TN, surface
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              0.15 %
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              δ¹³C, surface
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              -22.1 ‰
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
               Method
             </span>
             <span

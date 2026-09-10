@@ -179,7 +179,17 @@ export function MosaicPanel({ coreId }: { coreId: number | string }) {
 
       <MosaicDepthChart samples={samples} variable={varInfo.key} unit={varInfo.unit} color={varColor} />
 
-      {samples.length > 0 && (
+      {samples.length === 0 ? (
+        // ⛔ Not a bare `&&`. A core whose sample fetch failed and a core the
+        // source genuinely holds no sections for rendered identically —
+        // nothing at all — so "we could not load them" read as "there are
+        // none". Check 24e; the same rule as the ONC drifters.
+        <Section title="Samples">
+          <p className="text-white/50 text-[11px]">
+            No sections recorded for this core in MOSAIC.
+          </p>
+        </Section>
+      ) : (
         <Section title={`Samples (${samples.length})`}>
           <div className="max-h-44 overflow-y-auto rounded border border-white/10">
             <table className="w-full text-[11px] font-mono">
@@ -223,6 +233,16 @@ export function MosaicPanel({ coreId }: { coreId: number | string }) {
             campaignName={core.campaign_name} comment={core.core_comment}
           />
         } />
+        {/* ⛔ These four were SELECTed by the endpoint, typed in the interface
+            above, and never rendered — 70.2% / 65.8% / 27.5% / 22.0% populated
+            on the live table. We pay to fetch and store them and then hide
+            them, which check 24d calls the cheapest defect on the list.
+            Units match the Samples table headers above; `_surf` is the
+            shallowest section, not a core average, and says so. */}
+        {core.decade          != null && <Row label="Decade"          value={`${core.decade}s`} />}
+        {core.toc_surf        != null && <Row label="TOC, surface"    value={`${core.toc_surf} %`} />}
+        {core.tn_surf         != null && <Row label="TN, surface"     value={`${core.tn_surf} %`} />}
+        {core.d13c_surf       != null && <Row label="δ¹³C, surface"   value={`${core.d13c_surf} ‰`} />}
         {core.sampling_method != null && <Row label="Method"         value={core.sampling_method} />}
         {core.research_vessel != null && <Row label="Vessel"         value={core.research_vessel} />}
         {core.seas            != null && <Row label="Sea"            value={core.seas} />}

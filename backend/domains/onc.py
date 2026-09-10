@@ -239,10 +239,15 @@ def onc_qc_flag(data: dict) -> int | None:
     take the last flag. Their scale (derived from Argo's, plus a few of their
     own — https://wiki.oceannetworks.ca/display/DP/Quality+Assurance+Quality+Control):
 
-        0  no QC performed          1  good           2  probably good
-        3  bad but potentially correctable            4  bad
-        6  insufficient valid data for down-sampling
-        7  averaged                 8  interpolated   9  missing
+    ⛔ Wording taken from ONC's own `qaqcFlagInfo`, which every scalardata
+    response ships inline — NOT from Argo's scale, which uses the same numbers
+    with different words ("3 = bad but potentially correctable"):
+
+        0  No Quality Control       1  Data Passed All Tests
+        2  Data Probably Good       3  Data Probably Bad      4  Data Bad
+        6  Insufficient Valid Data for Reliable Down-Sampling (ONC-defined)
+        7  Averaged Value (ONC-defined)                       8  Interpolated Value
+        9  Missing Data
 
     ONC states plainly that "poor quality data is qualified as quality control
     flags 3 and 4". Measured over 75 readings from 25 stations on 2026-09-10,

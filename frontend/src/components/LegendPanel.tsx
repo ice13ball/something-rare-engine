@@ -1068,7 +1068,11 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   </li>
                   <li>
                     <span className="text-white/90 font-medium">Permafrost Thaw</span>
-                    <p className="mt-0.5">Each feature links to its original source publication via the <span className="text-cyan-400 font-mono">DOI</span> shown in the click panel; cross-check the full compilation at <span className="text-cyan-400 font-mono">zenodo.org/doi/10.5281/zenodo.16996415</span> (Webb et al. 2026, CC-BY 4.0).</p>
+                    <p className="mt-0.5">This layer unions <strong>two</strong> compilations and a feature belongs to exactly one of them — check the <code className="text-white/75">source</code> field in the click panel first, because the wrong DOI will not find it. Each feature also links to its own original publication via the <span className="text-cyan-400 font-mono">DOI</span> shown in the panel.</p>
+                    <ul className="mt-1 ml-3 list-disc space-y-0.5">
+                      <li><code className="text-white/75">alaska_webb</code> — 19,540 points, Alaska, full nine-category taxonomy: Alaska Permafrost Thaw Database v2.0.0, Webb et al. 2026 (ESSD 18:3147), <span className="text-cyan-400 font-mono">zenodo.org/doi/10.5281/zenodo.16996415</span>, CC-BY 4.0.</li>
+                      <li><code className="text-white/75">arts_panarctic</code> — 27,699 points, circumpolar, all retrogressive thaw slumps: ARTS v6.0.0, Yang/Rodenhizer/Rogers et al. 2025 (Sci. Data 12:18, <span className="text-cyan-400 font-mono">doi:10.1038/s41597-025-04372-7</span>), <span className="text-cyan-400 font-mono">zenodo.org/doi/10.5281/zenodo.10535025</span>, CC0.</li>
+                    </ul>
                   </li>
                   <li>
                     <span className="text-white/90 font-medium">Bathymetry &amp; mapping confidence</span>

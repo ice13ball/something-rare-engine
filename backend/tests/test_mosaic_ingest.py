@@ -129,6 +129,43 @@ def test_precision_is_day_when_only_sampling_date_is_given():
     assert row["date_precision"] == "day"
 
 
+def test_an_epoch_zero_is_not_a_sampling_day():
+    """⛔ The worst shape a bad date can take: maximum confidence, minimum truth.
+
+    55 live cores carried 1900-01-01 (49) or 1970-01-01 (6) AND were labelled
+    date_precision="day". Proof they are fills rather than samples, measured on
+    production 2026-09-10: the whole 1896-1935 window holds exactly those 49
+    cores and nothing else, the six 1970 cores have no neighbour within eight
+    days, and 25 of the 55 carry campaign_name "1980-1993" — a campaign that
+    cannot have collected a core in 1900.
+
+    ⚠️ The same date is REAL elsewhere: wod_oxygen_profiles has 19 genuine
+    profiles on 1970-01-01, with 18-38 on each neighbouring day. That is why
+    the guard lives in mosaic's parser and not in a blanket rule.
+    """
+    for y, m, d in ((1900, 1, 1), (1970, 1, 1)):
+        row = mi.parse_geopoints([_core(sampling_year=y, sampling_month=m, sampling_day=d)])[0]
+        assert row["sampling_date"] is None, (y, m, d)
+        # ⛔ The PARTS must go too. _date_precision reads day/month/year, so
+        # leaving them behind keeps the "day" label on an empty date — the same
+        # claim, with the evidence removed.
+        assert row["sampling_year"] is None, f"{y}-{m}-{d}: year survived"
+        assert row["sampling_month"] is None
+        assert row["sampling_day"] is None
+        assert row["date_precision"] != "day", (
+            f"{y}-{m}-{d} still claims day precision — we are asserting the "
+            "most confident label we have about the least real date we hold"
+        )
+
+
+def test_a_real_date_in_the_same_decade_is_untouched():
+    """The guard must be a scalpel: 1900-01-02 and 1970-01-02 are ordinary days."""
+    for y, m, d in ((1900, 1, 2), (1970, 1, 2), (1900, 2, 1)):
+        row = mi.parse_geopoints([_core(sampling_year=y, sampling_month=m, sampling_day=d)])[0]
+        assert row["sampling_date"] == _dt.date(y, m, d), (y, m, d)
+        assert row["date_precision"] == "day", (y, m, d)
+
+
 def test_precision_is_month_when_the_day_is_absent():
     row = mi.parse_geopoints([_core(sampling_year=2008, sampling_month=8)])[0]
     assert row["date_precision"] == "month"

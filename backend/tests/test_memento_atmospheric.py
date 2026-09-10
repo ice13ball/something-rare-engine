@@ -79,7 +79,7 @@ def test_values_below_threshold_are_never_flagged(gas, median, value):
 def _sample(depth, ch4=None, n2o=None, label=None, ch4_flag=None):
     return {
         "cast_id": "c1", "set_name": "EGAMES", "station": None,
-        "sample_time": None, "lat": 54.0, "lon": 10.0, "decade": 2000,
+        "sample_time": None, "time_precision": None, "lat": 54.0, "lon": 10.0, "decade": 2000,
         "depth_m": depth, "label": label, "ch4": ch4, "n2o": n2o,
         "params": {} if ch4_flag is None else {"ch4_flag": ch4_flag},
     }

@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 import datetime
+import math
 import numpy as np
 
 _EPOCH = datetime.date(1770, 1, 1)   # WOD time = days since 1770-01-01
+# ⛔ The units attribute says it verbatim: "days since 1770-01-01 00:00:00 UTC".
+# Read off the real wod_osd_2015.nc, not assumed — so no timezone is guessed.
+_EPOCH_DT = datetime.datetime(1770, 1, 1, tzinfo=datetime.timezone.utc)
 
 
 def _clean(v) -> "str | None":
@@ -21,7 +25,7 @@ def _clean(v) -> "str | None":
 
 def build_oxygen_rows(*, wod_cast_id, lat, lon, time_days, country, z, z_row_size,
                       oxygen, oxygen_flag, oxygen_row_size, oxygen_units, dataset,
-                      min_lat=50.0) -> list[dict]:
+                      cruise=None, probe=None, min_lat=50.0) -> list[dict]:
     """Pure ragged-array → row dicts. All array args are 1-D numpy-like.
 
     WOD stores ONE INDEPENDENT ragged array per variable: `z` lives on dim `z_obs`,
@@ -62,15 +66,53 @@ def build_oxygen_rows(*, wod_cast_id, lat, lon, time_days, country, z, z_row_siz
         if not levels:
             continue
         levels.sort(key=lambda p: p[0])
-        date = _EPOCH + datetime.timedelta(days=float(t))
+        # ⛔ The hour was being thrown away. `_EPOCH` is a `date`, and
+        # `date + timedelta` uses only the timedelta's whole days — so a cast
+        # at 06:02 UTC and one at 23:58 the same day landed on the identical
+        # value with nothing left to tell them apart.
+        #
+        # Measured on the real wod_osd_2015.nc (8,987 casts) 2026-09-10:
+        #     fraction != 0 (time of day recorded) ... 8,450 = 94.0%
+        #     fraction == 0 (no time recorded) ......   537 =  6.0%
+        # 6% landing on exactly 00:00:00.000 is not a distribution — a uniform
+        # day would put ~1 cast in 86,400 there. Zero means "not recorded".
+        #
+        # ⚠️ Rounded to the SECOND, and the label says "time", not "minute".
+        # 89% of the non-zero fractions are whole minutes but 11% are not
+        # (quarter-minute steps and float noise), so claiming minute
+        # granularity for the layer would be a claim the data does not support.
+        tf = float(t)
+        whole = math.floor(tf)
+        frac = tf - whole
+        date = _EPOCH + datetime.timedelta(days=whole)
+        if frac > 0:
+            secs = round(frac * 86400)
+            # A fraction of 0.9999999 rounds to a full day; keep it inside the day.
+            secs = min(secs, 86399)
+            profile_time = _EPOCH_DT + datetime.timedelta(days=whole, seconds=secs)
+            time_precision = "time"
+        else:
+            profile_time = None
+            time_precision = "day"
         worst = max(flags) if flags else 0
         rows.append({
             "wod_cast_id": str(int(wod_cast_id[i])),
             "lat": float(lat[i]), "lon": float(lon[i]),
             "profile_date": date, "decade": (date.year // 10) * 10,
-            "cruise": None, "dataset": dataset,
+            "profile_time": profile_time, "time_precision": time_precision,
+            # ⛔ Both of these were hardcoded `None` and nobody had asked the
+            # source. Measured against the real wod_osd_2015.nc (8,987 casts)
+            # on 2026-09-10:
+            #     WOD_cruise_identifier .... 82.1% populated, e.g. 'AU006994'
+            #     Oxygen_Instrument ........  3.3% populated, e.g. 'CTD: TYPE UNKNOWN'
+            # So `cruise` was a real loss and `probe_type` is genuinely sparse
+            # AT SOURCE — recorded here so the next reader does not chase 3%
+            # as if it were our bug. `country` was already read this way; the
+            # other two simply never were.
+            "cruise": _clean(cruise[i]) if cruise is not None else None,
+            "dataset": dataset,
             "country": _clean(country[i]) if country is not None else None,
-            "probe_type": None,
+            "probe_type": _clean(probe[i]) if probe is not None else None,
             "max_depth_m": levels[-1][0], "n_levels": len(levels),
             "o2_profile": levels, "o2_units": units,
             "qc_flag": worst, "qc_note": (f"WOD QC flag {worst} on some levels") if worst > 0 else None,
@@ -91,6 +133,12 @@ def parse_wod_oxygen_dataset(src, min_lat: float = 50.0, dataset: str = "OSD") -
             lat=ds["lat"].values, lon=ds["lon"].values,
             time_days=ds["time"].values,
             country=ds["country"].values if "country" in ds.variables else None,
+            # WOD names the cruise two ways; the WOD-assigned id is the one that
+            # is populated (82.1% against 33.9% for the originator's).
+            cruise=ds["WOD_cruise_identifier"].values
+                   if "WOD_cruise_identifier" in ds.variables else None,
+            probe=ds["Oxygen_Instrument"].values
+                  if "Oxygen_Instrument" in ds.variables else None,
             z=ds["z"].values, z_row_size=ds["z_row_size"].values,
             oxygen=ds["Oxygen"].values,
             oxygen_flag=ds["Oxygen_WODflag"].values if "Oxygen_WODflag" in ds.variables
@@ -152,16 +200,32 @@ async def _upsert_rows(pool, rows: list[dict]) -> int:
                 await conn.execute("""
                     INSERT INTO wod_oxygen_profiles
                       (wod_cast_id, lat, lon, geom, profile_date, decade, cruise, dataset,
-                       country, probe_type, max_depth_m, n_levels, o2_profile, o2_units, qc_flag, qc_note)
-                    VALUES ($1,$2,$3, ST_SetSRID(ST_MakePoint($3,$2),4326), $4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15)
+                       country, probe_type, max_depth_m, n_levels, o2_profile, o2_units, qc_flag, qc_note,
+                       profile_time, time_precision)
+                    VALUES ($1,$2,$3, ST_SetSRID(ST_MakePoint($3,$2),4326), $4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15,$16,$17)
                     ON CONFLICT (wod_cast_id) DO UPDATE SET
                       o2_profile = EXCLUDED.o2_profile, n_levels = EXCLUDED.n_levels,
                       max_depth_m = EXCLUDED.max_depth_m, qc_flag = EXCLUDED.qc_flag,
-                      qc_note = EXCLUDED.qc_note
+                      qc_note = EXCLUDED.qc_note,
+                      -- ⛔ Everything below is a pure function of the payload and
+                      -- was NOT being refreshed, so a re-ingest could not repair
+                      -- a column we had learned to read. `cruise` and
+                      -- `probe_type` were added earlier today and would have
+                      -- stayed NULL on all 978,476 existing rows for exactly
+                      -- this reason.
+                      profile_date = EXCLUDED.profile_date,
+                      decade = EXCLUDED.decade,
+                      cruise = EXCLUDED.cruise,
+                      country = EXCLUDED.country,
+                      probe_type = EXCLUDED.probe_type,
+                      o2_units = EXCLUDED.o2_units,
+                      profile_time = EXCLUDED.profile_time,
+                      time_precision = EXCLUDED.time_precision
                 """, r["wod_cast_id"], r["lat"], r["lon"], r["profile_date"], r["decade"],
                      r["cruise"], r["dataset"].upper(), r["country"], r["probe_type"],
                      r["max_depth_m"], r["n_levels"], json.dumps(r["o2_profile"]),
-                     r["o2_units"], r["qc_flag"], r["qc_note"])
+                     r["o2_units"], r["qc_flag"], r["qc_note"],
+                     r["profile_time"], r["time_precision"])
                 n += 1
             except Exception as exc:
                 log.warning("wod: skip cast %s: %s", r.get("wod_cast_id"), exc)
