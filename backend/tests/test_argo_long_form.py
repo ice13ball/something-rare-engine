@@ -146,7 +146,7 @@ async def test_upsert_writes_long_form_values_with_qc_and_skips_absent_param(mon
             profile_id="testplat_001",
         )
         params = ["pressure", "temperature", "nitrate", "nitrate_argoqc", "chla"]
-        inserted, new_platforms = await sensors._upsert_argo_profiles([profile], params)
+        inserted, new_platforms, _revised = await sensors._upsert_argo_profiles([profile], params)
         assert inserted == 1
         assert "testplat" in new_platforms
 
@@ -280,6 +280,9 @@ async def test_backfill_cursor_does_not_advance_on_chunk_failure(monkeypatch):
         async def failing_fetch(client, start, end, params):
             raise RuntimeError("simulated ArgoVis outage mid-chunk")
         monkeypatch.setattr(sensors, "_fetch_argo_window", failing_fetch)
+        # A month is thirty requests since 2026-09-10; without this the
+        # pacing sleep between them dominates the test's runtime.
+        monkeypatch.setattr(sensors, "_ARGO_BACKFILL_CHUNK_PACING_SECONDS", 0)
 
         result = await sensors.sync_argo_profiles_backfill(budget_seconds=30)
         assert result["months_done"] == 0
@@ -317,6 +320,7 @@ async def test_backfill_cursor_advances_on_successful_chunk(monkeypatch):
         async def fake_fetch(client, start, end, params):
             return []  # empty month, still a "success"
         monkeypatch.setattr(sensors, "_fetch_argo_window", fake_fetch)
+        monkeypatch.setattr(sensors, "_ARGO_BACKFILL_CHUNK_PACING_SECONDS", 0)
 
         # Force exactly one chunk without racing the wall clock or touching
         # the global time module (which asyncio itself relies on): pin
@@ -475,6 +479,7 @@ async def test_a_run_that_walked_no_months_reports_itself_stalled(monkeypatch):
         return ["temperature"]
 
     monkeypatch.setattr(sensors, "_fetch_argo_window", always_429)
+    monkeypatch.setattr(sensors, "_ARGO_BACKFILL_CHUNK_PACING_SECONDS", 0)
     monkeypatch.setattr(sensors, "_fetch_argo_param_vocabulary", fake_vocab)
 
     result = await sensors.sync_argo_profiles_backfill(budget_seconds=5)

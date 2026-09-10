@@ -113,7 +113,7 @@
       "label": "ONC Observatories",
       "source": "Ocean Networks Canada — Oceans 3.0 API (data.oceannetworks.ca, CC BY 4.0)",
       "updateFreq": "Locations synced weekly from ONC API; CTD/oxygen sensor readings cached daily — only the 195 stations with verified readings within the past year are shown",
-      "description": "Ocean Networks Canada cabled seafloor observatory nodes — permanent underwater infrastructure transmitting real-time seismic, pressure, temperature, salinity, and chemistry data via subsea cable. ONC operates NEPTUNE (NE Pacific, depths to 2,660 m) and VENUS (coastal BC) networks, plus Arctic and Atlantic nodes. Unlike Argo floats, these are fixed in place. Only stations with at least one CTD or oxygen sensor reading in the past 12 months appear on the map. Note: NE Pacific has no active ISA mining claims (all seamounts and vent fields are protected under the ThT MPA framework).",
+      "description": "Ocean Networks Canada cabled seafloor observatory nodes — permanent underwater infrastructure transmitting real-time seismic, pressure, temperature, salinity, and chemistry data via subsea cable. ONC operates NEPTUNE (NE Pacific, depths to 2,660 m) and VENUS (coastal BC) networks, plus Arctic and Atlantic nodes. Unlike Argo floats, these are fixed in place. The map covers ONC's whole location tree, not only the cabled nodes — drifting buoys and instruments from finished expeditions are included, and the latest reading held for one of those may be years old. Note: NE Pacific has no active ISA mining claims (all seamounts and vent fields are protected under the ThT MPA framework).",
       "reading": "Teal glow dot = ONC observatory with verified sensor data. Click for station name, depth, and cached daily readings (temperature, salinity, pressure, oxygen where available). Use the EOV filter (+) to narrow both this layer and ONC Instruments to a specific Essential Ocean Variable: Currents (ADCP/current meters), Ocean sound (hydrophones), Oxygen (CTDs/O₂ sensors), or Particulate matter (turbidity/fluorometry). EOVs follow the GOOS/CIOOS taxonomy."
     },
     "chemosynthenticSites": {
@@ -1069,7 +1069,7 @@
     "lim_isa": "ISA block boundaries are exploration zones, not guaranteed mining footprints",
     "lim_conflict": "Conflict risk levels are spatial proximity assessments, not legally binding determinations",
     "lim_oceansites": "OceanSITES shows only stations with active NDBC buoy feeds — many real moorings (especially European) are not in NDBC and won't appear",
-    "lim_onc": "ONC shows only stations with readings within the past 12 months — decommissioned or offline nodes are excluded",
+    "lim_onc": "ONC shows the most recent reading it holds for each station, with no recency floor — a retired node or a recovered drifter can show a reading that is years old, so read the timestamp beside the value",
     "lim_noise": "Noise Risk cells marked 'data gap' have measured noise but no cetacean survey coverage — absence of records does not mean absence of animals",
     "lim_chess": "Chemosynthetic Sites habitat type is keyword-inferred from locality names — records with non-descriptive names default to OMZ; manual reclassification is not possible without authoring new OBIS records",
     "limLandTitle": "Land layers",

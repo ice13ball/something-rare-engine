@@ -1069,7 +1069,7 @@
     "lim_isa": "ISA-Blockgrenzen sind Explorationszonen, keine garantierten Bergbau-Fußabdrücke",
     "lim_conflict": "Konfliktrisikoniveaus sind räumliche Näheeinschätzungen, keine rechtlich bindenden Entscheidungen",
     "lim_oceansites": "OceanSITES zeigt nur Stationen mit aktiven NDBC-Bojen-Feeds — viele echte Verankerungen (besonders europäische) sind nicht in NDBC",
-    "lim_onc": "ONC zeigt nur Stationen mit Messwerten innerhalb der letzten 12 Monate — außer Betrieb gesetzte oder offline Knoten werden ausgeschlossen",
+    "lim_onc": "ONC zeigt den neuesten Messwert, der für jede Station vorliegt, ohne Aktualitätsgrenze — ein stillgelegter Knoten oder eine geborgene Driftboje kann einen Jahre alten Messwert anzeigen; lesen Sie daher den Zeitstempel neben dem Wert",
     "lim_noise": "Lärm-Risikoraster-Zellen, die als 'Datenlücke' markiert sind, haben gemessenen Lärm, aber keine Walbestandsaufnahmeabdeckung — Fehlen von Datensätzen bedeutet nicht Fehlen von Tieren",
     "lim_chess": "Chemosynthetischer Standort-Habitattyp wird durch Schlüsselwort aus Ortsnamen abgeleitet",
     "limLandTitle": "Land-Ebenen",

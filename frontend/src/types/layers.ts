@@ -119,7 +119,7 @@ export const LAYER_CONFIGS: LayerConfig[] = [
     color: "#4db8a4",
     fillRgba: [77, 184, 164, 200],
     lineRgba: [77, 184, 164, 255],
-    description: "Ocean Networks Canada cabled seafloor observatory stations — real-time seismic, pressure, and chemistry data (CC BY 4.0)",
+    description: "Ocean Networks Canada observing stations — cabled seafloor nodes, drifting buoys and expedition instruments (CC BY 4.0)",
   },
   {
     id: "chess",

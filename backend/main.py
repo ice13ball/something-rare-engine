@@ -1114,6 +1114,10 @@ async def lifespan(app: FastAPI):
     # _heavy_query_sem (below) this keeps total project CPU under ~2 cores.
     _pool = await asyncpg.create_pool(os.environ["DATABASE_URL"], min_size=2, max_size=4, max_inactive_connection_lifetime=300.0)
     _db.pool = _pool
+    # Record the DSN next to the pool, so anything needing a connection
+    # outside the pool reaches the same database rather than re-reading the
+    # environment on its own. See db.dsn.
+    _db.dsn = os.environ["DATABASE_URL"]
 
     from api_access.logging_mw import batch_writer
     from api_access.rollup import rollup_new_rows

@@ -1069,7 +1069,7 @@
     "lim_isa": "Les limites des blocs ISA sont des zones d'exploration, pas des empreintes minières garanties",
     "lim_conflict": "Les niveaux de risque de conflit sont des évaluations de proximité spatiale, pas des déterminations juridiquement contraignantes",
     "lim_oceansites": "OceanSITES n'affiche que les stations avec des flux de bouées NDBC actifs — de nombreux mouillages réels (notamment européens) ne sont pas dans NDBC",
-    "lim_onc": "ONC n'affiche que les stations avec des lectures au cours des 12 derniers mois — les nœuds déclassés ou hors ligne sont exclus",
+    "lim_onc": "ONC affiche la lecture la plus récente dont il dispose pour chaque station, sans seuil de fraîcheur — un nœud retiré ou une bouée récupérée peut afficher une lecture vieille de plusieurs années ; lisez donc l'horodatage à côté de la valeur",
     "lim_noise": "Les cellules de la grille de risque sonore marquées « données manquantes » ont du bruit mesuré mais pas de couverture de recensement des cétacés — l'absence de données ne signifie pas l'absence d'animaux",
     "lim_chess": "Le type d'habitat des sites chémosynthétiques est inféré par mot-clé à partir des noms de localités",
     "limLandTitle": "Couches terrestres",

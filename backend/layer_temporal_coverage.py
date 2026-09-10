@@ -492,19 +492,34 @@ COVERAGE: tuple[Coverage, ...] = (
     ),
     Coverage(
         layer_id="onc",
-        # Measured on our own copy 2026-09-09: every stored reading carries the
-        # sample time ONC gave it (139/139), and the sweep asks for a 365-day
-        # window, so a shown value is at most a year old. The 2009 start is the
-        # earliest deployment_start across the 937 instruments we hold.
-        start_year=2009, end_year=None,
+        # ⛔ The 365-day request window is GONE (2026-09-09). It never meant
+        # "at most a year old": `rowLimit=1` returns the first row at or after
+        # `dateFrom`, so the sweep was storing the reading from the window edge
+        # and calling it the latest — BACAX sat at 2025-09-09 while the station
+        # published live. The floor also emptied 1745 of 1976 locations,
+        # because 725 of them are drifter buoys from finished expeditions
+        # whose data is public and simply old. See
+        # domains/onc.onc_latest_sample_params.
+        #
+        # Re-measured 2026-09-10 against the stored sample times, after the
+        # widened sweep had been round all 1976 locations: the earliest
+        # reading we hold is 2004-03-31 (TWSB, Tsawwassen - Swartz Bay ferry
+        # route, cdomfluorescence), followed by HBDB 2004-11-23. The old 2009
+        # was the earliest instrument DEPLOYMENT in our copy, which is a
+        # different thing and five years too late.
+        start_year=2004, end_year=None,
         kind="observations",
         wording="Each reading carries the measurement time ONC published for "
                 "it, and the readings on one station can differ in age because "
                 "each instrument category is fetched separately. ⛔ This layer "
-                "holds only the LATEST value per measurement, requested within "
-                "a 365-day window — it is a snapshot, not a time series, and "
-                "nothing here can be pooled into a trend. ONC's own archive "
-                "goes back further than what we store; the 2009 start is the "
+                "holds only the LATEST value per measurement — a snapshot, not "
+                "a time series, and nothing here can be pooled into a trend. "
+                "⛔ There is no recency floor: ONC's location tree covers more "
+                "than the cabled nodes, so a station may be a drifting buoy or "
+                "an instrument from a finished expedition whose latest reading "
+                "is years old. Read the timestamp shown beside a value; this "
+                "span does not date any individual reading. ONC's own archive "
+                "goes back further than what we store; the start year is the "
                 "earliest instrument deployment in our copy, not a figure the "
                 "publisher states. Their pages render client-side and give no "
                 "machine-readable coverage span.",

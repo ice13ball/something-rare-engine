@@ -130,3 +130,54 @@ async def test_argo_schema_is_created_idempotently_and_keeps_legacy_columns():
             await conn.execute("DELETE FROM argo_profile_values")
             await conn.execute("DELETE FROM argo_params")
         await pool.close()
+
+
+@pytest.mark.asyncio
+async def test_argo_profiles_records_the_sources_own_revision_stamp():
+    """`date_updated_argovis` is how we learn a profile has been corrected.
+
+    Argo publishes real-time data first and a quality-controlled delayed-mode
+    version months later, so a profile is not finished when we first see it.
+    Measured against the live API 2026-09-10: of 464 profiles dated
+    2024-03-01, eighty had been revised in the previous three months.
+
+    ⛔ TIMESTAMPTZ, not TIMESTAMP. ArgoVis sends `...Z`; comparing a naive
+    timestamp against an aware one raises TypeError, and that exception is
+    NOT caught by the `except httpx.HTTPError` around the fetch — it would
+    travel up and take the scheduler with it.
+
+    ⛔ Nullable, with no default. NULL means "we never asked about this row",
+    and 388k existing rows will carry it until a cheap metadata pass fills
+    them in. A NOT NULL or a DEFAULT would also force a full table rewrite
+    under an AccessExclusiveLock, which migrate.py's lock timeout would not
+    survive.
+    """
+    import asyncpg
+    from schema.core import ensure_core
+
+    pool = await asyncpg.create_pool(os.environ["TEST_DATABASE_URL"])
+    try:
+        async with pool.acquire() as conn:
+            await ensure_core(conn)
+            row = await conn.fetchrow(
+                """SELECT data_type, is_nullable, column_default
+                     FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = 'argo_profiles'
+                      AND column_name = 'date_updated_argovis'"""
+            )
+            assert row is not None, (
+                "argo_profiles has no date_updated_argovis — without it every "
+                "correction ArgoVis publishes is invisible to us"
+            )
+            assert row["data_type"] == "timestamp with time zone", (
+                f"date_updated_argovis is {row['data_type']}; a naive timestamp "
+                "cannot be compared with ArgoVis's UTC stamps without raising"
+            )
+            assert row["is_nullable"] == "YES"
+            assert row["column_default"] is None, (
+                "a default would make NULL unreachable, and NULL is how we say "
+                "'we have never asked about this row'"
+            )
+    finally:
+        await pool.close()

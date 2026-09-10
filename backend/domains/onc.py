@@ -172,6 +172,100 @@ from sync_log import log_sync as _log_sync
 log = logging.getLogger(__name__)
 router = APIRouter()
 
+
+def onc_latest_sample_params(now: datetime) -> dict[str, object]:
+    """The three query parameters that ask ONC for the single most recent
+    scalar sample at a location or device, whenever that sample happened.
+
+    ⛔ `rowLimit=1` on its own returns the FIRST row at or after `dateFrom`,
+    never the last one. Every call site here used to pair it with a
+    `dateFrom` floor and label the result "latest reading". It was the
+    opposite: the reading from the moment the floor opened.
+
+    Measured on production 2026-09-09, before this helper existed:
+
+        BACAX in our database : 2025-09-09T18:53   (floor was now - 365 days)
+        BACAX live at ONC     : 2026-09-09T20:55
+
+    Across the whole layer, 1319 of the 1615 stored readings were older than
+    300 days and 8 were fresher than a week, with the oldest sitting on the
+    window edge to the day.
+
+    ⛔ There is deliberately no `dateFrom` here. The floor was also hiding
+    most of the layer: 1745 of 1976 ONC locations held nothing at all,
+    because ONC's location tree is not only the cabled networks — 725 of the
+    1994 locations carry `DRIFTER`, buoys from finished expeditions whose
+    data is real, public and simply from 2014-2017.
+
+    Full sweep of all 1976 locations, before -> after:
+
+        locations with any reading        231  ->  638
+        readings stored                  1615  -> 4380
+        readings fresher than a week        8  ->  318
+        locations whose newest reading
+          is from the last 24 hours         -  ->   65
+
+    ⚠️ The gain is NOT "75% of the empty locations", which is what a first
+    sample suggested. That sample counted whether ONC returned any row at
+    all; it did not check what survives `_ONC_PROPERTY_LABELS`. A 60-location
+    sample of the empty ones, classified properly: 52% expose only
+    `latitude`/`longitude` (drifters), 18% have nothing, 17% carry a property
+    we recognise, 13% carry only instrument housekeeping (`voltage`,
+    `batterycharge`, `internalhumidity`, `satellitecount`). ⛔ Do NOT widen
+    the property allowlist to catch that last group — it is telemetry about
+    the instrument, not a measurement of the ocean.
+
+    `getLatest` is ONC's own parameter for this case: "quickly obtaining the
+    latest reading" is a named use case in their API guide, and their release
+    notes record `getLatest` and `rowLimit` being made to work together.
+    Verified against live ONC on seven locations, active and long-retired,
+    on both `/scalardata/location` and `/scalardata/device`.
+
+    ⚠️ Callers must keep showing the per-reading timestamp. A reading from
+    2015 is worth displaying; presenting it as current is not.
+    """
+    return {
+        "getLatest": "true",
+        "dateTo":    now.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "rowLimit":  1,
+    }
+
+
+def onc_qc_flag(data: dict) -> int | None:
+    """The QAQC flag ONC published for the sample we kept, or None.
+
+    ONC returns `qaqcFlags` in the same `data` object as `values` and
+    `sampleTimes`, one flag per sample — and we read the LAST sample, so we
+    take the last flag. Their scale (derived from Argo's, plus a few of their
+    own — https://wiki.oceannetworks.ca/display/DP/Quality+Assurance+Quality+Control):
+
+        0  no QC performed          1  good           2  probably good
+        3  bad but potentially correctable            4  bad
+        6  insufficient valid data for down-sampling
+        7  averaged                 8  interpolated   9  missing
+
+    ONC states plainly that "poor quality data is qualified as quality control
+    flags 3 and 4". Measured over 75 readings from 25 stations on 2026-09-10,
+    before this function existed: 79% flag 1, 13% flag 0, **7% flag 3 and 1%
+    flag 4** — so roughly one reading in twelve that we were displaying had
+    already been marked doubtful by the people who collected it.
+
+    ⛔ Return None when ONC sent no flag — NEVER 0. Zero is a claim about the
+    data ("we ran no QC on this"); absence means we do not know. Collapsing
+    the two would be the same silent flattening this codebase keeps paying
+    for elsewhere.
+
+    ⛔ This does NOT filter. The value is stored either way, with its flag
+    beside it — the project's stated passthrough policy
+    (docs/methods/data-passthrough.md): "Quality flags published by a source
+    are requested, stored, and honoured." Honoured at presentation, not by
+    dropping the measurement, exactly as Argo and GEOTRACES do here.
+    """
+    flags = data.get("qaqcFlags") or []
+    return flags[-1] if flags else None
+
+
+
 # ── Caches ──────────────────────────────────────────────────────────────────
 _onc_cache:             str | None = None
 _onc_instruments_cache: str | None = None
@@ -442,16 +536,12 @@ async def enrich_onc_instruments(batch_limit: int | None = None) -> int:
             # Latest sensor readings (the actual measured values — what users want)
             readings: list[dict] = []
             try:
-                date_to = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-                date_from = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
                 sd_r = await client.get(
                     f"{_ONC_API_BASE}/scalardata/device",
                     params={
                         "method": "getByDevice",
                         "deviceCode": device_code,
-                        "dateFrom": date_from,
-                        "dateTo": date_to,
-                        "rowLimit": 1,
+                        **onc_latest_sample_params(datetime.now(timezone.utc)),
                         "token": token,
                     },
                     timeout=25,
@@ -481,6 +571,7 @@ async def enrich_onc_instruments(batch_limit: int | None = None) -> int:
                             "label": label,
                             "value": v,
                             "unit":  sensor.get("unitOfMeasure"),
+                            "qc":    onc_qc_flag(data),
                             "time":  times[-1] if times else None,
                         })
                     readings = prioritize_readings(readings)[:8]
@@ -741,8 +832,7 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
         categories_by_location.setdefault(code, ["CTD", "OXYSENSOR"])
 
     now = datetime.now(timezone.utc)
-    date_from = (now - timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    date_to   = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    latest_params = onc_latest_sample_params(now)
 
     sem = asyncio.Semaphore(8)
     # Visibility into the next silent gap: every unrecognised propertyCode is
@@ -771,9 +861,7 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
                     "method":             "getByLocation",
                     "locationCode":       code,
                     "deviceCategoryCode": category,
-                    "dateFrom":           date_from,
-                    "dateTo":             date_to,
-                    "rowLimit":           1,
+                    **latest_params,
                     "token":              token,
                 }
                 try:
@@ -816,6 +904,7 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
                             # ⛔ never assert a unit ONC did not declare — NULL, not a guess
                             "unit":  sensor.get("unitOfMeasure"),
                             "label": label,
+                            "qc":    onc_qc_flag(sensor.get("data") or {}),
                             # Each category is its own API call with its own
                             # sampleTimes, so once several categories merge, the
                             # readings on one location genuinely carry DIFFERENT
@@ -1553,15 +1642,15 @@ _ONC_DEVICE_CATEGORIES = ["CTD", "OXYSENSOR", "CURRENTMETER", "THERMISTOR"]
 async def live_onc(location_code: str):
     """Fetch latest sensor data for an ONC location via Oceans 3.0 API.
 
-    Tries CTD first, then other common sensor categories. Uses a 365-day
-    lookback so recent-but-not-current deployments still surface data.
+    Tries CTD first, then other common sensor categories. Asks ONC for the
+    most recent sample with no lower date bound, so a location whose last
+    deployment ended years ago still surfaces its final reading — see
+    `onc_latest_sample_params`.
     """
     token = os.getenv("ONC_TOKEN")
     if not token:
         return {"available": False, "reason": "ONC_TOKEN not configured"}
-    now = datetime.now(timezone.utc)
-    date_from = (now - timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    date_to   = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    latest_params = onc_latest_sample_params(datetime.now(timezone.utc))
 
     def _parse_sensors(payload: dict) -> dict:
         sensors: dict[str, dict] = {}
@@ -1585,6 +1674,7 @@ async def live_onc(location_code: str):
                     # ⛔ never assert a unit ONC did not declare
                     "unit":  sensor.get("unitOfMeasure"),
                     "label": label,
+                    "qc":    onc_qc_flag(sensor.get("data") or {}),
                     "time":  times[-1] if times else None,
                 }
         return sensors
@@ -1596,9 +1686,7 @@ async def live_onc(location_code: str):
                     "method":             "getByLocation",
                     "locationCode":       location_code,
                     "deviceCategoryCode": category,
-                    "dateFrom":           date_from,
-                    "dateTo":             date_to,
-                    "rowLimit":           1,
+                    **latest_params,
                     "token":              token,
                 }
                 r = await client.get(f"{_ONC_API_BASE}/scalardata/location", params=params)

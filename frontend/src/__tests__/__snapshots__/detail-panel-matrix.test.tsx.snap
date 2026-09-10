@@ -11826,7 +11826,7 @@ exports[`DetailPanel dispatch matrix > renders onc after data loads 1`] = `
         <p
           class="text-white/70 text-[14px] leading-relaxed "
         >
-          Ocean Networks Canada cabled seafloor observatory providing real-time seismic, pressure, and chemistry data (CC BY 4.0).
+          A station in Ocean Networks Canada's observing network — cabled seafloor nodes alongside drifting buoys and expedition instruments. Readings shown are the most recent ONC holds, which for a retired station may be historical (CC BY 4.0).
         </p>
         <p
           class="text-white/65 text-[14px] mt-2 uppercase tracking-wider"
@@ -11956,7 +11956,7 @@ exports[`DetailPanel dispatch matrix > renders onc without throwing and matches 
         <p
           class="text-white/70 text-[14px] leading-relaxed "
         >
-          Ocean Networks Canada cabled seafloor observatory providing real-time seismic, pressure, and chemistry data (CC BY 4.0).
+          A station in Ocean Networks Canada's observing network — cabled seafloor nodes alongside drifting buoys and expedition instruments. Readings shown are the most recent ONC holds, which for a retired station may be historical (CC BY 4.0).
         </p>
         <p
           class="text-white/65 text-[14px] mt-2 uppercase tracking-wider"

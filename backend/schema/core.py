@@ -132,6 +132,25 @@ async def ensure_core(conn) -> None:
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_silicate      DOUBLE PRECISION;
         ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_nitrate       DOUBLE PRECISION;
 
+        -- ArgoVis's own "last touched" stamp for the profile. Argo publishes
+        -- real-time data first and a quality-controlled delayed-mode version
+        -- months later, so a profile is not finished when we first see it.
+        -- Measured against the live API 2026-09-10: of 464 profiles dated
+        -- 2024-03-01, eighty had been revised in the previous three months;
+        -- of 400 dated 2019-09-01, twenty-five were revised in July 2026.
+        --
+        -- ⛔ NULL means "we never asked about this row", NOT "the source has
+        -- no date" and NOT "this row is stale". Existing rows ARE current:
+        -- compared against live ArgoVis on 2026-09-10, 465 of 465 profiles
+        -- matched for 2026-08-01 and 169 of 169 for 2005-06-15. Treating NULL
+        -- as stale would pull the full measurement payload for all 388k rows
+        -- to discover nothing had changed.
+        --
+        -- No DEFAULT and no NOT NULL on purpose: in PG 11+ that makes this a
+        -- catalogue-only change, so it takes no table rewrite and no long
+        -- AccessExclusiveLock, and fits inside migrate.py's lock timeout.
+        ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS date_updated_argovis TIMESTAMPTZ;
+
         CREATE TABLE IF NOT EXISTS hydrothermal_vents (
             id          SERIAL PRIMARY KEY,
             name        TEXT NOT NULL,
@@ -246,11 +265,35 @@ async def ensure_argo_long_form(conn) -> None:
             done_through  DATE,
             updated_at    TIMESTAMPTZ
         );
+
+        -- Profiles ArgoVis lists that we deliberately do NOT store, so the
+        -- metadata gate stops asking for them twice a day forever.
+        --
+        -- Measured on production 2026-09-10, first run with the gate acting:
+        -- 30 profiles fetched, 0 stored. They declare `temperature` in
+        -- data_info but every one of their ~1000 values is null, and the
+        -- upsert drops a profile with no temperature at all — a deliberate
+        -- rule the gate had no way to know about. 30 x 155 KB, twice a day,
+        -- in perpetuity.
+        --
+        -- ⛔ date_updated_argovis is not decoration. Argo's delayed-mode QC
+        -- can FILL IN a column that was empty in real time, so a skip is
+        -- valid only for the revision we saw. When the source revises the
+        -- profile, the gate must look again — otherwise this table turns a
+        -- temporary gap into a permanent one, which is the opposite of what
+        -- it is for.
+        CREATE TABLE IF NOT EXISTS argo_skipped_profiles (
+            profile_id           TEXT PRIMARY KEY,
+            date_updated_argovis TIMESTAMPTZ,
+            reason               TEXT NOT NULL,
+            seen_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
     """)
     try:
         await conn.execute("ALTER TABLE argo_profile_values OWNER TO abyssal_user")
         await conn.execute("ALTER TABLE argo_params OWNER TO abyssal_user")
         await conn.execute("ALTER TABLE argo_backfill_state OWNER TO abyssal_user")
+        await conn.execute("ALTER TABLE argo_skipped_profiles OWNER TO abyssal_user")
     except Exception:
         pass
 

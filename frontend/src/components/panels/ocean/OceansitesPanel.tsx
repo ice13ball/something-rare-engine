@@ -7,6 +7,22 @@ import { sourceLinkFor } from "../../../utils/sourceUrl";
 
 import { Row, Section, Badge, PanelHeader, BodyText, WarningBanner, SourceAttribution } from "../shared/primitives";
 
+// ⛔ `sensor_models` repeats models ON PURPOSE. A mooring carries the same
+// instrument at several depths, so "SEABIRD_SBE37" seven times is seven real
+// instruments, not a source bug — deduplicating it would quietly discard the
+// size of the array. The raw string reaches 1,837 characters (mean 265), which
+// no side panel can show, so group and count instead: same multiset, readable.
+function groupSensorModels(raw: string): string {
+  const counts = new Map<string, number>();
+  for (const model of raw.split(",").map(m => m.trim()).filter(Boolean)) {
+    counts.set(model, (counts.get(model) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([model, n]) => (n > 1 ? `${model} ×${n}` : model))
+    .join(", ");
+}
+
 export function OceansitesPanel({ properties: p }: { properties: Record<string, unknown> }) {
   const { t } = useTranslation(["panels", "enums"]);
   const obs = p.latest_obs as Record<string, unknown> | null | undefined;
@@ -34,9 +50,21 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
       <PanelHeader>{String(p.name ?? p.ref ?? "—")}</PanelHeader>
       <Section title={t("oceansites.stationSectionTitle")}>
         <Row label={t("oceansites.referenceLabel")} value={String(p.ref ?? "—")} />
+        {/* ⚠️ Conditional on purpose: only 340 of 1,072 stations carry a WIGOS
+            identifier and 482 a deploy ship. An em dash on the other 700 would
+            read as "we failed to fetch it" rather than "the source has none". */}
+        {p.wigos_id != null && <Row label={t("oceansites.wigosLabel")} value={String(p.wigos_id)} />}
         <Row label={t("oceansites.statusLabel")}    value={tEnum(t, "status", String(p.status ?? ""))} />
         <Row label={t("oceansites.networkLabel")}   value={String(p.network ?? "—")} />
+        {p.country != null && <Row label={t("oceansites.countryLabel")} value={String(p.country)} />}
         {p.deploy_date != null && <Row label={t("oceansites.deployedLabel")} value={String(p.deploy_date).slice(0, 10)} />}
+        {p.deploy_ship != null && <Row label={t("oceansites.deployShipLabel")} value={String(p.deploy_ship)} />}
+        {typeof p.deployment_count === "number" && p.deployment_count > 0 && (
+          <Row label={t("oceansites.deploymentCountLabel")} value={String(p.deployment_count)} />
+        )}
+        {p.sensor_models != null && String(p.sensor_models).trim() !== "" && (
+          <Row label={t("oceansites.sensorModelsLabel")} value={groupSensorModels(String(p.sensor_models))} />
+        )}
       </Section>
       <Section title={t("oceansites.latestObservationsSectionTitle")}>
         {obs ? (

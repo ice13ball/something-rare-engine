@@ -28,6 +28,7 @@ ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_o2sat DOUBLE PRECISI
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_phosphate DOUBLE PRECISION
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_silicate DOUBLE PRECISION
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_nitrate DOUBLE PRECISION
+ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS date_updated_argovis TIMESTAMPTZ
 CREATE TABLE IF NOT EXISTS hydrothermal_vents ( id SERIAL PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL CHECK (status IN ('Active', 'Inactive', 'Extinct')), depth_m FLOAT, latitude FLOAT NOT NULL, longitude FLOAT NOT NULL, geom GEOGRAPHY(POINT, 4326) NOT NULL, source_url TEXT, created_at TIMESTAMPTZ DEFAULT now(), UNIQUE (name, latitude, longitude) )
 COMMENT ON COLUMN hydrothermal_vents.depth_m IS 'Pass-through of the InterRidge Vents Database v3.4 "Maximum or Single Reported ' 'Depth" column (Beaulieu & Szafranski 2020, doi:10.1594/PANGAEA.917894). That ' 'source''s own column-header definitions file was not checked for a stated sign ' 'convention, and production values have not been range-checked here - treat ' '"positive down" as unverified, not a claim.'
 CREATE INDEX IF NOT EXISTS hydrothermal_vents_geom_idx ON hydrothermal_vents USING GIST(geom)
@@ -43,9 +44,11 @@ CREATE INDEX IF NOT EXISTS argo_profile_values_param_idx ON argo_profile_values 
 CREATE TABLE IF NOT EXISTS argo_params ( param TEXT PRIMARY KEY, label TEXT, unit TEXT, n_values INTEGER )
 CREATE TABLE IF NOT EXISTS argo_topup_state ( id INTEGER PRIMARY KEY CHECK (id = 1), done_through DATE, updated_at TIMESTAMPTZ DEFAULT NOW() )
 CREATE TABLE IF NOT EXISTS argo_backfill_state ( id INTEGER PRIMARY KEY CHECK (id = 1), done_through DATE, updated_at TIMESTAMPTZ )
+CREATE TABLE IF NOT EXISTS argo_skipped_profiles ( profile_id TEXT PRIMARY KEY, date_updated_argovis TIMESTAMPTZ, reason TEXT NOT NULL, seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
 ALTER TABLE argo_profile_values OWNER TO abyssal_user
 ALTER TABLE argo_params OWNER TO abyssal_user
 ALTER TABLE argo_backfill_state OWNER TO abyssal_user
+ALTER TABLE argo_skipped_profiles OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS mining_contracts ( id SERIAL PRIMARY KEY, isa_id TEXT UNIQUE, contractor_name TEXT, resource_type TEXT, area_km2 DOUBLE PRECISION, expiry_date TIMESTAMPTZ, region TEXT, is_high_risk BOOLEAN DEFAULT FALSE, geom geometry(MultiPolygon, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, act_date TIMESTAMPTZ )
 CREATE INDEX IF NOT EXISTS idx_mining_contracts_geom ON mining_contracts USING GIST(geom)
 CREATE TABLE IF NOT EXISTS biodiversity_hotspots ( id SERIAL PRIMARY KEY, obis_id TEXT UNIQUE, scientific_name TEXT, vernacular_name TEXT, category TEXT, is_endangered BOOLEAN DEFAULT FALSE, geom geometry(Point, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, phylum TEXT, class_name TEXT, order_name TEXT, family TEXT, depth NUMERIC, description TEXT, image_url TEXT, iucn_category TEXT DEFAULT 'NE' )

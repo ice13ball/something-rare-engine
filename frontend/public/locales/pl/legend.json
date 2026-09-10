@@ -1069,7 +1069,7 @@
     "lim_isa": "Granice bloków ISA to strefy eksploracji, nie gwarantowane ślady wydobycia",
     "lim_conflict": "Poziomy ryzyka konfliktu to oceny bliskości przestrzennej, nie prawnie wiążące ustalenia",
     "lim_oceansites": "OceanSITES pokazuje tylko stacje z aktywnymi feedami boi NDBC — wiele rzeczywistych kotwiczeniach (zwłaszcza europejskich) nie jest w NDBC i nie będzie widocznych",
-    "lim_onc": "ONC pokazuje tylko stacje z odczytami z ostatnich 12 miesięcy — wycofane lub offline węzły są wykluczone",
+    "lim_onc": "ONC pokazuje najnowszy odczyt, jaki ma dla danej stacji, bez progu świeżości — wycofany węzeł albo podniesiona boja mogą pokazywać odczyt sprzed lat, więc czytaj znacznik czasu obok wartości",
     "lim_noise": "Komórki siatki ryzyka hałasu oznaczone jako „brak danych” mają zmierzony hałas, ale brak badań waleni — brak rekordów nie oznacza braku zwierząt",
     "lim_chess": "Typ siedliska Miejsc chemosyntety jest wnioskowany ze słów kluczowych nazw miejscowości — rekordy z nieopisowymi nazwami domyślnie trafiają do OMZ; ręczna reklasyfikacja nie jest możliwa bez tworzenia nowych rekordów OBIS",
     "limLandTitle": "Warstwy lądowe",

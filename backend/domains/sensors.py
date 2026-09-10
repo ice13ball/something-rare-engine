@@ -119,6 +119,7 @@ import json
 import logging
 import os
 import time
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 
 import db
@@ -506,23 +507,62 @@ async def _fetch_argo_param_vocabulary(client: httpx.AsyncClient) -> list[str]:
     global _argo_param_vocab_cache
     if _argo_param_vocab_cache is not None:
         return _argo_param_vocab_cache
-    r = await client.get(f"{_ARGO_API}/vocabulary", params={"parameter": "data"})
-    r.raise_for_status()
-    _argo_param_vocab_cache = list(r.json())
+    async def _get():
+        r = await client.get(f"{_ARGO_API}/vocabulary", params={"parameter": "data"})
+        r.raise_for_status()
+        return list(r.json())
+
+    # ⛔ Retried like every other ArgoVis call. This is the FIRST request a
+    # sync makes, so an unretried 429 here aborts the whole run before a
+    # single day is walked — observed on production 2026-09-10.
+    _argo_param_vocab_cache, _ = await _argo_with_retry(_get, label="vocabulary")
     return _argo_param_vocab_cache
 
 
+async def _fetch_argo_profile(client: httpx.AsyncClient, profile_id: str) -> list[dict]:
+    """One profile by id, with its measurements.
+
+    ⛔ One id per request. `id=a,b` answers HTTP 400 ("must be url encoded")
+    and a repeated `id=` parameter answers HTTP 400 ("should be string") —
+    measured 2026-09-10. Anyone batching these will get a 400, not a saving.
+
+    Returns a list so the caller can treat it exactly like a window answer.
+    """
+    r = await client.get(_ARGO_API, params={"id": profile_id, "data": "all"})
+    r.raise_for_status()
+    return list(r.json())
+
+
 async def _fetch_argo_window(
-    client: httpx.AsyncClient, start: datetime, end: datetime, params: list[str]
+    client: httpx.AsyncClient, start: datetime, end: datetime,
+    params: list[str] | None,
 ) -> list[dict]:
     """One global (no polygon — Truncation (a) removed) ArgoVis query for
     [start, end). Raises on transport/HTTP failure so the caller can treat
-    the whole run as failed rather than silently partial."""
-    r = await client.get(
-        _ARGO_API,
-        params={
-            "startDate": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "endDate":   end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    the whole run as failed rather than silently partial.
+
+    ⛔ `params=None` does NOT mean "use the defaults". It means: OMIT the
+    `data` key entirely, and come back with metadata only. Measured against
+    the live API 2026-09-10, one global day:
+
+        with data=all ..... 18 414 KB, 7.1 s
+        no `data` key .....    503 KB, 3.4 s      ← 36x smaller
+
+    The metadata answer still carries `_id`, `timestamp`, `data_info` (the
+    parameter NAMES, without their values) and — the reason this exists —
+    `date_updated_argovis`. That is everything needed to decide whether the
+    measurements are worth asking for at all.
+
+    ⚠️ `data=""` is NOT the same as omitting the key. `data` is a FILTER (see
+    the note below), so an empty string is a different filter, not the
+    absence of one.
+    """
+    query: dict[str, str] = {
+        "startDate": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "endDate":   end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    if params is not None:
+        query.update({
             # ⛔ `data` IS A FILTER, NOT A COLUMN SELECTION. Naming parameters
             # returns only profiles carrying ALL of them. Measured against the
             # live API on 2026-09-09, one day of global profiles:
@@ -543,8 +583,8 @@ async def _fetch_argo_window(
             # this float carries": same 464 profiles, 42 distinct parameters
             # returned, 15.9 MB for one global day.
             "data": "all",
-        },
-    )
+        })
+    r = await client.get(_ARGO_API, params=query)
     r.raise_for_status()
     seen: set[str] = set()
     profiles: list[dict] = []
@@ -626,7 +666,28 @@ def extract_argo_long_form(profile: dict, base_params: list[str]) -> list[dict]:
     return rows
 
 
-async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tuple[int, set[str]]:
+def _parse_argovis_ts(raw: str | None) -> datetime | None:
+    """ArgoVis's `date_updated_argovis`, as an aware datetime.
+
+    ⛔ Keep the `Z` → `+00:00` rewrite. `fromisoformat` on a truncated or
+    Z-suffixed string yields a NAIVE datetime, and comparing naive with aware
+    raises TypeError — an exception the `except httpx.HTTPError` around the
+    fetch does not catch, so it would travel up and take the scheduler with
+    it. A comparison that cannot be made must not be attempted.
+    """
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        # A stamp we cannot read is not a reason to lose the profile. NULL
+        # here means the same as everywhere else: we do not know.
+        return None
+
+
+async def _upsert_argo_profiles(
+    profiles: list[dict], params: list[str]
+) -> tuple[int, set[str], int]:
     """Shared insert path for both the periodic sync and the backfill:
     legacy argo_profiles row (5-column surface/deep summary, unchanged),
     long-form argo_profile_values rows (upsert, not blind insert — a re-run
@@ -638,8 +699,18 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
     an UPDATE that scans the whole table on every run is not bounded, one
     that touches only the rows just written is."""
     inserted = 0
+    updated = 0
     touched_ids: list[str] = []
     new_platform_ids: set[str] = set()
+    skipped: list[tuple[str, datetime | None, str]] = []
+    if not profiles:
+        # ⛔ Return before acquiring a connection. The pool has max_size=4 and
+        # the metadata gate now skips whole days, so an unconditional acquire
+        # here would take a connection — and run the three spatial enrichment
+        # queries below — once per skipped day, for nothing. The guard belongs
+        # here rather than at each call site: every caller benefits, and a
+        # future one cannot forget it.
+        return 0, new_platform_ids, 0
     async with db.pool.acquire() as conn:
         for profile in profiles:
             geo = (profile.get("geolocation") or {}).get("coordinates") or []
@@ -664,8 +735,19 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
                 continue
             profile_date = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             m = extract_argo_measurements(profile)
-            # Skip profiles with no temperature data at all
+            # Skip profiles with no temperature data at all.
+            # ⛔ RECORD the skip. Measured on production 2026-09-10: 30 such
+            # profiles per run declare `temperature` in data_info while every
+            # one of their ~1000 values is null, so the metadata gate — which
+            # only sees parameter NAMES — asked for them again on every run
+            # and we dropped them again every time. Remembering the decision
+            # is what turns that loop back into a single question.
             if m["surface_temp"] is None and m["deep_temp"] is None:
+                skipped.append((
+                    profile["_id"],
+                    _parse_argovis_ts(profile.get("date_updated_argovis")),
+                    "no temperature values",
+                ))
                 continue
             profile_id = profile["_id"]
             platform_id = profile_id.split("_")[0]
@@ -673,7 +755,7 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
                 woa_climatology.enrich_profile, float(lat), float(lon), profile_date.month,
                 0.0, m["deep_press"],
             )
-            result = await conn.execute(
+            row = await conn.fetchrow(
                 """INSERT INTO argo_profiles
                        (profile_id, platform_id, profile_date, max_depth_m,
                         surface_temp_c, surface_salinity,
@@ -684,12 +766,64 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
                         woa_deep_temp_c, woa_deep_sal, woa_deep_oxygen_umol_kg,
                         woa_deep_aou, woa_deep_o2sat,
                         woa_deep_phosphate, woa_deep_silicate, woa_deep_nitrate,
-                        geom)
+                        date_updated_argovis, geom)
                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
                            $12,$13,$14,$15,$16,
                            $17,$18,$19,$20,$21,$22,$23,$24,$25,$26,
-                           ST_SetSRID(ST_MakePoint($27,$28),4326))
-                   ON CONFLICT (profile_id) DO NOTHING""",
+                           $27, ST_SetSRID(ST_MakePoint($28,$29),4326))
+                   ON CONFLICT (profile_id) DO UPDATE SET
+                        platform_id      = EXCLUDED.platform_id,
+                        profile_date     = EXCLUDED.profile_date,
+                        max_depth_m      = EXCLUDED.max_depth_m,
+                        surface_temp_c   = EXCLUDED.surface_temp_c,
+                        surface_salinity = EXCLUDED.surface_salinity,
+                        deep_temp_c      = EXCLUDED.deep_temp_c,
+                        deep_salinity    = EXCLUDED.deep_salinity,
+                        deep_pressure_m  = EXCLUDED.deep_pressure_m,
+                        oxygen_umol_kg   = EXCLUDED.oxygen_umol_kg,
+                        ph               = EXCLUDED.ph,
+                        temp_qc          = EXCLUDED.temp_qc,
+                        sal_qc           = EXCLUDED.sal_qc,
+                        oxygen_qc        = EXCLUDED.oxygen_qc,
+                        ph_qc            = EXCLUDED.ph_qc,
+                        position_qc      = EXCLUDED.position_qc,
+                        -- ⛔ The woa_* columns move WITH geom, never separately.
+                        -- enrich_profile(lat, lon, month, ...) is a pure
+                        -- function of position: leaving the old climatology
+                        -- beside a corrected position would make every
+                        -- `temp - woa_temp` anomaly on that row a fiction.
+                        woa_surface_temp_c      = EXCLUDED.woa_surface_temp_c,
+                        woa_surface_sal         = EXCLUDED.woa_surface_sal,
+                        woa_deep_temp_c         = EXCLUDED.woa_deep_temp_c,
+                        woa_deep_sal            = EXCLUDED.woa_deep_sal,
+                        woa_deep_oxygen_umol_kg = EXCLUDED.woa_deep_oxygen_umol_kg,
+                        woa_deep_aou            = EXCLUDED.woa_deep_aou,
+                        woa_deep_o2sat          = EXCLUDED.woa_deep_o2sat,
+                        woa_deep_phosphate      = EXCLUDED.woa_deep_phosphate,
+                        woa_deep_silicate       = EXCLUDED.woa_deep_silicate,
+                        woa_deep_nitrate        = EXCLUDED.woa_deep_nitrate,
+                        date_updated_argovis    = EXCLUDED.date_updated_argovis,
+                        geom             = EXCLUDED.geom,
+                        -- ⚠️ synced_at changes meaning here: it stops being
+                        -- "when we first inserted" and becomes "when we last
+                        -- touched". Nothing reads it for Argo (grep'ed), so
+                        -- the newer meaning is the useful one.
+                        synced_at        = NOW()
+                   -- ⛔ near_mining, mining_zone, mining_dist_km,
+                   -- nearest_contract_* and mining_zones are deliberately
+                   -- absent: they are not in the INSERT, so EXCLUDED holds
+                   -- nothing for them, and setting them would blank every
+                   -- zone on every correction. Step 0 below is what keeps
+                   -- them honest instead.
+                   --
+                   -- ⛔ This WHERE is not an optimisation. The backfill still
+                   -- walks the whole history; without it every pass would
+                   -- rewrite ~389k rows, make that many dead tuples and
+                   -- rebuild two indexes for nothing.
+                   WHERE argo_profiles.date_updated_argovis IS NULL
+                      OR EXCLUDED.date_updated_argovis IS NULL
+                      OR EXCLUDED.date_updated_argovis > argo_profiles.date_updated_argovis
+                   RETURNING (xmax = 0) AS was_insert""",
                 profile_id, platform_id, profile_date, m["max_depth"],
                 m["surface_temp"], m["surface_sal"],
                 m["deep_temp"], m["deep_sal"], m["deep_press"],
@@ -699,13 +833,32 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
                 w["woa_deep_temp_c"], w["woa_deep_sal"], w["woa_deep_oxygen_umol_kg"],
                 w["woa_deep_aou"], w["woa_deep_o2sat"],
                 w["woa_deep_phosphate"], w["woa_deep_silicate"], w["woa_deep_nitrate"],
+                # ⛔ The source's stamp, not ours. `synced_at` already records
+                # when WE wrote the row; this records when ARGOVIS last changed
+                # it, which is the only thing that can tell a correction from a
+                # row we have simply seen before.
+                _parse_argovis_ts(profile.get("date_updated_argovis")),
                 float(lon), float(lat),
             )
-            touched_ids.append(profile_id)
-            if result == "INSERT 0 1":
-                inserted += 1
-                new_platform_ids.add(platform_id)
+            # ⚠️ `result == "INSERT 0 1"` cannot survive DO UPDATE — an
+            # updated row reports the same string. A NULL row means the WHERE
+            # above rejected the write: same revision, nothing changed, so the
+            # profile does NOT belong in touched_ids and must not drag the
+            # three spatial enrichment queries along with it.
+            if row is not None:
+                touched_ids.append(profile_id)
+                if row["was_insert"]:
+                    inserted += 1
+                    new_platform_ids.add(platform_id)
+                else:
+                    updated += 1
 
+            # ⛔ OUTSIDE the `row is not None` branch. A row whose header we
+            # already hold but whose values are missing (an interrupted run —
+            # the header INSERT and this executemany are not one transaction)
+            # arrives here with an unchanged stamp, so the header write is
+            # correctly rejected. Skipping the values too would leave the gate
+            # calling that day broken forever and this call never repairing it.
             long_rows = extract_argo_long_form(profile, params)
             if long_rows:
                 await conn.executemany(
@@ -716,10 +869,70 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
                     [(profile_id, r["level"], r["param"], r["value"], r["qc"]) for r in long_rows],
                 )
 
+        if skipped:
+            # ⛔ OUTSIDE `if touched_ids`. When every profile in the batch is
+            # skipped — which is exactly the case that created the loop —
+            # touched_ids is empty, and recording the decision inside that
+            # branch would never run at all.
+            #
+            # ⛔ ON CONFLICT DO UPDATE, not DO NOTHING: the stamp must move
+            # forward. A profile skipped at revision A and later revised to B
+            # has to be judged again, and that only works if we remember WHICH
+            # revision we judged.
+            await conn.executemany(
+                """INSERT INTO argo_skipped_profiles
+                       (profile_id, date_updated_argovis, reason, seen_at)
+                   VALUES ($1, $2, $3, NOW())
+                   ON CONFLICT (profile_id) DO UPDATE
+                     SET date_updated_argovis = EXCLUDED.date_updated_argovis,
+                         reason               = EXCLUDED.reason,
+                         seen_at              = NOW()""",
+                skipped,
+            )
+            log.info(
+                "argo: %d profile(s) fetched but not stored (%s) — recorded so "
+                "the gate stops asking for them",
+                len(skipped), skipped[0][2],
+            )
+
         if touched_ids:
             # Cap spatial enrichment at 30 min — prevents runaway queries
             # that hold locks and block startup DDL on mining_contracts
             await conn.execute("SET statement_timeout = '30min'")
+
+            # Step 0: un-mark touched floats that a corrected position moved
+            # out of range.
+            # ⛔ MANDATORY the moment geom can change. Every other statement
+            # here only ever sets near_mining = TRUE; nothing anywhere puts it
+            # back to FALSE. That was correct while a row's position was
+            # immutable. It is not correct now: without this, a float whose
+            # revised fix lands 900 km from the nearest contract keeps
+            # near_mining = TRUE and a frozen zone name, and the map shows a
+            # float "at a mine" that is not there.
+            await conn.execute(
+                """
+                UPDATE argo_profiles a
+                SET near_mining          = FALSE,
+                    mining_zone          = NULL,
+                    mining_dist_km       = NULL,
+                    nearest_contract_lon = NULL,
+                    nearest_contract_lat = NULL,
+                    mining_zones         = '[]'::jsonb
+                WHERE a.near_mining = TRUE
+                  AND a.profile_id = ANY($1::text[])
+                  -- ⚠️ This NOT EXISTS saves writes; it does not decide
+                  -- correctness, and no test can turn red without it. Steps
+                  -- 1-3 below re-mark and re-fill every touched float that is
+                  -- still in range, so clearing one unconditionally would end
+                  -- in the same state — just with a needless rewrite of every
+                  -- zone column on every corrected profile.
+                  AND NOT EXISTS (
+                      SELECT 1 FROM mining_contracts mc
+                      WHERE ST_DWithin(a.geom::geography, mc.geom::geography, 200000)
+                  )
+                """,
+                touched_ids,
+            )
 
             # Step 1: mark newly-qualifying touched floats as near_mining
             await conn.execute(
@@ -809,7 +1022,85 @@ async def _upsert_argo_profiles(profiles: list[dict], params: list[str]) -> tupl
                 touched_ids,
             )
             await conn.execute("SET statement_timeout = '0'")  # reset for normal queries
-    return inserted, new_platform_ids
+    return inserted, new_platform_ids, updated
+
+
+async def _fetch_argo_day(client, day_start: datetime, day_end: datetime,
+                         params: list[str], *, gate: bool) -> tuple[list[dict], int]:
+    """One day's profiles, asking for as little as the day allows.
+
+    Ask what the day HOLDS (503 KB of metadata) before asking for what it
+    MEASURED (18.4 MB), and fetch only what is missing.
+
+    The gate ran in shadow first — deciding and logging while still
+    downloading everything — and that cycle paid for itself twice. It showed
+    the vocabulary fetch had no retry (one 429 aborted a whole run), and it
+    corrected the saving this was designed around: 13 days gave 8 "fetch"
+    against 5 "skip", because 1 to 3 profiles arrive late on almost every day
+    out of ~500. Whole-day fetching would therefore have saved 36%, not the
+    97% estimated on paper.
+
+    ⛔ `gate=False` is not a debug switch. The backfill's common case is a day
+    we hold NOTHING for, and metadata about such a day can only ever answer
+    "fetch everything" — so asking costs 503 KB and buys nothing. The caller
+    decides, because only the caller can cheaply tell the two cases apart.
+
+    ⚠️ ONE implementation for both callers on purpose. Two copies of a
+    decision this shape drift on the first correction, and the copy that
+    drifts is the one nobody is watching.
+    """
+    waits = 0
+    if not gate:
+        profiles, w = await _fetch_argo_window_with_retry(
+            client, day_start, day_end, params
+        )
+        return profiles, waits + w
+
+    index, iwaits = await _fetch_argo_window_with_retry(
+        client, day_start, day_end, None
+    )
+    waits += iwaits
+    async with db.pool.acquire() as conn:
+        plan = await argo_day_plan(conn, day_start, day_end, index)
+        stamped = await apply_argo_stamps(conn, plan.to_stamp)
+    index = None
+    log.info(
+        "argo gate %s: %d remote / %d new / %d corrected / %d broken "
+        "→ %s (stamped %d, vanished %d)",
+        day_start.date(), plan.n_remote, plan.n_new, plan.n_corrected,
+        plan.n_broken, "fetch" if plan.fetch_data else "SKIP",
+        stamped, len(plan.vanished),
+    )
+    if plan.vanished:
+        # ⛔ Reported, never deleted. Naming them is the whole response — a
+        # profile the source stopped listing is a question for a human, not a
+        # row for us to remove.
+        log.warning(
+            "argo gate %s: %d profile(s) we hold are no longer listed "
+            "upstream, e.g. %s",
+            day_start.date(), len(plan.vanished), plan.vanished[:3],
+        )
+
+    # ⚠️ No explicit "skip" branch: plan.wanted is empty, so the loop below
+    # fetches nothing and _upsert_argo_profiles returns before touching the
+    # pool. A branch whose removal no test can observe is a branch that is
+    # lying about doing something.
+    if len(plan.wanted) <= _ARGO_PROFILE_FETCH_MAX:
+        # A handful of late arrivals: 155 KB each beats 18.4 MB.
+        profiles = []
+        for pid in plan.wanted:
+            one, _pw = await _argo_with_retry(
+                lambda pid=pid: _fetch_argo_profile(client, pid), label=pid
+            )
+            profiles.extend(one)
+        return profiles, waits
+
+    # Enough of the day is missing that one bulk request is both fewer
+    # requests and fewer bytes.
+    profiles, w = await _fetch_argo_window_with_retry(
+        client, day_start, day_end, params
+    )
+    return profiles, waits + w
 
 
 async def sync_argo_profiles() -> int:
@@ -825,18 +1116,61 @@ async def sync_argo_profiles() -> int:
     end   = datetime.now(timezone.utc)
     start = end - timedelta(days=_ARGO_RECENT_WINDOW_DAYS)
 
+    # ⛔ ONE DAY PER REQUEST, exactly as the backfill walk does. This function
+    # runs every 12 hours and used to pull the whole 30-day window in a single
+    # request. Measured against the live API 2026-09-10, `data=all` returns
+    # 18.4 MB for one global day — so this was ~552 MB buffered by httpx, then
+    # expanded several times over by `r.json()`, twice a day, in the process
+    # that also serves the map.
+    #
+    # ⚠️ The window is deliberately UNCHANGED at 30 days. It is not a
+    # freshness setting: it is how late-arriving profiles get picked up. Only
+    # the request shape changes, so behaviour is identical.
+    #
+    # ⚠️ Almost none of that payload is new. Measured on production the same
+    # day: every September date already held 430-480 profiles and the last
+    # periodic run recorded `records_added: 0`, having downloaded the lot. The
+    # redundancy is a separate problem from the memory — fixing the request
+    # shape does not fix it, and pretending otherwise would hide it.
+    inserted = 0
+    corrected = 0
+    new_platform_ids: set[str] = set()
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             params = await _fetch_argo_param_vocabulary(client)
-            profiles = await _fetch_argo_window(client, start, end, params)
+            day_start = start
+            while day_start < end:
+                day_end = min(day_start + timedelta(days=_ARGO_SUBCHUNK_DAYS), end)
+
+                profiles, _gwaits = await _fetch_argo_day(
+                    client, day_start, day_end, params, gate=True
+                )
+                # ────────────────────────────────────────────────────────────
+
+                got, platform_ids, revised = await _upsert_argo_profiles(profiles, params)
+                inserted += got
+                corrected += revised
+                new_platform_ids |= platform_ids
+                # ⛔ Drop the reference before the next request, or the previous
+                # day stays reachable while the next body is buffered and peak
+                # memory is two days instead of one.
+                profiles = None
+                day_start = day_end
+                if day_start < end:
+                    await asyncio.sleep(_ARGO_BACKFILL_CHUNK_PACING_SECONDS)
     except httpx.HTTPError as e:
         # FAILED sync — do not call _log_sync, so last_synced_at is not
         # stamped and the monitor can tell "ran, found nothing" (which DOES
         # call _log_sync, below) apart from "never ran / failed".
-        log.error("argo_profiles: ArgoVis fetch failed, sync aborted: %s", type(e).__name__)
+        # ⚠️ Name the day. "the fetch failed" is not actionable when the run is
+        # thirty requests, and rows written by the days that DID succeed are
+        # already committed — they are idempotent, so the next run re-walks
+        # them harmlessly.
+        log.error(
+            "argo_profiles: ArgoVis fetch failed on %s after %d row(s), sync aborted: %s",
+            day_start.date(), inserted, type(e).__name__,
+        )
         return 0
-
-    inserted, new_platform_ids = await _upsert_argo_profiles(profiles, params)
 
     async with db.pool.acquire() as conn:
         total      = await conn.fetchval("SELECT COUNT(*) FROM argo_profiles")
@@ -848,8 +1182,8 @@ async def sync_argo_profiles() -> int:
             await populate_argo_cache(conn)
     await _log_sync("argo_profiles", inserted, total)
     log.info(
-        "argo_profiles: %d new / %d total (%d near mining zones) — %d parameter(s) requested, cache updated for %d floats",
-        inserted, total, near_count, len(params), len(new_platform_ids),
+        "argo_profiles: %d new / %d corrected / %d total (%d near mining zones) — %d parameter(s) requested, cache updated for %d floats",
+        inserted, corrected, total, near_count, len(params), len(new_platform_ids),
     )
     return inserted
 
@@ -912,19 +1246,276 @@ async def _connect_for_lock():
     be handed to unrelated work.
     """
     import asyncpg
-    return await asyncpg.connect(os.environ["DATABASE_URL"])
+    # ⛔ db.dsn, not a fresh os.environ read. The advisory lock only guards
+    # writes made in the same database as the lock; taking it on a connection
+    # that resolved its own DSN independently is a lock that can silently
+    # guard nothing. Falls back to the environment for processes that build a
+    # pool without recording a DSN (the standalone workers).
+    return await asyncpg.connect(db.dsn or os.environ["DATABASE_URL"])
 
 ARGO_HISTORY_FLOOR_DAYS = 180
 
 ARGO_BACKFILL_START = date(1999, 1, 1)  # Argo programme's earliest profiles
 ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS = 1200
 _ARGO_BACKFILL_CHUNK_PACING_SECONDS = 5
+
+# ⛔ ONE DAY per request, not one month. `data=all` is the whole measurement
+# payload of every float, and a month of it does not fit anywhere sensible.
+# Measured against the live API on 2026-09-10:
+#
+#     window     response body     download
+#     1 day         18.4 MB           7.3 s
+#     7 days       135.4 MB          39.7 s
+#     1 month      594.9 MB         256.3 s
+#
+# httpx buffers the whole body, `r.json()` then builds a Python structure
+# several times that size, and the list stays alive through the entire upsert
+# — so a month peaked in the gigabytes and the VPS MemoryMax merely hid it.
+#
+# Splitting costs nothing in wall clock: 30 x 7.3 s = 219 s of download
+# against 256 s for the single monthly request. It also shrinks the blast
+# radius of a dropped connection from a month to a day — the exact failure
+# (RemoteProtocolError) that cost June and July on 2026-09-09.
+#
+# ⚠️ The month stays the CURSOR unit. Only the request is split, so
+# argo_topup_state, argo_backfill_state and the six-month floor are
+# untouched. Re-walking a month is safe: every insert is
+# ON CONFLICT (profile_id) DO NOTHING.
+# ⚠️ Pacing stays on _ARGO_BACKFILL_CHUNK_PACING_SECONDS, deliberately NOT a
+# second constant. There is one rate limit at ArgoVis, so there should be one
+# pause between requests to it — and a test that already neutralises pacing
+# should not have to learn a new name to keep doing so.
+_ARGO_SUBCHUNK_DAYS = 1
+
+# ⛔ Above this many wanted profiles, take the whole day instead of fetching
+# them one at a time. ArgoVis has no multi-id endpoint — `id=a,b` is HTTP 400
+# and a repeated `id=` parameter is HTTP 400 — so N profiles cost N requests.
+#
+# Measured 2026-09-10:
+#     one whole day, data=all ... 18.4 MB, 1 request
+#     one profile by id ......... 155 KB,  1 request
+#
+# On bytes alone the crossover is ~119 profiles, but the request count binds
+# far sooner: ArgoVis rate-limits with 429 and it did so to this service the
+# same day. The shadow run measured what actually happens — 1 to 3 late
+# arrivals per day out of ~500 — so ten leaves generous headroom while
+# keeping a day that is genuinely missing (a virgin backfill day is ~500
+# profiles) on the single bulk request where it belongs.
+_ARGO_PROFILE_FETCH_MAX = 10
+
 # ArgoVis answers 429 with no Retry-After. Measured 2026-09-09: a ~20s pause
 # cleared it, so start there and double. ⛔ These retries are what stop a
 # rate-limited run from looking like a permanent chunk failure.
 _ARGO_429_BASE_WAIT_SECONDS = 20.0
 _ARGO_429_MAX_WAIT_SECONDS = 300.0
 _ARGO_429_MAX_ATTEMPTS = 5
+
+
+async def _argo_with_retry(attempt, *, label: str) -> tuple:
+    """Run one ArgoVis request, retrying the two failures that mean "ask
+    again", not "give up". Returns (result, waits).
+
+    ⛔ ArgoVis rate-limits with 429 and NO Retry-After header. Measured
+    2026-09-09: the first backfill invocation walked two months and then every
+    request came back 429 while the run still returned HTTP 200 with
+    months_done=0 — a silent stall reporting success. ~20s cleared it.
+
+    ⛔ httpx.TransportError covers connect, read, write, protocol and timeout
+    failures — every case where the request never got a complete answer, and
+    none where the server answered something we should respect. Only 429 was
+    retried once, and a single RemoteProtocolError mid-response stopped a whole
+    six-month pass, leaving June and July at ~400 profiles each.
+
+    ⚠️ EVERY ArgoVis call goes through here, not just the window fetches.
+    Measured on production 2026-09-10, minutes after the metadata gate started
+    making thirty extra requests per run:
+
+        httpx.HTTPStatusError: Client error '429 Too Many Requests'
+          for url '.../argo/vocabulary?parameter=data'
+
+    That call had no retry and is the FIRST thing a sync does, so one 429
+    there aborted the entire run before a single day was walked. Splitting a
+    window into days multiplies the requests, and therefore the chance of
+    meeting a limit — leaving any one call unprotected turns that into a
+    total stall.
+    """
+    waits = 0
+    wait = _ARGO_429_BASE_WAIT_SECONDS
+    for n in range(1, _ARGO_429_MAX_ATTEMPTS + 1):
+        try:
+            return await attempt(), waits
+        except httpx.HTTPStatusError as he:
+            if he.response is None or he.response.status_code != 429:
+                raise
+            if n == _ARGO_429_MAX_ATTEMPTS:
+                raise
+            reason = "429"
+        except httpx.TransportError as te:
+            if n == _ARGO_429_MAX_ATTEMPTS:
+                raise
+            reason = type(te).__name__
+        waits += 1
+        log.info(
+            "argo: %s on %s, waiting %.0fs (attempt %d/%d)",
+            reason, label, wait, n, _ARGO_429_MAX_ATTEMPTS,
+        )
+        await asyncio.sleep(wait)
+        wait = min(wait * 2, _ARGO_429_MAX_WAIT_SECONDS)
+    # Unreachable: the last attempt always returns or raises.
+    raise RuntimeError("argo retry loop fell through")
+
+
+async def _fetch_argo_window_with_retry(
+    client: httpx.AsyncClient, start: datetime, end: datetime, params: list[str]
+) -> tuple[list[dict], int]:
+    """One window, retrying the two failures that mean "ask again", not "give up".
+
+    Returns (profiles, waits). `waits` is how many times this call backed off,
+    so a caller can report rate limiting without owning the retry loop.
+
+    ⛔ ArgoVis rate-limits with 429 and NO Retry-After header. Measured
+    2026-09-09: the first backfill invocation walked two months and then every
+    request came back 429, while the run still returned HTTP 200 with
+    months_done=0 — a silent stall reporting success. ~20s cleared it.
+
+    ⛔ httpx.TransportError covers connect, read, write, protocol and timeout
+    failures — every case where the request never got a complete answer, and
+    none where the server answered something we should respect. Only 429 was
+    retried once, and a single RemoteProtocolError mid-response stopped a whole
+    six-month pass, leaving June and July at ~400 profiles each.
+
+    ⚠️ This lives in one place because BOTH callers need it. Splitting a window
+    into days multiplies the number of requests, and therefore the chance of
+    meeting a transient failure, by the number of days — a periodic sync that
+    went from 1 request to 30 without retries would be strictly worse than
+    before the split.
+    """
+    return await _argo_with_retry(
+        lambda: _fetch_argo_window(client, start, end, params),
+        label=str(start.date()),
+    )
+
+
+@dataclass(frozen=True)
+class ArgoDayPlan:
+    """What one day needs, decided from metadata alone."""
+    fetch_data: bool          # is the 18.4 MB payload worth asking for
+    n_remote: int             # profiles the source lists for this day
+    n_new: int                # ids we have never stored
+    n_corrected: int          # ids the source has revised since we stored them
+    n_broken: int             # ids with a header row but no measurements
+    wanted: list[str]         # the ids whose measurements we actually need
+    to_stamp: list[tuple[str, datetime]]   # rows whose NULL stamp we can fill
+    vanished: list[str]       # ids we hold that the source no longer lists
+
+
+async def argo_day_plan(conn, start: datetime, end: datetime,
+                        index: list[dict]) -> ArgoDayPlan:
+    """Compare one day of ArgoVis metadata against what we already hold.
+
+    ⛔ `EXISTS`, not `COUNT(*)`. It stops at the first matching row instead of
+    counting through 1.7M values, and it answers the question that matters:
+    does this profile have measurements at all? The header INSERT and the
+    values executemany are NOT in one transaction, so a run interrupted
+    between them leaves a header with nothing under it. Metadata would say
+    "we have this profile" and metadata would be wrong.
+
+    ⛔ `date_updated_argovis IS NULL` means "we never asked about this row" —
+    NOT "stale". Treating NULL as stale would pull the full payload for all
+    388k existing rows to discover nothing had changed. Those rows are
+    current: compared against live ArgoVis on 2026-09-10, 465 of 465 profiles
+    matched for 2026-08-01 and 169 of 169 for 2005-06-15. The NULLs are
+    filled from the metadata answer itself, row by row, at no extra cost.
+
+    ⛔ A profile the source no longer lists is REPORTED, never deleted. A
+    rolling-window DELETE already ate history once here; see the note above
+    sync_argo_profiles.
+    """
+    rows = await conn.fetch(
+        """SELECT p.profile_id,
+                  p.date_updated_argovis,
+                  EXISTS (SELECT 1 FROM argo_profile_values v
+                           WHERE v.profile_id = p.profile_id) AS has_values
+             FROM argo_profiles p
+            WHERE p.profile_date >= $1 AND p.profile_date < $2""",
+        start, end,
+    )
+    have = {r["profile_id"]: (r["date_updated_argovis"], r["has_values"]) for r in rows}
+
+    remote: dict[str, datetime | None] = {}
+    for p in index:
+        pid = p.get("_id")
+        if pid:
+            remote[pid] = _parse_argovis_ts(p.get("date_updated_argovis"))
+
+    # Profiles we have already looked at and deliberately did not store.
+    # ⛔ Keyed on the revision we judged, not on the id alone. Argo's
+    # delayed-mode QC can fill in a column that was empty in real time, so a
+    # skip is only valid until the source revises the profile — otherwise
+    # this lookup would turn a temporary gap into a permanent one.
+    skipped_rows = await conn.fetch(
+        """SELECT profile_id, date_updated_argovis
+             FROM argo_skipped_profiles
+            WHERE profile_id = ANY($1::text[])""",
+        list(remote),
+    )
+    skipped = {r["profile_id"]: r["date_updated_argovis"] for r in skipped_rows}
+
+    n_new = n_corrected = n_broken = 0
+    wanted: list[str] = []
+    to_stamp: list[tuple[str, datetime]] = []
+    for pid, remote_updated in remote.items():
+        if pid in skipped:
+            judged = skipped[pid]
+            # Unrevised since we judged it — do not ask again.
+            if judged is None or remote_updated is None or remote_updated <= judged:
+                continue
+            # The source has revised it: judge it again.
+        if pid not in have:
+            n_new += 1
+            wanted.append(pid)
+            continue
+        ours_updated, has_values = have[pid]
+        if not has_values:
+            n_broken += 1
+            wanted.append(pid)
+            continue
+        if ours_updated is None:
+            if remote_updated is not None:
+                to_stamp.append((pid, remote_updated))
+            continue
+        if remote_updated is not None and remote_updated > ours_updated:
+            n_corrected += 1
+            wanted.append(pid)
+
+    return ArgoDayPlan(
+        fetch_data=bool(wanted),
+        n_remote=len(remote),
+        n_new=n_new,
+        n_corrected=n_corrected,
+        n_broken=n_broken,
+        wanted=wanted,
+        to_stamp=to_stamp,
+        vanished=[pid for pid in have if pid not in remote],
+    )
+
+
+async def apply_argo_stamps(conn, to_stamp: list[tuple[str, datetime]]) -> int:
+    """Fill in `date_updated_argovis` for rows that never had one.
+
+    ⛔ `AND date_updated_argovis IS NULL` is not belt-and-braces. Without it
+    this would overwrite a stamp the full upsert is responsible for, and a row
+    whose source revision is NEWER than ours would be marked as up to date
+    without its measurements ever being fetched — a correction lost silently.
+    """
+    if not to_stamp:
+        return 0
+    await conn.executemany(
+        """UPDATE argo_profiles SET date_updated_argovis = $2
+            WHERE profile_id = $1 AND date_updated_argovis IS NULL""",
+        to_stamp,
+    )
+    return len(to_stamp)
 
 
 def _next_month_start(d: date) -> date:
@@ -1016,6 +1607,11 @@ async def _argo_backfill_walk(budget_seconds: int, since: date | None, bounded: 
             try:
                 start_dt = datetime(month_start.year, month_start.month, month_start.day, tzinfo=timezone.utc)
                 end_dt   = datetime(month_end.year, month_end.month, month_end.day, tzinfo=timezone.utc)
+                # Which day was in flight when it broke. The month is still the
+                # unit reported in failed_chunk (and the unit the cursor works
+                # in), but "the month failed" is not actionable when the month
+                # is now thirty requests.
+                sub_start = start_dt
                 # ⛔ ArgoVis rate-limits, and it says so with 429 and NO
                 # Retry-After header. Measured on the first production run
                 # 2026-09-09: the very first backfill invocation walked two
@@ -1024,48 +1620,40 @@ async def _argo_backfill_walk(budget_seconds: int, since: date | None, bounded: 
                 # reporting success. Waiting ~20s cleared it. So: back off and
                 # RETRY the same month; a 429 is "come back later", never a
                 # reason to abandon the chunk.
-                profiles = None
-                wait = _ARGO_429_BASE_WAIT_SECONDS
-                for attempt in range(1, _ARGO_429_MAX_ATTEMPTS + 1):
-                    try:
-                        profiles = await _fetch_argo_window(client, start_dt, end_dt, params)
-                        break
-                    except httpx.HTTPStatusError as he:
-                        if he.response is None or he.response.status_code != 429:
-                            raise
-                        if attempt == _ARGO_429_MAX_ATTEMPTS:
-                            raise
-                        rate_limited_waits += 1
-                        log.info(
-                            "argo backfill: 429 on %s, waiting %.0fs (attempt %d/%d)",
-                            month_start, wait, attempt, _ARGO_429_MAX_ATTEMPTS,
+                inserted = 0
+                sub_start = start_dt
+                while sub_start < end_dt:
+                    sub_end = min(sub_start + timedelta(days=_ARGO_SUBCHUNK_DAYS), end_dt)
+                    # ── THE GATE, with a short-circuit ─────────────────────
+                    # ⛔ Ask the CHEAP question first: do we hold anything at
+                    # all for this day? The backfill's ordinary day is one we
+                    # have never touched, and metadata about such a day can
+                    # only answer "fetch everything" — so running the gate on
+                    # it would add 503 KB per day and save nothing. `EXISTS`,
+                    # not COUNT: it stops at the first row.
+                    async with db.pool.acquire() as conn:
+                        held = await conn.fetchval(
+                            """SELECT EXISTS (
+                                   SELECT 1 FROM argo_profiles
+                                    WHERE profile_date >= $1 AND profile_date < $2)""",
+                            sub_start, sub_end,
                         )
-                        await asyncio.sleep(wait)
-                        wait = min(wait * 2, _ARGO_429_MAX_WAIT_SECONDS)
-                    except httpx.TransportError as te:
-                        # ⛔ A dropped connection is not a reason to abandon a
-                        # six-month fill. Measured 2026-09-09: the top-up filled
-                        # May (15,053 rows) and then died on
-                        #   failed_chunk: "2026-06-01..2026-07-01: RemoteProtocolError"
-                        # — Argovis closed the connection mid-response on a
-                        # single month. Only 429 was retried, so one transient
-                        # network event stopped the whole pass, and June and
-                        # July stayed at ~400 profiles each.
-                        # httpx.TransportError covers connect, read, write,
-                        # protocol and timeout failures — every case where the
-                        # request never got a complete answer, and none where
-                        # the server answered something we should respect.
-                        if attempt == _ARGO_429_MAX_ATTEMPTS:
-                            raise
-                        rate_limited_waits += 1
-                        log.info(
-                            "argo backfill: %s on %s, waiting %.0fs (attempt %d/%d)",
-                            type(te).__name__, month_start, wait,
-                            attempt, _ARGO_429_MAX_ATTEMPTS,
-                        )
-                        await asyncio.sleep(wait)
-                        wait = min(wait * 2, _ARGO_429_MAX_WAIT_SECONDS)
-                inserted, _ = await _upsert_argo_profiles(profiles, params)
+                    profiles, waits = await _fetch_argo_day(
+                        client, sub_start, sub_end, params, gate=bool(held)
+                    )
+                    rate_limited_waits += waits
+
+                    got, _, _revised = await _upsert_argo_profiles(profiles, params)
+                    inserted += got
+                    # ⛔ Drop the reference before the next request. Without this
+                    # the previous day's parsed profiles stay reachable while the
+                    # next day's body is being buffered, so peak memory is two
+                    # days, not one — which is the whole point of the split.
+                    profiles = None
+
+                    sub_start = sub_end
+                    if sub_start < end_dt:
+                        await asyncio.sleep(_ARGO_BACKFILL_CHUNK_PACING_SECONDS)
             except Exception as e:
                 # Chunk failed — the cursor must NOT advance, so a restart
                 # retries exactly this month rather than silently skipping it.
@@ -1075,8 +1663,9 @@ async def _argo_backfill_walk(budget_seconds: int, since: date | None, bounded: 
                 # ArgoVis needs no credential, so its URL is safe to surface;
                 # the message is truncated so a huge body cannot flood the log.
                 log.error(
-                    "argo backfill: chunk %s..%s failed, cursor NOT advanced: %s: %.300s",
-                    month_start, month_end, type(e).__name__, e,
+                    "argo backfill: chunk %s..%s failed on day %s, cursor NOT "
+                    "advanced: %s: %.300s",
+                    month_start, month_end, sub_start.date(), type(e).__name__, e,
                 )
                 failed_chunk = f"{month_start}..{month_end}: {type(e).__name__}"
                 break

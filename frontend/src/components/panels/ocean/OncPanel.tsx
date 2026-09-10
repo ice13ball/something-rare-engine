@@ -15,7 +15,66 @@ import { latLonFromProps } from "../shared/format";
 import { Row, Section, Badge, PanelHeader, BodyText, SourceAttribution } from "../shared/primitives";
 import { SeafloorDepthRow } from "../shared/chips";
 
-interface OncSensor { value: number; unit: string | null; label: string; time: string | null }
+interface OncSensor {
+  value: number; unit: string | null; label: string; time: string | null;
+  // ONC's QAQC flag for this sample. `undefined` on readings cached before we
+  // started keeping it; `null` when ONC sent no flag at all. Neither is 0 —
+  // 0 is ONC saying "we ran no QC", which is a different statement.
+  qc?: number | null;
+}
+
+// ⛔ ONC calls flags 3 and 4 "poor quality data". Only those two are doubt.
+// 7 (averaged) and 8 (interpolated) are processing notes, NOT errors, and
+// marking them would cry wolf on most of a healthy station.
+// Scale: https://wiki.oceannetworks.ca/display/DP/Quality+Assurance+Quality+Control
+// ⛔ "We fetched nothing" and "there is nothing to fetch" must not share one
+// message. 1,338 ONC locations show no readings, and for 960 of them that is
+// not our failure — the instruments there do not publish a scalar measurement
+// at all. Measured on production 2026-09-10 across every location: of the 960
+// carrying ONLY the categories below, **zero** have ever produced a reading.
+//
+// ⚠️ The list is short on purpose. Each entry was checked for counterexamples
+// and the ones that failed were dropped:
+//   - JB / Junction Box — REMOVED. Three of them (PBY, SGDLS, YPVPF.J1) do
+//     publish a pressure reading, so "infrastructure, no sensor" would be a
+//     false claim about them.
+//   - ACCELEROMETER — never added. ZEBA.W1 returns "JMA Intensity Amplitude";
+//     ONC has scalar data there, our own property allowlist simply does not
+//     recognise it. That is a gap on our side, not an absence on theirs, and
+//     the two must not be dressed in the same sentence.
+type NoScalarKey =
+  | "onc.noScalarDrifter"
+  | "onc.noScalarAis"
+  | "onc.noScalarHydrophone"
+  | "onc.noScalarInfrastructure"
+  | "onc.noScalarGeneric";
+
+const ONC_NON_SCALAR: Record<string, NoScalarKey> = {
+  DRIFTER:         "onc.noScalarDrifter",
+  AISRECEIVER:     "onc.noScalarAis",
+  HYDROPHONE:      "onc.noScalarHydrophone",
+  ADAPTER:         "onc.noScalarInfrastructure",
+  CAMLIGHTS:       "onc.noScalarInfrastructure",
+  "CAMERA LIGHTS": "onc.noScalarInfrastructure",
+};
+
+/** The reason ONC publishes no scalar reading here, or null if we cannot say. */
+function noScalarReasonKey(categories: unknown): NoScalarKey | null {
+  if (!Array.isArray(categories) || categories.length === 0) return null;
+  const keys = new Set<NoScalarKey>();
+  for (const raw of categories) {
+    const key = ONC_NON_SCALAR[String(raw).toUpperCase()];
+    if (!key) return null;          // one unexplained category ⇒ we cannot claim anything
+    keys.add(key);
+  }
+  // Several kinds of non-scalar instrument on one location: say the general
+  // thing rather than picking one of them and implying it is the only one.
+  return keys.size === 1 ? [...keys][0] : "onc.noScalarGeneric";
+}
+
+const ONC_DOUBTFUL_FLAGS = new Set([3, 4]);
+const isDoubtful = (qc: number | null | undefined) =>
+  typeof qc === "number" && ONC_DOUBTFUL_FLAGS.has(qc);
 
 // Keys are ONC propertyCodes, and this list only sets ORDER — anything absent
 // still renders, appended after these (see sensorKeys below). Kept in "what a
@@ -139,7 +198,7 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
       <Section title={t("onc.latestReadingsSectionTitle")}>
         {sensorKeys.length === 0 ? (
           <p className="text-xs text-white/65 italic">
-            {t("onc.noReadingsText")}{" "}
+            {t(noScalarReasonKey(p.device_categories) ?? "onc.noReadingsText")}{" "}
             <a href={`https://data.oceannetworks.ca/DataSearch?locationCode=${locationCode}`}
                target="_blank" rel="noopener noreferrer"
                className="text-teal-400 underline">ONC portal ↗</a>
@@ -160,7 +219,24 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
                     {slSamples.length > 1 && (
                       <Sparkline samples={slSamples} color="#2dd4bf" width={80} height={24} />
                     )}
-                    <span className="text-[12px] text-white/90 font-mono">
+                    {/* ⛔ The value stays visible. ONC's own doubt is shown
+                        beside it, not used to hide it — hiding would put
+                        "no reading" and "doubtful reading" back on one path. */}
+                    {isDoubtful(s.qc) && (
+                      <span
+                        className="text-[10px] px-1 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30"
+                        title={t("onc.qcDoubtfulTooltip", { flag: s.qc })}
+                      >
+                        {t("onc.qcDoubtfulBadge")}
+                      </span>
+                    )}
+                    <span
+                      className={
+                        isDoubtful(s.qc)
+                          ? "text-[12px] text-amber-300/90 font-mono"
+                          : "text-[12px] text-white/90 font-mono"
+                      }
+                    >
                       {s.value.toFixed(decimals)} {s.unit}
                     </span>
                   </div>
