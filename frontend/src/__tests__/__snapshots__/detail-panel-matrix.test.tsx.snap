@@ -12643,7 +12643,7 @@ exports[`DetailPanel dispatch matrix > renders oxygen-deox after data loads 1`] 
           <p
             class="text-orange-400 text-[14px] font-sans"
           >
-            The recent field (Argo optodes, 2014–2018) and the ~1980s baseline (ship Winkler/CTD) differ in instrument and method, so some apparent change reflects that difference, not a real oxygen trend.
+            The recent field (Argo optodes, 2014–2018) and the 1971–2000 baseline (ship Winkler/CTD) differ in instrument and method, so some apparent change reflects that difference, not a real oxygen trend. The Δ is a 30-year mean subtracted from a 5-year mean, not one decade against another.
           </p>
         </div>
         <div
@@ -12674,7 +12674,7 @@ exports[`DetailPanel dispatch matrix > renders oxygen-deox after data loads 1`] 
             <span
               class="text-white/70 text-[14px] shrink-0"
             >
-              ~1980s baseline
+              1971–2000 baseline
             </span>
             <span
               class="text-white/90 text-[14px] text-right font-mono"

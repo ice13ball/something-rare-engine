@@ -440,6 +440,15 @@ export function Map3D() {
     tileErrorCountRef.current.clear();
     setFailedLayers([]);
     setTileCacheVersion(v => v + 1);
+    // ⛔ Without this the button only HID the message. Bumping the tile cache
+    // re-requests tiles; the 31 GeoJSON layers behind fetchGuarded were never
+    // re-fetched, because their effects depend on activeLayers and fetchGuarded
+    // and neither changed. The layer stayed empty and stopped saying so.
+    retryGuardedLayers();
+    // Deps stay empty: this callback is declared above useLayerFetcher(), so
+    // naming those bindings here would evaluate them in the temporal dead zone.
+    // Both are stable — a setState setter and a useCallback([], …).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [isTracing,          setIsTracing]           = useState(false);
   const [legendOpen,         setLegendOpen]          = useState(false);
@@ -462,7 +471,7 @@ export function Map3D() {
   const [layerOrder, , enabledLayerIds] = useLayerConfig();
   useEffect(() => { setEnabledLayerIds(enabledLayerIds); }, [enabledLayerIds, setEnabledLayerIds]);
 
-  const { fetchLayer, fetchGuarded, failedLayers, setFailedLayers } = useLayerFetcher();
+  const { fetchLayer, fetchGuarded, failedLayers, setFailedLayers, retryGuardedLayers } = useLayerFetcher();
   const {
     eezData, protectedSitesData, seamountsData, oceansitesData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,

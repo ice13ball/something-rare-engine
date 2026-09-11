@@ -6,7 +6,9 @@ CC-BY 4.0): downloader, baker, and pure colour/resample helpers. Heavy deps
 (xarray/PIL) are imported lazily so the pure functions stay test-importable.
 
 Two views: 'recent' = absolute O2 (2014-2018); 'change' = recent minus the WOA
-~1980s baseline (services.woa_climatology), i.e. deoxygenation.
+WOA23N 1971-2000 'Climate Normal' baseline (services.woa_climatology),
+i.e. deoxygenation. ⛔ Not '~1980s' — that wording was on four user-facing
+surfaces while layer_temporal_coverage.py carried NOAA's own 1971-2000.
 """
 from __future__ import annotations
 
@@ -279,7 +281,7 @@ def build_meta() -> dict:
                       "vmin": RECENT_VMIN, "vmax": RECENT_VMAX, "cmap": RECENT_CMAP,
                       "ramp": _ramp_hex(RECENT_CMAP), "depths": rec_depths, "diverging": False})
     if chg_depths:
-        views.append({"key": "change", "label": "Deoxygenation Δ (vs ~1980s)", "units": "µmol/kg",
+        views.append({"key": "change", "label": "Deoxygenation Δ (vs 1971-2000)", "units": "µmol/kg",
                       "vmin": -CHANGE_VLIM, "vmax": CHANGE_VLIM, "cmap": "diverging",
                       "ramp": diverging_ramp_hex(), "depths": chg_depths, "diverging": True})
     return {"views": views, "depths": DISPLAY_DEPTHS,

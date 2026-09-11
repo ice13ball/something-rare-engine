@@ -63,7 +63,7 @@ export function OxygenPointPanel({ props: p }: { props: Record<string, unknown> 
       </p>
 
       <WarningBanner color="orange">
-        The recent field (Argo optodes, 2014–2018) and the ~1980s baseline (ship Winkler/CTD) differ in instrument and method, so some apparent change reflects that difference, not a real oxygen trend.
+        The recent field (Argo optodes, 2014–2018) and the 1971–2000 baseline (ship Winkler/CTD) differ in instrument and method, so some apparent change reflects that difference, not a real oxygen trend. The Δ is a 30-year mean subtracted from a 5-year mean, not one decade against another.
       </WarningBanner>
 
       {noData ? (
@@ -71,7 +71,7 @@ export function OxygenPointPanel({ props: p }: { props: Record<string, unknown> 
       ) : (
         <Section title="Dissolved oxygen">
           <Row label="Recent O₂ (2014–2018)"  value={fmtO2(data.recent_o2)} />
-          <Row label="~1980s baseline"          value={fmtO2(data.baseline_o2)} />
+          <Row label="1971–2000 baseline"       value={fmtO2(data.baseline_o2)} />
           <Row label="Δ change"                 value={deltaLabel()} />
         </Section>
       )}

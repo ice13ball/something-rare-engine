@@ -315,9 +315,9 @@
     },
     "oxygen-deox": {
       "label": "Ozeansauerstoff & Sauerstoffverlust",
-      "description": "Aktueller gelöster Sauerstoff aus ISAS-BGC-Argo-Floats (2014–2018), plus eine Änderungsansicht (Δ) im Vergleich zur World-Ocean-Atlas-Basislinie der ~1980er.",
-      "reading": "Aktuelle Ansicht: Blau = hoher O₂, Rot = niedrig (Sauerstoffminimumzonen). Δ-Ansicht: Rot = Sauerstoffverlust seit den 1980ern, Blau = Zunahme.",
-      "limitations": "Indikatives regionales Muster der Sauerstoffänderung, kein kalibrierter Trend. Das aktuelle Feld (Argo-Optoden, 2014–2018) und die Basislinie der ~1980er (schiffsgestützte Winkler/CTD) unterscheiden sich in Instrument und Methode, sodass ein Teil der scheinbaren Änderung diesen Unterschied widerspiegelt. Numerische Werte sind beim Klick nicht verfügbar (vorgerendertes Bild).",
+      "description": "Aktueller gelöster Sauerstoff aus ISAS-BGC-Argo-Floats (2014–2018), plus eine Änderungsansicht (Δ) im Vergleich zur WOA23-Basislinie 1971–2000 („Climate Normal“).",
+      "reading": "Aktuelle Ansicht: Blau = hoher O₂, Rot = niedrig (Sauerstoffminimumzonen). Δ-Ansicht: Rot = Sauerstoffverlust gegenüber 1971–2000, Blau = Zunahme.",
+      "limitations": "Indikatives regionales Muster der Sauerstoffänderung, kein kalibrierter Trend. Das aktuelle Feld (Argo-Optoden, 2014–2018) und die Basislinie 1971–2000 (schiffsgestützte Winkler/CTD) unterscheiden sich in Instrument und Methode, sodass ein Teil der scheinbaren Änderung diesen Unterschied widerspiegelt. Ein Klick auf die Karte liefert den aktuellen Wert, die Basislinie und ihre Differenz für die nächstgelegene Gitterzelle; das farbige Feld dahinter ist ein vorgerendertes Bild, ein Klick tastet also diese Zelle ab, nicht das exakte Pixel.",
       "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk et al. 2024, SEANOE 10.17882/52367 (CC-BY 4.0); Basislinie WOA23, NOAA NCEI.",
       "updateFreq": "Statisch (ISAS20-Ausgabe)",
       "colorRamp": [
