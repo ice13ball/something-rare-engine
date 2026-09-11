@@ -44,10 +44,10 @@
       "label": "Gatunki OBIS (głębinowe)",
       "source": "Ocean Biodiversity Information System (OBIS) (25 March 2025) OBIS Occurrence Data. Intergovernmental Oceanographic Commission of UNESCO. https://doi.org/10.25607/obis.occurrence.b89117cd. Loaded from the OBIS Open Data parquet archive on AWS (s3://obis-open-data/occurrence/, GeoParquet, ~50 GB, ~6,900 files). Conservation status from IUCN Red List via GBIF.",
       "updateFreq": "Pełna migawka głębinowa pobrana z OBIS Open Data; kategorie IUCN wzbogacone przez GBIF",
-      "description": "Wszystkie skontrolowane jakościowo wystąpienia głębinowych gatunków w archiwum OBIS Open Data — bez wyselekcjonowanej listy gatunków, bez wykluczeń taksonomicznych. Przy małym przybliżeniu punkty reprezentują komórki siatki podsumowujące setki lub tysiące obserwacji, kolorowane według poziomu zagrożenia. Przy dużym przybliżeniu (8+) pokazywane są indywidualne punkty gatunków. Kolor punktu wskazuje status Czerwonej Listy IUCN: czerwony = krytycznie zagrożony lub zagrożony, pomarańczowy = narażony, zielony = niezagrożony.",
+      "description": "Wystąpienia z archiwum OBIS Open Data dla gatunków głębinowych, które ta warstwa śledzi, przy progu głębokości 50 m — z wyjątkiem koralowców; dokładne kryteria doboru są niżej. Przy małym przybliżeniu punkty to komórki siatki podsumowujące setki lub tysiące obserwacji, kolorowane według poziomu zagrożenia; od przybliżenia 8 pojawiają się pojedyncze punkty gatunków. Kolor punktu to status Czerwonej Listy IUCN: czerwony = krytycznie zagrożony lub zagrożony, pomarańczowy = narażony, zielony = niezagrożony.",
       "reading": "Czerwony punkt = obszar z gatunkami CR lub EN. Pomarańczowy punkt = obecność gatunków narażonych. Zielony punkt = brak gatunków zagrożonych według IUCN. Przy dużym przybliżeniu kliknij punkt, aby zobaczyć nazwę gatunku, status IUCN, taksonomię i zdjęcie. Odznaka „RYZYKO” na koncesjach górniczych pojawia się, gdy zagrożone gatunki nakładają się na obszar koncesji.",
       "colorStandard": "Paleta Czerwonej Listy IUCN — CR/EN szkarłatny, VU bursztynowy, NT żółty, LC niebieski (iucnredlist.org).",
-      "selectionCriteria": "Uwzględniamy wystąpienie, jeśli spełnia łącznie wszystkie: (1) głębokość ≥ 50 m — próg odcinający szum przypowierzchniowy/pływowy, zachowujący jednocześnie rekordy szelfu kontynentalnego (50–500 m, istotne dla koncesji offshore) i rekordy głębinowe; ograniczenie do taksonów istotnych głębinowo odbywa się na poziomie listy gatunków, a nie przez próg głębokości; (2) flagi jakości OBIS są prawidłowe — `dropped` IS NOT TRUE i `absence` IS NOT TRUE, co wyklucza wycofane rekordy i wiersze „gatunek szukany, lecz nieznaleziony”; (3) georeferencyja — `interpreted.decimalLatitude` i `interpreted.decimalLongitude` są obecne; (4) posiada zwalidowaną przez WoRMS `interpreted.scientificName` i stabilny OBIS `_id`. Reszta jest uwzględniana. Celowo NIE filtrujemy według taksonu, zbioru danych, kraju ani roku.",
+      "selectionCriteria": "Uwzględniamy wystąpienie, jeśli spełnia łącznie wszystkie: (1) głębokość ≥ 50 m — próg odcinający szum przypowierzchniowy/pływowy, zachowujący jednocześnie rekordy szelfu kontynentalnego (50–500 m, istotne dla koncesji offshore) i rekordy głębinowe; ograniczenie do taksonów istotnych głębinowo odbywa się na poziomie listy gatunków, a nie przez próg głębokości; (2) flagi jakości OBIS są prawidłowe — `dropped` IS NOT TRUE i `absence` IS NOT TRUE, co wyklucza wycofane rekordy i wiersze „gatunek szukany, lecz nieznaleziony”; (3) georeferencyja — `interpreted.decimalLatitude` i `interpreted.decimalLongitude` są obecne; (4) posiada zwalidowaną przez WoRMS `interpreted.scientificName` i stabilny OBIS `_id`. Reszta jest uwzględniana. (5) nazwa gatunkowa jest jedną z tych, które ta warstwa już śledzi — sync filtruje archiwum OBIS przez `SELECT DISTINCT scientific_name FROM biodiversity_hotspots`, czyli szuka gatunków, które już ma. ⚠️ Konsekwencja, słowami samego ingestu: ta lista, wywiedziona z tej właśnie tabeli, nigdy nie pozna gatunku, który próg głębokości już wcześniej odciął. Koralowce są świadomym wyjątkiem — dobierane po RZĘDZIE i RODZINIE taksonomicznej na dowolnej głębokości, właśnie po to, by przełamać to domknięcie dla rafotwórczych Scleractinia, które żyją niemal w całości powyżej 50 m. To więc nie jest nieprzefiltrowane odbicie OBIS: to OBIS widziany przez listę gatunków, która rośnie tylko wtedy, gdy dopisze do niej coś innego.",
       "limitations": "Głębokość pochodzi z `interpreted.minimumDepthInMeters` — rekordy bez podanej głębokości są wykluczone nawet jeśli zebrano je z wód głębinowych. Precyzja współrzędnych zależy od zbioru danych (niektóre to trasy statków zaokrąglone do stopni). Status IUCN jest dostępny tylko dla małego podzbioru gatunków formalnie ocenionych przez Czerwoną Listę; większość taksonów głębinowych jest w kategorii „Dane niewystarczające” lub nieocenionych."
     },
     "seamounts": {
@@ -240,11 +240,11 @@
     },
     "globalDams": {
       "label": "Globalne zapory",
-      "source": "Global Dam Watch (www.globaldamwatch.org) — GDW v1.1. Combines ICOLD World Register of Dams, GRanD, GOODD, and national inventories. CC BY 4.0.",
-      "updateFreq": "Statyczny zbiór (migawka v1.1); oryginalne źródła aktualizowane w różnych odstępach czasu",
-      "description": "41 145 barier rzecznych na całym świecie, w tym zapory hydroelektryczne, nawadniające, przeciwpowodziowe, zbiorniki zaopatrzenia w wodę i zapory wody procesowej w kopalniach. Każdy rekord zawiera nazwę zapory, rzekę, kraj, wysokość, przeznaczenie, rok budowy, objętość zbiornika i typ zapory.",
-      "reading": "Indygoniebieski punkt = zapora. Kliknij, aby zobaczyć nazwę zapory, rzekę, kraj, wysokość, przeznaczenie (hydroelektryczne/nawadnianie/przeciwpowodziowe/zaopatrzenie w wodę/wielofunkcyjne), rok budowy i objętość zbiornika w mln m³.",
-      "limitations": "Współrzędne zapór są lokalizacjami punktowymi (centroidy), nie dokładnymi śladami korony. Małe stawy i przepusty poniżej progu wysokości są wykluczone."
+      "source": "GOODD — Global geOreferenced Database of Dams v2 (GOOD2_dams, 2019-08-16), Mulligan i in., globaldamwatch.org. ⚠️ Wyłącznie georeferencja.",
+      "updateFreq": "Statyczne — załadowane wydanie ma datę 2019-08-16 i nie zostało tu zastąpione nowszym",
+      "description": "38 667 położeń tam na świecie, zmapowanych ze zdjęć satelitarnych. ⚠️ GOODD to zbiór georeferencyjny: zapisuje, GDZIE jest tama, i nic poza tym. Nie publikuje nazwy, rzeki, kraju, wysokości, przeznaczenia, roku ukończenia, objętości zbiornika ani typu zapory — te pola są u nas puste dlatego, że źródło ich nie niesie, a nie dlatego, że pobranie zawiodło. Warstwa służy do kontekstu przestrzennego: które kopalnie leżą powyżej albo poniżej przegrody, skoro kopalnie zależą od wody, a ich odpady mogą skazić zbiorniki poniżej.",
+      "reading": "Indygowa kropka = jedno położenie tamy. Kliknij, aby zobaczyć jej identyfikator GOODD i współrzędne. Nie ma nazwy, w którą można by kliknąć dalej — jeśli potrzebujesz atrybutów, zanieś współrzędne do wydania GDW Global Dam Watch, które łączy GOODD z ICOLD i GRanD i te atrybuty ma.",
+      "limitations": "Tylko położenia, i to centroidy punktowe, a nie obrysy korony zapory. Powstały z wizualnej interpretacji zdjęć satelitarnych, więc małe jazy i stawy są niedoreprezentowane, a część punktów może nie być tamami. Załadowane wydanie pochodzi z 2019 roku; tamy zbudowane albo usunięte później są nieobecne. Nie serwujemy tu żadnych poligonów zbiorników."
     },
     "globalSurfaceWater": {
       "label": "Globalne wody powierzchniowe",
@@ -256,24 +256,24 @@
     },
     "treeCoverLoss": {
       "label": "Utrata pokrywy leśnej",
-      "source": "University of Maryland / WRI (Hansen et al. 2013, aktualizowane corocznie)",
-      "updateFreq": "Oczekujące — wymaga konfiguracji serwera kafelków",
-      "description": "Roczne wylesianie przy rozdzielczości 30 m (2001–2024). Wykrywa całkowite usunięcie pokrywy drzewnej z dowolnej przyczyny: wyręb, rolnictwo, pożar, górnictwo lub urbanizacja.",
-      "reading": "Warstwa dostępna w menu, ale kafelki jeszcze niepodłączone. Po aktywacji każdy piksel pokaże rok utraty pokrywy drzewnej."
+      "source": "University of Maryland / WRI — umd_tree_cover_loss v1.13, tiles.globalforestwatch.org. Hansen i in. 2013.",
+      "updateFreq": "Rocznie, zgodnie z rytmem wydań samego UMD",
+      "description": "Roczne wylesianie w rozdzielczości 30 m. Wykrywa całkowite usunięcie okapu z dowolnej przyczyny: wyrębu, rolnictwa, pożaru, górnictwa albo zabudowy.",
+      "reading": "Każdy piksel niesie rok, w którym utracono pokrywę drzewną, więc wylesianie przy kopalni da się czytać jako ciąg zdarzeń, a nie jeden stan."
     },
     "forestCarbonFlux": {
       "label": "Przepływ węgla w lasach",
-      "source": "WRI / Global Forest Watch — Harris et al. 2021",
-      "updateFreq": "Oczekujące — wymaga konfiguracji serwera kafelków",
-      "description": "Netto emisja i pochłanianie CO₂ na hektar przy rozdzielczości 30 m (2001–2024). Kwantyfikuje konsekwencje węglowe wylesiania — ile CO₂ jest uwalniane przy wylesienie na potrzeby górnictwa.",
-      "reading": "Warstwa dostępna w menu, ale kafelki jeszcze niepodłączone. Po aktywacji czerwone piksele pokażą emisje netto (wylesianie), zielone piksele pochłanianie netto (odrost)."
+      "source": "WRI / Global Forest Watch — gfw_forest_carbon_net_flux v20250430, tiles.globalforestwatch.org. Harris i in. 2021 oraz Gibbs i in. 2025.",
+      "updateFreq": "Rocznie, zgodnie z rytmem wydań samego Global Forest Watch",
+      "description": "Emisje i pochłanianie CO₂ netto na hektar w rozdzielczości 30 m, 2001–2025. Pokazuje węglowe skutki wylesiania — ile CO₂ uwalnia się przy wycince lasu pod kopalnię i ile wraca do biomasy przy odroście na terenach porzuconych.",
+      "reading": "Czerwone piksele to emisje netto (wylesianie), zielone to pochłanianie netto (odrost). Zestaw ze Śladami górniczymi, aby zważyć koszt węglowy karczowania pod wydobycie."
     },
     "soilOrganicCarbon": {
       "label": "Organiczny węgiel glebowy",
       "source": "ISRIC — SoilGrids, soc_0-5cm_mean. CC BY 4.0.",
-      "updateFreq": "Oczekujące — wymaga konfiguracji serwera kafelków",
+      "updateFreq": "Statyczne — serwowane z WMS SoilGrids ISRIC pod maps.isric.org, odświeżane gdy ISRIC wyda nową wersję",
       "description": "Globalne zasoby organicznego węgla glebowego w górnych 0–5 cm przy rozdzielczości ~250 m. Organiczny węgiel glebowy to największa lądowa pula węgla. Operacje górnicze usuwają glebę i trwale niszczą ten zasób węgla.",
-      "reading": "Warstwa dostępna w menu, ale kafelki jeszcze niepodłączone. Po aktywacji ciemniejszy = wyższa gęstość węgla (t C/ha)."
+      "reading": "Ciemniej znaczy większą gęstość węgla (tony C/ha). Zestaw ze Śladami górniczymi, aby zobaczyć, ile węgla glebowego leży w obszarze już zdartym."
     },
     "waterRisk": {
       "label": "Ryzyko wodne (Aqueduct)",
@@ -299,7 +299,7 @@
     },
     "bathymetry": {
       "label": "Batymetria dna morskiego",
-      "source": "GEBCO Compilation Group · siatka GEBCO_2025 z wms.gebco.net (publiczna, CC0)",
+      "source": "GEBCO Compilation Group · siatka GEBCO_2026 z wms.gebco.net (publiczna, CC0)",
       "updateFreq": "GEBCO publikuje nową siatkę raz do roku (latem)",
       "description": "Mapa głębokości dna morskiego całego oceanu w skali półcieniowej — globalna batymetria 15 arc-sek z GEBCO (General Bathymetric Chart of the Oceans), kanonicznego produktu IHO/IOC. Bezpłatna, jedyny wymóg to atrybucja widoczna w panelu. Daje fizyczny kontekst dla pozostałych warstw morskich: które boje Argo unoszą się nad równiną abisalną, a które nad górą podwodną; które koncesje ISA pokrywają grzbiety śródoceaniczne; które kominy hydrotermalne grupują się na granicach płyt.",
       "reading": "Jaśniejsze odcienie = płycej. Ciemniejsze = głębiej. Strome przejścia szare→jasne rysują góry podwodne, grzbiety, rowy i szelfy kontynentalne. Warstwa jest domyślnie wyłączona — włącz, aby dodać kontekst głębokości do dowolnej innej warstwy.",
@@ -797,7 +797,7 @@
     "chess_intro": "Włącz warstwę Miejsc chemosyntety, aby zobaczyć zimne wysięki, padłe wieloryby i społeczności strefy minimum tlenu ze zbioru ChEssBase (udostępnianego przez GBIF).",
     "chess_seep": "Zimny wysięk",
     "chess_whaleFall": "Padły wieloryb",
-    "chess_omz": "OMZ / Inne",
+    "chess_omz": "Nieokreślone",
     "chess_filter": "Filtruj według typu siedliska (wysięk / padły wieloryb / OMZ) lub według gromady (Annelida, Mollusca itp.) za pomocą przycisku + w menu warstw.",
     "chess_vents": "Kominy hydrotermalne z pobliskimi rekordami ChEssBase wyświetlają odznakę z liczbą gatunków. Kliknij Generuj raport o kominie, aby zobaczyć pełną tabelę gatunków.",
     "argoTitle": "Filtry alarmów Argo",
@@ -959,7 +959,7 @@
     "fresh_offshore_namibia": "Landfolio ArcGIS — portals.landfolio.com/namibia (wydobycie dna Namibia via MME)",
     "fresh_offshore_cookislands": "Landfolio ArcGIS — sbma.landfolio.com, Mining_Tenements/MapServer (wydobycie dna Wyspy Cooka via SBMA)",
     "fresh_tectonic": "statyczny model Petera Birda (2003); importowany jednorazowo, brak aktywnej synchronizacji",
-    "fresh_pendingTiles": "konfiguracja serwera kafelków oczekująca; dane jeszcze niewyświetlane",
+    "fresh_pendingTiles": "Trzy warstwy rastrowe rysowane wprost z serwerów kafelków ich wydawców, nie z naszej bazy: Utrata pokrywy drzewnej i Węgiel leśny z Global Forest Watch, Węgiel organiczny gleby z ISRIC SoilGrids. Nie ma dla nich znacznika synchronizacji, bo nic nie jest buforowane po naszej stronie — widzisz to, co wydawca serwuje w chwili, gdy patrzysz. Każda idzie rytmem wydań swojego wydawcy, roczne dla dwóch warstw Global Forest Watch.",
     "fresh_mining": "synchronizowane przy publikacji aktualizacji przez ISA (ok. kwartalnie)",
     "fresh_relinquished": "synchronizowane kwartalnie z ISA DeepData razem z kontraktami górniczymi",
     "fresh_reserved": "statyczne wyznaczenie ISA; synchronizowane kwartalnie razem z kontraktami górniczymi",
@@ -1033,7 +1033,7 @@
     "noiseRisk_title": "Siatka ryzyka hałasu",
     "noiseRisk": "Hałas impulsowy (Pulse Block Days) z rejestru ICES na gis.ices.dk — szukaj „CEMP PulseBlockDays”. Ciągłe SPL z EMODnet Physics na emodnet-physics.eu. Obserwacje waleni z OBIS-SEAMAP na seamap.env.duke.edu. Wzór indeksu ryzyka: (pbd_norm lub spl_norm) × cetacean_norm × waga gatunków IUCN, ograniczony do 1,0 (metodologia MSFD Deskryptor 11). Indeks modelowy, nie pomiar.",
     "chess_title": "Miejsca chemosyntety",
-    "chess": "Źródło: gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756. Każdy rekord zawiera nazwę miejscowości, głębokość i instytucję. Klasyfikacja siedlisk (wysięk/padły wieloryb/OMZ) pochodzi z dopasowania słów kluczowych miejscowości — nie jest autoryzowaną taksonomią.",
+    "chess": "Źródło: gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756. Każdy rekord zawiera nazwę miejscowości, głębokość i instytucję z ChEssBase przez GBIF. ⚠️ `habitat_type` NIE jest ich polem — to nasza własna klasyfikacja, dopasowywana słowami kluczowymi do swobodnego tekstu lokalizacji: tylko wzorce padłego wieloryba, wycieku i komina. Wszystko, czego żaden z trzech nie dopasuje, dostaje etykietę Nieokreślone — 10.09.2026 było to 3605 z 3715 rekordów. Nie ma tu w ogóle wzorca strefy minimum tlenowego, więc ta warstwa nie potrafi wskazać zbiorowiska OMZ; potrafi tylko powiedzieć, które z trzech słów pojawiło się w nazwie miejsca.",
     "worms_title": "Taksonomia WoRMS",
     "worms": "Skopiuj identyfikator AphiaID z panelu zweryfikowanego gatunku i wyszukaj go na marinespecies.org, aby potwierdzić przyjętą nazwę i klasyfikację.",
     "landTitle": "Źródła warstw lądowych",
@@ -1058,7 +1058,7 @@
     "treeCoverLoss_title": "Utrata pokrywy leśnej",
     "treeCoverLoss": "Global Forest Watch na globalforestwatch.org/map. Hansen/UMD/Google/USGS/NASA annual tree cover loss product (30 m, 2000–present). Verify annual loss figures or download the underlying rasters at earthenginepartners.appspot.com/science-2013-global-forest. CC BY 4.0.",
     "forestCarbon_title": "Przepływ węgla w lasach",
-    "forestCarbon": "Global Forest Watch Climate na globalforestwatch.org/topics/climate. Harris et al. (2021) \"Global maps of twenty-first century forest carbon fluxes.\" Nature Climate Change 11, 234–240. Gross emissions and removals at 30 m (2001–2024). DOI: 10.1038/s41558-020-00976-6. CC BY 4.0.",
+    "forestCarbon": "Global Forest Watch Climate na globalforestwatch.org/topics/climate. Harris i in. (2021) „Global maps of twenty-first century forest carbon fluxes.” Nature Climate Change 11, 234–240, DOI: 10.1038/s41558-020-00976-6, zrewidowane przez Gibbs i in. (2025). Emisje i pochłanianie netto w rozdzielczości 30 m, 2001–2025, zbiór gfw_forest_carbon_net_flux v20250430. CC BY 4.0.",
     "soilCarbon_title": "Organiczny węgiel glebowy",
     "soilCarbon": "ISRIC — SoilGrids na soilgrids.org. Globalna zawartość organicznego węgla glebowego, górne 0–5 cm (soc_0-5cm_mean), rozdzielczość ~250 m, opracowana przez ISRIC — World Soil Information metodami uczenia maszynowego na profilach glebowych i zmiennych środowiskowych. Pobieranie i metodyka na soilgrids.org. CC BY 4.0.",
     "limitationsTitle": "Znane ograniczenia",

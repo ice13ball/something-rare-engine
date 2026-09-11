@@ -10,12 +10,14 @@ const API = import.meta.env.VITE_API_BASE_URL ?? "";
 const HABITAT_LABELS: Record<string, string> = {
   seep:       "Cold Seep",
   whale_fall: "Whale Fall",
-  omz:        "OMZ / Other",
+  omz:          "Unclassified",   // legacy value
+  unclassified: "Unclassified",
 };
 const HABITAT_COLORS: Record<string, string> = {
   seep:       "#00c896",
   whale_fall: "#dc3282",
-  omz:        "#6464ff",
+  omz:          "#6464ff",
+  unclassified: "#6464ff",
 };
 
 interface ChessReportData {

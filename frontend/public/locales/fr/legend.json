@@ -44,10 +44,10 @@
       "label": "Espèces OBIS (profondeur)",
       "source": "Ocean Biodiversity Information System (OBIS) (25 March 2025) OBIS Occurrence Data. Intergovernmental Oceanographic Commission of UNESCO. https://doi.org/10.25607/obis.occurrence.b89117cd. Loaded from the OBIS Open Data parquet archive on AWS (s3://obis-open-data/occurrence/, GeoParquet, ~50 GB, ~6,900 files). Conservation status from IUCN Red List via GBIF.",
       "updateFreq": "Instantané complet des grands fonds marins intégré depuis OBIS Open Data ; catégories UICN enrichies via GBIF",
-      "description": "Chaque occurrence d'espèce de grands fonds marins contrôlée en qualité dans l'archive OBIS Open Data — sans liste d'espèces sélectionnée ni exclusion taxonomique. À faible zoom, les points représentent des cellules de grille résumant des centaines ou des milliers d'observations, colorées selon le niveau de menace de conservation. À fort zoom (8+), les points individuels des espèces sont affichés. La couleur du point indique le statut de la Liste rouge de l'UICN : rouge = En danger critique ou En danger, orange = Vulnérable, vert = non menacé.",
+      "description": "Occurrences de l'archive OBIS Open Data pour les espèces de grands fonds que cette couche suit, avec un plancher de profondeur de 50 m — les coraux exceptés ; les critères de sélection exacts figurent ci-dessous. À faible zoom, les points sont des cellules de grille résumant des centaines ou des milliers d'observations, colorées selon le niveau de menace ; à partir du zoom 8, les points d'espèces individuels apparaissent. La couleur indique le statut de la Liste rouge de l'UICN : rouge = En danger critique ou En danger, orange = Vulnérable, vert = non menacé.",
       "reading": "Point rouge = zone avec des espèces CR ou EN. Point orange = présence d'espèces Vulnérables. Point vert = aucune espèce menacée par l'UICN. À fort zoom, cliquez sur un point pour voir le nom de l'espèce, le statut UICN, la taxonomie et l'image. Le badge « RISQUE » sur les concessions minières se déclenche lorsque des espèces menacées chevauchent la zone de la concession.",
       "colorStandard": "Palette de la Liste rouge de l'UICN — CR/EN cramoisi, VU ambre, NT jaune, LC bleu (iucnredlist.org).",
-      "selectionCriteria": "Nous incluons une occurrence si et seulement si : (1) profondeur ≥ 50 m — un seuil qui exclut le bruit intertidal/de surface tout en conservant les enregistrements du plateau continental (50–500 m, pertinents pour les concessions offshore) et des grands fonds ; la sélection des taxons pertinents pour les grands fonds se fait au niveau de la liste d'espèces, et non par le seuil de profondeur ; (2) les indicateurs de qualité OBIS sont satisfaits — `dropped` IS NOT TRUE et `absence` IS NOT TRUE, donc les enregistrements retirés et les lignes « l'espèce a été recherchée et NOT trouvée » sont exclus ; (3) géoréférencé — `interpreted.decimalLatitude` et `interpreted.decimalLongitude` sont présents ; (4) dispose d'un `interpreted.scientificName` validé par WoRMS et d'un `_id` OBIS stable. Tout le reste est inclus. Nous ne filtrons délibérément PAS par taxon, jeu de données, pays ou année.",
+      "selectionCriteria": "Nous incluons une occurrence si et seulement si : (1) profondeur ≥ 50 m — un seuil qui exclut le bruit intertidal/de surface tout en conservant les enregistrements du plateau continental (50–500 m, pertinents pour les concessions offshore) et des grands fonds ; la sélection des taxons pertinents pour les grands fonds se fait au niveau de la liste d'espèces, et non par le seuil de profondeur ; (2) les indicateurs de qualité OBIS sont satisfaits — `dropped` IS NOT TRUE et `absence` IS NOT TRUE, donc les enregistrements retirés et les lignes « l'espèce a été recherchée et NOT trouvée » sont exclus ; (3) géoréférencé — `interpreted.decimalLatitude` et `interpreted.decimalLongitude` sont présents ; (4) dispose d'un `interpreted.scientificName` validé par WoRMS et d'un `_id` OBIS stable. Tout le reste est inclus. (5) le nom scientifique fait partie de ceux que cette couche suit déjà — la synchronisation filtre l'archive OBIS par `SELECT DISTINCT scientific_name FROM biodiversity_hotspots`, elle cherche donc les espèces qu'elle possède déjà. ⚠️ La conséquence, selon les mots de l'ingestion elle-même : cette liste, dérivée de cette table même, ne peut jamais apprendre une espèce que le plancher de profondeur avait déjà exclue. Les coraux sont l'exception délibérée — sélectionnés par ORDRE et FAMILLE taxonomiques à toute profondeur, précisément pour rompre cette fermeture pour les Scleractinia constructeurs de récifs, qui vivent presque entièrement au-dessus de 50 m. Ce n'est donc pas un miroir non filtré d'OBIS : c'est OBIS vu à travers une liste d'espèces qui ne s'élargit que si autre chose y ajoute.",
       "limitations": "La profondeur provient de `interpreted.minimumDepthInMeters` — les enregistrements sans profondeur déclarée sont exclus même s'ils ont été collectés en eau profonde. La précision des coordonnées varie selon les jeux de données. Le statut UICN n'est disponible que pour le petit sous-ensemble d'espèces formellement évaluées par la Liste rouge ; la plupart des taxons des grands fonds sont Données insuffisantes ou non évalués."
     },
     "seamounts": {
@@ -240,40 +240,40 @@
     },
     "globalDams": {
       "label": "Barrages mondiaux",
-      "source": "Global Dam Watch (www.globaldamwatch.org) — GDW v1.1. CC BY 4.0.",
-      "updateFreq": "Jeu de données statique (instantané v1.1) ; sources originales mises à jour à intervalles variables",
-      "description": "41 145 ouvrages fluviaux dans le monde, comprenant des barrages hydroélectriques, des barrages d'irrigation, des ouvrages de contrôle des crues, des réservoirs d'approvisionnement en eau et des barrages de traitement de l'eau des mines. Chaque enregistrement comprend le nom du barrage, la rivière, le pays, la hauteur (mètres), l'usage, l'année d'achèvement, le volume du réservoir et le type de barrage.",
-      "reading": "Point indigo = barrage. Cliquez pour le nom du barrage, la rivière, le pays, la hauteur, l'usage, l'année de construction et le volume du réservoir en millions de m³.",
-      "limitations": "Les coordonnées des barrages sont des emplacements ponctuels (centroïdes), pas des empreintes précises de la crête du barrage."
+      "source": "GOODD — Global geOreferenced Database of Dams v2 (GOOD2_dams, 2019-08-16), Mulligan et al., globaldamwatch.org. ⚠️ Géoréférencement seul.",
+      "updateFreq": "Statique — la version chargée est datée du 2019-08-16 et n'a pas été remplacée ici",
+      "description": "38 667 emplacements de barrages dans le monde, cartographiés depuis l'imagerie satellitaire. ⚠️ GOODD est un jeu de géoréférencement : il enregistre OÙ se trouve un barrage, et rien d'autre. Il ne publie ni nom, ni rivière, ni pays, ni hauteur, ni usage, ni année d'achèvement, ni volume de retenue, ni type d'ouvrage — ces champs sont vides ici parce que la source ne les porte pas, non parce qu'une récupération a échoué. La couche sert au contexte spatial : quelles mines se trouvent en amont ou en aval d'un ouvrage, puisque les mines dépendent de l'eau et que leurs résidus peuvent contaminer les retenues en aval.",
+      "reading": "Point indigo = un emplacement de barrage. Cliquez pour son identifiant GOODD et ses coordonnées. Il n'y a pas de nom à suivre — pour des attributs, portez les coordonnées vers la version GDW de Global Dam Watch, qui fusionne GOODD avec ICOLD et GRanD et les contient.",
+      "limitations": "Emplacements seuls, et ce sont des centroïdes ponctuels, pas des emprises de crête. Issus d'une interprétation visuelle d'images satellitaires : les petits seuils et retenues agricoles sont sous-représentés et quelques points peuvent ne pas être des barrages. La version chargée date de 2019 ; les ouvrages construits ou supprimés depuis sont absents. Aucun polygone de retenue n'est servi sur cette plateforme."
     },
     "globalSurfaceWater": {
       "label": "Eaux de surface mondiales",
       "source": "JRC / Commission européenne — Global Surface Water Explorer (global-surface-water.appspot.com). Pekel et al. 2016, Nature.",
       "updateFreq": "Tuiles raster statiques (composite 1984–2021) ; jeu de données mis à jour par JRC tous les 1–2 ans",
-      "description": "Chaque plan d'eau de surface sur Terre suivi de 1984 à 2021 à une résolution de 30 m — le record satellitaire continu le plus long des eaux de surface mondiales. Affiche la fréquence d'occurrence : combien de fois chaque pixel de 30 m a été couvert par de l'eau au cours de 37 années d'observation.",
+      "description": "Eaux de surface cartographiées de 1984 à 2021 à 30 m de résolution, à partir de 4,7 millions de scènes Landsat — le plus long enregistrement satellitaire continu des eaux de surface mondiales. Montre la fréquence d'occurrence : combien de fois chaque pixel de 30 m a été vu comme de l'eau au cours de ces 37 ans. On y lit les fleuves et lacs permanents, les zones humides saisonnières, les retenues qui se sont étendues ou réduites, et les plans d'eau créés par un barrage ou une mine. ⚠️ Ce n'est pas un inventaire complet des eaux du monde : à 30 m, les ruisseaux et mares de moins de ~900 m² sont invisibles, et les limites ci-dessous indiquent où la couverture s'amincit encore.",
       "reading": "Bleu foncé = eau permanente (présente >90 % du temps). Bleu plus clair = saisonnière ou intermittente (présente 10–90 %). Superposition raster — aucun détail de clic par pixel.",
       "limitations": "La résolution de 30 m signifie que les petits ruisseaux et étangs inférieurs à ~900 m² sont invisibles. Le point final de 2021 signifie que les changements très récents peuvent ne pas encore être reflétés."
     },
     "treeCoverLoss": {
       "label": "Perte de couvert forestier",
-      "source": "Université du Maryland / WRI (Hansen et al. 2013, mise à jour annuelle)",
-      "updateFreq": "En attente — configuration du serveur de tuiles requise",
-      "description": "Déforestation annuelle à une résolution de 30 m (2001–2024). Détecte la suppression complète de la canopée de toute cause : exploitation forestière, agriculture, feu, exploitation minière ou urbanisation.",
-      "reading": "Couche disponible dans le menu mais tuiles non encore connectées. Lorsqu'elle sera active, chaque pixel affichera l'année de la perte du couvert forestier."
+      "source": "University of Maryland / WRI — umd_tree_cover_loss v1.13, tiles.globalforestwatch.org. Hansen et al. 2013.",
+      "updateFreq": "Annuel, au rythme des publications de l'UMD",
+      "description": "Déforestation annuelle à 30 m de résolution. Détecte la disparition complète du couvert, quelle qu'en soit la cause : coupe, agriculture, incendie, exploitation minière ou urbanisation.",
+      "reading": "Chaque pixel porte l'année de perte du couvert forestier, ce qui permet de lire la déforestation près d'une mine comme une séquence plutôt que comme un état."
     },
     "forestCarbonFlux": {
       "label": "Flux de carbone forestier",
-      "source": "WRI / Global Forest Watch — Harris et al. 2021",
-      "updateFreq": "En attente — configuration du serveur de tuiles requise",
-      "description": "Émissions et absorptions nettes de CO₂ par hectare à une résolution de 30 m (2001–2024). Quantifie les conséquences carboniques de la déforestation.",
-      "reading": "Couche disponible dans le menu mais tuiles non encore connectées. Lorsqu'elle sera active, les pixels rouges afficheront les émissions nettes (déforestation), les pixels verts l'absorption nette (repousse)."
+      "source": "WRI / Global Forest Watch — gfw_forest_carbon_net_flux v20250430, tiles.globalforestwatch.org. Harris et al. 2021 et Gibbs et al. 2025.",
+      "updateFreq": "Annuel, au rythme des publications de Global Forest Watch",
+      "description": "Émissions et absorptions nettes de CO₂ par hectare à 30 m de résolution, 2001–2025. Quantifie les conséquences carbone de la déforestation : le CO₂ libéré quand une forêt est défrichée pour une mine, et celui repris par la repousse sur les sites abandonnés.",
+      "reading": "Les pixels rouges sont des émissions nettes (déforestation), les verts une séquestration nette (repousse). Croisez avec Empreintes minières pour peser le coût carbone du défrichement."
     },
     "soilOrganicCarbon": {
       "label": "Carbone organique du sol",
       "source": "ISRIC — SoilGrids, soc_0-5cm_mean. CC BY 4.0.",
-      "updateFreq": "En attente — configuration du serveur de tuiles requise",
+      "updateFreq": "Statique — servi depuis le WMS SoilGrids de l'ISRIC sur maps.isric.org, actualisé quand l'ISRIC publie une nouvelle version",
       "description": "Carbone organique du sol mondial, 0–5 cm supérieurs à une résolution de ~250 m. Le carbone organique du sol est le plus grand réservoir de carbone terrestre.",
-      "reading": "Couche disponible dans le menu mais tuiles non encore connectées. Lorsqu'elle sera active, plus foncé = densité de carbone plus élevée (tonnes C/ha)."
+      "reading": "Plus sombre signifie une densité de carbone plus élevée (tonnes C/ha). Croisez avec Empreintes minières pour estimer le carbone du sol présent dans une zone déjà décapée."
     },
     "waterRisk": {
       "label": "Risque hydrique (Aqueduct)",
@@ -299,7 +299,7 @@
     },
     "bathymetry": {
       "label": "Bathymétrie du fond marin",
-      "source": "GEBCO Compilation Group · grille GEBCO_2025 via wms.gebco.net (publique, CC0)",
+      "source": "GEBCO Compilation Group · grille GEBCO_2026 via wms.gebco.net (publique, CC0)",
       "updateFreq": "GEBCO publie une nouvelle grille chaque année en milieu d'année",
       "description": "Carte de profondeur en relief ombragé de tout le fond océanique — bathymétrie globale à 15 arc-secondes de GEBCO (General Bathymetric Chart of the Oceans), le produit canonique IHO/IOC. Gratuite, sans contrainte d'attribution au-delà du badge affiché. Fournit le contexte physique pour toutes les autres couches marines : quels flotteurs Argo dérivent au-dessus d'une plaine abyssale ou d'un mont sous-marin, quelles concessions ISA chevauchent des dorsales médio-océaniques, quels évents se regroupent sur des limites de plaques.",
       "reading": "Teintes claires = moins profond. Teintes sombres = plus profond. Les transitions abruptes gris→clair tracent monts sous-marins, dorsales, fosses et plateaux continentaux. Couche désactivée par défaut — activez-la pour ajouter le contexte du fond marin à ce que vous consultez.",
@@ -797,7 +797,7 @@
     "chess_intro": "Activez la couche Sites chémosynthétiques pour voir les suintements froids, les chutes de baleines et les communautés de zones de minimum d'oxygène du jeu de données ChEssBase.",
     "chess_seep": "Suintement froid",
     "chess_whaleFall": "Chute de baleine",
-    "chess_omz": "ZMO / Autre",
+    "chess_omz": "Non classé",
     "chess_filter": "Filtrez par type d'habitat (suintement / chute de baleine / ZMO) ou par embranchement (Annélida, Mollusca, etc.) en utilisant le bouton + dans le menu des couches.",
     "chess_vents": "Les cheminées hydrothermales avec des enregistrements ChEssBase à proximité affichent un badge de nombre d'espèces dans leur fenêtre contextuelle.",
     "argoTitle": "Filtres d'alarme Argo",
@@ -959,7 +959,7 @@
     "fresh_offshore_namibia": "Landfolio ArcGIS — portals.landfolio.com/namibia (exploitation minière des fonds marins en Namibie via MME)",
     "fresh_offshore_cookislands": "Landfolio ArcGIS — sbma.landfolio.com, Mining_Tenements/MapServer (exploitation minière des fonds marins aux Îles Cook via SBMA)",
     "fresh_tectonic": "modèle statique Peter Bird (2003) ; importé une fois, aucune synchronisation en direct",
-    "fresh_pendingTiles": "configuration du serveur de tuiles en attente ; données pas encore affichées",
+    "fresh_pendingTiles": "Trois couches raster tirées directement des serveurs de tuiles de leurs éditeurs, pas de notre base : Perte de couvert forestier et Carbone forestier depuis Global Forest Watch, Carbone organique du sol depuis ISRIC SoilGrids. Aucun horodatage de synchronisation n'existe pour elles car rien n'est mis en cache chez nous — vous voyez ce que l'éditeur sert au moment où vous regardez. Chacune suit le rythme de publication de son éditeur, annuel pour les deux couches Global Forest Watch.",
     "fresh_mining": "synchronisé lorsque l'ISA publie des mises à jour (environ trimestriel)",
     "fresh_relinquished": "synchronisé trimestriellement depuis ISA DeepData avec les contrats miniers",
     "fresh_reserved": "désignation ISA statique ; resynchronisé trimestriellement",
@@ -1033,7 +1033,7 @@
     "noiseRisk_title": "Grille de risque sonore",
     "noiseRisk": "Bruit impulsif (Pulse Block Days) du registre ICES sur gis.ices.dk. SPL continu d'EMODnet Physics sur emodnet-physics.eu. Observations de cétacés d'OBIS-SEAMAP sur seamap.env.duke.edu. Formule de l'indice de risque : (pbd_norm ou spl_norm) × cetacean_norm × pondération d'espèce UICN, plafonné à 1,0 (méthodologie MSFD Descripteur 11). Un indice modélisé, pas une mesure.",
     "chess_title": "Sites chémosynthétiques",
-    "chess": "Source : gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756.",
+    "chess": "Source : gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756. Chaque enregistrement porte un nom de localité, une profondeur et une institution, depuis ChEssBase via GBIF. ⚠️ `habitat_type` n'est PAS un de leurs champs — c'est notre propre classification, obtenue par mots-clés sur le texte libre de la localité : uniquement les motifs carcasse de baleine, suintement et évent. Tout ce qu'aucun des trois ne reconnaît est étiqueté Non classé, soit 3 605 des 3 715 enregistrements au 2026-09-10. Il n'existe aucun motif de zone à minimum d'oxygène, cette couche ne peut donc pas identifier une communauté OMZ : elle dit seulement lequel des trois mots figurait dans un toponyme.",
     "worms_title": "Taxonomie WoRMS",
     "worms": "Copiez l'AphiaID depuis tout panneau d'espèce vérifiée et recherchez-le sur marinespecies.org pour confirmer le nom accepté et la classification.",
     "landTitle": "Sources des couches terrestres",

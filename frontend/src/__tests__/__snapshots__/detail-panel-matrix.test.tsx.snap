@@ -3845,7 +3845,7 @@ exports[`DetailPanel dispatch matrix > renders dams without throwing and matches
             target="_blank"
             title="Open the source organisation's homepage"
           >
-            Global Dam Watch
+            Global Dam Watch — GOODD v2 (dam locations only)
              
             <span
               aria-hidden="true"

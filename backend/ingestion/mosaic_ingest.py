@@ -56,7 +56,11 @@ def _epoch_ms_to_date(v) -> "_dt.date | None":
     if v is None:
         return None
     try:
-        return _dt.datetime.utcfromtimestamp(float(v) / 1000.0).date()
+        # ⛔ Not utcfromtimestamp: it returns a NAIVE datetime and is deprecated in
+        # 3.12. Harmless here because `.date()` follows immediately, but the same
+        # call in noaa_corals_ingest reached a TIMESTAMPTZ and moved 1.5M dates
+        # back a day. Left no room for the next reader to copy the wrong one.
+        return _dt.datetime.fromtimestamp(float(v) / 1000.0, tz=_dt.timezone.utc).date()
     except (TypeError, ValueError, OverflowError, OSError):
         return None
 

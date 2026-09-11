@@ -2322,7 +2322,7 @@ _INVENTORY: list[tuple[str, str, str, str, str | None, str, str]] = [
     ("landslides",     "Landslides",                    "land",      "landslides",             "landslides",            "NASA COOLR / GSFC",                       "https://gpm.nasa.gov/landslides/"),
     ("openaq",         "Air quality stations",          "land",      "air_quality_stations",   "air_quality",           "OpenAQ v3",                               "https://openaq.org/"),
     ("water-risk",     "Water risk sub-basins",         "land",      "water_risk",             "water_risk",            "WRI Aqueduct 4.0",                        "https://www.wri.org/aqueduct"),
-    ("dams",           "Global Dam Watch",              "land",      "dams",                   "dams",                  "Global Dam Watch",                        "https://www.globaldamwatch.org/"),
+    ("dams",           "Global Dam Watch",              "land",      "dams",                   "dams",                  "Global Dam Watch — GOODD v2 (locations only)", "https://www.globaldamwatch.org/"),
     ("earthquakes",    "Earthquakes (M≥3, 30 days)",    "land",      "usgs_earthquakes",       "usgs-earthquakes",      "USGS Earthquake Hazards Program",         "https://earthquake.usgs.gov/"),
 
     # ── Added 2026-07-08: standalone map layers previously missing from the inventory ──

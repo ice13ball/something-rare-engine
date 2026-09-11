@@ -44,10 +44,10 @@
       "label": "OBIS-Arten (Tiefsee)",
       "source": "Ocean Biodiversity Information System (OBIS) (25 March 2025) OBIS Occurrence Data. Intergovernmental Oceanographic Commission of UNESCO. https://doi.org/10.25607/obis.occurrence.b89117cd. Loaded from the OBIS Open Data parquet archive on AWS (s3://obis-open-data/occurrence/, GeoParquet, ~50 GB, ~6,900 files). Conservation status from IUCN Red List via GBIF.",
       "updateFreq": "Vollständiger Tiefsee-Schnappschuss aus OBIS Open Data; IUCN-Kategorien über GBIF angereichert",
-      "description": "Jedes qualitätskontrollierte Tiefsee-Artvorkommen im OBIS Open Data-Archiv — ohne kuratierte Artenliste, ohne taxonomische Ausschlüsse. Bei niedrigem Zoom stellen Punkte Rasterzellen dar, die Hunderte oder Tausende von Beobachtungen zusammenfassen, eingefärbt nach Gefährdungsgrad. Bei hohem Zoom (8+) werden einzelne Artpunkte angezeigt. Punktfarbe zeigt den IUCN-Rote-Liste-Status an: rot = Vom Aussterben bedroht oder Stark gefährdet, orange = Gefährdet, grün = nicht bedroht.",
+      "description": "Vorkommen aus dem OBIS-Open-Data-Archiv für die Tiefseearten, die diese Ebene führt, mit einer Tiefenschwelle von 50 m — Korallen ausgenommen; die genauen Auswahlkriterien stehen unten. Bei niedrigem Zoom sind Punkte Rasterzellen, die Hunderte oder Tausende von Beobachtungen zusammenfassen, eingefärbt nach Gefährdungsgrad; ab Zoom 8 erscheinen einzelne Artpunkte. Die Punktfarbe zeigt den IUCN-Rote-Liste-Status: rot = vom Aussterben bedroht oder stark gefährdet, orange = gefährdet, grün = nicht bedroht.",
       "reading": "Roter Punkt = Gebiet mit CR- oder EN-Arten. Oranger Punkt = Gefährdete Arten vorhanden. Grüner Punkt = keine IUCN-bedrohten Arten. Bei hohem Zoom: Klicken Sie auf einen Punkt für Artname, IUCN-Status, Taxonomie und Bild.",
       "colorStandard": "IUCN-Rote-Liste-Palette — CR/EN Karmesin, VU Bernstein, NT Gelb, LC Blau (iucnredlist.org).",
-      "selectionCriteria": "Wir schließen ein Vorkommen ein, wenn: (1) Tiefe ≥ 50 m — eine Schwelle, die Gezeiten-/Oberflächenrauschen ausschließt und zugleich Datensätze des Kontinentalschelfs (50–500 m, relevant für Offshore-Konzessionen) sowie der Tiefsee erhält; die Eingrenzung auf tiefseerelevante Taxa erfolgt auf Ebene der Artenliste, nicht über die Tiefenschwelle; (2) OBIS-Qualitätsflags bestanden; (3) georeferenziert; (4) WoRMS-validierter Artname und stabile OBIS `_id`. Wir filtern absichtlich NICHT nach Taxon, Datensatz, Land oder Jahr.",
+      "selectionCriteria": "Wir schließen ein Vorkommen ein, wenn: (1) Tiefe ≥ 50 m — eine Schwelle, die Gezeiten-/Oberflächenrauschen ausschließt und zugleich Datensätze des Kontinentalschelfs (50–500 m, relevant für Offshore-Konzessionen) sowie der Tiefsee erhält; die Eingrenzung auf tiefseerelevante Taxa erfolgt auf Ebene der Artenliste, nicht über die Tiefenschwelle; (2) OBIS-Qualitätsflags bestanden; (3) georeferenziert; (4) WoRMS-validierter Artname und stabile OBIS `_id`. Wir filtern absichtlich NICHT nach Taxon, Datensatz, Land oder Jahr. (5) der wissenschaftliche Name gehört zu denen, die diese Ebene bereits führt — die Synchronisation filtert das OBIS-Archiv über `SELECT DISTINCT scientific_name FROM biodiversity_hotspots`, sucht also nach den Arten, die sie schon hat. ⚠️ Die Folge, in den Worten der Ingestion selbst: Diese Liste, aus eben dieser Tabelle abgeleitet, kann eine Art, die die Tiefenschwelle bereits ausgeschlossen hatte, niemals kennenlernen. Korallen sind die bewusste Ausnahme — nach taxonomischer ORDNUNG und FAMILIE in jeder Tiefe ausgewählt, genau um diese Schließung für riffbildende Scleractinia zu durchbrechen, die fast ausschließlich oberhalb von 50 m leben. Dies ist also kein ungefiltertes Abbild von OBIS, sondern OBIS gesehen durch eine Artenliste, die nur wächst, wenn etwas anderes sie ergänzt.",
       "limitations": "Die Tiefe kommt aus `interpreted.minimumDepthInMeters` — Datensätze ohne gemeldete Tiefe werden ausgeschlossen. Die Koordinatengenauigkeit variiert je nach Datensatz. Der IUCN-Status ist nur für die kleine Teilmenge formal bewerteter Arten verfügbar."
     },
     "seamounts": {
@@ -240,11 +240,11 @@
     },
     "globalDams": {
       "label": "Globale Staudämme",
-      "source": "Global Dam Watch (www.globaldamwatch.org) — GDW v1.1. CC BY 4.0.",
-      "updateFreq": "Statischer Datensatz (v1.1-Schnappschuss); ursprüngliche Quellen werden in variablen Intervallen aktualisiert",
-      "description": "41.145 Flussbarrieren weltweit, einschließlich Wasserkraftdämme, Bewässerungsdämme, Hochwasserschutzbauwerke, Trinkwasserspeicher und Bergbau-Prozesswasserdämme.",
-      "reading": "Indigofarbener Punkt = Damm. Klicken für Dammname, Fluss, Land, Höhe, Zweck, Baujahr und Reservoirvolumen in Mio. m³.",
-      "limitations": "Dammkoordinaten sind Punkt-Schwerpunkte, keine genauen Dammkronenfußabdrücke."
+      "source": "GOODD — Global geOreferenced Database of Dams v2 (GOOD2_dams, 2019-08-16), Mulligan et al., globaldamwatch.org. ⚠️ Nur Georeferenzierung.",
+      "updateFreq": "Statisch — die geladene Ausgabe trägt das Datum 2019-08-16 und wurde hier nicht ersetzt",
+      "description": "38.667 Dammstandorte weltweit, aus Satellitenbildern kartiert. ⚠️ GOODD ist ein Georeferenzierungsdatensatz: Er hält fest, WO ein Damm liegt, und sonst nichts. Name, Fluss, Land, Höhe, Zweck, Baujahr, Stauvolumen und Bauart werden dort nicht veröffentlicht — diese Felder sind hier leer, weil die Quelle sie nicht führt, nicht weil ein Abruf fehlschlug. Die Ebene dient dem räumlichen Zusammenhang: welche Minen ober- oder unterhalb einer Sperre liegen, da Minen auf Wasser angewiesen sind und ihre Rückstände Stauseen flussabwärts belasten können.",
+      "reading": "Indigofarbener Punkt = ein Dammstandort. Klicken für seine GOODD-Kennung und die Koordinaten. Einen Namen zum Weiterklicken gibt es nicht — für Attribute nehmen Sie die Koordinaten zur GDW-Ausgabe von Global Dam Watch, die GOODD mit ICOLD und GRanD zusammenführt und sie enthält.",
+      "limitations": "Nur Standorte, und zwar Punktschwerpunkte statt Kronenumrisse. Aus visueller Auswertung von Satellitenbildern gewonnen, daher sind kleine Wehre und Teiche unterrepräsentiert und einzelne Punkte womöglich gar keine Dämme. Die geladene Ausgabe stammt von 2019; seither gebaute oder entfernte Bauwerke fehlen. Auf dieser Plattform werden keine Stauseepolygone ausgeliefert."
     },
     "globalSurfaceWater": {
       "label": "Globale Oberflächengewässer",
@@ -256,24 +256,24 @@
     },
     "treeCoverLoss": {
       "label": "Waldbedeckungsverlust",
-      "source": "Universität Maryland / WRI (Hansen et al. 2013, jährlich aktualisiert)",
-      "updateFreq": "Ausstehend — Kachelserver-Einrichtung erforderlich",
-      "description": "Jährliche Entwaldung bei 30 m Auflösung (2001–2024). Erkennt vollständige Kronendachentfernung aus jeglichem Grund: Holzeinschlag, Landwirtschaft, Feuer, Bergbau oder Urbanisierung.",
-      "reading": "Ebene im Menü verfügbar, aber Kacheln noch nicht verbunden. Wenn aktiv, zeigt jedes Pixel das Jahr des Waldbedeckungsverlusts."
+      "source": "University of Maryland / WRI — umd_tree_cover_loss v1.13, tiles.globalforestwatch.org. Hansen et al. 2013.",
+      "updateFreq": "Jährlich, im Veröffentlichungsrhythmus der UMD",
+      "description": "Jährliche Entwaldung bei 30 m Auflösung. Erfasst die vollständige Entfernung des Kronendachs aus jeder Ursache: Einschlag, Landwirtschaft, Feuer, Bergbau oder Bebauung.",
+      "reading": "Jedes Pixel trägt das Jahr, in dem die Baumbedeckung verloren ging, sodass Entwaldung neben einer Mine als Abfolge statt als einzelner Zustand lesbar wird."
     },
     "forestCarbonFlux": {
       "label": "Wald-Kohlenstofffluss",
-      "source": "WRI / Global Forest Watch — Harris et al. 2021",
-      "updateFreq": "Ausstehend — Kachelserver-Einrichtung erforderlich",
-      "description": "Netto-CO₂-Emissionen und -Entnahmen pro Hektar bei 30 m Auflösung (2001–2024). Quantifiziert die Kohlenstoffkonsequenzen der Entwaldung.",
-      "reading": "Ebene im Menü verfügbar, aber Kacheln noch nicht verbunden. Wenn aktiv, zeigen rote Pixel Nettoemissionen (Entwaldung), grüne Pixel Nettoaufnahme (Wiederbewaldung)."
+      "source": "WRI / Global Forest Watch — gfw_forest_carbon_net_flux v20250430, tiles.globalforestwatch.org. Harris et al. 2021 und Gibbs et al. 2025.",
+      "updateFreq": "Jährlich, im Veröffentlichungsrhythmus von Global Forest Watch",
+      "description": "Netto-CO₂-Emissionen und -Aufnahmen je Hektar bei 30 m Auflösung, 2001–2025. Beziffert die Kohlenstofffolgen der Entwaldung: wie viel CO₂ freigesetzt wird, wenn Wald für den Bergbau gerodet wird, und wie viel der Nachwuchs auf verlassenen Flächen wieder bindet.",
+      "reading": "Rote Pixel sind Nettoemissionen (Entwaldung), grüne eine Nettobindung (Nachwuchs). Mit Bergbau-Fußabdrücken kombinieren, um die Kohlenstoffkosten der Rodung abzuwägen."
     },
     "soilOrganicCarbon": {
       "label": "Organischer Bodenkohlenstoff",
       "source": "ISRIC — SoilGrids, soc_0-5cm_mean. CC BY 4.0.",
-      "updateFreq": "Ausstehend — Kachelserver-Einrichtung erforderlich",
+      "updateFreq": "Statisch — aus dem SoilGrids-WMS des ISRIC unter maps.isric.org, aktualisiert wenn das ISRIC eine neue Version herausgibt",
       "description": "Organischer Bodenkohlenstoff weltweit, obere 0–5 cm bei ~250 m Auflösung. Organischer Bodenkohlenstoff ist der größte terrestrische Kohlenstoffspeicher.",
-      "reading": "Ebene im Menü verfügbar, aber Kacheln noch nicht verbunden. Wenn aktiv, dunkler = höhere Kohlenstoffdichte (Tonnen C/ha)."
+      "reading": "Dunkler bedeutet höhere Kohlenstoffdichte (Tonnen C/ha). Mit Bergbau-Fußabdrücken kombinieren, um zu sehen, wie viel Bodenkohlenstoff in einer bereits abgetragenen Fläche liegt."
     },
     "waterRisk": {
       "label": "Wasserrisiko (Aqueduct)",
@@ -299,7 +299,7 @@
     },
     "bathymetry": {
       "label": "Meeresbodenbathymetrie",
-      "source": "GEBCO Compilation Group · GEBCO_2025-Raster über wms.gebco.net (öffentlich, CC0)",
+      "source": "GEBCO Compilation Group · GEBCO_2026-Raster über wms.gebco.net (öffentlich, CC0)",
       "updateFreq": "GEBCO veröffentlicht jährlich zur Jahresmitte ein neues Raster",
       "description": "Reliefschattierte Tiefenkarte des gesamten Meeresbodens — globale Bathymetrie mit 15 Bogensekunden Auflösung von GEBCO (General Bathymetric Chart of the Oceans), dem kanonischen IHO/IOC-Produkt. Kostenlos, ohne Attributionspflicht über das im Panel angezeigte Schild hinaus. Liefert den physischen Kontext für jede andere Meeresschicht: Welche Argo-Floats treiben über Tiefseeebenen vs. Seebergen, welche ISA-Konzessionen liegen über mittelozeanischen Rücken, welche Hydrothermalquellen häufen sich an Plattengrenzen.",
       "reading": "Hellere Schattierung = flacher. Dunklere Schattierung = tiefer. Steile Grau→Hell-Übergänge zeichnen Seeberge, Rücken, Gräben und Kontinentalschelfe. Schicht standardmäßig ausgeschaltet — einschalten, um Tiefenkontext zu jeder anderen Ansicht hinzuzufügen.",
@@ -797,7 +797,7 @@
     "chess_intro": "Aktivieren Sie die Chemosynthetische Standorte-Ebene, um Kaltseeps, Walfälle und Sauerstoffminimumzonen-Gemeinschaften aus dem ChEssBase-Datensatz zu sehen.",
     "chess_seep": "Kaltseep",
     "chess_whaleFall": "Walfall",
-    "chess_omz": "OMZ / Sonstiges",
+    "chess_omz": "Nicht klassifiziert",
     "chess_filter": "Nach Habitattyp (Seep / Walfall / OMZ) oder nach Stamm filtern (Annelida, Mollusca usw.) mit der +-Schaltfläche im Ebenmenü.",
     "chess_vents": "Hydrothermale Quellen mit nahegelegenen ChEssBase-Datensätzen zeigen ein Artenzahl-Abzeichen in ihrem Pop-up.",
     "argoTitle": "Argo-Alarmfilter",
@@ -959,7 +959,7 @@
     "fresh_offshore_namibia": "Landfolio ArcGIS — portals.landfolio.com/namibia (Namibia Tiefseebergbau über MME)",
     "fresh_offshore_cookislands": "Landfolio ArcGIS — sbma.landfolio.com, Mining_Tenements/MapServer (Cookinseln Tiefseebergbau über SBMA)",
     "fresh_tectonic": "statisches Peter Bird (2003)-Modell; einmal importiert, keine Live-Synchronisierung",
-    "fresh_pendingTiles": "Kachelserver-Einrichtung ausstehend; Daten noch nicht angezeigt",
+    "fresh_pendingTiles": "Drei Rasterebenen, direkt von den Kachelservern ihrer Herausgeber gezeichnet, nicht aus unserer Datenbank: Waldverlust und Waldkohlenstoff von Global Forest Watch, organischer Bodenkohlenstoff von ISRIC SoilGrids. Für sie gibt es keinen Synchronisationszeitstempel, weil bei uns nichts zwischengespeichert wird — Sie sehen, was der Herausgeber in dem Moment ausliefert, in dem Sie hinsehen. Jede folgt dem Veröffentlichungsrhythmus ihres Herausgebers, jährlich bei den beiden Global-Forest-Watch-Ebenen.",
     "fresh_mining": "synchronisiert, wenn ISA Updates veröffentlicht (ca. vierteljährlich)",
     "fresh_relinquished": "vierteljährlich von ISA DeepData zusammen mit Bergbauverträgen synchronisiert",
     "fresh_reserved": "statische ISA-Ausweisung; vierteljährlich neu synchronisiert",
@@ -1033,7 +1033,7 @@
     "noiseRisk_title": "Lärm-Risikoraster",
     "noiseRisk": "Impulsiver Lärm (Pulse Block Days) aus dem ICES-Register auf gis.ices.dk. Kontinuierlicher SPL von EMODnet Physics auf emodnet-physics.eu. Walbeobachtungen von OBIS-SEAMAP auf seamap.env.duke.edu. Risikoindex-Formel: (pbd_norm oder spl_norm) × cetacean_norm × IUCN-Artengewichtung, begrenzt auf 1,0 (MSFD Deskriptor 11 Methodik). Ein modellierter Index, keine Messung.",
     "chess_title": "Chemosynthetische Standorte",
-    "chess": "Quelle: gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756.",
+    "chess": "Quelle: gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756. Jeder Datensatz trägt Ortsnamen, Tiefe und Institution aus ChEssBase über GBIF. ⚠️ `habitat_type` ist KEINES ihrer Felder — es ist unsere eigene Klassifikation, per Stichwort gegen den Freitext des Ortsnamens gebildet: nur die Muster Walfall, Sickerquelle und Schlot. Alles, was keines der drei trifft, erhält die Bezeichnung Nicht klassifiziert — am 2026-09-10 waren das 3.605 von 3.715 Datensätzen. Ein Muster für Sauerstoffminimumzonen gibt es überhaupt nicht, diese Ebene kann eine OMZ-Gemeinschaft also nicht erkennen; sie sagt nur, welches der drei Wörter im Ortsnamen stand.",
     "worms_title": "WoRMS-Taxonomie",
     "worms": "Kopieren Sie die AphiaID aus einem beliebigen verifizierten Artpanel und schlagen Sie sie auf marinespecies.org nach, um den akzeptierten Namen und die Klassifikation zu bestätigen.",
     "landTitle": "Land-Ebenquellen",

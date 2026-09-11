@@ -18,15 +18,17 @@ export function ChessPanel({ properties: p }: { properties: Record<string, unkno
   const HABITAT_LABELS: Record<string, string> = {
     seep:       "COLD SEEP",
     whale_fall: "WHALE FALL",
-    omz:        "OMZ / OTHER",
+    omz:          "UNCLASSIFIED",   // legacy value, pre-2026-09-11 rows
+    unclassified: "UNCLASSIFIED",
   };
   const HABITAT_COLORS: Record<string, string> = {
     seep:       "text-teal-400",
     whale_fall: "text-pink-400",
-    omz:        "text-indigo-400",
+    omz:          "text-indigo-400",
+    unclassified: "text-indigo-400",
   };
 
-  const habitat      = String(p.habitat_type ?? "omz");
+  const habitat      = String(p.habitat_type ?? "unclassified");
   const locality     = String(p.locality ?? "Unknown site");
   const speciesCount = Number(p.species_count ?? 0);
   const depthM       = p.depth_m != null ? `${Number(p.depth_m).toFixed(0)} m` : "—";

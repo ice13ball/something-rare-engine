@@ -155,7 +155,7 @@ async function prefetchDepth(lat: number, lon: number, apiBase: string): Promise
 
 function chessColor(habitat: string): [number, number, number, number] {
   // ColorBrewer Set2 — qualitative, no rank implied.
-  return withAlpha(CHESS_HABITAT[habitat] ?? CHESS_HABITAT.omz, 200);
+  return withAlpha(CHESS_HABITAT[habitat] ?? CHESS_HABITAT.unclassified, 200);
 }
 
 
@@ -2651,7 +2651,10 @@ export function Map3D() {
         const coords = f.geometry?.coordinates as [number, number] | undefined;
         return coords && turfDistance(coords, c, { units: "kilometers" }) <= 10;
       }).sort((a: any, b: any) => {
-        const weight: Record<string, number> = { whale_fall: 3, seep: 2, omz: 1 };
+        // ⛔ `unclassified` carries the SAME weight `omz` did. Renaming the value
+        // without adding the key would make the lookup undefined and change
+        // the ranking silently.
+        const weight: Record<string, number> = { whale_fall: 3, seep: 2, omz: 1, unclassified: 1 };
         return (weight[b.properties?.habitat_type] ?? 0) - (weight[a.properties?.habitat_type] ?? 0);
       });
       return { ...risk, chessSites };
@@ -3201,7 +3204,13 @@ export function Map3D() {
       }),
     }),
 
-    // GEBCO_2025 shaded-relief seafloor — rendered FIRST so every other layer
+    // ⛔ Do NOT hardcode a vintage in prose here. wms.gebco.net serves
+    // GEBCO_LATEST, so the grid changes under us: a comment predicting
+    // "GEBCO_2025 from June 2026" was wrong by the time it shipped —
+    // GEBCO published 2026 in April. The single source of truth is
+    // GEBCO_ATTRIBUTION in utils/gebcoTiles.ts, checked against
+    // GetCapabilities. Live check 2026-09-10: GEBCO_2026, and only that.
+    // Shaded-relief seafloor — rendered FIRST so every other layer
     // (vents, Argo floats, polygons, density grid) sits on top of it. Default
     // off; users toggle on for depth context. Tile pyramid up to z=8 (~150 m
     // pixel at equator) — enough detail without hammering GEBCO's free service.
@@ -3867,7 +3876,7 @@ export function Map3D() {
       getRadius: snappedZoom < 4 ? 30000 : snappedZoom < 6 ? 18000 : 10000,
       radiusMinPixels: snappedZoom < 4 ? 5 : 3,
       radiusMaxPixels: snappedZoom < 6 ? 14 : 18,
-      getFillColor: (f: any) => chessColor(f.properties?.habitat_type ?? "omz"),
+      getFillColor: (f: any) => chessColor(f.properties?.habitat_type ?? "unclassified"),
       pickable: true,
       autoHighlight: true,
       highlightColor: [255, 255, 255, 60],
@@ -4056,7 +4065,12 @@ export function Map3D() {
     // Tree cover loss (UMD/GFW) — raster tiles
     activeLayers.has("forest-loss") && new TileLayer({
       id: "forest-loss",
-      data: "https://tiles.globalforestwatch.org/umd_tree_cover_loss/v1.11/tcd_30/{z}/{x}/{y}.png",
+      // ⛔ Pin the version deliberately, and check it against GFW's own
+      // dataset API when touching this. v1.11 was served while v1.13 was
+      // current — two annual releases behind, so the most recent years of
+      // loss were simply absent. Measured 2026-09-10 on tile 5/16/14:
+      // v1.11 returned 775 bytes, v1.13 returned 1,608.
+      data: "https://tiles.globalforestwatch.org/umd_tree_cover_loss/v1.13/tcd_30/{z}/{x}/{y}.png",
       minZoom: 0,
       maxZoom: 12,
       tileSize: 256,

@@ -266,7 +266,8 @@ export const TAILINGS_UNCLASSIFIED: RGB = [148, 148, 148];
 export const CHESS_HABITAT: Record<string, RGB> = {
   "seep":       CB_SET2[0],  // teal
   "whale_fall": CB_SET2[3],  // pink
-  "omz":        CB_SET2[2],  // periwinkle
+  "omz":          CB_SET2[2],  // periwinkle — legacy value
+  "unclassified": CB_SET2[2],
 };
 
 /** Noise risk grid (MSFD D11). Diverging YlOrRd-style with neutral data-gap. */

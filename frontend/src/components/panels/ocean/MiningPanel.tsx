@@ -383,7 +383,8 @@ export function MiningPanel({ id }: { id: string }) {
             label={t("concession.riskContributionLabel")}
             value={`+${Math.min(
               chessSites.reduce((acc: number, s: any) => {
-                const w: Record<string, number> = { whale_fall: 0.15, seep: 0.10, omz: 0.05 };
+                // `unclassified` keeps the weight the fallback had — a rename must not reweight.
+                const w: Record<string, number> = { whale_fall: 0.15, seep: 0.10, omz: 0.05, unclassified: 0.05 };
                 return acc + (w[s.properties?.habitat_type] ?? 0.05);
               }, 0),
               0.30
@@ -399,7 +400,7 @@ export function MiningPanel({ id }: { id: string }) {
             <ul className="mt-1 space-y-1">
               {chessSites.map((s: any, i: number) => {
                 const props = s.properties ?? {};
-                const HABITAT: Record<string, string> = { seep: "Cold Seep", whale_fall: "Whale Fall", omz: "OMZ" };
+                const HABITAT: Record<string, string> = { seep: "Cold Seep", whale_fall: "Whale Fall", omz: "Unclassified", unclassified: "Unclassified" };
                 return (
                   <li key={i} className="text-[13px] text-white/80 flex justify-between">
                     <span>{props.locality ?? "Unknown site"}</span>

@@ -27,22 +27,41 @@ _COORD_OVERRIDES: dict[str, tuple[float, float]] = {
 }
 
 
-def classify_habitat(locality: str) -> str:
-    """Keyword-match locality string → habitat_type.
+#: What `classify_habitat` can return. ⛔ Read by the guard that checks every
+#: label, colour and weight map handles all of them.
+HABITAT_TYPES = ("whale_fall", "seep", "vent", "unclassified")
 
-    Priority: whale_fall > seep > vent > omz (fallback).
-    'vent' records are used only for hydrothermal_vents enrichment —
-    they never appear as standalone map dots.
+
+def classify_habitat(locality: str) -> str:
+    """Keyword-match the locality string → habitat_type.
+
+    ⛔ This is OUR derivation, not a ChEssBase or GBIF field. The source ships a
+    free-text locality; the three patterns above are ours, and so is anything
+    this returns.
+
+    Priority: whale_fall > seep > vent > unclassified.
+
+    ⛔ The fallback used to be "omz", which read as a positive finding — an
+    oxygen-minimum-zone community. It never was one: there is no OMZ pattern
+    here at all, so "omz" only ever meant "none of my three keywords matched".
+    Measured on production 2026-09-10: 3,605 of 3,715 records (97.0%) carried
+    it, and NONE of them had an empty locality — every one was the fallback.
+    Labelling 97% of a layer with a habitat we never detected is the same
+    defect as letting "missing" and "broken" share a code path, and the value
+    reached the API and Area Export, not just the panel.
+
+    'vent' records are used only for hydrothermal_vents enrichment — they never
+    appear as standalone map dots.
     """
     if not locality:
-        return "omz"
+        return "unclassified"
     if _WHALE_FALL.search(locality):
         return "whale_fall"
     if _SEEP.search(locality):
         return "seep"
     if _VENT.search(locality):
         return "vent"
-    return "omz"
+    return "unclassified"
 
 
 async def fetch_chess_occurrences() -> list[dict[str, Any]]:

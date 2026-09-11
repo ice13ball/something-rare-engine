@@ -514,8 +514,8 @@ export function ClaimReport() {
                     </thead>
                     <tbody>
                       {env.chess_sites.map((cs, i) => {
-                        const habitatLabel: Record<string, string> = { seep: "Cold Seep", whale_fall: "Whale Fall", omz: "OMZ / Other" };
-                        const habitatColor: Record<string, string> = { seep: "text-teal-400", whale_fall: "text-pink-400", omz: "text-indigo-400" };
+                        const habitatLabel: Record<string, string> = { seep: "Cold Seep", whale_fall: "Whale Fall", omz: "Unclassified", unclassified: "Unclassified" };
+                        const habitatColor: Record<string, string> = { seep: "text-teal-400", whale_fall: "text-pink-400", omz: "text-indigo-400", unclassified: "text-indigo-400" };
                         return (
                           <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                             <td className="py-1 px-2 text-white/80">{cs.locality}</td>

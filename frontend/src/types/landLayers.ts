@@ -43,7 +43,7 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
     color: "#f59e0b",
     fillRgba: [245, 158, 11, 150],
     lineRgba: [245, 158, 11, 255],
-    description: "Annual deforestation at 30m resolution (2001–2024) + weekly GLAD/RADD alerts — University of Maryland / WRI",
+    description: "Annual deforestation at 30m resolution, umd_tree_cover_loss v1.13 — University of Maryland / WRI",
     phase: 1,
   },
   // Phase 2 — Environmental Hazards & Industrial Risk
@@ -99,7 +99,7 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
     color: "#5e8ab4",
     fillRgba: [94, 138, 180, 200],
     lineRgba: [94, 138, 180, 255],
-    description: "41,145 river barriers + 35,295 reservoir polygons — Global Dam Watch",
+    description: "38,667 dam locations from GOODD (2019) — locations only, no attributes",
     phase: 3,
   },
   {
@@ -126,7 +126,7 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
     color: "#065f46",
     fillRgba: [6, 95, 70, 150],
     lineRgba: [6, 95, 70, 255],
-    description: "CO₂ emissions and removals per hectare at 30m (2001–2024) — WRI / Global Forest Watch",
+    description: "CO₂ emissions and removals per hectare at 30m (2001–2025) — WRI / Global Forest Watch",
     phase: 3,
   },
   {

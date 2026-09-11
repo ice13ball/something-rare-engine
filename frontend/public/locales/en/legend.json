@@ -44,10 +44,10 @@
       "label": "OBIS Species (Deep)",
       "source": "Ocean Biodiversity Information System (OBIS) (25 March 2025) OBIS Occurrence Data. Intergovernmental Oceanographic Commission of UNESCO. https://doi.org/10.25607/obis.occurrence.b89117cd. Loaded from the OBIS Open Data parquet archive on AWS (s3://obis-open-data/occurrence/, GeoParquet, ~50 GB, ~6,900 files). Conservation status from IUCN Red List via GBIF.",
       "updateFreq": "Full deep-sea snapshot ingested from OBIS Open Data; IUCN categories enriched via GBIF",
-      "description": "Every quality-controlled deep-sea species occurrence in the OBIS Open Data archive — no curated species shortlist, no taxonomic exclusions. At low zoom, dots represent grid cells summarizing hundreds or thousands of observations, colored by conservation threat level. At high zoom (8+), individual species points are shown. Dot color indicates IUCN Red List status: red = Critically Endangered or Endangered, orange = Vulnerable, green = not threatened.",
+      "description": "OBIS Open Data occurrences for the deep-sea species this layer tracks, at a depth floor of 50 m — corals excepted, and see the selection criteria below for exactly what that means. At low zoom, dots are grid cells summarising hundreds or thousands of observations, coloured by conservation threat level; at zoom 8 and above, individual species points appear. Dot colour is IUCN Red List status: red = Critically Endangered or Endangered, orange = Vulnerable, green = not threatened.",
       "reading": "Red dot = area with CR or EN species. Orange dot = Vulnerable species present. Green dot = no IUCN-threatened species. At high zoom, click a dot to see species name, IUCN status, taxonomy, and image. The 'RISK' badge on mining concessions triggers when threatened species overlap the claim area.",
       "colorStandard": "IUCN Red List palette — CR/EN crimson, VU amber, NT yellow, LC blue (iucnredlist.org).",
-      "selectionCriteria": "We include an occurrence if and only if all of: (1) depth ≥ 50 m — a floor that excludes intertidal/surface noise while keeping continental-shelf (50–500 m, offshore-claim relevant) and deep-sea records; curation to deep-sea-relevant taxa happens at the species-list level, not via the depth cut; (2) OBIS quality flags pass — `dropped` IS NOT TRUE and `absence` IS NOT TRUE, so withdrawn records and 'species was searched for and NOT found' rows are excluded; (3) georeferenced — `interpreted.decimalLatitude` and `interpreted.decimalLongitude` are present; (4) has a WoRMS-validated `interpreted.scientificName` and a stable OBIS `_id`. Everything else is in. We deliberately do NOT filter by taxon, dataset, country, or year — the previous curated-species REST sync silently dropped ~95% of OBIS and missed key shelf/abyssal taxa over offshore claims, so the new pipeline trades selectivity for completeness.",
+      "selectionCriteria": "We include an occurrence if and only if all of: (1) depth ≥ 50 m — a floor that excludes intertidal/surface noise while keeping continental-shelf (50–500 m, offshore-claim relevant) and deep-sea records; curation to deep-sea-relevant taxa happens at the species-list level, not via the depth cut; (2) OBIS quality flags pass — `dropped` IS NOT TRUE and `absence` IS NOT TRUE, so withdrawn records and 'species was searched for and NOT found' rows are excluded; (3) georeferenced — `interpreted.decimalLatitude` and `interpreted.decimalLongitude` are present; (4) has a WoRMS-validated `interpreted.scientificName` and a stable OBIS `_id`. Everything else is in. (5) the scientific name is one this layer already tracks — the sync filters the OBIS archive by `SELECT DISTINCT scientific_name FROM biodiversity_hotspots`, so it looks for the species it already holds. ⚠️ The consequence, in the ingest's own words: that list, being derived from this very table, can never learn a species the depth floor had already excluded. Corals are the deliberate exception — matched by taxonomic ORDER and FAMILY at any depth, precisely to break that closure for reef-building Scleractinia, which live almost entirely above 50 m. So this is not an unfiltered mirror of OBIS: it is OBIS as seen through a species list that grows only when something else adds to it.",
       "limitations": "Depth comes from `interpreted.minimumDepthInMeters` — records with no reported depth are excluded even if collected from deep water (a known gap for older expedition logs). Coordinate precision varies by dataset (some are degree-rounded ship tracks). IUCN status is only available for the small subset of species formally assessed by the Red List; most deep-sea taxa are Data Deficient or unassessed and render in the neutral palette."
     },
     "seamounts": {
@@ -240,40 +240,40 @@
     },
     "globalDams": {
       "label": "Global Dams",
-      "source": "Global Dam Watch (www.globaldamwatch.org) — GDW v1.1. Combines ICOLD World Register of Dams, GRanD, GOODD, and national inventories. CC BY 4.0.",
-      "updateFreq": "Static dataset (v1.1 snapshot); original sources updated at varying intervals",
-      "description": "41,145 river barriers worldwide including hydroelectric dams, irrigation dams, flood control structures, water supply reservoirs, and mine process water dams. Each record includes dam name, river, country, height (metres), purpose, year completed, reservoir storage volume, and dam type (concrete gravity, earth fill, arch, etc.). This layer reveals the water infrastructure context around mining operations — mines depend on water supply and their tailings can contaminate downstream reservoirs. Dam failures upstream of mines (or mine failures upstream of dams) create cascading disaster scenarios.",
-      "reading": "Indigo dot = dam. Click for dam name, river, country, height, purpose (hydroelectric/irrigation/flood/water supply/multi), year built, and reservoir volume in million m³. Enable Mining Footprints to find mines upstream of drinking water reservoirs — a contamination pathway. Enable Tailings Dams to see the full water-management picture at mine sites. Cross-reference with Surface Water to see reservoir extent.",
-      "limitations": "Dam coordinates are point locations (centroids), not precise dam crest footprints. Small farm ponds and run-of-river weirs below the height threshold are excluded. Dam age and structural condition are not included — a 100-year-old earth-fill dam may pose very different risk than a modern concrete structure. Reservoir volume may be outdated if sedimentation has reduced capacity."
+      "source": "GOODD — Global geOreferenced Database of Dams v2 (GOOD2_dams, 2019-08-16), Mulligan et al., globaldamwatch.org. ⚠️ Georeferencing only.",
+      "updateFreq": "Static — the loaded release is dated 2019-08-16 and has not been superseded here",
+      "description": "38,667 dam locations worldwide, mapped from satellite imagery. ⚠️ GOODD is a georeferencing dataset: it records WHERE a dam is and nothing else. It publishes no dam name, river, country, height, purpose, year of completion, reservoir volume or dam type — those fields are empty on this platform because the source does not carry them, not because a fetch failed. What the layer is for is spatial context: which mines sit upstream or downstream of a barrier, since mines depend on water supply and their tailings can contaminate reservoirs below.",
+      "reading": "Indigo dot = one dam location. Click for its GOODD identifier and coordinates. There is no name to click through to — if you need attributes, take the coordinates to Global Dam Watch's GDW release, which merges GOODD with ICOLD and GRanD and does carry them.",
+      "limitations": "Locations only, and they are point centroids rather than dam crest footprints. Derived from visual interpretation of satellite imagery, so small weirs and farm ponds are under-represented and a few points may not be dams at all. The release loaded here is from 2019; dams built or removed since are absent. No reservoir polygons are served on this platform."
     },
     "globalSurfaceWater": {
       "label": "Global Surface Water",
       "source": "JRC / European Commission — Global Surface Water Explorer (global-surface-water.appspot.com). Pekel et al. 2016, Nature. Produced from 4.7 million Landsat scenes (1984–2021) at 30m.",
       "updateFreq": "Static raster tiles (1984–2021 composite); dataset is updated by JRC every 1–2 years with new Landsat data",
-      "description": "Every surface water body on Earth tracked from 1984 to 2021 at 30m resolution — the longest continuous satellite record of global surface water. Shows occurrence frequency: how often each 30m pixel was covered by water over 37 years of observation. Derived from 4.7 million Landsat scenes. This layer reveals permanent rivers and lakes, seasonal wetlands, reservoirs that have expanded or shrunk, and new water bodies created by dam construction or mining. It is the definitive reference for understanding water availability and change near mining operations.",
+      "description": "Surface water mapped from 1984 to 2021 at 30 m resolution, from 4.7 million Landsat scenes — the longest continuous satellite record of global surface water. Shows occurrence frequency: how often each 30 m pixel was seen as water over those 37 years. It reveals permanent rivers and lakes, seasonal wetlands, reservoirs that expanded or shrank, and water bodies created by dam construction or mining. ⚠️ It is not a complete inventory of the world's water: at 30 m, streams and ponds below roughly 900 m² are invisible, and the limitations below say where else it thins out.",
       "reading": "Dark blue = permanent water (present >90% of the time). Lighter blue = seasonal or intermittent (present 10–90%). Raster overlay — no click details per pixel. Use alongside Mining Footprints to see whether mines have created artificial water bodies (pit lakes, tailings ponds) or destroyed natural ones. Compare with Dams to see actual reservoir extent vs. dam point locations.",
       "limitations": "30m resolution means small streams and ponds below ~900m² are invisible. Cloud-persistent regions (tropical rainforests) have lower observation counts and less reliable seasonal classification. The 2021 endpoint means very recent changes (new dams, droughts) may not yet be reflected. Ice and snow can be misclassified as water in polar and high-altitude regions."
     },
     "treeCoverLoss": {
       "label": "Tree Cover Loss",
-      "source": "University of Maryland / WRI (Hansen et al. 2013, updated annually)",
-      "updateFreq": "Pending — requires tile server setup",
-      "description": "Annual deforestation at 30m resolution (2001–2024). Detects complete canopy removal from any cause: logging, agriculture, fire, mining, or urbanisation. Data is available through Google Earth Engine and WRI but requires a tile server to display on this platform.",
-      "reading": "Layer available in menu but tiles not yet connected. When active, each pixel will show the year of tree cover loss, allowing temporal analysis of deforestation patterns near mining sites."
+      "source": "University of Maryland / WRI — umd_tree_cover_loss v1.13, tiles.globalforestwatch.org. Hansen et al. 2013.",
+      "updateFreq": "Annual, following UMD's own release cadence",
+      "description": "Annual deforestation at 30 m resolution. Detects complete canopy removal from any cause: logging, agriculture, fire, mining or urbanisation.",
+      "reading": "Each pixel carries the year its tree cover was lost, so deforestation near a mine can be read as a sequence rather than a single state."
     },
     "forestCarbonFlux": {
       "label": "Forest Carbon Flux",
-      "source": "WRI / Global Forest Watch — Harris et al. 2021",
-      "updateFreq": "Pending — requires tile server setup",
-      "description": "Net CO₂ emissions and removals per hectare at 30m resolution (2001–2024). Quantifies the carbon consequences of deforestation — how much CO₂ is released when a forest is cleared for mining, and how much is sequestered by regrowth on abandoned sites.",
-      "reading": "Layer available in menu but tiles not yet connected. When active, red pixels will show net emissions (deforestation), green pixels net sequestration (regrowth). Cross-reference with Mining Footprints to quantify the carbon cost of land clearing for extraction."
+      "source": "WRI / Global Forest Watch — gfw_forest_carbon_net_flux v20250430, tiles.globalforestwatch.org. Harris et al. 2021 and Gibbs et al. 2025.",
+      "updateFreq": "Annual, following Global Forest Watch's own release cadence",
+      "description": "Net CO₂ emissions and removals per hectare at 30 m resolution, 2001–2025. Quantifies the carbon consequences of deforestation — how much CO₂ is released when a forest is cleared for mining, and how much is taken back up by regrowth on abandoned sites.",
+      "reading": "Red pixels are net emissions (deforestation), green pixels net sequestration (regrowth). Cross-reference with Mining Footprints to weigh the carbon cost of land clearing for extraction."
     },
     "soilOrganicCarbon": {
       "label": "Soil Organic Carbon",
       "source": "ISRIC — SoilGrids, soc_0-5cm_mean. CC BY 4.0.",
-      "updateFreq": "Pending — requires tile server setup",
+      "updateFreq": "Static — served from ISRIC's SoilGrids WMS at maps.isric.org, refreshed when ISRIC issues a new release",
       "description": "Global soil organic carbon, top 0–5 cm at ~250 m resolution. Soil organic carbon is the largest terrestrial carbon pool. Mining operations strip topsoil and destroy this carbon store permanently. This layer, when active, will show how much soil carbon is at risk in mining areas.",
-      "reading": "Layer available in menu but tiles not yet connected. When active, darker = higher carbon density (tonnes C/ha). Cross-reference with Mining Footprints to estimate the soil carbon destroyed by surface mining operations."
+      "reading": "Darker means higher carbon density (tonnes C/ha). Cross-reference with Mining Footprints to see how much soil carbon sits inside an area already stripped."
     },
     "waterRisk": {
       "label": "Water Risk (Aqueduct)",
@@ -299,7 +299,7 @@
     },
     "bathymetry": {
       "label": "Seafloor Bathymetry",
-      "source": "GEBCO Compilation Group · GEBCO_2025 Grid via wms.gebco.net (public, CC0)",
+      "source": "GEBCO Compilation Group · GEBCO_2026 Grid via wms.gebco.net (public, CC0)",
       "updateFreq": "GEBCO releases a new grid annually in mid-year",
       "description": "Shaded-relief depth map of the entire ocean floor — 15 arc-second resolution global bathymetry from GEBCO (General Bathymetric Chart of the Oceans), the canonical IHO/IOC product. Free, no attribution gate beyond the chip in the panel. Provides physical context for every other sea layer: which Argo floats sit over abyssal plain vs. seamount, which ISA concessions overlap mid-ocean ridges, which vents cluster on plate boundaries.",
       "reading": "Lighter shading = shallower seafloor. Darker shading = deeper. Steep grey-to-light transitions trace seamounts, ridges, trenches and continental shelves. Layer is off by default — toggle on to add seafloor context to whatever else you're viewing.",
@@ -797,7 +797,7 @@
     "chess_intro": "Enable the Chemosynthetic Sites layer to see cold seeps, whale falls, and oxygen-minimum zone communities from the ChEssBase dataset (served via GBIF).",
     "chess_seep": "Cold Seep",
     "chess_whaleFall": "Whale Fall",
-    "chess_omz": "OMZ / Other",
+    "chess_omz": "Unclassified",
     "chess_filter": "Filter by habitat type (seep / whale fall / OMZ) or by phylum (Annelida, Mollusca, etc.) using the + button in the layers menu.",
     "chess_vents": "Hydrothermal vents with nearby ChEssBase records show a species count badge in their popup. Click Generate Vent Report for a full species table and nearby claim analysis.",
     "argoTitle": "Argo Alarm Filters",
@@ -959,7 +959,7 @@
     "fresh_offshore_namibia": "Landfolio ArcGIS — portals.landfolio.com/namibia (Namibia seabed mining via MME)",
     "fresh_offshore_cookislands": "Landfolio ArcGIS — sbma.landfolio.com, Mining_Tenements/MapServer (Cook Islands seabed mining via SBMA)",
     "fresh_tectonic": "static Peter Bird (2003) model; imported once, no live sync",
-    "fresh_pendingTiles": "tile server setup pending; data not yet displayed",
+    "fresh_pendingTiles": "Three raster layers drawn straight from their publishers' tile servers, not from our database: Tree Cover Loss and Forest Carbon from Global Forest Watch, Soil Organic Carbon from ISRIC SoilGrids. There is no sync timestamp for them because nothing is cached on our side — you are seeing whatever the publisher serves at the moment you look. Each follows its publisher's own release cadence, annual for the two Global Forest Watch layers.",
     "fresh_mining": "synced when ISA publishes updates (approx. quarterly)",
     "fresh_relinquished": "synced quarterly from ISA DeepData alongside mining contracts; reflects expired or returned blocks",
     "fresh_reserved": "static ISA designation; re-synced quarterly alongside mining contracts",
@@ -1033,7 +1033,7 @@
     "noiseRisk_title": "Noise Risk Grid",
     "noiseRisk": "Impulsive noise (Pulse Block Days) from ICES Registry at gis.ices.dk — search \"CEMP PulseBlockDays\". Continuous SPL from EMODnet Physics at emodnet-physics.eu. Cetacean sightings from OBIS-SEAMAP at seamap.env.duke.edu. Risk index formula: (pbd_norm or spl_norm) × cetacean_norm × IUCN species weight, capped at 1.0 (MSFD Descriptor 11 methodology). A modeled index, not a measurement.",
     "chess_title": "Chemosynthetic Sites",
-    "chess": "Source: gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756. Each record includes locality name, depth, and institution. Habitat classification (seep/whale fall/OMZ) is derived from locality keyword matching — not authoritative taxonomy.",
+    "chess": "Source: gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756. Each record carries a locality name, depth and institution from ChEssBase via GBIF. ⚠️ `habitat_type` is NOT one of their fields — it is our own classification, matched by keyword against the free-text locality: whale-fall, seep and vent patterns only. Anything none of the three matches is labelled Unclassified, which on 2026-09-10 was 3,605 of 3,715 records. There is no oxygen-minimum-zone pattern at all, so this layer cannot identify an OMZ community; it can only say which of three habitat words appeared in a place name.",
     "worms_title": "WoRMS taxonomy",
     "worms": "Copy the AphiaID from any verified species panel and look it up at marinespecies.org to confirm the accepted name and classification.",
     "landTitle": "Land layer sources",
@@ -1058,7 +1058,7 @@
     "treeCoverLoss_title": "Tree Cover Loss",
     "treeCoverLoss": "Global Forest Watch at globalforestwatch.org/map. Hansen/UMD/Google/USGS/NASA annual tree cover loss product (30 m, 2000–present). Verify annual loss figures or download the underlying rasters at earthenginepartners.appspot.com/science-2013-global-forest. CC BY 4.0.",
     "forestCarbon_title": "Forest Carbon Flux",
-    "forestCarbon": "Global Forest Watch Climate at globalforestwatch.org/topics/climate. Harris et al. (2021) \"Global maps of twenty-first century forest carbon fluxes.\" Nature Climate Change 11, 234–240. Gross emissions and removals at 30 m (2001–2024). DOI: 10.1038/s41558-020-00976-6. CC BY 4.0.",
+    "forestCarbon": "Global Forest Watch Climate at globalforestwatch.org/topics/climate. Harris et al. (2021) “Global maps of twenty-first century forest carbon fluxes.” Nature Climate Change 11, 234–240, DOI: 10.1038/s41558-020-00976-6, revised by Gibbs et al. (2025). Net emissions and removals at 30 m, 2001–2025, dataset gfw_forest_carbon_net_flux v20250430. CC BY 4.0.",
     "soilCarbon_title": "Soil Organic Carbon",
     "soilCarbon": "ISRIC — SoilGrids at soilgrids.org. Global soil organic carbon content, top 0–5 cm (soc_0-5cm_mean), ~250 m resolution, produced by ISRIC — World Soil Information using machine learning on global soil profile and environmental covariate data. Download and methodology at soilgrids.org. CC BY 4.0.",
     "limitationsTitle": "Limitations to be aware of",

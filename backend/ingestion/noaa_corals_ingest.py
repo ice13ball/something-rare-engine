@@ -27,7 +27,7 @@ surface NOAA separately for credit/transparency, not unique coverage.
 Documented in the legend's `limitations` block (same pattern as MBARI).
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
 import httpx
@@ -178,15 +178,34 @@ def _safe_float(v: Any) -> float | None:
 
 
 def _parse_obs_date(v: Any) -> datetime | None:
-    """DSCRTP returns ObservationDate two ways depending on response format:
-    `f=json` gives epoch milliseconds (int), while a stringified ISO form
-    is also possible. Handle both — TIMESTAMPTZ wants a datetime instance.
+    """DSCRTP's ObservationDate → an AWARE UTC datetime.
+
+    `f=json` gives epoch milliseconds (int); a stringified ISO form is also
+    possible. Both are UTC.
+
+    ⛔ EVERY return here must carry tzinfo. `datetime.utcfromtimestamp()`
+    returns a NAIVE datetime, and asyncpg hands a naive value to a TIMESTAMPTZ
+    column unchanged — PostgreSQL then reads it in the SESSION's TimeZone,
+    which on this VPS is Europe/Warsaw. So a date DSCRTP published as
+    2015-06-15 was stored as 2015-06-14T22:00:00Z and reads back a day early
+    for anyone in UTC.
+
+    Measured on production 2026-09-10, over 1,504,031 dated rows, in UTC:
+
+        22:00:00  1,204,413   midnight at UTC+2  (Warsaw summer)
+        23:00:00    292,569   midnight at UTC+1  (Warsaw winter)
+        23:50:39      6,665   midnight at Warsaw's pre-1880 LMT
+        00:00:00        384   genuinely midnight UTC
+
+    Four distinct times across a million and a half records, three of them the
+    server's own midnight. 99.6% of the layer was off by a day.
     """
     if v is None or v == "":
         return None
     if isinstance(v, (int, float)):
         try:
-            return datetime.utcfromtimestamp(float(v) / 1000.0)
+            # ⛔ NOT utcfromtimestamp: that returns naive, and is deprecated.
+            return datetime.fromtimestamp(float(v) / 1000.0, tz=timezone.utc)
         except (OverflowError, OSError, ValueError):
             return None
     if isinstance(v, str):
@@ -194,11 +213,15 @@ def _parse_obs_date(v: Any) -> datetime | None:
         for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S",
                     "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
             try:
-                return datetime.strptime(s, fmt)
+                parsed = datetime.strptime(s, fmt)
             except ValueError:
                 continue
+            # A format without %z parses naive. DSCRTP publishes UTC; say so
+            # explicitly rather than letting the database guess a zone.
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
         try:
-            return datetime.fromisoformat(s)
+            parsed = datetime.fromisoformat(s)
         except ValueError:
             return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
     return None

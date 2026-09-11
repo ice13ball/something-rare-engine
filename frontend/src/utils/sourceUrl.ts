@@ -299,7 +299,7 @@ const LAYER_SOURCES: Record<string, SourceEntry> = {
     homepage: "https://gpm.nasa.gov/landslides/",
   },
   "global-dam-watch": {
-    org: "Global Dam Watch",
+    org: "Global Dam Watch — GOODD v2 (dam locations only)",
     homepage: "https://www.globaldamwatch.org/",
   },
   "jrc-surface-water": {

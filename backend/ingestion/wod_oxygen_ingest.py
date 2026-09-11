@@ -240,7 +240,8 @@ async def sync_wod_oxygen(pool, *, min_lat: float = 50.0, year_start: int = YEAR
     Returns (casts_parsed, rows_upserted)."""
     import datetime, asyncio
     if year_end is None:
-        year_end = datetime.datetime.utcnow().year
+        # utcnow() is naive and deprecated in 3.12; only the year is wanted.
+        year_end = datetime.datetime.now(datetime.timezone.utc).year
     total_parsed = total_ins = 0
     for year in range(year_start, year_end + 1):
         if not force and await _year_present(pool, year):

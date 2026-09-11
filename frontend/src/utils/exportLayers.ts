@@ -394,7 +394,7 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     kind: "vector",
     geomKind: "point",
     family: "Land",
-    source: "Global Dam Watch",
+    source: "Global Dam Watch — GOODD v2 (dam locations only)",
     sourceUrl: "https://www.globaldamwatch.org/",
   },
   {

@@ -251,7 +251,7 @@ export const ABOUT: LegalDoc = {
           list: [
             "Global Mining Footprints — 74,500+ mine polygons (pits, tailings, waste dumps, processing sites) mapped from Sentinel-2 at 10 m resolution (Maus et al. 2022/2023).",
             "Tailings Dams — 1,800+ mine waste storage facilities with risk classification (WAPHA, Hudson-Edwards et al. 2023, plus Global Tailings Portal disclosures).",
-            "Tree Cover Loss — annual deforestation at 30 m resolution (2001–2024) plus weekly GLAD/RADD alerts (University of Maryland / WRI).",
+            "Tree Cover Loss — annual deforestation at 30 m resolution, umd_tree_cover_loss v1.13 (University of Maryland / WRI).",
             "Active Fires — near-real-time fire detection from VIIRS aboard Suomi-NPP, NOAA-20 and NOAA-21 (NASA LANCE, updated within 3 hours).",
             "Air Quality Stations — real-time PM2.5, SO₂, NO₂, O₃, and CO from government stations worldwide (OpenAQ).",
             "Water Risk — global water stress, depletion, drought, and flood risk at sub-basin level with mining-specific weighting (WRI Aqueduct 4.0).",

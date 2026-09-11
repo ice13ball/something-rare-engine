@@ -106,7 +106,7 @@ const SEARCH_CONFIGS: SearchConfig[] = [
     fields: ["locality", "habitat_type"],
     display: p => ({
       primary: String(p.locality ?? ""),
-      secondary: String(p.habitat_type === "seep" ? "Cold Seep" : p.habitat_type === "whale_fall" ? "Whale Fall" : p.habitat_type === "omz" ? "OMZ / Other" : ""),
+      secondary: String(p.habitat_type === "seep" ? "Cold Seep" : p.habitat_type === "whale_fall" ? "Whale Fall" : p.habitat_type === "omz" || p.habitat_type === "unclassified" ? "Unclassified" : ""),
     }),
     color: "#00c896",
   },

@@ -888,7 +888,7 @@ _VECTORS: dict[str, VectorExport] = {
         fields=("id", "dam_name", "river", "country", "height_m", "purpose",
                 "year_built", "volume_mcm", "created_at"),
         prov=Provenance(
-            source="Global Dam Watch",
+            source="Global Dam Watch — GOODD v2 (dam locations only)",
             source_url="https://www.globaldamwatch.org/",
             note="Major dam infrastructure. volume_mcm = storage capacity in million cubic metres.",
         ),
