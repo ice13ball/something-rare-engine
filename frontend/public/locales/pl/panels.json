@@ -408,6 +408,16 @@
     "deepdataStations": {
       "contractorHeading": "Wykonawca (pokazuj tylko wybrane)",
       "clearLabel": "Pokaż wszystkich wykonawców"
+    },
+    "oceansites": {
+      "statusHeader": "Pokaż tylko stacje o statusie",
+      "networkHeader": "Sieć",
+      "status": {
+        "operational": "OPERATIONAL — nadal raportuje",
+        "inactive": "INACTIVE — wyjęta z wody, może wrócić",
+        "closed": "CLOSED — wycofana na stałe",
+        "registered": "REGISTERED — zgłoszona, nigdy nie postawiona"
+      }
     }
   },
   "tooltip": {

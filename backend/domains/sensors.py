@@ -116,6 +116,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import logging
 import os
 import time
@@ -1935,8 +1936,9 @@ async def sync_oceansites_obs() -> int:
          missed and a handful of regional moorings (Stratus, etc.)
 
     Stations with no source data have latest_obs set back to NULL. ⛔ They are
-    NOT hidden from the map endpoint — /v1/map/oceansites has no WHERE clause
-    and returns the whole OceanOPS register. That was true before the
+    NOT hidden from the map endpoint — /v1/map/oceansites filters nothing but
+    rows whose coordinates are NaN (an invariant violation, not a station; see
+    the WHERE comment there) and returns the whole positioned OceanOPS register. That was true before the
     2026-09-08 widening too, but with 65 rows it did not show; with ~1,070 it
     does, and the legend spent two days telling readers only ~20 NDBC-fed
     stations were on the map. Measured 2026-09-10: 1,072 rows rendered, 50
@@ -2173,6 +2175,13 @@ async def get_argo_trails():
     )
 
 
+def _finite_or_none(v):
+    """float8 NaN/Infinity → None, everything else unchanged."""
+    if isinstance(v, float) and not math.isfinite(v):
+        return None
+    return v
+
+
 @router.get("/v1/map/oceansites", dependencies=[Depends(get_api_key)])
 async def get_oceansites():
     """Return OceanSITES mooring station locations as GeoJSON FeatureCollection."""
@@ -2186,6 +2195,16 @@ async def get_oceansites():
                    age_days, model, latest_obs, obs_source, obs_fetched_at,
                    wigos_id, country, sensor_models, deploy_ship, deployment_count
             FROM oceansites_stations
+            -- ⛔ This table's own contract is "one row per base ref, POSITIONED"
+            -- (see fetch_oceansites_stations). lat/lon are NOT NULL, so the only
+            -- way "no position" ever reached it was as a float NaN — 36 rows on
+            -- 2026-09-11, written by float("NaN") from OceanOPS's string. A NaN
+            -- row cannot be a point and cannot be JSON; it is an invariant
+            -- violation, not a source record (the deployments table keeps every
+            -- record, with position_flag). PostgreSQL treats NaN = NaN as TRUE,
+            -- so the IEEE `x <> x` trick does not work here; compare to the
+            -- literal instead.
+            WHERE lat <> 'NaN'::float8 AND lon <> 'NaN'::float8
             ORDER BY ref
         """)
 
@@ -2206,7 +2225,9 @@ async def get_oceansites():
                 # column was still TEXT — the 500 only appears after a restart
                 # clears the cache, which is exactly when nobody is looking.
                 "deploy_date":    r["deploy_date"].isoformat() if r["deploy_date"] else None,
-                "age_days":       r["age_days"],
+                # A float8 column can hold NaN and json.dumps will happily write
+                # it as a bare token no browser accepts. None is the honest value.
+                "age_days":       _finite_or_none(r["age_days"]),
                 "model":          r["model"],
                 "lat":            r["lat"],
                 "lon":            r["lon"],
@@ -2227,7 +2248,10 @@ async def get_oceansites():
         }
         for r in rows
     ]
-    result = json.dumps({"type": "FeatureCollection", "features": features})
+    # ⛔ allow_nan=False: a NaN anywhere in this payload must RAISE, not ship.
+    # A 200 carrying invalid JSON is the worst outcome — every monitor sees a
+    # healthy endpoint and every client fails. A 500 is at least visible.
+    result = json.dumps({"type": "FeatureCollection", "features": features}, allow_nan=False)
     _oceansites_cache = result
     return Response(content=result, media_type="application/json")
 

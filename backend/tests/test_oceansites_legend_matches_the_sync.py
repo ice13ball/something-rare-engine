@@ -95,19 +95,45 @@ def test_no_locale_claims_the_map_is_restricted_to_stations_that_have_a_feed():
             offenders[loc.name] = hits
     assert not offenders, (
         "the OceanSITES legend promises a filtered map, but "
-        "/v1/map/oceansites has no WHERE clause and returned 1,072 of 1,072 "
-        f"rows on 2026-09-10. Offending locales: {offenders}"
+        "/v1/map/oceansites filters nothing but rows with NaN coordinates (which "
+        "cannot be points) and returned 1,072 of 1,072 rows on 2026-09-10. "
+        f"Offending locales: {offenders}"
     )
 
 
-def test_the_map_endpoint_still_has_no_filter_so_the_wording_above_stays_wrong():
-    # If someone ever DOES filter the endpoint, this reddens — and the test
-    # above must then be relaxed rather than silently left guarding nothing.
+def test_the_map_endpoint_filters_nothing_but_unpositioned_rows():
+    """The legend above may not promise a map restricted to stations that have
+    a FEED. This binds the other side: the endpoint may not quietly grow such a
+    filter. The only WHERE it is allowed is the positional invariant.
+
+    ⛔ History. This test used to assert "no WHERE at all", and on 2026-09-11
+    it went red exactly as its comment promised, when a WHERE arrived that
+    excludes rows with NaN coordinates: OceanOPS spells "unknown position" as
+    the string "NaN", float() turned 36 of them into real NaN in a NOT NULL
+    column, and /v1/map/oceansites shipped a bare NaN that no browser parses.
+    Those rows cannot be points and cannot be JSON — excluding them is not
+    hiding a station from the reader, it is the table's own contract
+    ("one row per base ref, positioned"). The deployments table keeps every
+    record with position_flag. A filter on observations or status would still
+    be the defect this guard exists for, and still reddens here.
+    """
     src = SENSORS.read_text(encoding="utf-8")
     start = src.index('@router.get("/v1/map/oceansites"')
     body  = src[start:src.index("_oceansites_cache = result", start)]
-    query = body[body.index("FROM oceansites_stations"):]
-    assert "WHERE" not in query.upper().split("ORDER BY")[0], (
-        "/v1/map/oceansites now filters its rows. Re-measure what the map "
-        "actually shows and update the legend wording and the guard above."
-    )
+    query = body[body.index("FROM oceansites_stations"):].split("ORDER BY")[0]
+    # SQL comments explain the filter; they are not the filter.
+    query = "\n".join(ln for ln in query.splitlines() if not ln.strip().startswith("--"))
+    where = query.upper().split("WHERE", 1)[1] if "WHERE" in query.upper() else ""
+
+    for col in ("LATEST_OBS", "OBS_SOURCE", "OBS_FETCHED_AT", "STATUS", "NETWORK", "AGE_DAYS", "DEPLOY_DATE"):
+        assert col not in where, (
+            f"/v1/map/oceansites now filters on {col}. That restricts the map to a "
+            "subset the legend does not describe — re-measure and fix the wording first."
+        )
+    if where:
+        # Whatever is there must be about position only.
+        stripped = re.sub(r"'NAN'::FLOAT8|LAT|LON|<>|AND|\s|\(|\)", "", where)
+        assert stripped == "", (
+            f"unexpected WHERE on /v1/map/oceansites: {where.strip()!r} — only the "
+            "NaN-coordinate exclusion is allowed here"
+        )

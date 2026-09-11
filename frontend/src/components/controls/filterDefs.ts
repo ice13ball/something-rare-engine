@@ -64,6 +64,24 @@ export const CHESS_PHYLUM_DEFS = [
   { key: "Porifera",      label: "Porifera",      color: "#00c896" },
 ] as const;
 
+// OceanOPS's OWN platform status vocabulary — these four strings come from the
+// source and are never rewritten (`status.name` in the OceanOPS platform record).
+// ⛔ Do not collapse them into "active"/"inactive": CLOSED and INACTIVE are
+// different statements about a mooring, and REGISTERED means "announced, never
+// deployed". The gloss beside each is ours and is translated; the KEY is theirs.
+//
+// Measured on production 2026-09-11, 1,037 positioned stations:
+//   OPERATIONAL   64   (49 of them carrying a live observation)
+//   INACTIVE     288   (1)
+//   CLOSED       679   (0)
+//   REGISTERED     6   (0)
+export const OCEANSITES_STATUS_DEFS = [
+  { key: "OPERATIONAL", labelKey: "filters.oceansites.status.operational", color: "#00e5a0" },
+  { key: "INACTIVE",    labelKey: "filters.oceansites.status.inactive",    color: "#ffc857" },
+  { key: "CLOSED",      labelKey: "filters.oceansites.status.closed",      color: "#8c94a6" },
+  { key: "REGISTERED",  labelKey: "filters.oceansites.status.registered",  color: "#6fa8ff" },
+] as const;
+
 export const OCEANSITES_NETWORK_DEFS = [
   { key: "OceanSITES/PIRATA",     label: "PIRATA (Atlantic)",       color: "#00cfff" },
   { key: "OceanSITES/RAMA",       label: "RAMA (Indian Ocean)",     color: "#00cfff" },

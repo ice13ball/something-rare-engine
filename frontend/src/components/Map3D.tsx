@@ -33,6 +33,7 @@ import { LAYER_CONFIGS } from "../types/layers";
 import type { LayerId } from "../types/layers";
 import { LayerUnavailableNotice } from "./LayerUnavailableNotice";
 import { fetchWithProgress } from "../utils/fetchWithProgress";
+import { oceansitesPasses as oceansitesPassesRule } from "../utils/oceansitesFilter";
 import { matchesAisFilters, classifyShipType, colorForShipClass } from "../utils/aisFilters";
 import { colorForContractor } from "../utils/contractorColors";
 import {
@@ -250,6 +251,7 @@ export function Map3D() {
 
   const { search: locationSearch } = useLocation();
   const oceansitesNetworkFilters = useMapStore(s => s.oceansitesNetworkFilters);
+  const oceansitesStatusFilters  = useMapStore(s => s.oceansitesStatusFilters);
   const cableSourceFilters = useMapStore(s => s.cableSourceFilters);
   const arcticRiverSourceFilters = useMapStore(s => s.arcticRiverSourceFilters);
   const chessHabitatFilters = useMapStore(s => s.chessHabitatFilters);
@@ -1545,13 +1547,21 @@ export function Map3D() {
     );
   }, [noiseRiskData, noiseRiskFilters]);
 
+  // ⛔ ONE predicate, used by BOTH the rendered layer and flyConfigs below.
+  // When those two drifted apart on this very layer, flyToLayer cycled through
+  // features the map was not drawing and zoomed to an empty patch of ocean.
+  // Writing the rule twice is how that happened; this is why it is a variable.
+  const oceansitesPasses = useCallback(
+    (f: any) => oceansitesPassesRule(f?.properties, oceansitesNetworkFilters, oceansitesStatusFilters),
+    [oceansitesNetworkFilters, oceansitesStatusFilters],
+  );
+
   const filteredOceansitesFeatures = useMemo(() => {
     if (!oceansitesData) return [];
-    if (oceansitesNetworkFilters.size === 0) return oceansitesData.features;
-    return oceansitesData.features.filter((f: any) =>
-      oceansitesNetworkFilters.has(f.properties?.network)
-    );
-  }, [oceansitesData, oceansitesNetworkFilters]);
+    if (oceansitesNetworkFilters.size === 0 && oceansitesStatusFilters.size === 0)
+      return oceansitesData.features;
+    return oceansitesData.features.filter(oceansitesPasses);
+  }, [oceansitesData, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses]);
 
   const filteredChessFeatures = useMemo(() => {
     if (!chessData) return [];
@@ -2059,7 +2069,10 @@ export function Map3D() {
     // raw (invisible) features and zooms to blank ocean.
     "oceansites": {
       deckLayerId: "oceansites",
-      filter: makeSetFilter(oceansitesNetworkFilters, "network"),
+      // Not makeSetFilter(...) any more: with two filter Sets a single-key
+      // helper can only mirror one of them, and the half it drops is the half
+      // flyToLayer lands in.
+      filter: oceansitesPasses,
     },
     "chess": {
       deckLayerId: "chess",
@@ -2225,7 +2238,7 @@ export function Map3D() {
         return cascadeDecadeFilters.has(String(d));
       },
     },
-  }), [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, datasetStats, chessHabitatFilters, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
+  }), [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses, datasetStats, chessHabitatFilters, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
 
   // ── Fly-to-layer callback ────────────────────────────────────────────────
   const flyToLayer = useCallback((id: LayerId) => {

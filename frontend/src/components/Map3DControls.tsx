@@ -66,6 +66,7 @@ export function Map3DControls({
     iucnFilters,
     noiseRiskFilters,
     oceansitesNetworkFilters,
+    oceansitesStatusFilters,
     arcticRiverSourceFilters,
     offshoreActivityFilters,
     offshoreActivityCountryFilters,
@@ -167,6 +168,7 @@ export function Map3DControls({
       iucnFilters: new Set(iucnFilters),
       noiseRiskFilters: new Set(noiseRiskFilters),
       oceansitesNetworkFilters: new Set(oceansitesNetworkFilters),
+      oceansitesStatusFilters: new Set(oceansitesStatusFilters),
       chessHabitatFilters: new Set(chessHabitatFilters),
       chessPhylumFilters: new Set(chessPhylumFilters),
       fireConfidenceFilters: new Set(fireConfidenceFilters),
@@ -182,7 +184,7 @@ export function Map3DControls({
     resetAllFilters();
     clearTimeout(undoTimerRef.current);
     undoTimerRef.current = setTimeout(() => setUndoSnapshot(null), 6000);
-  }, [claimRiskFilters, ventStatusFilters, argoAlarmFilters, hiddenContractors, iucnFilters, noiseRiskFilters, oceansitesNetworkFilters, chessHabitatFilters, chessPhylumFilters, fireConfidenceFilters, oncEovFilters, firesNearMiningOnly, tailingsRiskFilters, tailingsStatusFilters, aisShipTypeFilters, aisFlagFilters, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, resetAllFilters]);
+  }, [claimRiskFilters, ventStatusFilters, argoAlarmFilters, hiddenContractors, iucnFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, chessHabitatFilters, chessPhylumFilters, fireConfidenceFilters, oncEovFilters, firesNearMiningOnly, tailingsRiskFilters, tailingsStatusFilters, aisShipTypeFilters, aisFlagFilters, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, resetAllFilters]);
 
   const handleUndo = useCallback(() => {
     if (!undoSnapshot) return;
@@ -199,6 +201,7 @@ export function Map3DControls({
     iucnFilters.size > 0 ||
     noiseRiskFilters.size > 0 ||
     oceansitesNetworkFilters.size > 0 ||
+    oceansitesStatusFilters.size > 0 ||
     chessHabitatFilters.size > 0 ||
     chessPhylumFilters.size > 0 ||
     fireConfidenceFilters.size > 0 ||

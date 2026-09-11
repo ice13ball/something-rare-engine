@@ -165,6 +165,110 @@ async def test_null_island_is_recorded_as_unknown_not_as_a_position(pool, monkey
     assert row["model"] == "MOORING", "the rest of the record was thrown away with the position"
 
 
+# OceanOPS spells "unknown position" as the STRING "NaN" — same convention as
+# `age`, which the ingest already guarded. 37 of 5,795 deployments carried it on
+# 2026-09-11. float("NaN") is not None and is not 0, so it passed the old guard,
+# landed in a NOT NULL float8 column as a real NaN, and /v1/map/oceansites then
+# shipped a bare NaN token that no browser parses. The whole layer failed.
+_NAN_SAMPLE = [
+    # a base ref whose ONLY deployment has no position → not a map point at all
+    {"ref": "TMP7341404", "id": 90, "name": "BATS-1", "status": {"name": "INACTIVE"},
+     "model": {"name": "MOORING"}, "age": "NaN",
+     "deployment": {"latitude": "NaN", "longitude": "NaN", "date": "2015-06-01T00:00:00",
+                    "ship": {"name": "RV DELTA"}},
+     "identifiers": {"wigos_id": "0-22000-0-TMP7341404"},
+     "program": {"country": {"name": "Bermuda"}},
+     "sensor_lists": {"models": "SEABIRD_SBE37"}},
+    # the 2300002 shape: an older deployment WITH a position, a newer one WITHOUT.
+    # Today's sync picked the newer one and overwrote the real coordinates with NaN.
+    {"ref": "2300002",     "id": 91, "name": "2300002", "status": {"name": "CLOSED"},
+     "model": {"name": "MOORING"}, "age": 3000,
+     "deployment": {"latitude": 12.5, "longitude": -38.0, "date": "2001-03-01T00:00:00",
+                    "ship": {"name": "RV EPSILON"}},
+     "identifiers": {"wigos_id": "0-22000-0-2300002"},
+     "program": {"country": {"name": "Brazil"}},
+     "sensor_lists": {"models": None}},
+    {"ref": "2300002_001", "id": 92, "name": "2300002", "status": {"name": "CLOSED"},
+     "model": {"name": "MOORING"}, "age": "NaN",
+     "deployment": {"latitude": "NaN", "longitude": "NaN", "date": "2004-03-01T00:00:00",
+                    "ship": {"name": None}},
+     "identifiers": {"wigos_id": "0-22000-1-2300002"},
+     "program": {"country": {"name": "Brazil"}},
+     "sensor_lists": {"models": None}},
+]
+
+
+@pytest.mark.asyncio
+async def test_a_nan_string_position_is_recorded_as_missing_not_stored(pool, monkeypatch):
+    """⛔ OceanOPS's "NaN" is a spelling of "unknown", not a coordinate."""
+    await _run_sync(monkeypatch, _NAN_SAMPLE)
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT lat, lon, geom, position_flag, model, deploy_date "
+            "FROM oceansites_deployments WHERE ref = 'TMP7341404'")
+        station = await conn.fetchrow(
+            "SELECT lat, lon FROM oceansites_stations WHERE ref = 'TMP7341404'")
+    assert row is not None, "the position-less platform was dropped entirely"
+    assert row["lat"] is None and row["lon"] is None, (
+        f"a NaN was stored as a coordinate: lat={row['lat']!r}")
+    assert row["geom"] is None, "a geometry was built from NaN"
+    assert row["position_flag"] == "missing", (
+        "the reason the position is missing was not recorded")
+    assert row["model"] == "MOORING" and row["deploy_date"] is not None, (
+        "the rest of the record was thrown away with the position")
+    assert station is None, (
+        "a platform with no position anywhere became a map point")
+
+
+@pytest.mark.asyncio
+async def test_a_newer_deployment_without_a_position_does_not_erase_the_older_one(pool, monkeypatch):
+    """The 2300002 case: the station keeps the deployment that HAS a position."""
+    await _run_sync(monkeypatch, _NAN_SAMPLE)
+    async with pool.acquire() as conn:
+        station = await conn.fetchrow(
+            "SELECT lat, lon, ST_X(geom) AS gx FROM oceansites_stations WHERE ref = '2300002'")
+    assert station is not None, "the station vanished because its newest deployment had no position"
+    assert station["lat"] == 12.5 and station["lon"] == -38.0, (
+        f"the real position was overwritten: {dict(station)}")
+    assert station["gx"] == -38.0, "geom does not match the stored position"
+
+
+@pytest.mark.asyncio
+async def test_map_endpoint_never_emits_a_bare_nan(pool):
+    """Production 2026-09-11: 36 station rows held float8 NaN, the endpoint
+    answered 200, and the body failed JSON.parse in every browser. This test
+    plants the exact production state directly (bypassing the ingest, as the
+    rows did) and parses the body with a STRICT parser."""
+    import json
+    from domains import sensors
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO oceansites_stations (ref, name, lat, lon, status, network, age_days, geom)
+            VALUES
+              ('NANPOS', 'no position', 'NaN'::float8, 'NaN'::float8, 'INACTIVE', 'OceanSITES',
+               10, ST_SetSRID(ST_MakePoint('NaN'::float8, 'NaN'::float8), 4326)),
+              ('NANAGE', 'nan age',     51.0,          -30.0,          'OPERATIONAL', 'OceanSITES',
+               'NaN'::float8, ST_SetSRID(ST_MakePoint(-30.0, 51.0), 4326))
+        """)
+    sensors._oceansites_cache = None
+    try:
+        resp = await sensors.get_oceansites()
+    finally:
+        sensors._oceansites_cache = None
+
+    body = resp.body.decode() if isinstance(resp.body, (bytes, bytearray)) else resp.body
+
+    def _reject(token):
+        raise ValueError(f"bare {token} reached the wire")
+    payload = json.loads(body, parse_constant=_reject)   # strict: NaN/Infinity raise
+
+    refs = {f["properties"]["ref"]: f for f in payload["features"]}
+    assert "NANPOS" not in refs, "a station with NaN coordinates was served as a point"
+    assert "NANAGE" in refs, "a positioned station was dropped"
+    assert refs["NANAGE"]["properties"]["age_days"] is None, (
+        "NaN age_days must become null, not a bare token")
+
+
 @pytest.mark.asyncio
 async def test_station_row_carries_the_new_fields_and_a_deployment_count(pool, monkeypatch):
     await _run_sync(monkeypatch, _SAMPLE)

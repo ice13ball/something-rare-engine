@@ -7,7 +7,7 @@ import type { LayerId } from "../../../types/layers";
 import { ALARM_DEFS } from "../../../utils/argoAlarms";
 import { analytics } from "../../../utils/analytics";
 import { ONC_EOV_ORDER, ONC_EOV_LABELS } from "../../../types/onc";
-import { OCEANSITES_NETWORK_DEFS } from "../filterDefs";
+import { OCEANSITES_NETWORK_DEFS, OCEANSITES_STATUS_DEFS } from "../filterDefs";
 import {
   LayerRow, SubGroup, CheckboxFilter, FilterResetLink,
 } from "../rows";
@@ -32,6 +32,7 @@ export function SensorsSection({
     activeLayers,
     argoAlarmFilters, toggleArgoAlarm,
     oceansitesNetworkFilters, toggleOceansitesNetworkFilter,
+    oceansitesStatusFilters,  toggleOceansitesStatusFilter,
     oncEovFilters, toggleOncEovFilter,
     hydrophoneSourceFilters, toggleHydrophoneSourceFilter,
     hydrophoneStatusFilters, toggleHydrophoneStatusFilter,
@@ -73,10 +74,28 @@ export function SensorsSection({
                   <>
                     <div className="flex items-center justify-end pb-0.5">
                       <FilterResetLink
-                        show={oceansitesNetworkFilters.size > 0}
-                        onReset={() => oceansitesNetworkFilters.forEach(toggleOceansitesNetworkFilter)}
+                        show={oceansitesNetworkFilters.size > 0 || oceansitesStatusFilters.size > 0}
+                        onReset={() => {
+                          oceansitesNetworkFilters.forEach(toggleOceansitesNetworkFilter);
+                          oceansitesStatusFilters.forEach(toggleOceansitesStatusFilter);
+                        }}
                       />
                     </div>
+                    {/* Status first: 64 of 1,037 stations are OPERATIONAL, so this
+                        is the filter that changes what the map shows most. The KEY
+                        is OceanOPS's own word; only the gloss beside it is ours. */}
+                    <CheckboxFilter
+                      header={t("filters.oceansites.statusHeader")}
+                      headerClassName="text-white/65 text-[13px] mb-0.5"
+                      defs={OCEANSITES_STATUS_DEFS.map(({ key, labelKey, color }) => ({
+                        key, color, label: t(labelKey),
+                      }))}
+                      activeSet={oceansitesStatusFilters}
+                      onToggle={toggleOceansitesStatusFilter}
+                    />
+                    <p className="text-white/60 text-[10px] font-mono uppercase tracking-[0.12em] pt-1.5 pb-0.5">
+                      {t("filters.oceansites.networkHeader")}
+                    </p>
                     {OCEANSITES_NETWORK_DEFS.map(({ key, label, color }) => {
                       const active = oceansitesNetworkFilters.has(key);
                       return (
@@ -99,7 +118,7 @@ export function SensorsSection({
                     })}
                   </>
                 }
-                filterActive={oceansitesNetworkFilters.size > 0}
+                filterActive={oceansitesNetworkFilters.size > 0 || oceansitesStatusFilters.size > 0}
                 expanded={expandedFilter === "oceansites"}
                 onExpandToggle={() => toggleExpand("oceansites")}
               />

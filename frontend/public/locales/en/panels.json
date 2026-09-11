@@ -408,6 +408,16 @@
     "deepdataStations": {
       "contractorHeading": "Contractor (only show selected)",
       "clearLabel": "Show all contractors"
+    },
+    "oceansites": {
+      "statusHeader": "Show only stations that are",
+      "networkHeader": "Network",
+      "status": {
+        "operational": "OPERATIONAL — still reporting",
+        "inactive": "INACTIVE — recovered, may return",
+        "closed": "CLOSED — retired for good",
+        "registered": "REGISTERED — announced, never deployed"
+      }
     }
   },
   "tooltip": {

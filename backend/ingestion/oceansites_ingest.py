@@ -58,6 +58,7 @@ License: OceanOPS data is publicly available under the WMO data policy.
 Contact: Thomas (OceanOPS) — prototype endpoint built specifically for Abyssal Claims.
 """
 import logging
+import math
 
 import httpx
 
@@ -91,6 +92,27 @@ def _network_from_ref(ref: str) -> str:
         if ref.startswith(prefix):
             return network
     return "OceanSITES"
+
+
+def _finite_coord(v) -> float | None:
+    """A coordinate is a finite float or it is nothing.
+
+    ⛔ OceanOPS spells an unknown position as the STRING "NaN" — 37 of 5,795
+    deployments on 2026-09-11 — the same convention this file already guards
+    for `age`. `float("NaN")` is not None and is not 0, so the string walked
+    through the None-or-null-island test below, into a NOT NULL float8 column
+    as a real NaN. PostGIS built POINT(NaN NaN), json.dumps wrote a bare NaN,
+    and every browser refused the whole layer with "Unexpected token 'N'".
+    The map showed "OceanSITES Moorings unavailable" while the endpoint
+    answered 200.
+    """
+    if v is None or isinstance(v, bool):
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
 
 
 def _parse_deploy_date(record: dict) -> str | None:
@@ -176,6 +198,8 @@ async def fetch_oceansites_stations() -> list[dict]:
         # its date, ship, WIGOS id and instruments are all real — but its
         # coordinates are NULLed and the reason recorded, so "we do not know
         # where this was" never renders as a point off West Africa.
+        lat = _finite_coord(lat)
+        lon = _finite_coord(lon)
         null_island = (lat == 0 and lon == 0)
         has_position = lat is not None and lon is not None and not null_island
 
@@ -191,8 +215,8 @@ async def fetch_oceansites_stations() -> list[dict]:
             "base_ref":      base_ref,
             "deploy_num":    deploy_num,
             "name":          station_name,
-            "lat":           float(lat) if has_position else None,
-            "lon":           float(lon) if has_position else None,
+            "lat":           lat if has_position else None,
+            "lon":           lon if has_position else None,
             "position_flag": None if has_position else ("null-island" if null_island else "missing"),
             "status":        status_name,
             "network":       _network_from_ref(base_ref),
@@ -218,8 +242,8 @@ async def fetch_oceansites_stations() -> list[dict]:
             best[base_ref] = {
                 "ref":         base_ref,
                 "name":        station_name,
-                "lat":         float(lat),
-                "lon":         float(lon),
+                "lat":         lat,
+                "lon":         lon,
                 "status":      status_name,
                 "network":     _network_from_ref(base_ref),
                 "deploy_date": deploy_date,

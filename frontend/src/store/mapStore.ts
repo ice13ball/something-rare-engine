@@ -98,6 +98,11 @@ interface MapStore {
   toggleChessPhylumFilter: (p: string) => void;
   oceansitesNetworkFilters: Set<string>;
   toggleOceansitesNetworkFilter: (net: string) => void;
+  /** OceanOPS's own platform status — "OPERATIONAL" | "INACTIVE" | "CLOSED" |
+   *  "REGISTERED". Empty set = show all, like every other filter here. Measured
+   *  on production 2026-09-11: 64 OPERATIONAL of 1,037 stations (6.2%). */
+  oceansitesStatusFilters: Set<string>;
+  toggleOceansitesStatusFilter: (status: string) => void;
   // Submarine cable source filter — values: "emodnet", "onc". Empty set = show all.
   cableSourceFilters: Set<string>;
   toggleCableSourceFilter: (src: string) => void;
@@ -446,6 +451,8 @@ export const useMapStore = create<MapStore>((set) => ({
 
   oceansitesNetworkFilters: new Set<string>(),
   toggleOceansitesNetworkFilter: _makeToggle(set, "oceansitesNetworkFilters"),
+  oceansitesStatusFilters: new Set<string>(),
+  toggleOceansitesStatusFilter: _makeToggle(set, "oceansitesStatusFilters"),
   cableSourceFilters: new Set<string>(),
   toggleCableSourceFilter: _makeToggle(set, "cableSourceFilters"),
   arcticRiverSourceFilters: new Set<string>(),
@@ -672,6 +679,7 @@ export const useMapStore = create<MapStore>((set) => ({
     iucnFilters:       new Set<string>(),
     noiseRiskFilters:  new Set<string>(),
     oceansitesNetworkFilters: new Set<string>(),
+    oceansitesStatusFilters: new Set<string>(),
     cableSourceFilters: new Set<string>(),
     arcticRiverSourceFilters: new Set<string>(),
     methaneSeepsFeatureTypeFilters: new Set<string>(),
