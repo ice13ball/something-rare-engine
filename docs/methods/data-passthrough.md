@@ -29,6 +29,16 @@ These carry an explicit banner and are never presented as observations:
 - `coral-acid-exposure` — modelled exposure derived from the above
 - `noise-risk` — a derived index combining two independent noise datasets
 
+A whole layer is not the only thing that can be derived. A single **field** on an
+otherwise pass-through layer can be ours too, and then it says so:
+
+- `chess.habitat_type` — a keyword classification this platform runs over
+  ChEssBase's free-text ecosystem description. It resolves to `whale_fall`,
+  `seep` or `vent`, and to `unclassified` when no keyword matches. ⛔ The
+  fallback must never carry the name of a real habitat: labelling it `omz`
+  once put an oxygen-minimum-zone claim on 3,605 of 3,715 records (97.0%)
+  that the classifier has no pattern to detect at all.
+
 ## Underwater noise: the 80 dB reference and span
 
 The underwater-noise layer normalises EMODnet's continuous sound pressure
@@ -40,8 +50,14 @@ with no such floor or span attached.
 
 ## Known gaps
 
-- OpenAQ reports units per sensor; this platform does not currently request that
-  field, so air-quality pollutant values carry no recorded unit.
+- _(none currently recorded)_
+
+OpenAQ's per-sensor unit **used to be** the entry here. It no longer is: the
+sync now reads `units` from each sensor's parameter record, stores it beside the
+value, and `/air-quality` returns a per-pollutant unit map, so a reader is told
+whether an ozone figure is ppm or ppb instead of being shown a hardcoded label.
+A missing unit stores `NULL` and is shown as absent — never guessed from the
+pollutant name.
 
 ## Sampling time
 

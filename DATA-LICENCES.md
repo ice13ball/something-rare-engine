@@ -37,11 +37,11 @@ derivative must re-check these before any monetised use.
 
 | Source | Layer(s) | Licence | Note |
 |---|---|---|---|
-| **Dutkiewicz et al. 2015** — global seabed lithology (EarthByte) | `seabed-lithology` **and, as a model predictor,** `vme-suitability` → `coral-acid-exposure` | **CC-BY-NC 4.0** | Non-commercial. This lineage runs *through* the VME suitability model into the coral acidification-exposure layer. The platform is publishable today **only because it is non-monetised.** If this platform, or any fork, is ever put behind a paid tier, this CC-BY-NC lineage must be re-assessed first. |
+| **Dutkiewicz et al. 2015** — global seabed lithology (EarthByte) | `seabed-substrate` (the served layer id; `seabed_lithology.py` is the module, and the row said only `seabed-lithology` for months — a reader looking the layer up by id found nothing) **and, as a model predictor,** `vme-suitability` → `coral-acid-exposure` | **CC-BY-NC 4.0** | Non-commercial. This lineage runs *through* the VME suitability model into the coral acidification-exposure layer. The platform is publishable today **only because it is non-monetised.** If this platform, or any fork, is ever put behind a paid tier, this CC-BY-NC lineage must be re-assessed first. |
 | **MaxMind GeoLite2** — Country / ASN databases | request-log enrichment in the API-key subsystem (`GEOIP_COUNTRY_DB`, `GEOIP_ASN_DB`) | MaxMind GeoLite2 EULA | **Redistribution is prohibited** by the EULA. The `.mmdb` files are therefore **not** in this repository and must be obtained directly from MaxMind under your own account. Without them the enrichment is simply skipped (`country`/`asn` stay NULL) — nothing else breaks. |
 | **InterRidge Vents Database v3.4** (via PANGAEA) | `hydrothermal-vents` | **CC-BY-NC-SA 4.0** | Non-commercial **and** share-alike, confirmed at the dataset's own PANGAEA DOI (doi:10.1594/PANGAEA.917894). Not yet resolved organisationally as of the 2026-09-03 licence audit — re-check before any monetised use. |
 | **OBIS-SEAMAP** (Duke University Marine Geospatial Ecology Lab) | `noise-risk` (cetacean-sightings component; the layer also blends ICES and EMODnet Physics data) | Redistribution prohibited without permission | OBIS-SEAMAP's terms of use forbid redistributing data obtained from the portal. `noise-risk` computes an index that includes OBIS-SEAMAP sightings, inheriting the restriction for that component. |
-| **MBARI MARS** (Monterey Accelerated Research System) | `hydrophone-stations` (one of 22 passive-acoustic networks aggregated into this layer) | "Internal research activities only" | Per MBARI's VARS data-use policy. Restricts only this one sub-source within the aggregate — the other 21 networks are unaffected individually. |
+| **MBARI MARS** (Monterey Accelerated Research System) | ⛔ `hydrophone-stations` **left `LAYER_DEFAULTS` / `LAYER_DEFAULTS_PY` and the export registry on 2026-09-04** (`services/export_registry.py`). The weekly `sync_acoustic_stations` still runs and the rows are still in the database, so this clause still binds them — it is the toggle and the bulk export that went away, not the data. Was: one of 22 passive-acoustic networks aggregated into the layer. | "Internal research activities only" | Per MBARI's VARS data-use policy. Restricts only this one sub-source within the aggregate — the other 21 networks are unaffected individually. |
 
 The platform is **non-commercial**; that is what makes the Dutkiewicz source above
 compatible. Note that the **code** is AGPL-3.0, which *does* permit commercial use — the
@@ -72,9 +72,9 @@ These are carried verbatim in the platform and must be preserved in any derivati
 
 | Source | Layer family | Licence / access |
 |---|---|---|
-| ISA DeepData | ISA concessions, contractor reports | Open (isa.org.jm/deepdata) |
-| OBIS Open Data (AWS parquet mirror) | biodiversity occurrences | Open (obis.org) |
-| GBIF | biodiversity occurrences | Open, CC-BY / CC0 per dataset (gbif.org) |
+| ISA DeepData (`services5.arcgis.com/VcAAb5oBhdAAnFj2`) | `contracts`, `reserved-areas`, `relinquished-areas`, `apeis` — four layers off ONE FeatureServer | Open (isa.org.jm/deepdata) |
+| OBIS Open Data (AWS parquet mirror, `s3://obis-open-data/occurrence/*.parquet`) | `obisSpecies`; also aggregated into `biodiversity-hotspots` | Open (obis.org) |
+| GBIF (`api.gbif.org/v1/occurrence/search`) | `chess` — the ChEssBase chemosynthetic dataset. ⚠️ `chess.habitat_type` is NOT a GBIF field: it is this platform's keyword classification, disclosed in `docs/methods/data-passthrough.md` | Open, CC-BY / CC0 per dataset (gbif.org) |
 | NOAA DSCRTP, MBARI VARS | deep-sea coral/sponge density | Open (NOAA / MBARI) |
 | IUCN Red List | biodiversity status | Terms of use (non-redistribution of bulk) |
 | WoRMS | taxonomic backbone | Open (marinespecies.org) |
@@ -83,23 +83,29 @@ These are carried verbatim in the platform and must be preserved in any derivati
 | MarineRegions.org (VLIZ) — EEZ v12 | `eez`; geometry also underlies `protected-marine-sites` | CC-BY 4.0. VLIZ additionally, non-bindingly, requests that users not host bulk downloads elsewhere and always link back to marineregions.org — noted, not a licence restriction. |
 | UNESCO World Heritage Marine Programme + MarineRegions.org | `protected-marine-sites` (50 World Heritage marine sites — **not** WDPA, see `rules/subsystems/tables-that-lie.md`) | Open; UNESCO syndication terms (whc.unesco.org/en/syndication) |
 | National offshore-energy regulators (BOEM, Crown Estate, Crown Estate Scotland, NOPTA, NZP&M, ANP, Sodir, NSTA, CNH, ESDM, PASA, ANH, MRA Papua New Guinea, MME Namibia, SBMA Cook Islands) + EMODnet Human Activities | `offshore-activities` | Mixed: EMODnet portion is CC-BY 4.0 (confirmed). The 16 national-regulator feeds are government registries whose individual reuse terms have **not** been verified per-registry — check each before redistribution. |
+| `tayljordan/ports` (GitHub, `raw.githubusercontent.com/tayljordan/ports/main/ports.json`) | `ports` | **MIT**, read from the GitHub API 2026-09-11 (`"spdx_id": "MIT"`). ⚠️ A community compilation of 5,410 ports, not an official hydrographic register — the MIT grant covers the compilation, and says nothing about the national sources behind it. |
+| **GOODD** — Mulligan, van Soesbergen & Sáenz 2020, *Scientific Data* 7:31 (figshare doi:10.6084/m9.figshare.9747686.v1) | `dams` | **CC0** — verified 2026-09-11 in Figshare's own item metadata: `"license": {"name": "CC0"}`. ⚠️ **The code still says Global Dam Watch and it is wrong.** `domains/land/extractive.py` cites `globaldamwatch.org/database` and its CSV fallback expects GDW/GRanD fields (`DAM_NAME`, `RIVER`, `DAM_HGT_M`); the loaded file is `GOOD2_dams.shp` with four — `DAM_ID`, `Count_ID`, `Latitud`, `Longitud`. GOODD has no dam names at all, which is why 38,667 rows rendered a numeric id where a name belonged. |
+| **OceanOPS** (`ocean-ops.org/api/data/oceanjson/platforms`) | `oceansites` | ⚠️ **Non-commercial, and stricter than our own code comment claims.** Verbatim from ocean-ops.org/api/help, read 2026-09-11: *"All rights reserved. The information provided through this API may be freely used and copied for educational and other non-commercial purposes, provided that any reproduction of data ... be accompanied by an acknowledgement (credit, link) of OceanOPS as the source. Any other use of the information requires permission from OceanOPS."* The ingest comment calls this "the WMO data policy" — it is not; WMO Resolution 40 governs the separate DBCP/GTS route. ⛔ **This is a SECOND non-commercial dependency** beside the Dutkiewicz lineage above, and it must be counted in any future decision to monetise. |
+| **Yesson et al. 2020** — *List of seamounts in the world oceans, an update* (doi:10.1594/PANGAEA.921688) | `seamounts` | **CC-BY-4.0**, stated on the PANGAEA record, read 2026-09-11. |
+| **WRI Aqueduct 4.0** | `water-risk` | **CC BY 4.0** — wri.org/aqueduct, read 2026-09-11: *"All the products, methodologies, and datasets that make up Aqueduct are available for use under the Creative Commons Attribution International 4.0 License."* |
 | JRC Global Surface Water (Pekel et al. 2016) | `surface-water` | CC-BY, conditional: attribution must name both **JRC and Google**, plus cite Pekel et al. 2016 — see global-surface-water.appspot.com/faq |
-| _(under review)_ | `forest-loss`, `carbon-flux`, `soil-carbon`, `tectonic-plates`, `mosaic-sediment`, `arctic-rivers`, `ais-live` | **Not stated here yet.** Each of these upstreams either publishes no licence, or publishes terms that do not resolve into one. Rather than print a guess, this file says nothing about them until the maintainer has checked each. Treat these seven layers as unlicensed for reuse until this row is replaced. |
-| GEBCO 2024 | bathymetry / confidence | Open, "not for navigation" |
-| Copernicus Marine (CMEMS) | ocean currents, plume tracing | Copernicus licence (account required) |
-| ESA Copernicus Sentinel-1 (CDSE) | SAR / dark vessels | Copernicus licence (account required) |
-| NASA FIRMS | active fires | Open (NASA LANCE) |
-| NOAA WOA23 | climatology | Public domain (US Gov) |
-| ISAS20 (BGC-Argo) | oxygen | Open |
-| Argo | float profiles | Open (Argo programme) |
-| EMODnet / NOAA Marine Cadastre / NZ LINZ / AU ACMA / ONC / OOI | submarine cables | Mixed: EMODnet open; NOAA public domain; **NZ LINZ Crown copyright (API key required)**; AU ACMA open; ONC/OOI open |
-| ONC (Ocean Networks Canada) | observatories, ADCP, CTD, sparklines | ONC terms (token required) |
-| SEAFLEA | methane seeps | Open (NRL/NOAA NCEI compilation) |
-| World Ocean Database 2023 | historical O₂ profiles | Open (NOAA) |
-| ARCADE v1 | Arctic catchments | DataVerse doi:10.34894/U9HSPV |
+| _(no upstream — this platform's own derivation)_ | `monitoring-density` | Not a dataset. `domains/land/density.py` builds a materialised view that `UNION ALL`s tables already licensed above (`chess_occurrences`, `argo_profiles`, `oceansites_stations`, `onc_instruments`, `hotspot_grid`, `wod_profiles`, `pangaea_records`, `bco_dmo_datasets`, `noaa_datasets`, `obis_seamap_records`, `sio_bic_records`). It fetches nothing, so it adds no new grant — but it INHERITS the strictest term among its inputs, and `oceansites_stations` is the non-commercial OceanOPS feed. |
+| _(under review)_ | `forest-loss`, `carbon-flux`, `soil-carbon`, `tectonic-plates`, `mosaic-sediment`, `arctic-rivers`, `ais-live`, `air-quality`, `landslides` | **Not stated here yet.** Each of these upstreams either publishes no licence, or publishes terms that do not resolve into one. Rather than print a guess, this file says nothing about them until the maintainer has checked each. Treat these nine layers as unlicensed for reuse until this row is replaced. Two were added 2026-09-11 after checking the upstreams directly: **OpenAQ** (`air-quality`) publishes no blanket grant — docs.openaq.org/about/terms says only *"We only aggregate data that, to the best of our knowledge, has been made available for redistribution"* and *"we provide no assurance that the data provided may be used free of any third-party claims"*; real terms are per-source. **NASA COOLR** (`landslides`) states no licence on gpm.nasa.gov/landslides — and the exact page our code cites, `/landslides/data.html`, now returns **404**. |
+| GEBCO — **three products are served deliberately, and they are different vintages** | `bathymetry` shaded relief = `GEBCO_LATEST` WMS, which auto-tracks the newest grid (GEBCO_2026 as of 2026-09-08, verified against the live GetCapabilities); bathymetry **confidence / TID** stats = `GEBCO_2024` (`sync_bathymetry_stats`); per-point depth lookup = `GEBCO_2020` via Open-Topo-Data | Open, "not for navigation" — the terms are identical across all three vintages, but the **attribution year is not**: `GEBCO_LATEST` moved to the 2026 grid while the hand-written credit string still said 2025, so re-read the live WMS before citing a year. |
+| Copernicus Marine (CMEMS) | `ocean-currents`, plume tracing | Copernicus licence (account required) |
+| ESA Copernicus Sentinel-1 (CDSE) | SAR / dark vessels; the SAR×AIS correlator also produces `vessel-events` ⚠️ whose OTHER input is AIS, still under review below | Copernicus licence (account required) |
+| NASA FIRMS | `fires` active fires | Open (NASA LANCE) |
+| NOAA WOA23 (`ncei.noaa.gov/data/oceans/woa/WOA23/DATA`) | `woa-climatology` | Public domain (US Gov) |
+| ISAS20 (BGC-Argo), SEANOE doi:10.17882/52367 | `oxygen-deox` | Open |
+| Argo, via Argovis (`argovis-api.colorado.edu/argo`) | `argo` float profiles | Open (Argo programme) |
+| EMODnet / NOAA Marine Cadastre / NZ LINZ / AU ACMA / ONC / OOI | `submarine-cables` (six feeds, one layer) | Mixed: EMODnet open; NOAA public domain; **NZ LINZ Crown copyright (API key required)**; AU ACMA open; ONC/OOI open |
+| ONC (Ocean Networks Canada) | `onc` (observatory locations) and `onc-instruments` — ADCP, CTD, sparklines. Each CTD deployment also carries ONC's own DOI and citation string, stored verbatim in `onc_deployment_citations` | ONC terms (token required) |
+| SEAFLEA (`services2.arcgis.com/C8EMgrsFcRFL6LrL`) | `methane-seeps` | Open (NRL/NOAA NCEI compilation) |
+| World Ocean Database 2023 (`ncei.noaa.gov/data/oceans/ncei/wod`) | `wod-oxygen` historical O₂ profiles | Open (NOAA) |
+| ARCADE v1 | `arctic-catchments` | DataVerse doi:10.34894/U9HSPV |
 | Permafrost thaw — Alaska (Webb et al. 2026) | `permafrost-thaw` | **CC-BY 4.0** (Zenodo) |
 | Permafrost thaw — ARTS v6 (WHRC) | `permafrost-thaw` | **CC0** (Zenodo) |
-| SIOS Svalbard | observing datasets | SIOS catalogue terms |
+| SIOS Svalbard (`sios-svalbard.org/rest/stations/data.json`) | `sios-svalbard` observing datasets | SIOS catalogue terms |
 
 ⚠️ **PANGAEA-hosted sources set licence per deposited dataset, not per portal.** `hydrothermal-vents`,
 `mosaic-sediment`, `mining-footprints`, `arctic-sediment-carbon` and `arctic-rivers` all resolve

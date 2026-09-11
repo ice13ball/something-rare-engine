@@ -131,8 +131,13 @@ free upstream accounts (Copernicus/CMEMS, NASA FIRMS, ONC, Dryad, MEMENTO, …).
 
 ## Data sources & licences
 
-Every layer keeps its upstream provenance verbatim; the platform never alters or derives
-source values. The per-source licence map — including the **CC-BY-NC** and other
+Measured values pass through verbatim: nothing is converted to a different unit between
+fetch and display, and a source's own quality flags are stored and honoured. What the
+platform *does* add is enumerated rather than hidden — a documented no-data code rendered
+as SQL `NULL`, a small set of banner-labelled model layers, and a few presentation choices
+(the noise 0-1 scale, the `chess` habitat keyword classification). All of them, with the
+reasoning, are in [`docs/methods/data-passthrough.md`](docs/methods/data-passthrough.md).
+The per-source licence map — including the **CC-BY-NC** and other
 restricted-use sources — is in [`DATA-LICENCES.md`](DATA-LICENCES.md). If a value looks
 wrong, verify it at the upstream source, not here.
 
