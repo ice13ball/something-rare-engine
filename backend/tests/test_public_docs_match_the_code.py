@@ -173,7 +173,10 @@ def test_every_served_layer_appears_in_the_public_licence_map():
 
     licences = (ROOT / "DATA-LICENCES.md").read_text()
     ids = sorted({d["id"] for d in LAYER_DEFAULTS_PY})
-    assert len(ids) > 40, f"only {len(ids)} layers in the registry — re-anchor this guard"
+    # The anchor exists to catch a registry that failed to import or parse, not
+    # to track the layer count. It was `> 40` while the registry held 57, which
+    # left room for a third of the layers to vanish without this noticing.
+    assert len(ids) >= 55, f"only {len(ids)} layers in the registry — re-anchor this guard"
 
     missing = [i for i in ids if f"`{i}`" not in licences]
     assert not missing, (

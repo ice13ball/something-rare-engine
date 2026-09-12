@@ -47,7 +47,7 @@ export interface RiskArea {
 // which populates the active set. No data fetches until user makes a choice.
 const DEFAULT_ACTIVE = new Set<LayerId>();
 
-interface MapStore {
+export interface MapStore {
   // Selection (up to 3 panels)
   selectedFeatures: SelectedFeature[];
   setSelectedFeature: (f: Omit<SelectedFeature, "slot"> | null, shift?: boolean) => void;
@@ -353,7 +353,10 @@ interface MapStore {
 // Resets to 0 when all panels are closed to avoid very large numbers over time.
 let _nextSlot = 0;
 
-type FilterSetKey = { [K in keyof MapStore]: MapStore[K] extends Set<string> ? K : never }[keyof MapStore];
+// Exported so filterRegistry.ts can derive its "every Set<string> field must be
+// classified" universe from the store shape itself, rather than a hand-typed
+// list that silently stops growing the day someone adds a 36th filter field.
+export type FilterSetKey = { [K in keyof MapStore]: MapStore[K] extends Set<string> ? K : never }[keyof MapStore];
 
 function _makeToggle(
   set: (fn: (s: MapStore) => Partial<MapStore>) => void,

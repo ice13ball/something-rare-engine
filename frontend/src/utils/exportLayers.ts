@@ -118,6 +118,12 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
   },
   {
     id: "geotraces-values",
+    // ⛔ Without this, mapIdOf falls through to the export id and gates on
+    // `activeLayers.has("geotraces-values")` — not a layer, so always false, so
+    // this entry could never appear in the panel. The API served it the whole
+    // time. Same map layer as the `geotraces` entry above: this is the
+    // per-sample view of the same dataset.
+    mapLayerId: "geotraces",
     label: "GEOTRACES all parameters (per-sample values)",
     kind: "vector",
     geomKind: "point",

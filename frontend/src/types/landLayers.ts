@@ -1,20 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
-export type LandLayerId =
-  | "mining-footprints"
-  | "forest-loss"
-  | "tailings"
-  | "fires"
-  | "air-quality"
-  | "landslides"
-  | "surface-water"
-  | "dams"
-  | "arctic-rivers"
-  | "carbon-flux"
-  | "soil-carbon"
-  | "water-risk"
-  | "permafrost-thaw";
+/** Every land layer id, as a VALUE — the type is derived from it.
+  * Same reasoning as SEA_LAYER_IDS in ./layers.ts. */
+export const LAND_LAYER_IDS = [
+  "mining-footprints", "forest-loss", "tailings", "fires", "air-quality", "landslides",
+  "surface-water", "dams", "arctic-rivers", "carbon-flux", "soil-carbon", "water-risk",
+  "permafrost-thaw",
+] as const;
+
+export type LandLayerId = (typeof LAND_LAYER_IDS)[number];
 
 export interface LandLayerConfig {
   id: LandLayerId;

@@ -5,18 +5,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { useMapStore } from "../store/mapStore";
-import { LAYER_CONFIGS, type LayerId } from "../types/layers";
-import { LAND_LAYER_CONFIGS } from "../types/landLayers";
+import type { LayerId } from "../types/layers";
+import { parseLayersParam } from "../utils/layersParam";
 import { useLayerConfig } from "../utils/layerConfig";
 import { loadMapState } from "../utils/mapState";
 import { ProfilePicker } from "./ProfilePicker";
 import { useStartupProfiles, applyProfile, applyMode, applyMenuExpansion, type StartupProfile } from "../utils/startupProfiles";
-
-/** All valid LayerIds (sea + land) for ?layers= param validation */
-const VALID_LAYERS = new Set<string>([
-  ...LAYER_CONFIGS.map(l => l.id),
-  ...LAND_LAYER_CONFIGS.map(l => l.id),
-]);
 
 /** Sync the left panel section state so the right group is expanded on load. */
 function setSectionState(seaOpen: boolean, landOpen: boolean) {
@@ -64,10 +58,12 @@ export function WelcomeOverlay() {
 
   // Check ?layers= param on mount and on navigation (React Router aware)
   useEffect(() => {
-    const raw = searchParams.get("layers");
-    if (!raw) return;
-    const ids = raw.split(",").filter(id => VALID_LAYERS.has(id)) as LayerId[];
-    if (ids.length === 0) return;
+    // ⛔ Validation lives in `utils/layersParam` and rejects the WHOLE list on
+    // one unknown token. The old inline filter validated against LAYER_CONFIGS —
+    // 38 of 44 sea layers — and silently dropped the rest, so a link naming a
+    // real layer and a link with a typo produced the same quietly-smaller set.
+    const ids = parseLayersParam(searchParams.get("layers"));
+    if (!ids) return;
     // Activate layers and skip the overlay
     setActiveLayers(new Set(ids));
     setVisible(false);

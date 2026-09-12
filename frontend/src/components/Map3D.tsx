@@ -26,6 +26,10 @@ import type { PlumeOriginInfo } from "./PlumeHistoryLayer";
 import { computeDatasetStats, floatHasAlarm, phImplausible } from "../utils/argoAlarms";
 import type { DatasetStats } from "../utils/argoAlarms";
 import { loadMapState, saveMapState, consumeReturnFly, saveReturnFlyFromViewState } from "../utils/mapState";
+import { setLiveMapState } from "../utils/liveMapState";
+import { decodeShareState } from "../utils/shareState";
+import { applyShareableFilters } from "../types/filterRegistry";
+import { resolveInitialCamera, resolveInitialLayers } from "./map3d/shareBootstrap";
 import { SearchBar } from "./SearchBar";
 import { analytics } from "../utils/analytics";
 import type { ClaimFeatureCollection } from "../types/claims";
@@ -123,11 +127,37 @@ const _urlFly = (() => {
   window.history.replaceState({}, "", window.location.pathname + (clean ? `?${clean}` : ""));
   return { longitude: lon, latitude: lat, zoom: isNaN(z) ? 9 : z };
 })();
-const INITIAL_VIEW = _urlFly
-  ? { ..._urlFly, pitch: 45, bearing: 0, minZoom: 2, maxZoom: 18 }
-  : _saved
-    ? { ..._saved.viewState, pitch: 45, minZoom: 2, maxZoom: 18 }
-    : { longitude: -30, latitude: 20, zoom: 3, pitch: 45, bearing: 0, minZoom: 2, maxZoom: 18 };
+// `?s=` — a shareable view link. Read once at module init, same shape as
+// `?fly=` above: strip the param immediately so it can't reapply on refresh
+// (a refreshed share link should behave like any other visit from then on,
+// not re-fight the user's own subsequent navigation every reload).
+//
+// ⛔ `?fly=`/`?focus=` mean "jump to one feature" and must still win over a
+// whole restored view — a report back-link is more specific intent than a
+// bookmarked view, so it is read FIRST (above) and this block never overrides
+// a camera `_urlFly` already claimed.
+const _urlShare = (() => {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("s");
+  if (!raw) return null;
+  const decoded = decodeShareState(raw);
+  params.delete("s");
+  const clean = params.toString();
+  window.history.replaceState({}, "", window.location.pathname + (clean ? `?${clean}` : ""));
+  if (!decoded) return null;
+  // Filters are governed entirely by the store, not by React state threaded
+  // through this component — applied here, once, before first render, so a
+  // shared filter is visible in the very first paint rather than flashing
+  // unfiltered-then-filtered.
+  if (decoded.filters) applyShareableFilters(decoded.filters);
+  return decoded;
+})();
+
+const INITIAL_VIEW = {
+  ...resolveInitialCamera(_urlFly, _urlShare?.camera ?? null, _saved?.viewState ?? null),
+  minZoom: 2,
+  maxZoom: 18,
+};
 
 
 async function prefetchDepth(lat: number, lon: number, apiBase: string): Promise<void> {
@@ -641,17 +671,17 @@ export function Map3D() {
 
   // ── Initial data fetch ──────────────────────────────────────────────────
   useEffect(() => {
-    // Read localStorage fresh (not the module-level _saved which is stale after
-    // unmount/remount cycles, e.g. returning from a report page).
+    // Read localStorage fresh (not the module-level _saved which is stale
+    // after unmount/remount cycles, e.g. returning from a report page).
     const freshSaved = loadMapState();
-    if (freshSaved) {
-      const saved = new Set<LayerId>(freshSaved.activeLayers);
-      const known = new Set(freshSaved.knownLayers ?? []);
-      for (const cfg of LAYER_CONFIGS) {
-        if (!known.has(cfg.id) && cfg.id !== "seamounts") saved.add(cfg.id);
-      }
-      setActiveLayers(saved);
-    }
+    const resolved = resolveInitialLayers(
+      // The envelope, not `?.layers` — see resolveInitialLayers: flattening it
+      // here makes "camera-only link" indistinguishable from "no link".
+      _urlShare,
+      freshSaved,
+      LAYER_CONFIGS.map(cfg => cfg.id),
+    );
+    if (resolved) setActiveLayers(resolved);
 
     fetchLayer("/api/v1/map/claims", fc => { setClaimsData(fc as ClaimFeatureCollection); setLoading(false); }, "Mining Concessions")
       .then(failed => {
@@ -1828,6 +1858,10 @@ export function Map3D() {
   // Also keep latestStateRef current so the unmount flush always has fresh values.
   useEffect(() => {
     latestStateRef.current = { viewState, activeLayers };
+    // Published for the share button, which needs the camera as it is now —
+    // the save below is debounced, so reading localStorage would hand a
+    // recipient wherever the map was a moment ago.
+    setLiveMapState(viewState, activeLayers);
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveMapState(viewState, activeLayers, LAYER_CONFIGS.map(l => l.id));

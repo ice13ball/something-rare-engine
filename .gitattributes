@@ -1,0 +1,70 @@
+# Line endings are normalised in the repository and checked out as LF everywhere.
+#
+# Why this file exists: several tests read their own source files and assert on
+# the shape of the code. Node's `readFileSync(..., "utf-8")` returns the bytes as
+# they are, so on a CRLF checkout an anchor like `indexOf("\n}\n")` returns -1 —
+# and -1 fed to `slice(start, -1)` does not fail, it silently widens the region
+# to almost the whole file. The assertion then measures the wrong text and its
+# result is accidental. Found 2026-09-12 in `detail-panel-matrix.test.tsx`.
+#
+# ⛔ This file alone is not the fix. It governs future checkouts; the assertion
+# itself was made newline-agnostic in `frontend/src/__tests__/sliceSource.ts`,
+# which throws rather than returning a wrong slice. Both halves are needed —
+# a clone made before this file existed still has whatever endings it has.
+#
+# (Python is immune by construction: its text mode translates CRLF to LF before
+# the test ever sees it. Only the TypeScript side was exposed.)
+* text=auto eol=lf
+
+# Shell scripts and units are executed by Linux — CRLF in a shebang line breaks
+# them with a confusing "bad interpreter" error.
+*.sh      text eol=lf
+*.service text eol=lf
+*.timer   text eol=lf
+
+# Vitest snapshots are compared as strings; a stray \r makes every one of them
+# differ on a fresh clone.
+*.snap text eol=lf
+
+# ⛔ Binary assets: NEVER normalise. `text=auto` guesses from content, and a
+# wrong guess here does not fail loudly — it rewrites bytes inside test fixtures
+# and the parser blames the data. These are real scientific formats, not
+# placeholders: NetCDF grids, NumPy archives, a GeoTIFF and a full ESRI
+# shapefile set, all read by tests under backend/tests/fixtures/.
+*.nc   binary
+*.npz  binary
+*.npy  binary
+*.tif  binary
+*.tiff binary
+*.shp  binary
+*.shx  binary
+*.dbf  binary
+*.png  binary
+*.webp binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.woff binary
+*.woff2 binary
+
+# ⚠️ Deliberately NOT binary: `.prj` (shapefile projection) is plain WKT text,
+# and `.tab` (PANGAEA export) is tab-separated text. Marking text as binary
+# would hide every future diff on them.
+
+# ⛔ Provider CSV exports keep the bytes the provider sent, including CRLF.
+# Measured 2026-09-12 with `git ls-files --eol`: two fixtures are stored CRLF in
+# both the index and the working tree —
+#   backend/tests/fixtures/arctic_rivers/arcticgro_ob_real.csv   (ArcticGRO)
+#   backend/tests/fixtures/geotraces/seawater_real_subset.csv    (GEOTRACES)
+# They are captured evidence of what the upstream file actually looks like, not
+# source we author. Under the `* text=auto eol=lf` rule above git would rewrite
+# their line endings on the next `git add`, quietly altering a recorded artefact
+# so that it no longer matches what the provider serves. `-text` means "store
+# and check out these bytes exactly".
+#
+# Nothing breaks by keeping them: Python's text mode translates CRLF to LF on
+# read, and `csv` handles either ending, so the parsers never see the difference.
+backend/tests/fixtures/**/*.csv -text

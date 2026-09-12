@@ -5,9 +5,37 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const LS_KEY = "abyssal_export_key";
-export const getStoredKey = () => localStorage.getItem(LS_KEY) ?? "";
-export const setStoredKey = (k: string) => localStorage.setItem(LS_KEY, k);
-export const forgetKey = () => localStorage.removeItem(LS_KEY);
+
+// ⛔ Every access sits inside the try, not just the method call: where storage is
+// blocked (Safari private mode, a policy, an extension) it is the `localStorage`
+// PROPERTY that throws, before `.getItem` is ever reached.
+//
+// This matters more here than it looks. `getStoredKey()` is a lazy useState
+// initialiser in `ExportPanel.tsx`, so it runs during render — an exception
+// escaping it does not degrade the panel, it unmounts the whole subtree.
+// Guarded by `__tests__/export-key-storage-guard.test.ts`.
+export const getStoredKey = () => {
+  try {
+    return localStorage.getItem(LS_KEY) ?? "";
+  } catch {
+    return "";
+  }
+};
+export const setStoredKey = (k: string) => {
+  try {
+    localStorage.setItem(LS_KEY, k);
+  } catch {
+    // Refused storage is not an error the user can act on: the key still works
+    // for this session, it just will not outlive the tab.
+  }
+};
+export const forgetKey = () => {
+  try {
+    localStorage.removeItem(LS_KEY);
+  } catch {
+    // Nothing was stored, so nothing needs forgetting.
+  }
+};
 
 export function ExportKeyModal({
   onSaved,

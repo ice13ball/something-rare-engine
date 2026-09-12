@@ -2,10 +2,11 @@
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
 import type { LayerId } from "../types/layers";
+import { VALID_LAYER_IDS } from "./layersParam";
 
 const MAP_STATE_KEY = "abyssal_map_state";
 
-interface PersistedViewState {
+export interface PersistedViewState {
   longitude: number;
   latitude: number;
   zoom: number;
@@ -29,6 +30,15 @@ export function loadMapState(): PersistedMapState | null {
       typeof parsed.viewState?.zoom !== "number" ||
       !Array.isArray(parsed.activeLayers)
     ) return null;
+    // Unlike a URL's `?layers=`, a retired id found here means "this layer
+    // existed on the visitor's last visit and doesn't anymore" — drop it
+    // quietly rather than rejecting the whole saved state (which would also
+    // throw away their camera position and, previously, could resurrect a
+    // dead id into `activeLayers` forever since nothing else ever pruned it).
+    parsed.activeLayers = parsed.activeLayers.filter((id) => VALID_LAYER_IDS.has(id));
+    if (parsed.knownLayers) {
+      parsed.knownLayers = parsed.knownLayers.filter((id) => VALID_LAYER_IDS.has(id));
+    }
     return parsed;
   } catch {
     return null;

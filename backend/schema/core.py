@@ -17,8 +17,18 @@ async def ensure_core(conn) -> None:
             source          TEXT PRIMARY KEY,
             last_synced_at  TIMESTAMPTZ,
             records_added   INTEGER NOT NULL DEFAULT 0,
-            total_records   INTEGER NOT NULL DEFAULT 0
+            total_records   INTEGER NOT NULL DEFAULT 0,
+            -- A sync that ran and deliberately did nothing writes these two and
+            -- leaves `last_synced_at` alone. Without them "never ran" and "ran,
+            -- could not run" are the same row, which is how sbma-cook-islands
+            -- reached production having never produced a record.
+            skipped_reason  TEXT,
+            skipped_at      TIMESTAMPTZ
         );
+        -- CREATE TABLE IF NOT EXISTS above never alters an existing table, so
+        -- every database that predates the two columns needs these as well.
+        ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS skipped_reason TEXT;
+        ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS skipped_at TIMESTAMPTZ;
 
         CREATE TABLE IF NOT EXISTS paused_syncs (
             action TEXT PRIMARY KEY,

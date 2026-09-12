@@ -118,10 +118,27 @@ def test_the_frame_is_usable_for_a_pooling_decision(layer_id):
 
 
 def test_ids_match_the_frontend_layer_union():
-    """A typo here would silently anchor a layer that does not exist."""
-    union = Path("frontend/src/types/layers.ts").read_text().split("\n")[5]
-    land = Path("frontend/src/types/landLayers.ts").read_text()
-    known = set(re.findall(r'"([a-z0-9-]+)"', union)) | set(re.findall(r'id:\s*"([a-z0-9-]+)"', land))
+    """A typo here would silently anchor a layer that does not exist.
+
+    ⛔ Reads the two id ARRAYS, not a line number. This used to take
+    `layers.ts` line 6, which happened to be the whole `SeaLayerId` union while
+    it was one long line; the moment that union became a multi-line const array
+    the assertion started reading a comment and went red for a reason that had
+    nothing to do with the ids. An anchor that depends on formatting is not an
+    anchor.
+    """
+    def _ids(path: str, const: str) -> set[str]:
+        text = Path(path).read_text()
+        start = text.index(const)
+        end = text.index("] as const", start)
+        found = set(re.findall(r'"([a-z0-9-]+)"', text[start:end]))
+        assert found, f"parsed no ids out of {const} in {path}"
+        return found
+
+    known = (
+        _ids("frontend/src/types/layers.ts", "export const SEA_LAYER_IDS")
+        | _ids("frontend/src/types/landLayers.ts", "export const LAND_LAYER_IDS")
+    )
     unknown = [lid for lid in IOPAN_LAYERS if lid not in known]
     assert not unknown, f"not real layer ids: {unknown}"
 

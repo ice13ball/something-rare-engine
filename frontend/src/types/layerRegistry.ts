@@ -24,11 +24,16 @@ import type { LayerId } from "./layers";
  * When something is in neither set this resolves to the union of the missing
  * ids, so `const _x: AssertComplete<...> = true` fails with those ids named in
  * the error text.
+ *
+ * `Universe` defaults to `LayerId` so every existing two-argument call site
+ * keeps compiling unchanged — the share-link filter registry is the first
+ * caller that needs a different universe (store field names, not layer ids)
+ * and supplies it explicitly.
  */
-export type AssertComplete<Covered extends LayerId, OptedOut extends LayerId> =
-  Exclude<LayerId, Covered | OptedOut> extends never
+export type AssertComplete<Covered extends Universe, OptedOut extends Universe, Universe extends string = LayerId> =
+  Exclude<Universe, Covered | OptedOut> extends never
     ? true
-    : Exclude<LayerId, Covered | OptedOut>;
+    : Exclude<Universe, Covered | OptedOut>;
 
 /**
  * Compile-time disjointness guard for a per-layer registry and its opt-out list.
@@ -45,8 +50,12 @@ export type AssertComplete<Covered extends LayerId, OptedOut extends LayerId> =
  * union of ids present in both, so `const _x: AssertDisjoint<...> = true`
  * fails with the offending id(s) named in the error text, the same way
  * `AssertComplete` names the missing ones.
+ *
+ * `Universe` is unused structurally here (disjointness doesn't need it) but is
+ * carried for symmetry with `AssertComplete` so both guards share one call
+ * shape at a call site that passes a non-default universe.
  */
-export type AssertDisjoint<A extends LayerId, B extends LayerId> =
+export type AssertDisjoint<A extends Universe, B extends Universe, Universe extends string = LayerId> =
   Extract<A, B> extends never
     ? true
     : Extract<A, B>;

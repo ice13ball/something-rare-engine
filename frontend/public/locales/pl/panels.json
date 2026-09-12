@@ -1356,5 +1356,10 @@
       "unavailable": "Pomiary niedostępne.",
       "none": "Brak pomiaru in situ w promieniu wyszukiwania."
     }
+  },
+  "share": {
+    "opener": "Udostępnij widok",
+    "copied": "Skopiowano link",
+    "failed": "Nie udało się skopiować"
   }
 }

@@ -127,3 +127,106 @@ def test_layer_ops_covers_the_same_set_of_layers():
         f"only in LAYER_DEFAULTS: {sorted(set(ts) - set(ops))}; "
         f"only in LAYER_OPS: {sorted(set(ops) - set(ts))}"
     )
+
+
+# ── The export registries, which nothing held to anything ────────────────────
+#
+# `backend/services/export_registry.py` decides what the Area Export API will
+# serve; `frontend/src/utils/exportLayers.ts` decides what the export panel
+# OFFERS. Neither was compared against the other or against the layer
+# registries above, and the failure is silent in both directions: a backend
+# entry with no frontend entry is a download nobody can reach, and a frontend
+# entry with no backend entry is a button that 404s.
+
+_FE_EXPORTS = _REPO / "frontend" / "src" / "utils" / "exportLayers.ts"
+
+
+def _fe_export_ids() -> dict[str, str]:
+    """`id` -> `mapLayerId or id` for every EXPORT_LAYERS_FE entry.
+
+    Comments are stripped first, for the same reason the layer parser above does
+    it: an id that appears only in a justification comment must never count as a
+    registry entry.
+    """
+    text = _strip_ts_comments(_FE_EXPORTS.read_text(encoding="utf-8"))
+    start = text.index("export const EXPORT_LAYERS_FE")
+    block = text[start:]
+    out: dict[str, str] = {}
+    for m in re.finditer(
+        r'\{\s*id:\s*"(?P<id>[a-z0-9-]+)"(?P<rest>.*?)\}', block, flags=re.DOTALL
+    ):
+        mapped = re.search(r'mapLayerId:\s*"([a-z0-9-]+)"', m.group("rest"))
+        out[m.group("id")] = mapped.group(1) if mapped else m.group("id")
+    return out
+
+
+def _be_export_ids() -> set[str]:
+    from services.export_registry import EXPORT_LAYERS
+
+    return set(EXPORT_LAYERS.keys())
+
+
+def _composite_member_ids() -> set[str]:
+    """Ids that exist only as members of a CompositeExport.
+
+    These are correctly absent from the panel: the user picks the composite
+    ("Submarine Cables"), and the ZIP carries one file per member. Listing them
+    separately would offer six buttons for one download.
+    """
+    from services.export_registry import EXPORT_LAYERS, CompositeExport
+
+    members: set[str] = set()
+    for entry in EXPORT_LAYERS.values():
+        if isinstance(entry, CompositeExport):
+            members.update(entry.members)
+    return members
+
+
+def test_every_backend_export_is_reachable_from_the_panel():
+    be = _be_export_ids()
+    fe = set(_fe_export_ids())
+    members = _composite_member_ids()
+
+    # ⛔ Anchor both sides: an empty parse would make this vacuously green, which
+    # is the "no tests ran, so nothing is red" failure in another costume.
+    assert len(be) > 20, f"only {len(be)} backend export entries parsed"
+    assert len(fe) > 20, f"only {len(fe)} frontend export entries parsed"
+
+    unreachable = sorted(be - fe - members)
+    assert not unreachable, (
+        f"{len(unreachable)} layer(s) exportable by the API but absent from the "
+        f"export panel: {unreachable}. The data is served and nobody can reach it."
+    )
+
+
+def test_the_panel_never_offers_an_export_the_api_does_not_have():
+    be = _be_export_ids()
+    fe = set(_fe_export_ids())
+
+    assert len(fe) > 20, f"only {len(fe)} frontend export entries parsed"
+
+    phantom = sorted(fe - be)
+    assert not phantom, (
+        f"{len(phantom)} export button(s) with no backend registry entry: "
+        f"{phantom}. Clicking one is a 404 the user cannot distinguish from an "
+        "empty area of interest."
+    )
+
+
+def test_every_export_gates_on_a_layer_that_exists():
+    """The panel shows an entry only while its map layer is active
+    (`l.alwaysAvailable || activeLayers.has(mapIdOf(l))`). A `mapLayerId` that
+    is not a real layer id can therefore never be true, so the entry silently
+    never appears — no error, just an export nobody is ever offered."""
+    fe = _fe_export_ids()
+    known = set(_py_defaults())
+
+    assert len(known) > 40, f"only {len(known)} layers in LAYER_DEFAULTS_PY"
+
+    dangling = sorted(
+        {mapped for mapped in fe.values() if mapped not in known}
+    )
+    assert not dangling, (
+        f"export entries gate on {len(dangling)} id(s) that are not layers: "
+        f"{dangling}"
+    )

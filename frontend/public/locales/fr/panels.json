@@ -1352,5 +1352,10 @@
       "unavailable": "Mesures indisponibles.",
       "none": "Aucune mesure in situ dans le rayon de recherche."
     }
+  },
+  "share": {
+    "opener": "Partager la vue",
+    "copied": "Lien copié",
+    "failed": "Copie impossible"
   }
 }

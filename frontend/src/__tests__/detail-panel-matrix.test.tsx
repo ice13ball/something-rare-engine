@@ -15,6 +15,7 @@ import { resolve } from "node:path";
 import { DetailPanel } from "../components/DetailPanel";
 import { useMapStore } from "../store/mapStore";
 import { LAYER_FIXTURES, EXPECTED_LAYER_COUNT } from "./detailPanelFixtures";
+import { sliceFunctionBody } from "./sliceSource";
 import {
   MINING_DETAIL, VENT_DETAIL_ACTIVE, VENT_DETAIL_INACTIVE, WOA_SAMPLE,
   ONC_SPARKLINES, ONC_ADCP, ONC_CTD, ONC_EARTHQUAKES, HYDROPHONE_SOUNDSCAPE,
@@ -159,9 +160,11 @@ describe("DetailPanel dispatch matrix", () => {
       resolve(__dirname, "../components/DetailPanel.tsx"),
       "utf-8",
     );
-    const fnStart = src.indexOf("function PanelContent(");
-    const fnEnd = src.indexOf("\n}\n", fnStart);
-    const body = src.slice(fnStart, fnEnd);
+    // ⛔ Not `src.indexOf("\n}\n")` + `slice`: on a CRLF checkout that returns
+    // -1 and the slice silently widens to almost the whole file, so the count
+    // below would come from the wrong text. `sliceFunctionBody` normalises line
+    // endings and throws instead of guessing — see `sliceSource.ts`.
+    const body = sliceFunctionBody(src, "function PanelContent(");
     const matches = body.match(/layer === "[^"]*"/g) ?? [];
     // A changed number here means a panel was added or lost — go update
     // EXPECTED_LAYER_COUNT and LAYER_FIXTURES together, never one alone.

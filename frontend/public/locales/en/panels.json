@@ -1352,5 +1352,10 @@
       "unavailable": "Measurements unavailable.",
       "none": "No in-situ measurement within the search radius."
     }
+  },
+  "share": {
+    "opener": "Share view",
+    "copied": "Link copied",
+    "failed": "Could not copy"
   }
 }

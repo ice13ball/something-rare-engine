@@ -167,7 +167,7 @@ from indexnow import SITE_HOST
 from ingestion import onc_adcp_product
 from ingestion import onc_ingest
 from ingestion import onc_dataproduct
-from sync_log import log_sync as _log_sync
+from sync_log import log_sync as _log_sync, log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -484,6 +484,7 @@ async def enrich_onc_instruments(batch_limit: int | None = None) -> int:
     token = os.getenv("ONC_TOKEN")
     if not token:
         log.warning("onc_instruments enrichment: ONC_TOKEN not set — skipping")
+        await _log_sync_skipped("onc_instruments_enrich", "ONC_TOKEN not configured")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -806,6 +807,7 @@ async def sync_onc_sensors(batch_limit: int | None = None) -> int:
     token = os.getenv("ONC_TOKEN")
     if not token:
         log.warning("ONC_TOKEN not set — skipping sensor cache sync")
+        await _log_sync_skipped("onc-sensors", "ONC_TOKEN not configured")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1005,6 +1007,7 @@ async def sync_onc_sparklines() -> int:
     token = os.getenv("ONC_TOKEN")
     if not token:
         log.warning("sync_onc_sparklines: ONC_TOKEN not set — skipping")
+        await _log_sync_skipped("onc-sparklines", "ONC_TOKEN not configured")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1186,6 +1189,7 @@ async def sync_onc_adcp_strips() -> int:
     token = os.getenv("ONC_TOKEN")
     if not token:
         log.warning("sync_onc_adcp_strips: ONC_TOKEN not set — skipping")
+        await _log_sync_skipped("onc-adcp", "ONC_TOKEN not configured")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1283,6 +1287,7 @@ async def sync_onc_ctd_profiles() -> int:
     token = os.getenv("ONC_TOKEN")
     if not token:
         log.warning("sync_onc_ctd_profiles: ONC_TOKEN not set — skipping")
+        await _log_sync_skipped("onc-ctd", "ONC_TOKEN not configured")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1496,7 +1501,9 @@ async def sync_onc_ctd_series() -> int:
     token = os.getenv("ONC_TOKEN")
     if not token:
         log.warning("onc-ctd-series: ONC_TOKEN not set — skipping")
-        await _log_sync("onc-ctd-series", 0, 0)
+        # ⛔ NOT _log_sync(..., 0, 0): that stamps last_synced_at = NOW(), so a
+        # layer with no token configured reads as freshly synced forever.
+        await _log_sync_skipped("onc-ctd-series", "ONC_TOKEN not configured")
         return 0
 
     async with db.pool.acquire() as conn:

@@ -2,8 +2,31 @@
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
 import type { LandLayerId } from "./landLayers";
+import type { AssertComplete, AssertDisjoint } from "./layerRegistry";
 
-export type SeaLayerId = "contracts" | "reserved-areas" | "apeis" | "biodiversity-hotspots" | "seamounts" | "relinquished-areas" | "argo" | "hydrothermal-vents" | "eez" | "protected-marine-sites" | "noise-risk" | "oceansites" | "onc" | "onc-instruments" | "chess" | "submarine-cables" | "ports" | "tectonic-plates" | "vessel-events" | "ais-live" | "monitoring-density" | "offshore-activities" | "deepdata-stations" | "hydrophone-stations" | "bathymetry" | "ocean-currents" | "woa-climatology" | "oxygen-deox" | "wod-oxygen" | "memento" | "geotraces" | "methane-seeps" | "ocean-carbon" | "ocean-co2-surface" | "sios-svalbard" | "marine-carbon" | "arctic-catchments" | "seabed-substrate" | "arctic-sediment-carbon" | "mosaic-sediment" | "vme-suitability" | "ocean-acidification" | "coral-acid-exposure" | "cumulative-human-impact";
+/**
+ * Every sea layer id, as a VALUE.
+ *
+ * ⛔ The type is derived from this array, not written beside it. When the two
+ * were separate, `?layers=` validated against `LAYER_CONFIGS` — a different,
+ * shorter list — and silently dropped six real layers from any URL that named
+ * them. A union you can only read at compile time cannot be used to check a
+ * string arriving at runtime, so something else gets used instead, and that
+ * something else drifts.
+ */
+export const SEA_LAYER_IDS = [
+  "contracts", "reserved-areas", "apeis", "biodiversity-hotspots", "seamounts",
+  "relinquished-areas", "argo", "hydrothermal-vents", "eez", "protected-marine-sites",
+  "noise-risk", "oceansites", "onc", "onc-instruments", "chess", "submarine-cables", "ports",
+  "tectonic-plates", "vessel-events", "ais-live", "monitoring-density", "offshore-activities",
+  "deepdata-stations", "hydrophone-stations", "bathymetry", "ocean-currents",
+  "woa-climatology", "oxygen-deox", "wod-oxygen", "memento", "geotraces", "methane-seeps",
+  "ocean-carbon", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
+  "seabed-substrate", "arctic-sediment-carbon", "mosaic-sediment", "vme-suitability",
+  "ocean-acidification", "coral-acid-exposure", "cumulative-human-impact",
+] as const;
+
+export type SeaLayerId = (typeof SEA_LAYER_IDS)[number];
 
 export type LayerId = SeaLayerId | LandLayerId;
 
@@ -11,12 +34,14 @@ export interface LayerConfig {
   id: LayerId;
   label: string;
   color: string;          // CSS hex for UI
-  fillRgba: [number, number, number, number];  // deck.gl RGBA
-  lineRgba: [number, number, number, number];
+  // readonly so the array below can be `as const` — that is what preserves the
+  // literal ids, which is what makes the completeness guard able to see them.
+  fillRgba: readonly [number, number, number, number];  // deck.gl RGBA
+  lineRgba: readonly [number, number, number, number];
   description: string;
 }
 
-export const LAYER_CONFIGS: LayerConfig[] = [
+export const LAYER_CONFIGS = [
   {
     id: "contracts",
     label: "Mining Concessions",
@@ -330,4 +355,54 @@ export const LAYER_CONFIGS: LayerConfig[] = [
     lineRgba: [240, 190, 90, 0],
     description: "MODELLED dimensionless index of total human pressure on marine ecosystems (NCEAS / Halpern et al. 2025) — the sum of ~10 anthropogenic stressors, present-state. Seabed mining is only a minor component; context, not accusation.",
   },
-];
+] as const satisfies readonly LayerConfig[];
+
+/**
+ * Sea layers that exist and are served, but carry NO `LAYER_CONFIGS` entry.
+ *
+ * `LAYER_CONFIGS` is not "every layer" — it is the list that drives three
+ * specific behaviours, and being absent from it has three measured consequences
+ * (verified 2026-09-12):
+ *
+ *  1. `Map3D.tsx` auto-enables any `LAYER_CONFIGS` id a returning visitor has
+ *     not seen before — unconditionally, ignoring `default_on`. An absent layer
+ *     is never switched on that way. All six below are `default_on: false`, so
+ *     nothing is lost today; the first `default_on: true` layer added without an
+ *     entry here would simply never appear, with no error anywhere.
+ *  2. `controls/tooltips.ts` builds `LAYER_LABEL_MAP` from this array, so the
+ *     "pairs with" chips fall back to the raw dash-id instead of a human label.
+ *  3. ⛔ `WelcomeOverlay.tsx` validated the `?layers=` URL parameter against this
+ *     array. A link naming one of these six had it silently dropped — a typo and
+ *     a real-but-unlisted layer were indistinguishable, and both quietly produced
+ *     a smaller, authoritative layer set. Fixed by validating against
+ *     `SEA_LAYER_IDS` + `LAND_LAYER_IDS` instead; this list no longer gates it.
+ *
+ * ⚠️ The honest reason for each: none was recorded. Git history shows all six
+ * were added by commits that registered "layer id + store state" — the id went
+ * into the type and into LAYER_DEFAULTS, and `LAYER_CONFIGS` was simply not part
+ * of that step. There is no principle separating them from the 38 that are
+ * listed: `woa-climatology` is a field layer and IS listed, `wod-oxygen` is a
+ * field layer and is NOT. So this is drift, written down rather than explained
+ * away. ⛔ Do not invent a rationale here — a false reason looks considered and
+ * stops the next person re-checking.
+ */
+export const NO_LAYER_CONFIG = [
+  "arctic-catchments", "geotraces", "ocean-acidification",
+  "oxygen-deox", "sios-svalbard", "wod-oxygen",
+] as const;
+
+/** Every sea layer either has a LAYER_CONFIGS entry or is named above. */
+const _seaConfigsComplete: AssertComplete<
+  (typeof LAYER_CONFIGS)[number]["id"] | LandLayerId,
+  (typeof NO_LAYER_CONFIG)[number]
+> = true;
+
+/** ⛔ …and the two lists must not overlap: silencing the check above by adding a
+ * layer that actually IS configured would make this file assert something false. */
+const _seaConfigsDisjoint: AssertDisjoint<
+  (typeof LAYER_CONFIGS)[number]["id"],
+  (typeof NO_LAYER_CONFIG)[number]
+> = true;
+
+void _seaConfigsComplete;
+void _seaConfigsDisjoint;

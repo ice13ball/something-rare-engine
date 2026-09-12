@@ -40,7 +40,7 @@ from urllib.parse import urlparse
 import db
 import httpx
 from parse_util import coerce_date as _coerce_date
-from sync_log import log_sync as _log_sync
+from sync_log import log_sync as _log_sync, log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
 
@@ -1282,12 +1282,16 @@ async def sync_sbma_ck() -> int:
     url = await _resolve_tenement_url()
     if not url:
         log.warning("sbma-cook-islands: no live Landfolio service found at any candidate URL")
+        await _log_sync_skipped(
+            "sbma-cook-islands", "no Landfolio candidate base resolved")
         return 0
 
     try:
         features = await fetch_arcgis_features_url(url)
     except Exception as exc:
         log.warning("sbma-cook-islands: fetch failed — %s", exc)
+        await _log_sync_skipped(
+            "sbma-cook-islands", f"fetch failed: {type(exc).__name__}")
         return 0
 
     rows: list[dict] = []
