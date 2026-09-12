@@ -3,6 +3,7 @@
 
 import { LAYER_CONFIGS, type LayerId } from "../../types/layers";
 import { LAND_LAYER_CONFIGS } from "../../types/landLayers";
+import type { AssertComplete } from "../../types/layerRegistry";
 
 /* ── Layer tooltip data ──────────────────────────────────────────────────── */
 
@@ -31,7 +32,7 @@ export function dashToCamel(s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 }
 
-export const LAYER_TOOLTIPS_META: Record<string, LayerTooltipMeta> = {
+export const LAYER_TOOLTIPS_META = {
   // ── Ocean ──
   "contracts": {
     source: "International Seabed Authority — DeepData",
@@ -309,4 +310,21 @@ export const LAYER_TOOLTIPS_META: Record<string, LayerTooltipMeta> = {
     sourceUrl: "https://www.earthbyte.org/seafloor-lithology-of-the-ocean-basins/",
     pairsWith: ["seamounts", "hydrothermal-vents", "contracts"],
   },
-};
+  "ais-live": {
+    source: "AISStream.io — live AIS broadcast relay",
+    sourceUrl: "https://aisstream.io/",
+    pairsWith: ["vessel-events", "contracts", "protected-marine-sites"],
+  },
+  "bathymetry": {
+    source: "GEBCO Compilation Group — wms.gebco.net (GEBCO_LATEST grid)",
+    sourceUrl: "https://www.gebco.net/data_and_products/gridded_bathymetry_data/",
+    pairsWith: ["seamounts", "hydrothermal-vents", "contracts"],
+  },
+} as const satisfies Record<LayerId, LayerTooltipMeta>;
+
+// Every layer gets a hover tooltip. There is no defensible reason for a row in
+// the left menu to explain nothing, so this registry has no opt-out list.
+export const _tooltipsAreComplete: AssertComplete<
+  keyof typeof LAYER_TOOLTIPS_META,
+  never
+> = true;

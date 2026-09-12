@@ -111,6 +111,12 @@ LAYER_OPS: dict[str, LayerOps] = {
     "ports":               {"sync_source": "ports", "log_source": "port_locations",
                              "tables": ("port_locations",),
                              "count_sql": "SELECT count(*) FROM port_locations"},
+    "hydrophone-stations": {"sync_source": "acoustic-stations", "log_source": "acoustic-stations",
+                             "tables": ("acoustic_stations",),
+                             "count_sql": "SELECT count(*) FROM acoustic_stations"},
+    "deepdata-stations":   {"sync_source": "deepdata-stations", "log_source": "deepdata-stations",
+                             "tables": ("deepdata_stations",),
+                             "count_sql": "SELECT count(*) FROM deepdata_stations"},
 
     # --- submarine cables: 6 sub-tables under one toggle, EMODnet is primary ---
     "submarine-cables":    {"sync_source": "cables", "log_source": "submarine_cables",

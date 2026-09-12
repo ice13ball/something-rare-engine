@@ -452,7 +452,7 @@
       "air-quality": "Relevés en temps réel de PM2.5, SO₂, NO₂, O₃, CO depuis des stations de surveillance gouvernementales dans le monde entier. L'exploitation minière et la fumée des incendies créent des points chauds de pollution.",
       "landslides": "Glissements de terrain déclenchés par les pluies depuis 2007. Les digues de résidus en terrain sujet aux glissements constituent un signal d'alarme pour le risque de défaillance structurelle.",
       "surface-water": "Occurrence et évolution des eaux de surface 1984–2021 à 30 m. Indique si les mines ont créé des plans d'eau artificiels ou détruit des plans d'eau naturels.",
-      "dams": "38 667 emplacements de barrages depuis GOODD (2019). Emplacements seuls — sans noms ni attributs. Les mines en amont des retenues d'eau potable créent des voies de contamination.",
+      "dams": "41 145 obstacles fluviaux depuis GDW v1.0 (2024) — GOODD et GRanD fusionnés. Un quart porte un nom ; le pays figure sur chaque point. Les mines en amont des retenues d'eau potable créent des voies de contamination.",
       "carbon-flux": "Émissions et absorptions de CO₂ par hectare à 30 m, 2001–2025 (Global Forest Watch). La déforestation due à l'exploitation minière transforme des puits de carbone en sources d'émissions.",
       "soil-carbon": "Stocks mondiaux de carbone organique du sol dans les 0–5 cm supérieurs à 250 m (ISRIC SoilGrids). L'exploitation minière perturbe les réserves de carbone du sol qui ont mis des millénaires à s'accumuler.",
       "water-risk": "Risque hydrique mondial au niveau des sous-bassins — stress, épuisement, sécheresse, inondation. Les scores pondérés par l'exploitation minière mettent en évidence les bassins où l'extraction entre en concurrence avec les communautés pour l'eau.",
@@ -478,7 +478,8 @@
       "ocean-acidification": "Champ modélisé de l'acidification de l'océan — état de saturation en aragonite (ΩA) et en calcite (ΩC) issu de GLODAPv2.2016b, complété par une profondeur d'horizon de saturation dérivée par la plateforme. Ω < 1 est corrosif pour les organismes à coquille d'aragonite. Échelle divergente : rouge (<1, corrosif) → blanc (≈1) → bleu (>1, sursaturé). Climatologie statique, pas une mesure en temps réel.",
       "coral-acid-exposure": "Exposition MODÉLISÉE d'un habitat corallien favorable à une eau sous-saturée (corrosive) — croise notre propre modèle d'adéquation VME (MaxEnt) avec les horizons de saturation en aragonite reconstruits (GLODAP v2.2016b, via PyCO2SYS). Exposition, pas perte : les coraux d'eau froide sont documentés vivant sous l'horizon de saturation, se calcifiant à un coût métabolique. Quatre états : nouvellement corrosif depuis l'ère préindustrielle, corrosif avant l'industrialisation, sursaturé, aucune donnée. « Aujourd'hui » correspond à l'année de référence cartographiée du GLODAP, nominalement vers 2002 — il s'agit d'une comparaison entre deux instantanés climatologiques, pas d'un taux ou d'une tendance.",
       "cumulative-human-impact": "Indice sans dimension modélisé de la pression humaine totale sur les écosystèmes marins (NCEAS / Halpern et al. 2025) — la somme d'une dizaine de facteurs de stress anthropiques répartis en six catégories, état actuel uniquement. L'exploitation minière des fonds marins n'en est qu'une composante mineure, et les zones de contrat de l'AIFM se situent dans des zones abyssales à impact relativement faible. Contexte, pas accusation : un polygone de concession n'est pas une source causale de cet impact. Un indice modélisé, pas une mesure.",
-      "ais-live": "Positions de navires en direct (AIS), ~60 dernières minutes. Couverture côtière uniquement avec l'offre gratuite.",
+      "ais-live": "Positions de navires en direct depuis les transpondeurs AIS, relayées par AISStream. Montre où les navires se trouvent maintenant, pas où ils sont passés — cliquez sur un navire pour charger sa trace sur 30 jours. La couverture dépend de la portée des récepteurs terrestres et satellitaires, donc le large est moins bien couvert que les eaux côtières.",
+      "bathymetry": "Profondeur des fonds marins en relief ombré, issue de la grille mondiale GEBCO. C'est le terrain de base sur lequel reposent les autres couches océaniques. GEBCO combine des sondages directs et des estimations satellitaires : les zones lisses relèvent donc généralement de l'interpolation, non d'une planéité mesurée.",
       "vessel-events": "Détection de navires furtifs par SAR×AIS : contacts radar sans AIS correspondant. Zones de surveillance côtières uniquement."
     },
     "densityScaleLabel": "Enregistrements par cellule",
@@ -682,9 +683,14 @@
     "riverLabel": "Fleuve",
     "volumeLabel": "Volume",
     "yearBuiltLabel": "Année de construction",
-    "goodIdHeader": "Barrage GOODD {{id}}",
-    "goodIdLabel": "Identifiant GOODD",
-    "locationOnlyNote": "GOODD géoréférence uniquement la position des barrages — il ne publie ni nom, ni rivière, ni pays, ni hauteur, ni usage, ni année, ni volume de retenue ; ces champs sont donc vides ici, et non perdus."
+    "gdwIdHeader": "Barrage GDW {{id}}",
+    "gdwIdLabel": "Identifiant GDW",
+    "basinLabel": "Bassin principal",
+    "damTypeLabel": "Type de barrage",
+    "areaLabel": "Superficie du réservoir",
+    "powerLabel": "Puissance installée",
+    "grandIdLabel": "Identifiant GRanD",
+    "unnamedNote": "GDW nomme environ un quart de ses barrages (10 071 sur 41 145). Celui-ci n'a pas de nom à la source — le point et les autres attributs restent ceux de GDW."
   },
   "deepDataStation": {
     "auditTrailSectionTitle": "Piste d'audit",

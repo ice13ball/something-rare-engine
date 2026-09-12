@@ -452,7 +452,7 @@
       "air-quality": "Echtzeit-Messwerte von PM2.5, SO₂, NO₂, O₃, CO von staatlichen Überwachungsstationen weltweit. Bergbau und Brandrauch erzeugen Verschmutzungsschwerpunkte.",
       "landslides": "Durch Niederschlag ausgelöste Erdrutsche seit 2007. Abraumdämme in erdrutschgefährdetem Gelände sind ein Warnsignal für das Risiko eines strukturellen Versagens.",
       "surface-water": "Vorkommen und Veränderung von Oberflächenwasser 1984–2021 bei 30 m. Zeigt, ob Minen künstliche Gewässer geschaffen oder natürliche zerstört haben.",
-      "dams": "38.667 Dammstandorte aus GOODD (2019). Nur Standorte — ohne Namen oder Attribute. Minen oberhalb von Trinkwasserspeichern schaffen Kontaminationspfade.",
+      "dams": "41.145 Flusssperrwerke aus GDW v1.0 (2024) — GOODD und GRanD zusammengeführt. Ein Viertel trägt einen Namen; das Land ist an jedem Punkt vorhanden. Minen oberhalb von Trinkwasserspeichern schaffen Kontaminationspfade.",
       "carbon-flux": "CO₂-Emissionen und -Entnahmen pro Hektar bei 30 m, 2001–2025 (Global Forest Watch). Durch den Bergbau verursachte Entwaldung verwandelt Kohlenstoffsenken in Kohlenstoffquellen.",
       "soil-carbon": "Globale organische Kohlenstoffvorräte in der obersten 0–5 cm in 250 m Auflösung (ISRIC SoilGrids). Der Bergbau stört Bodenkohlenstoffspeicher, die sich über Jahrtausende angesammelt haben.",
       "water-risk": "Globales Wasserrisiko auf Teileinzugsgebietsebene — Stress, Erschöpfung, Dürre, Überschwemmung. Bergbaugewichtete Werte heben Einzugsgebiete hervor, in denen der Abbau mit Gemeinschaften um Wasser konkurriert.",
@@ -478,7 +478,8 @@
       "ocean-acidification": "Modelliertes Ozeanversauerungsfeld — Aragonit- (ΩA) und Calcit-Sättigungszustand (ΩC) aus GLODAPv2.2016b, ergänzt um eine von der Plattform abgeleitete Sättigungshorizont-Tiefe. Ω < 1 ist korrosiv für Organismen mit Aragonitschalen. Divergierende Farbskala: Rot (<1, korrosiv) → Weiß (≈1) → Blau (>1, übersättigt). Statische Klimatologie, keine Echtzeitdaten.",
       "coral-acid-exposure": "MODELLIERTE Exposition geeigneten Korallenlebensraums gegenüber untersättigtem (korrosivem) Wasser — verknüpft unser eigenes VME-MaxEnt-Eignungsmodell mit rekonstruierten Aragonit-Sättigungshorizonten (GLODAP v2.2016b, über PyCO2SYS). Exposition, kein Verlust: Kaltwasserkorallen sind dokumentiert lebend unterhalb des Sättigungshorizonts, sie verkalken dabei mit metabolischen Kosten. Vier Zustände: neu korrosiv seit vorindustrieller Zeit, korrosiv vor der Industrialisierung, übersättigt, keine Daten. „Heute“ bezeichnet das kartierte Referenzjahr des GLODAP, nominell ca. 2002 — dies vergleicht zwei Klimatologie-Momentaufnahmen, keine Rate oder Trend.",
       "cumulative-human-impact": "Modellierter dimensionsloser Index der gesamten menschlichen Belastung mariner Ökosysteme (NCEAS / Halpern et al. 2025) — die Summe von rund 10 anthropogenen Stressoren in sechs Kategorien, nur der gegenwärtige Zustand. Der Tiefseebergbau ist dabei nur eine geringe Komponente, und die ISA-Vertragsgebiete liegen in vergleichsweise gering belasteten abyssischen Zonen. Kontext, keine Anschuldigung: Ein Konzessionspolygon ist keine ursächliche Quelle dieser Belastung. Ein modellierter Index, keine Messung.",
-      "ais-live": "Live-Schiffspositionen (AIS), letzte ~60 Minuten. In der kostenlosen Stufe nur küstennahe Abdeckung.",
+      "ais-live": "Live-Schiffspositionen von AIS-Transpondern, weitergeleitet über AISStream. Zeigt, wo Schiffe jetzt sind, nicht wo sie waren — klicken Sie ein Schiff an, um seine 30-Tage-Spur zu laden. Die Abdeckung hängt von der Reichweite terrestrischer und satellitengestützter Empfänger ab, offene See ist daher lückenhafter als Küstengewässer.",
+      "bathymetry": "Meeresbodentiefe als Schummerungsrelief aus dem globalen GEBCO-Gitter. Dies ist das Basisgelände, auf dem die übrigen Ozeanschichten liegen. GEBCO verbindet direkte Lotungen mit satellitengestützten Schätzungen — glatte Bereiche sind daher meist Interpolation, keine gemessene Ebenheit.",
       "vessel-events": "SAR×AIS-Erkennung dunkler Schiffe: Radarkontakte ohne passendes AIS-Signal. Nur küstennahe Beobachtungszonen."
     },
     "densityScaleLabel": "Datensätze pro Zelle",
@@ -682,9 +683,14 @@
     "riverLabel": "Fluss",
     "volumeLabel": "Volumen",
     "yearBuiltLabel": "Baujahr",
-    "goodIdHeader": "GOODD-Damm {{id}}",
-    "goodIdLabel": "GOODD-Kennung",
-    "locationOnlyNote": "GOODD georeferenziert nur die Lage der Dämme — Name, Fluss, Land, Höhe, Zweck, Baujahr und Stauvolumen werden dort nicht veröffentlicht; diese Felder sind hier daher leer, nicht verloren."
+    "gdwIdHeader": "GDW-Sperrwerk {{id}}",
+    "gdwIdLabel": "GDW-ID",
+    "basinLabel": "Haupteinzugsgebiet",
+    "damTypeLabel": "Dammtyp",
+    "areaLabel": "Stauseefläche",
+    "powerLabel": "Installierte Leistung",
+    "grandIdLabel": "GRanD-ID",
+    "unnamedNote": "GDW benennt etwa ein Viertel seiner Sperrwerke (10.071 von 41.145). Dieses ist an der Quelle unbenannt — Punkt und übrige Attribute stammen weiterhin von GDW."
   },
   "deepDataStation": {
     "auditTrailSectionTitle": "Prüfpfad",

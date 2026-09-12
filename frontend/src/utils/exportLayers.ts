@@ -223,15 +223,12 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
   // "eez" removed 2026-09-04: CC-BY 4.0 allows it, but VLIZ asks that their
   // products not be made available for download elsewhere. A courtesy, not an
   // obligation — reversible without asking anyone. The layer still renders.
-  {
-    id: "protected-marine-sites",
-    label: "Marine protected sites (UNESCO)",
-    kind: "vector",
-    geomKind: "polygon",
-    family: "Life & geology",
-    source: "UNESCO World Heritage Marine + MarineRegions.org",
-    sourceUrl: "https://whc.unesco.org/en/marine/",
-  },
+  //
+  // "protected-marine-sites" removed 2026-09-11: same provider, same geo.vliz.be
+  // WFS, so the same courtesy. Offering one VLIZ product for bulk download and
+  // withholding the other was our inconsistency, not a line VLIZ drew. It also
+  // draws on Protected Planet — the UNEP-WCMC source behind the wdpa withdrawal.
+  // Mirrors backend/services/export_registry.py; keep the two in step.
   {
     id: "deepdata-stations",
     label: "DeepData stations (ISA)",

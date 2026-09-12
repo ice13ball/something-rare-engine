@@ -452,7 +452,7 @@
       "air-quality": "Odczyty PM2.5, SO₂, NO₂, O₃, CO w czasie rzeczywistym ze stacji monitoringu rządowego na całym świecie. Górnictwo i dym z pożarów tworzą obszary podwyższonego zanieczyszczenia.",
       "landslides": "Osuwiska wywołane opadami deszczu od 2007 r. Zapory piętrze w terenie podatnym na osuwiska to sygnał ostrzegawczy ryzyka awarii konstrukcyjnej.",
       "surface-water": "Występowanie i zmiany wód powierzchniowych 1984–2021 w rozdzielczości 30 m. Pokazuje, czy kopalnie stworzyły sztuczne zbiorniki wodne lub zniszczyły naturalne.",
-      "dams": "38 667 położeń tam z GOODD (2019). Tylko położenia — bez nazw i atrybutów. Kopalnie powyżej zbiorników wody pitnej tworzą drogi skażenia.",
+      "dams": "41 145 barier rzecznych z GDW v1.0 (2024) — połączone GOODD i GRanD. Jedna czwarta ma nazwę; kraj jest przy każdym punkcie. Kopalnie powyżej zbiorników wody pitnej tworzą drogi skażenia.",
       "carbon-flux": "Emisje i pochłanianie CO₂ na hektar w rozdzielczości 30 m, 2001–2025 (Global Forest Watch). Wycinka lasów spowodowana górnictwem zamienia pochłaniacze węgla w źródła emisji.",
       "soil-carbon": "Globalne zasoby węgla organicznego w glebie w górnych 0–5 cm w rozdzielczości 250 m (ISRIC SoilGrids). Górnictwo zaburza zasoby węgla glebowego gromadzone przez tysiąclecia.",
       "water-risk": "Globalne ryzyko wodne na poziomie pod-zlewniowym — stres, wyczerpanie, susza, powódź. Ważone górniczo wyniki wskazują zlewnie, gdzie wydobycie konkuruje z społecznościami o wodę.",
@@ -478,7 +478,8 @@
       "ocean-acidification": "Modelowane pole zakwaszenia oceanu — stan nasycenia aragonitem (ΩA) i kalcytem (ΩC) z GLODAPv2.2016b, wraz z pochodną głębokością horyzontu nasycenia wyznaczaną przez platformę. Ω < 1 oznacza wodę korozyjną dla organizmów o szkieletach aragonitowych. Skala rozbieżna: czerwony (<1, korozyjne) → biały (≈1) → niebieski (>1, przesycone). Statyczna klimatologia, nie dane w czasie rzeczywistym.",
       "coral-acid-exposure": "MODELOWANA ekspozycja odpowiedniego siedliska koralowców na wodę niedosyconą (korozyjną) — łączy nasz własny model odpowiedniości VME (MaxEnt) z zrekonstruowanymi horyzontami nasycenia aragonitem (GLODAP v2.2016b, przez PyCO2SYS). Ekspozycja, nie utrata: udokumentowano koralowce zimnowodne żyjące poniżej horyzontu nasycenia, wapniejące kosztem metabolicznym. Cztery stany: nowo korozyjne od czasów przedindustrialnych, korozyjne przed uprzemysłowieniem, przesycone, brak danych. „Dziś” oznacza mapowany rok referencyjny GLODAP, nominalnie ok. 2002 — to porównanie dwóch migawek klimatologicznych, nie tempo ani trend.",
       "cumulative-human-impact": "Modelowany bezwymiarowy wskaźnik całkowitej presji człowieka na ekosystemy morskie (NCEAS / Halpern i in. 2025) — suma około 10 antropogenicznych czynników stresowych w sześciu kategoriach, wyłącznie stan obecny. Górnictwo dna morskiego jest tylko niewielkim składnikiem, a obszary koncesji ISA leżą w strefach abisalnych o stosunkowo niskim wpływie. Kontekst, nie oskarżenie: wielokąt koncesji nie jest przyczynowym źródłem tego wpływu. Wskaźnik modelowany, nie pomiar.",
-      "ais-live": "Pozycje statków na żywo (AIS), ostatnie ~60 minut. W darmowym planie tylko pokrycie przybrzeżne.",
+      "ais-live": "Pozycje statków na żywo z transponderów AIS, przekazywane przez AISStream. Pokazuje, gdzie statki są teraz, a nie gdzie były — kliknij jednostkę, aby wczytać jej trasę z 30 dni. Zasięg zależy od odbiorników naziemnych i satelitarnych, więc otwarty ocean jest pokryty gorzej niż wody przybrzeżne.",
+      "bathymetry": "Głębokość dna morskiego jako cieniowana rzeźba, z globalnej siatki GEBCO. To jest teren bazowy, na którym leżą pozostałe warstwy oceaniczne. GEBCO łączy bezpośrednie sondowania z szacunkami satelitarnymi, więc gładkie obszary to zwykle interpolacja, a nie zmierzona płaskość.",
       "vessel-events": "Wykrywanie statków bez AIS metodą SAR×AIS: kontakty radarowe bez odpowiadającego sygnału AIS. Tylko przybrzeżne strefy obserwacyjne."
     },
     "densityScaleLabel": "Rekordy na komórkę",
@@ -682,9 +683,14 @@
     "riverLabel": "Rzeka",
     "volumeLabel": "Objętość",
     "yearBuiltLabel": "Rok budowy",
-    "goodIdHeader": "Tama GOODD {{id}}",
-    "goodIdLabel": "Identyfikator GOODD",
-    "locationOnlyNote": "GOODD podaje wyłącznie położenie tam — nie publikuje nazwy, rzeki, kraju, wysokości, przeznaczenia, roku ani objętości zbiornika, więc te pola są tu puste, a nie zagubione."
+    "gdwIdHeader": "Bariera GDW {{id}}",
+    "gdwIdLabel": "Identyfikator GDW",
+    "basinLabel": "Dorzecze główne",
+    "damTypeLabel": "Typ zapory",
+    "areaLabel": "Powierzchnia zbiornika",
+    "powerLabel": "Moc zainstalowana",
+    "grandIdLabel": "Identyfikator GRanD",
+    "unnamedNote": "GDW nazywa około jednej czwartej swoich barier (10 071 z 41 145). Ta nie ma nazwy u źródła — punkt i pozostałe atrybuty nadal pochodzą z GDW."
   },
   "deepDataStation": {
     "auditTrailSectionTitle": "Ścieżka audytu",

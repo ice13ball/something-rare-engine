@@ -240,11 +240,11 @@
     },
     "globalDams": {
       "label": "Global Dams",
-      "source": "GOODD — Global geOreferenced Database of Dams v2 (GOOD2_dams, 2019-08-16), Mulligan et al., globaldamwatch.org. ⚠️ Georeferencing only.",
-      "updateFreq": "Static — the loaded release is dated 2019-08-16 and has not been superseded here",
-      "description": "38,667 dam locations worldwide, mapped from satellite imagery. ⚠️ GOODD is a georeferencing dataset: it records WHERE a dam is and nothing else. It publishes no dam name, river, country, height, purpose, year of completion, reservoir volume or dam type — those fields are empty on this platform because the source does not carry them, not because a fetch failed. What the layer is for is spatial context: which mines sit upstream or downstream of a barrier, since mines depend on water supply and their tailings can contaminate reservoirs below.",
-      "reading": "Indigo dot = one dam location. Click for its GOODD identifier and coordinates. There is no name to click through to — if you need attributes, take the coordinates to Global Dam Watch's GDW release, which merges GOODD with ICOLD and GRanD and does carry them.",
-      "limitations": "Locations only, and they are point centroids rather than dam crest footprints. Derived from visual interpretation of satellite imagery, so small weirs and farm ponds are under-represented and a few points may not be dams at all. The release loaded here is from 2019; dams built or removed since are absent. No reservoir polygons are served on this platform."
+      "source": "GDW — Global Dam Watch database v1.0 (GDW_barriers_v1_0, 2024-07-24), figshare doi:10.6084/m9.figshare.25988293, CC BY 4.0. Absorbs GOODD and GRanD, which its publishers state will be discontinued.",
+      "updateFreq": "Static — GDW v1.0, released 2024; updated periodically upstream and reloaded here when a new version appears",
+      "description": "41,145 river barriers and dams worldwide. GDW merges GOODD's satellite-mapped locations with GRanD's engineering records and ICOLD, so unlike the GOODD-only release served here until 2026-09-11 it carries real attributes — name, river, country, height, reservoir capacity, year and use. ⚠️ It is not complete: 10,071 barriers (24.5%) have a name, 15,229 (37%) a year, 9,311 (23%) a height. Country is the only field present on every point.",
+      "reading": "Indigo dot = one barrier. Click for whatever GDW records about it: a name if the source has one, otherwise its GDW identifier. Empty rows mean the source left the field blank — GDW's no-data code (-99) is stored as no value rather than printed as a measurement. What the layer is for is spatial context: which mines sit upstream or downstream of a barrier, since mines depend on water supply and their tailings can contaminate reservoirs below.",
+      "limitations": "Point locations, not dam crest footprints. Three quarters of barriers are unnamed at source and most carry no height or year. Installed capacity is present on only 242 points (0.6%), so this layer cannot be used to total hydropower. The reservoir polygons GDW publishes alongside the barriers are not served here. GDW v1.0 is a 2024 snapshot; dams built or removed since are absent."
     },
     "globalSurfaceWater": {
       "label": "Global Surface Water",

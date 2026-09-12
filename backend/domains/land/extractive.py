@@ -811,10 +811,31 @@ async def get_tailings():
 # ── Global Dams ────────────────────────────────────────────────────────────
 
 async def _sync_dams(force: bool = False) -> int:
-    """
-    Import Global Dam Watch data.
-    Source: https://www.globaldamwatch.org/database
-    Place downloaded file in /opt/abyssal-data/dams/ on VPS.
+    """Load GDW — the Global Dam Watch database v1.0 — from the VPS data dir.
+
+    Source: GDW v1.0, figshare doi:10.6084/m9.figshare.25988293.v1, CC BY 4.0.
+    File:   /opt/abyssal-data/dams-gdw/GDW_v1_0_shp/GDW_barriers_v1_0.shp
+    41,145 barrier points; a separate reservoir-polygon layer is NOT loaded.
+
+    ⛔ WHAT THIS REPLACED. Until 2026-09-11 the layer served GOODD (GOOD2_dams,
+    2019), which publishes four fields — DAM_ID, Count_ID, Latitud, Longitud —
+    and nothing else, while this function's docstring claimed to import Global
+    Dam Watch. Every attribute column was NULL on all 38,667 rows and the
+    numeric DAM_ID was rendered where a name belonged. GDW absorbed GOODD and
+    GRanD; globaldamwatch.org states both "will be discontinued".
+
+    ⛔ GDW's NO-DATA CODE IS -99, AND IT IS EVERYWHERE. Measured on the loaded
+    file: power_mw 40,903 · dam_hgt_m 31,834 · year_dam 25,915 · area_skm 5,824 ·
+    cap_mcm 5,811. Stored as-is they would print "-99 m" and "built -99" as
+    measurements, so they become SQL NULL — the rule already written down in
+    docs/methods/data-passthrough.md for WRI Aqueduct's -9999.
+    0 MW is NOT no-data: a non-hydro barrier genuinely generates nothing, so
+    only -99 is treated as absent on power_mw.
+
+    ⛔ GDW IS NOT A COMPLETE ATTRIBUTE DATABASE, and the legend says so. Of
+    41,145 barriers: country 41,145 (100%), cap_mcm 35,334 (86%), year 15,229
+    (37%), NAME 10,071 (24.5%), river 9,501 (23%), height 9,311 (23%),
+    power_mw 242 (0.6%). Three quarters of the points still have no name.
     """
     async with db.pool.acquire() as conn:
         last = await conn.fetchval(
@@ -826,82 +847,95 @@ async def _sync_dams(force: bool = False) -> int:
         count = await conn.fetchval("SELECT COUNT(*) FROM dams")
         if count > 0:
             log.info("dams: already have %d records, skipping", count)
-            # ⛔ The row-count guard stays even under force. These loads use
-            # `ogr2ogr -append`, so re-running against a populated table
-            # DOUBLES it — force skips the cadence window, never the duplicate
-            # barrier. Logged at WARNING so a forced run that does nothing is
-            # visible rather than being reported as a success.
+            # ⛔ The row-count guard stays even under force. This load appends,
+            # so re-running against a populated table DOUBLES it — force skips
+            # the cadence window, never the duplicate barrier. A deliberate
+            # reload is a TRUNCATE plus this function, in one transaction.
             if force:
                 log.warning(
                     "dams: force requested but the table already holds %d rows; "
                     "this load is append-only and cannot be safely re-run. "
                     "TRUNCATE deliberately first if a reload is really wanted.",
                     count)
+            await _log_land_sync("dams", 0, count)
             return 0
 
-    dams_path = "/opt/abyssal-data/dams"
     src_file = None
-    if os.path.isdir(dams_path):
-        for fn in os.listdir(dams_path):
-            if fn.endswith((".csv", ".geojson", ".gpkg", ".shp")):
-                src_file = os.path.join(dams_path, fn)
+    for root in ("/opt/abyssal-data/dams-gdw", "/opt/abyssal-data/dams"):
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(root):
+            for fn in filenames:
+                # the barrier POINTS, never the reservoir polygons
+                if fn.lower().endswith(".shp") and "barrier" in fn.lower():
+                    src_file = os.path.join(dirpath, fn)
+                    break
+            if src_file:
                 break
+        if src_file:
+            break
 
     if not src_file:
-        log.warning("dams: no data file in %s — download from globaldamwatch.org", dams_path)
+        log.warning(
+            "dams: no GDW barrier shapefile under /opt/abyssal-data/dams-gdw — "
+            "fetch GDW_v1_0_shp.zip from figshare doi:10.6084/m9.figshare.25988293")
+        await _log_land_sync("dams", 0, 0)
         return 0
 
-    if src_file.endswith(".csv"):
-        with open(src_file) as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-        inserted = 0
-        async with db.pool.acquire() as conn:
-            for r in rows:
-                try:
-                    lat = float(r.get("latitude") or r.get("lat") or r.get("LAT_DD") or 0)
-                    lon = float(r.get("longitude") or r.get("lon") or r.get("LONG_DD") or 0)
-                    if lat == 0 and lon == 0:
-                        continue
-                    await conn.execute("""
-                        INSERT INTO dams
-                            (dam_name, river, country, height_m, purpose, year_built, volume_mcm, geom)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7,
-                                ST_SetSRID(ST_MakePoint($8, $9), 4326))
-                    """,
-                        r.get("DAM_NAME", r.get("dam_name", "")),
-                        r.get("RIVER", r.get("river", "")),
-                        r.get("COUNTRY", r.get("country", "")),
-                        float(r.get("DAM_HGT_M", r.get("height_m", 0)) or 0),
-                        r.get("MAIN_USE", r.get("purpose", "")),
-                        int(r.get("YEAR", r.get("year_built", 0)) or 0),
-                        float(r.get("CATCH_SKM", r.get("volume_mcm", 0)) or 0),
-                        lon, lat,
-                    )
-                    inserted += 1
-                except Exception as e:
-                    log.warning("dams: row failed: %s", e)
-            total = await conn.fetchval("SELECT COUNT(*) FROM dams")
-    else:
-        cmd = [
-            OGR2OGR, "-f", "PostgreSQL", _pg_conn_string(), src_file,
-            "-nln", "dams", "-append",
-            "-nlt", "POINT", "-lco", "GEOMETRY_NAME=geom",
-            "-t_srs", "EPSG:4326", "--config", "PG_USE_COPY", "YES",
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        if result.returncode != 0:
-            log.error("dams ogr2ogr failed: %s", result.stderr)
-            return 0
-        async with db.pool.acquire() as conn:
-            total = await conn.fetchval("SELECT COUNT(*) FROM dams")
-        inserted = total
+    # Load into a staging table, then map into `dams` in SQL. ogr2ogr cannot
+    # express the -99 rule, and a direct -append would carry the sentinels in.
+    cmd = [
+        OGR2OGR, "-f", "PostgreSQL", _pg_conn_string(), src_file,
+        "-nln", "gdw_barriers_staging", "-overwrite", "-nlt", "POINT",
+        "-lco", "GEOMETRY_NAME=geom", "-lco", "FID=gid",
+        "-t_srs", "EPSG:4326", "--config", "PG_USE_COPY", "YES",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    if result.returncode != 0:
+        log.error("dams ogr2ogr failed: %s", result.stderr)
+        await _log_land_sync("dams", 0, 0)
+        return 0
+
+    async with db.pool.acquire() as conn:
+        async with conn.transaction():
+            inserted = await conn.fetchval(_GDW_INSERT_SQL)
+        total = await conn.fetchval("SELECT COUNT(*) FROM dams")
 
     global _dams_cache
     _dams_cache = None
     await _log_land_sync("dams", inserted, total)
-    log.info("dams: %d new / %d total", inserted, total)
+    log.info("dams: %d new / %d total (GDW v1.0)", inserted, total)
     return inserted
+
+
+# ⛔ Every -99 becomes NULL here, and nowhere else. Keeping the mapping in one
+# named statement is what lets the guard assert on it instead of on prose.
+_GDW_INSERT_SQL = """
+WITH ins AS (
+    INSERT INTO dams (gdw_id, dam_name, river, country, height_m, purpose,
+                      year_built, volume_mcm, dam_type, power_mw, grand_id,
+                      main_basin, area_skm, quality, geom)
+    SELECT s.gdw_id,
+           NULLIF(NULLIF(NULLIF(btrim(s.dam_name), ''), 'None'), 'Unknown'),
+           NULLIF(btrim(s.river),      ''),
+           NULLIF(btrim(s.country),    ''),
+           CASE WHEN s.dam_hgt_m > 0   THEN s.dam_hgt_m END,
+           NULLIF(btrim(s.main_use),   ''),
+           CASE WHEN s.year_dam  > 0   THEN s.year_dam  END,
+           CASE WHEN s.cap_mcm   >= 0  THEN s.cap_mcm   END,
+           NULLIF(btrim(s.dam_type),   ''),
+           CASE WHEN s.power_mw  > -99 THEN s.power_mw  END,
+           CASE WHEN s.grand_id  > 0   THEN s.grand_id  END,
+           NULLIF(btrim(s.main_basin), ''),
+           CASE WHEN s.area_skm  >= 0  THEN s.area_skm  END,
+           NULLIF(btrim(s.quality),    ''),
+           s.geom
+    FROM gdw_barriers_staging s
+    WHERE s.geom IS NOT NULL
+    RETURNING 1
+)
+SELECT count(*) FROM ins
+"""
 
 
 @router.get("/dams")
@@ -911,26 +945,51 @@ async def get_dams():
         return Response(content=_dams_cache, media_type="application/json")
 
     async with db.pool.acquire() as conn:
+        # ⛔ SIZE IS A PROPERTY OF THIS ENDPOINT, NOT AN AFTERTHOUGHT.
+        # Moving from GOODD to GDW took the payload to 16.72 MB decoded across
+        # 41,145 features and the browser stalled for tens of seconds parsing
+        # it. The wire was never the problem: 1.26 MB gzipped in 1.97 s.
+        #
+        # Two changes, both lossless for a reader:
+        #   json_strip_nulls  — GDW leaves most attributes empty and a null
+        #     costs as many bytes as a value. power_mw alone spent 0.78 MB to
+        #     carry 242 real numbers among 40,903 nulls. An ABSENT key and a
+        #     null key render identically here: every panel row sits behind a
+        #     presence check, and in JavaScript `undefined != null` is false.
+        #   ST_AsGeoJSON(geom, 5) — five decimals is about one metre. These
+        #     are point centroids of dam structures, not survey marks.
         row = await conn.fetchval("""
-            SELECT json_build_object(
+            SELECT json_strip_nulls(json_build_object(
                 'type', 'FeatureCollection',
                 'features', COALESCE(json_agg(
                     json_build_object(
                         'type', 'Feature',
-                        'geometry', ST_AsGeoJSON(geom)::json,
+                        'geometry', ST_AsGeoJSON(geom, 5)::json,
                         'properties', json_build_object(
                             'id', id,
+                            'gdw_id', gdw_id,
                             'dam_name', dam_name,
                             'river', river,
                             'country', country,
+                            'main_basin', main_basin,
                             'height_m', height_m,
                             'purpose', purpose,
+                            'dam_type', dam_type,
                             'year_built', year_built,
-                            'volume_mcm', volume_mcm
+                            'volume_mcm', volume_mcm,
+                            'area_skm', area_skm,
+                            'power_mw', power_mw,
+                            'grand_id', grand_id
+                            -- ⛔ `quality` is deliberately NOT sent. It is GDW's
+                            -- internal editorial-confidence flag, present on all
+                            -- 41,145 rows, and no panel renders it — 0.95 MB of a
+                            -- payload the browser has to parse for something no
+                            -- reader ever sees. It stays in the table; add it back
+                            -- here only alongside a row that displays it.
                         )
                     )
                 ), '[]'::json)
-            )::text
+            ))::text
             FROM dams
         """)
     _dams_cache = row

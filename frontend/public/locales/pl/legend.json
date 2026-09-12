@@ -240,11 +240,11 @@
     },
     "globalDams": {
       "label": "Globalne zapory",
-      "source": "GOODD — Global geOreferenced Database of Dams v2 (GOOD2_dams, 2019-08-16), Mulligan i in., globaldamwatch.org. ⚠️ Wyłącznie georeferencja.",
-      "updateFreq": "Statyczne — załadowane wydanie ma datę 2019-08-16 i nie zostało tu zastąpione nowszym",
-      "description": "38 667 położeń tam na świecie, zmapowanych ze zdjęć satelitarnych. ⚠️ GOODD to zbiór georeferencyjny: zapisuje, GDZIE jest tama, i nic poza tym. Nie publikuje nazwy, rzeki, kraju, wysokości, przeznaczenia, roku ukończenia, objętości zbiornika ani typu zapory — te pola są u nas puste dlatego, że źródło ich nie niesie, a nie dlatego, że pobranie zawiodło. Warstwa służy do kontekstu przestrzennego: które kopalnie leżą powyżej albo poniżej przegrody, skoro kopalnie zależą od wody, a ich odpady mogą skazić zbiorniki poniżej.",
-      "reading": "Indygowa kropka = jedno położenie tamy. Kliknij, aby zobaczyć jej identyfikator GOODD i współrzędne. Nie ma nazwy, w którą można by kliknąć dalej — jeśli potrzebujesz atrybutów, zanieś współrzędne do wydania GDW Global Dam Watch, które łączy GOODD z ICOLD i GRanD i te atrybuty ma.",
-      "limitations": "Tylko położenia, i to centroidy punktowe, a nie obrysy korony zapory. Powstały z wizualnej interpretacji zdjęć satelitarnych, więc małe jazy i stawy są niedoreprezentowane, a część punktów może nie być tamami. Załadowane wydanie pochodzi z 2019 roku; tamy zbudowane albo usunięte później są nieobecne. Nie serwujemy tu żadnych poligonów zbiorników."
+      "source": "GDW — Global Dam Watch database v1.0 (GDW_barriers_v1_0, 2024-07-24), figshare doi:10.6084/m9.figshare.25988293, CC BY 4.0. Wchłania GOODD i GRanD, które według wydawców zostaną wycofane.",
+      "updateFreq": "Statyczne — GDW v1.0 z 2024; u źródła aktualizowane okresowo, tutaj przeładowywane po ukazaniu się nowej wersji",
+      "description": "41 145 barier rzecznych i zapór na świecie. GDW łączy lokalizacje GOODD zmapowane satelitarnie z zapisami inżynieryjnymi GRanD i ICOLD, więc w odróżnieniu od samego GOODD serwowanego tu do 2026-09-11 niesie prawdziwe atrybuty — nazwę, rzekę, kraj, wysokość, pojemność zbiornika, rok i przeznaczenie. ⚠️ Nie jest kompletny: nazwę ma 10 071 barier (24,5%), rok 15 229 (37%), wysokość 9 311 (23%). Kraj to jedyne pole obecne przy każdym punkcie.",
+      "reading": "Indygowa kropka = jedna bariera. Kliknij, aby zobaczyć, co GDW o niej zapisał: nazwę, jeśli źródło ją ma, a w przeciwnym razie identyfikator GDW. Puste wiersze znaczą, że źródło zostawiło pole puste — kod braku danych GDW (-99) zapisujemy jako brak wartości, zamiast drukować go jako pomiar. Warstwa służy kontekstowi przestrzennemu: które kopalnie leżą powyżej lub poniżej bariery, bo kopalnie zależą od wody, a ich odpady mogą skazić zbiorniki poniżej.",
+      "limitations": "Punkty, a nie obrysy koron zapór. Trzy czwarte barier nie ma nazwy u źródła, większość nie ma wysokości ani roku. Moc zainstalowana występuje tylko przy 242 punktach (0,6%), więc tej warstwy nie można użyć do zsumowania hydroenergetyki. Poligony zbiorników publikowane przez GDW obok barier nie są tu serwowane. GDW v1.0 to zdjęcie stanu z 2024; zapory zbudowane lub usunięte później są nieobecne."
     },
     "globalSurfaceWater": {
       "label": "Globalne wody powierzchniowe",

@@ -239,12 +239,12 @@
       "limitations": "Die Detektion ist stark auf bevölkerte Gebiete ausgerichtet — entfernte Erdrutsche in unbewohnten Regionen sind unterberichtet. Unterseerutschungen sind nicht enthalten."
     },
     "globalDams": {
-      "label": "Globale Staudämme",
-      "source": "GOODD — Global geOreferenced Database of Dams v2 (GOOD2_dams, 2019-08-16), Mulligan et al., globaldamwatch.org. ⚠️ Nur Georeferenzierung.",
-      "updateFreq": "Statisch — die geladene Ausgabe trägt das Datum 2019-08-16 und wurde hier nicht ersetzt",
-      "description": "38.667 Dammstandorte weltweit, aus Satellitenbildern kartiert. ⚠️ GOODD ist ein Georeferenzierungsdatensatz: Er hält fest, WO ein Damm liegt, und sonst nichts. Name, Fluss, Land, Höhe, Zweck, Baujahr, Stauvolumen und Bauart werden dort nicht veröffentlicht — diese Felder sind hier leer, weil die Quelle sie nicht führt, nicht weil ein Abruf fehlschlug. Die Ebene dient dem räumlichen Zusammenhang: welche Minen ober- oder unterhalb einer Sperre liegen, da Minen auf Wasser angewiesen sind und ihre Rückstände Stauseen flussabwärts belasten können.",
-      "reading": "Indigofarbener Punkt = ein Dammstandort. Klicken für seine GOODD-Kennung und die Koordinaten. Einen Namen zum Weiterklicken gibt es nicht — für Attribute nehmen Sie die Koordinaten zur GDW-Ausgabe von Global Dam Watch, die GOODD mit ICOLD und GRanD zusammenführt und sie enthält.",
-      "limitations": "Nur Standorte, und zwar Punktschwerpunkte statt Kronenumrisse. Aus visueller Auswertung von Satellitenbildern gewonnen, daher sind kleine Wehre und Teiche unterrepräsentiert und einzelne Punkte womöglich gar keine Dämme. Die geladene Ausgabe stammt von 2019; seither gebaute oder entfernte Bauwerke fehlen. Auf dieser Plattform werden keine Stauseepolygone ausgeliefert."
+      "label": "Globale Talsperren",
+      "source": "GDW — Global Dam Watch database v1.0 (GDW_barriers_v1_0, 2024-07-24), figshare doi:10.6084/m9.figshare.25988293, CC BY 4.0. Absorbiert GOODD und GRanD, die laut Herausgebern eingestellt werden.",
+      "updateFreq": "Statisch — GDW v1.0 von 2024; stromaufwärts periodisch aktualisiert und hier bei neuer Version neu geladen",
+      "description": "41.145 Flusssperrwerke und Talsperren weltweit. GDW verbindet die satellitenkartierten Standorte von GOODD mit den Ingenieursdaten von GRanD und ICOLD und führt daher — anders als die bis zum 2026-09-11 hier ausgelieferte reine GOODD-Fassung — echte Attribute: Name, Fluss, Land, Höhe, Stauraum, Jahr und Nutzung. ⚠️ Vollständig ist er nicht: 10.071 Sperrwerke (24,5%) haben einen Namen, 15.229 (37%) ein Jahr, 9.311 (23%) eine Höhe. Nur das Land ist an jedem Punkt vorhanden.",
+      "reading": "Indigofarbener Punkt = ein Sperrwerk. Klicken Sie für das, was GDW dazu erfasst: einen Namen, falls die Quelle einen hat, sonst die GDW-Kennung. Leere Zeilen bedeuten, dass die Quelle das Feld leer ließ — der No-Data-Code von GDW (-99) wird als fehlender Wert gespeichert statt als Messwert gedruckt. Die Ebene dient dem räumlichen Kontext: welche Minen ober- oder unterhalb eines Sperrwerks liegen, denn Minen brauchen Wasser und ihre Rückstände können Stauseen flussabwärts belasten.",
+      "limitations": "Punktstandorte, keine Kronenumrisse. Drei Viertel der Sperrwerke sind an der Quelle unbenannt, die meisten ohne Höhe oder Jahr. Installierte Leistung liegt nur bei 242 Punkten (0,6%) vor, die Ebene taugt also nicht zum Aufsummieren von Wasserkraft. Die von GDW mitveröffentlichten Stauseepolygone werden hier nicht ausgeliefert. GDW v1.0 ist eine Momentaufnahme von 2024; später gebaute oder entfernte Talsperren fehlen."
     },
     "globalSurfaceWater": {
       "label": "Globale Oberflächengewässer",

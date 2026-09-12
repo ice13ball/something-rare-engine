@@ -31,7 +31,9 @@ concurrency:
 jobs:
   frontend:
     name: Frontend — typecheck + vitest
-    runs-on: ubuntu-latest
+    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
+    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     defaults:
       run:
         working-directory: frontend
@@ -56,15 +58,21 @@ jobs:
 
   backend:
     name: Backend — pytest against a fresh PostGIS
-    runs-on: ubuntu-latest
+    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
+    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     services:
       postgres:
-        image: postgis/postgis:16-3.4
+        # Na self-hosted (aqua, arm64) obraz multi-arch od opiekuna docker-postgis;
+        # oficjalny postgis/postgis:16-3.4 jest tylko amd64. Ta sama wersja 16/3.4.
+        image: ${{ vars.CI_RUNNER && 'imresamu/postgis:16-3.4' || 'postgis/postgis:16-3.4' }}
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
           POSTGRES_DB: test
-        ports: ["5432:5432"]
+        # 15432, nie 5432: na self-hosted runnerze (aqua) 5432 i 5433 sa zajete
+        # przez hostowego Postgresa i tunel. U GitHuba port jest obojetny.
+        ports: ["15432:5432"]
         options: >-
           --health-cmd "pg_isready -U test"
           --health-interval 5s
@@ -73,8 +81,8 @@ jobs:
     env:
       # 33 references in the suite gate on TEST_DATABASE_URL, 15 on DATABASE_URL.
       # Setting only one leaves a large part of the suite silently skipped.
-      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/test
-      DATABASE_URL: postgresql://test:test@localhost:5432/test
+      TEST_DATABASE_URL: postgresql://test:test@localhost:15432/test
+      DATABASE_URL: postgresql://test:test@localhost:15432/test
       ABYSSAL_API_KEY: ci-test-key
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -143,7 +151,9 @@ jobs:
 
   lint:
     name: Lint — report only, never blocks
-    runs-on: ubuntu-latest
+    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
+    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # First lint pass over ~39.7k + ~61k lines that were never linted. The run
     # exists to measure the backlog and keep it visible, not to gate on it. Promote
     # to blocking per-rule, as each reaches zero — not all at once.

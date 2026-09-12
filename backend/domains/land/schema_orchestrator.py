@@ -303,20 +303,38 @@ async def ensure_land_schema():
         # surface-water, carbon-flux, soil-carbon: raster tiles — no DB tables
 
         await conn.execute("""
+            -- GDW v1.0 barriers (figshare doi:10.6084/m9.figshare.25988293, CC BY 4.0).
+            -- ⛔ Until 2026-09-11 this table held GOODD, which publishes four fields,
+            -- so six of these columns were NULL on all 38,667 rows.
             CREATE TABLE IF NOT EXISTS dams (
                 id          SERIAL PRIMARY KEY,
+                gdw_id      INTEGER,
                 dam_name    TEXT,
                 river       TEXT,
                 country     TEXT,
+                main_basin  TEXT,
                 height_m    DOUBLE PRECISION,
                 purpose     TEXT,
+                dam_type    TEXT,
                 year_built  INTEGER,
                 volume_mcm  DOUBLE PRECISION,
+                area_skm    DOUBLE PRECISION,
+                power_mw    INTEGER,
+                grand_id    INTEGER,
+                quality     TEXT,
                 geom        geometry(Point, 4326),
                 created_at  TIMESTAMPTZ DEFAULT NOW()
             )
         """)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_dams_geom ON dams USING GIST (geom)")
+        await conn.execute("ALTER TABLE dams ADD COLUMN IF NOT EXISTS gdw_id INTEGER")
+        await conn.execute("ALTER TABLE dams ADD COLUMN IF NOT EXISTS dam_type TEXT")
+        await conn.execute("ALTER TABLE dams ADD COLUMN IF NOT EXISTS power_mw INTEGER")
+        await conn.execute("ALTER TABLE dams ADD COLUMN IF NOT EXISTS grand_id INTEGER")
+        await conn.execute("ALTER TABLE dams ADD COLUMN IF NOT EXISTS main_basin TEXT")
+        await conn.execute("ALTER TABLE dams ADD COLUMN IF NOT EXISTS area_skm DOUBLE PRECISION")
+        await conn.execute("ALTER TABLE dams ADD COLUMN IF NOT EXISTS quality TEXT")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_dams_gdw_id ON dams (gdw_id)")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS water_risk (

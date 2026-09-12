@@ -47,11 +47,13 @@ LAYER_DEFAULTS_PY = [
     {"id": "biodiversity-hotspots",  "order_idx": 1000, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "monitoring-density",     "order_idx": 1100, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "noise-risk",             "order_idx": 1200, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "hydrophone-stations",    "order_idx": 1250, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "argo",                   "order_idx": 1300, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "hydrothermal-vents",     "order_idx": 1400, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "oceansites",             "order_idx": 1500, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "onc",                    "order_idx": 1600, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "chess",                  "order_idx": 1700, "default_on": True,  "modes": ["ocean","continue"]},
+    {"id": "deepdata-stations",      "order_idx": 1750, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "submarine-cables",       "order_idx": 1800, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "onc-instruments",        "order_idx": 1900, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "ports",                  "order_idx": 2000, "default_on": False, "modes": ["ocean","continue"]},
@@ -160,6 +162,49 @@ async def ensure_layer_config_seed() -> None:
                     ", ".join(r["id"] for r in retired),
                 )
     log.info("layer_config: table ready (%d default rows available)", len(LAYER_DEFAULTS_PY))
+
+
+_ARCTIC_RIVERS_ORDER_IDX = next(
+    e["order_idx"] for e in LAYER_DEFAULTS_PY if e["id"] == "arctic-rivers"
+)
+
+
+async def ensure_arctic_rivers_order_idx_fix() -> None:
+    """One-time correction for a stale `layer_config` row.
+
+    `arctic-rivers` was a LAND layer until a 2026-09 commit moved it into
+    Ocean and dropped `order_idx` from 3400 down to what LAYER_DEFAULTS_PY
+    now carries.
+    The seed above is `ON CONFLICT (id) DO NOTHING`, so any database whose
+    row predates that commit never picked up the new value — production is
+    still serving `order_idx=3400`, drawing the layer above everything else
+    as if it were still land.
+
+    ⛔ A hand-run UPDATE would fix exactly one database and nothing else — not
+    a fresh deploy, not a restored backup, not a dev instance. This step fixes
+    every environment the code reaches, every restart (same reasoning as
+    WITHDRAWN_LAYER_IDS above).
+
+    Guarded on the OLD value (`order_idx = 3400`) so this can never clobber a
+    deliberate admin edit made afterwards via `PATCH /layers/{id}`
+    (`routers/admin_layers_api.py`) — once the row reads anything other than
+    3400, this step is a permanent, idempotent no-op.
+    """
+    async with db.pool.acquire() as conn:
+        fixed = await conn.fetchval(
+            """UPDATE layer_config
+                  SET order_idx  = $1,
+                      updated_at = now(),
+                      updated_by = 'schema-step (arctic-rivers order_idx fix)'
+                WHERE id = 'arctic-rivers' AND order_idx = 3400
+                RETURNING id""",
+            _ARCTIC_RIVERS_ORDER_IDX,
+        )
+        if fixed:
+            log.warning(
+                "layer_config: corrected stale arctic-rivers order_idx 3400 -> %d",
+                _ARCTIC_RIVERS_ORDER_IDX,
+            )
 
 
 async def ensure_startup_profiles_seed() -> None:

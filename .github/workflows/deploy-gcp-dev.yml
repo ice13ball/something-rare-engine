@@ -29,7 +29,9 @@ jobs:
     # workload identity provider and service account below only exist in the
     # upstream project (see README: "infra values are placeholders").
     if: github.repository == 'ice13ball/something-rare'
-    runs-on: ubuntu-latest
+    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
+    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: read
       id-token: write
@@ -44,6 +46,12 @@ jobs:
           workload_identity_provider: projects/YOUR_GCP_PROJECT_NUMBER/locations/global/workloadIdentityPools/YOUR_POOL/providers/YOUR_PROVIDER
           service_account: YOUR_DEPLOYER_SA@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com
 
+      # Pi 5 nie ma gcloud w obrazie (ubuntu-latest u GitHuba ma). Ten krok pobiera
+      # SDK pod architekture runnera i daje docker-credential-gcloud, bez ktorego
+      # `gcloud auth configure-docker` konfiguruje helper, ktorego nie ma na PATH.
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
@@ -52,12 +60,17 @@ jobs:
           COMMIT_SHA: ${{ github.sha }}
         working-directory: frontend
         run: |
-          docker build \
+          # buildx, nie `docker build`: na Pi (arm64) musi powstac obraz amd64 dla
+          # Cloud Run. Emulacji nie ma i nie trzeba — etap runtime w Dockerfile tylko
+          # kopiuje pliki, nie uruchamia zadnego procesu amd64. --push zamiast
+          # --load + docker push: obraz innej architektury nie wchodzi do lokalnego
+          # magazynu demona, idzie prosto do rejestru.
+          docker buildx build \
+            --platform linux/amd64 \
             --tag "$IMAGE:$COMMIT_SHA" \
             --tag "$IMAGE:latest" \
+            --push \
             .
-          docker push "$IMAGE:$COMMIT_SHA"
-          docker push "$IMAGE:latest"
 
       - name: Deploy to Cloud Run
         env:

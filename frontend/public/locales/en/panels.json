@@ -452,7 +452,7 @@
       "air-quality": "Real-time PM2.5, SO₂, NO₂, O₃, CO readings from government monitoring stations worldwide. Mining and fire smoke create pollution hotspots.",
       "landslides": "Rainfall-triggered landslides since 2007. Tailings dams in landslide-prone terrain are a red flag for structural failure risk.",
       "surface-water": "Surface water occurrence and change 1984–2021 at 30m. Shows whether mines have created artificial water bodies or destroyed natural ones.",
-      "dams": "38,667 dam locations from GOODD (2019). Locations only — no names or attributes. Mines upstream of drinking water reservoirs create contamination pathways.",
+      "dams": "41,145 river barriers from GDW v1.0 (2024) — GOODD and GRanD merged. A quarter carry a name; country is on every point. Mines upstream of drinking water reservoirs create contamination pathways.",
       "carbon-flux": "CO₂ emissions and removals per hectare at 30 m, 2001–2025 (Global Forest Watch). Mining-driven deforestation turns carbon sinks into carbon sources.",
       "soil-carbon": "Global soil organic carbon in the top 0–5 cm at 250 m (ISRIC SoilGrids). Mining disturbs soil carbon stores that took millennia to accumulate.",
       "water-risk": "Global water risk at sub-basin level — stress, depletion, drought, flood. Mining-weighted scores highlight basins where extraction competes with communities for water.",
@@ -478,7 +478,8 @@
       "ocean-acidification": "Modeled ocean acidification field — aragonite (ΩA) and calcite (ΩC) saturation state from GLODAPv2.2016b, plus a platform-derived saturation-horizon depth. Ω < 1 is corrosive to aragonite-shelled organisms. Diverging colour ramp: red (<1, corrosive) → white (≈1) → blue (>1, supersaturated). Static climatology, not real-time.",
       "coral-acid-exposure": "MODELED exposure of suitable coral habitat to undersaturated (corrosive) water — crosses our own VME MaxEnt suitability model with reconstructed aragonite saturation horizons (GLODAP v2.2016b, via PyCO2SYS). Exposure, not loss: cold-water corals are documented living below the saturation horizon, calcifying at a metabolic cost. Four states: newly corrosive since preindustrial, corrosive before industrialisation, supersaturated, no data. \"Today\" is GLODAP's mapped reference year, nominally ~2002 — this compares two climatology snapshots, not a rate or trend.",
       "cumulative-human-impact": "Modelled dimensionless index of total human pressure on marine ecosystems (NCEAS / Halpern et al. 2025) — the sum of ~10 anthropogenic stressors across six categories, present-state only. Seabed mining is only a minor component, and ISA claim areas sit in relatively low-impact abyssal zones. Context, not accusation: a concession polygon is not a causal source of this impact. A modelled index, not a measurement.",
-      "ais-live": "Live ship positions (AIS), last ~60 min. Coastal coverage only on the free tier.",
+      "ais-live": "Live vessel positions from AIS transponders, relayed by AISStream. Shows where ships are now, not where they have been — click a vessel to load its 30-day track. Coverage depends on terrestrial and satellite receiver reach, so open ocean is patchier than coastal water.",
+      "bathymetry": "Seafloor depth as shaded relief, from the GEBCO global grid. This is the base terrain the other ocean layers sit on. GEBCO merges direct soundings with satellite-derived estimates, so smooth areas are usually interpolation, not measured flatness.",
       "vessel-events": "SAR×AIS dark-vessel detection: radar contacts with no matching AIS. Coastal watchboxes only."
     },
     "densityScaleLabel": "Records per cell",
@@ -682,9 +683,14 @@
     "riverLabel": "River",
     "volumeLabel": "Volume",
     "yearBuiltLabel": "Year Built",
-    "goodIdHeader": "GOODD dam {{id}}",
-    "goodIdLabel": "GOODD dam ID",
-    "locationOnlyNote": "GOODD georeferences dam locations only — it publishes no name, river, country, height, purpose, year or reservoir volume, so those fields are empty here rather than missing."
+    "gdwIdHeader": "GDW barrier {{id}}",
+    "gdwIdLabel": "GDW ID",
+    "basinLabel": "Main basin",
+    "damTypeLabel": "Dam type",
+    "areaLabel": "Reservoir area",
+    "powerLabel": "Installed capacity",
+    "grandIdLabel": "GRanD ID",
+    "unnamedNote": "GDW names about a quarter of its barriers (10,071 of 41,145). This one is unnamed at source — the point and its attributes are still GDW's own."
   },
   "deepDataStation": {
     "auditTrailSectionTitle": "Audit trail",

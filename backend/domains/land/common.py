@@ -140,3 +140,73 @@ async def _datacite_paginate(
         if not cursor:
             break
     return results[:max_records]
+
+
+# ── one-time repair: make the `dams` sync_log row describe the live table ──
+#
+# ⛔ A `sync_log` row is the ONLY freshness signal we have for a layer: the
+# monitor classifies staleness from `last_synced_at`, and the LegendPanel
+# "Dates & Freshness" tab shows that same date to users.
+#
+# `_sync_dams` is append-only behind a populated guard that force does NOT
+# bypass, so the documented way to swap the dataset is a deliberate TRUNCATE
+# plus the sync in one transaction. When GOODD was replaced by GDW v1.0
+# (2026-09-11) the reload was run that way on production but outside the sync
+# function, so nothing called `_log_land_sync`: the row kept saying
+# `2026-04-11 / 38667` — the date and the size of a dataset we no longer
+# serve — while the table held 41,145 GDW barriers. Five months of apparent
+# staleness, and a wrong count in the user-facing tab.
+#
+# ⛔ A hand-run UPDATE on production would fix one database and nothing else.
+# This runs as a recorded schema step, so a restored backup or a dev copy
+# carrying the same stale row is corrected too.
+#
+# It derives BOTH values from the live table rather than hardcoding 41145 —
+# hardcoding would make it a lie again the next time the dataset is replaced.
+_DAMS_SYNC_LOG_REPAIR = """
+    UPDATE sync_log AS s
+       SET last_synced_at = d.loaded_at,
+           records_added  = d.n,
+           total_records  = d.n
+      FROM (SELECT count(*) AS n, max(created_at) AS loaded_at FROM dams) AS d
+     WHERE s.source = 'dams'
+       AND d.loaded_at IS NOT NULL
+       AND s.total_records <> d.n
+ RETURNING d.n AS live_rows, d.loaded_at AS loaded_at
+"""
+
+
+async def ensure_dams_sync_log_matches_live_table() -> None:
+    """Correct a `sync_log` row for `dams` that disagrees with the table.
+
+    Three guards, each load-bearing — every one of them has a test that goes red
+    when it is deleted (`tests/test_dams_sync_log_repair.py`):
+
+    - `s.source = 'dams'` — never touches another layer's row.
+    - `d.loaded_at IS NOT NULL` — carries TWO cases, because `max()` over zero
+      rows is already NULL:
+        * an **empty** `dams` table must not overwrite a truthful record with
+          zero rows and no date. A fresh database that has not loaded dams yet
+          keeps what its row says instead of being told it holds nothing.
+        * rows **predating** the `created_at` default (which is a default, not a
+          NOT NULL) would give `max(created_at) = NULL`, and a NULL
+          `last_synced_at` reads to the monitor as a layer that never synced.
+      ⛔ An `AND d.n > 0` clause was written here first and removed: it can never
+      fire on its own, because `d.n = 0` implies `d.loaded_at IS NULL`. It read
+      like the guard for the empty case while contributing nothing, and sabotage
+      testing turned up zero red tests for it. If you ever replace `max(...)`
+      with something that has a non-NULL fallback (`coalesce(..., now())`), the
+      empty-table protection disappears with it — put the row-count clause back
+      in the same commit.
+    - `s.total_records <> d.n` — makes the step idempotent. A row that already
+      agrees with the table is left exactly as it is, including its
+      `last_synced_at`, so a healthy sync's own timestamp is never rewritten
+      to the load time of the rows it happened to leave in place.
+    """
+    async with db.pool.acquire() as conn:
+        fixed = await conn.fetchrow(_DAMS_SYNC_LOG_REPAIR)
+    if fixed:
+        log.warning(
+            "sync_log: dams row disagreed with the table — corrected to "
+            "%d rows loaded %s", fixed["live_rows"], fixed["loaded_at"],
+        )

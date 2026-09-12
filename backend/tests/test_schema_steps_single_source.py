@@ -74,7 +74,14 @@ def find_inline_ensure_pairs(source: str) -> list[int]:
     return hits
 
 
-def test_there_are_sixteen_steps_in_order():
+def test_the_step_order_is_exactly_this():
+    """⛔ Order is semantics, so this is a snapshot, not a count.
+
+    The name deliberately does NOT spell the number of steps: it read
+    `test_there_are_seventeen_steps_in_order` and had to be renamed the first
+    time an eighteenth step was added — the same rot that made the migrate script
+    derive its step count instead of spelling it out.
+    """
     from schema_steps import SCHEMA_STEPS
     names = [name for _fn, name in SCHEMA_STEPS]
     assert names == [
@@ -83,9 +90,11 @@ def test_there_are_sixteen_steps_in_order():
         "ensure_log_schema",
         "ensure_admin_schema",
         "ensure_layer_config_seed",
+        "ensure_arctic_rivers_order_idx_fix",
         "ensure_layer_temporal_coverage",
         "ensure_startup_profiles_seed",
         "ensure_land_schema",
+        "ensure_dams_sync_log_matches_live_table",
         "ensure_overlap_views",
         "ensure_vessel_events_schema",
         "ensure_sar_schema",

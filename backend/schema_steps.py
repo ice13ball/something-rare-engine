@@ -22,9 +22,14 @@ from schema import ensure_schema
 from api_access.schema import ensure_api_access_schema
 from api_access.logstore import ensure_log_schema
 from api_access.admin_auth import ensure_admin_schema
-from startup_seeds import ensure_layer_config_seed, ensure_startup_profiles_seed
+from startup_seeds import (
+    ensure_layer_config_seed,
+    ensure_arctic_rivers_order_idx_fix,
+    ensure_startup_profiles_seed,
+)
 from layer_temporal_coverage import ensure_layer_temporal_coverage
 from domains.land.schema_orchestrator import ensure_land_schema
+from domains.land.common import ensure_dams_sync_log_matches_live_table
 from land_overlaps import ensure_overlap_views
 from vessel_events import ensure_vessel_events_schema
 from sar_detector import ensure_sar_schema
@@ -46,11 +51,21 @@ SCHEMA_STEPS: tuple[tuple[Step, str], ...] = (
     (ensure_log_schema,                 "ensure_log_schema"),
     (ensure_admin_schema,               "ensure_admin_schema"),
     (ensure_layer_config_seed,          "ensure_layer_config_seed"),
+    # One-time correction for a row seeded before the 2026-09 commit that moved
+    # arctic-rivers from land to ocean: `ON CONFLICT DO NOTHING` above never updates an
+    # existing row, so this catches any database still stuck on the old
+    # order_idx=3400. Guarded on that old value — see startup_seeds.py.
+    (ensure_arctic_rivers_order_idx_fix, "ensure_arctic_rivers_order_idx_fix"),
     # Runs right after layer_config: both describe layers, and this one answers the
     # question layer_config cannot — WHEN each layer's data is from.
     (ensure_layer_temporal_coverage,    "ensure_layer_temporal_coverage"),
     (ensure_startup_profiles_seed,      "ensure_startup_profiles_seed"),
     (ensure_land_schema,                "ensure_land_schema"),
+    # Must follow ensure_land_schema — it reads the `dams` table that step creates.
+    # Repairs a sync_log row left behind by the 2026-09-11 GOODD -> GDW v1.0 swap,
+    # which reloaded the table outside the sync function and so never logged.
+    (ensure_dams_sync_log_matches_live_table,
+                                        "ensure_dams_sync_log_matches_live_table"),
     (ensure_overlap_views,              "ensure_overlap_views"),
     (ensure_vessel_events_schema,       "ensure_vessel_events_schema"),
     (ensure_sar_schema,                 "ensure_sar_schema"),

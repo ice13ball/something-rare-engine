@@ -7,6 +7,7 @@ import { centroid } from "@turf/turf";
 import type { FeatureCollection, Feature } from "geojson";
 import type { LayerId } from "../types/layers";
 import { useMapStore } from "../store/mapStore";
+import type { AssertComplete, AssertDisjoint } from "../types/layerRegistry";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -21,7 +22,61 @@ interface SearchConfig {
   color: string;
 }
 
-const SEARCH_CONFIGS: SearchConfig[] = [
+/**
+ * Layers deliberately absent from global search, grouped by why.
+ *
+ * Adding a searchable layer and forgetting SEARCH_CONFIGS used to make it
+ * silently unfindable; now the build fails unless the layer is either
+ * configured above or listed here with a reason.
+ */
+const NO_SEARCH = [
+  // Continuous fields and rasters: sampled from a grid, raster surface or
+  // density aggregate, so a "feature" here is a probe point, pixel or cell —
+  // not a discrete named thing. Verified per-id against Map3D.tsx: each of
+  // these either renders a BitmapLayer raster tile or reads back only
+  // lat/lon/depth/value (or a grid-cell stat like risk_index/point_count)
+  // on click, with no name-shaped field anywhere in its properties.
+  "bathymetry",
+  "ocean-currents",
+  "woa-climatology",
+  "oxygen-deox",
+  "ocean-carbon",
+  "ocean-co2-surface",
+  "marine-carbon",
+  "seabed-substrate",
+  "vme-suitability",
+  "ocean-acidification",
+  "coral-acid-exposure",
+  "cumulative-human-impact",
+  "forest-loss",
+  "surface-water",
+  "carbon-flux",
+  "soil-carbon",
+  "noise-risk",
+  "monitoring-density",
+  // Server-rendered tiles (vector MVT or point-queried raster): the client
+  // only ever holds the current viewport, never the complete feature list
+  // search needs to filter against — even where the underlying record DOES
+  // carry a name. offshore-activities ships `name`, arctic_catchments has
+  // `name` in Postgres (fetched only one row at a time via /by-point,
+  // never as a list), and mosaic-sediment cores have `core_name` (fetched
+  // only after a click, never as the upfront list search would need).
+  "water-risk",
+  "wod-oxygen",
+  "offshore-activities",
+  "mosaic-sediment",
+  "arctic-catchments",
+  // The client DOES hold the complete feature set for these (fetched once,
+  // in full) — the gap is upstream: nothing in the data functions as a name.
+  // Checked against production 2026-09-11: apeis ships AreaKM2/Remarks/
+  // Status/arcgis_id only (the panel's `p.NAME` fallback is defensive code
+  // for a field this source doesn't actually send); mining-footprints ships
+  // area_km2/country/ftype/source only.
+  "mining-footprints",
+  "apeis",
+] as const satisfies readonly LayerId[];
+
+const SEARCH_CONFIGS = [
   {
     key: "claims", layerId: "contracts", label: "Mining Concessions",
     fields: ["isa_id", "contractor_name", "resource_type", "nearest_eez_country"],
@@ -167,7 +222,6 @@ const SEARCH_CONFIGS: SearchConfig[] = [
     color: "#f59e0b",
   },
   // Land layers
-  // mining-footprints + kbas: MVT tiles, no client-side data — search not available
   {
     key: "fires", layerId: "fires", label: "Active Fires",
     fields: ["acq_date", "instrument"],
@@ -283,7 +337,20 @@ const SEARCH_CONFIGS: SearchConfig[] = [
                      secondary: String(p.expedition ?? "") }),
     color: "#d4a373",
   },
-];
+] as const satisfies readonly SearchConfig[];
+
+export const _searchIsComplete: AssertComplete<
+  (typeof SEARCH_CONFIGS)[number]["layerId"],
+  (typeof NO_SEARCH)[number]
+> = true;
+
+// Completeness alone would pass even if a layer sat in BOTH SEARCH_CONFIGS and
+// NO_SEARCH — e.g. someone silencing a completeness error by adding a working,
+// searchable layer to the opt-out list. Disjointness catches that lie.
+export const _searchIsDisjoint: AssertDisjoint<
+  (typeof SEARCH_CONFIGS)[number]["layerId"],
+  (typeof NO_SEARCH)[number]
+> = true;
 
 // Maps logical LayerId → deck.gl layer ID that PanelContent dispatches on.
 // Only entries where they differ are needed.

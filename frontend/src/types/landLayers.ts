@@ -99,7 +99,7 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
     color: "#5e8ab4",
     fillRgba: [94, 138, 180, 200],
     lineRgba: [94, 138, 180, 255],
-    description: "38,667 dam locations from GOODD (2019) — locations only, no attributes",
+    description: "41,145 river barriers from GDW v1.0 (2024) — GOODD and GRanD merged; a quarter carry a name",
     phase: 3,
   },
   {

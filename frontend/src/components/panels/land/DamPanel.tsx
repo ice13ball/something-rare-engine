@@ -7,45 +7,56 @@ import { sourceLinkFor } from "../../../utils/sourceUrl";
 
 export function DamPanel({ properties: p }: { properties: Record<string, unknown> }) {
   const { t } = useTranslation("panels");
-  const raw = String(p.dam_name ?? "").trim();
+  const name = String(p.dam_name ?? "").trim();
+  const gdwId = p.gdw_id != null ? String(p.gdw_id) : "";
 
-  // ⛔ `dam_name` does not hold a name. The loaded source is GOODD
-  // (GOOD2_dams.shp, 2019), whose only fields are DAM_ID, Count_ID, Latitud and
-  // Longitud — its DAM_ID landed in this column. Measured on production
-  // 2026-09-10: 38,667 rows, every dam_name a bare sequential integer starting
-  // at 1000000, and river / country / height_m / purpose / year_built /
-  // volume_mcm 100% NULL because GOODD does not publish them.
+  // ⛔ GDW v1.0 (figshare doi:10.6084/m9.figshare.25988293, CC BY 4.0) replaced
+  // GOODD here on 2026-09-11. GOODD published four fields and its numeric
+  // DAM_ID was rendered where a name belonged on all 38,667 rows.
   //
-  // An internal id shown as a name is worse than an empty field: it looks like
-  // data. Labelled as the id it is.
-  const isBareId = /^\d+$/.test(raw);
-  const name = isBareId ? "" : raw;
+  // GDW carries real attributes, but it is NOT complete, and three quarters of
+  // its barriers still have no name. Measured over all 41,145 loaded rows:
+  //     country 41,145 (100%) · capacity 35,334 (86%) · year 15,229 (37%)
+  //     NAME    10,071 (24.5%) · river 9,501 (23%) · height 9,311 (23%)
+  //     power      242 (0.6%)
+  // So a nameless point is the COMMON case, not a failure. It gets the GDW id
+  // as a heading and a line saying the source names only a quarter of them —
+  // never a blank panel that reads like a broken fetch.
+  //
+  // ⛔ Every -99 in GDW is a no-data code and is stored as NULL by the loader
+  // (power_mw 40,903 of them, dam_hgt_m 31,834, year_dam 25,915). Nothing here
+  // should ever render one; if "-99 m" appears, the loader regressed.
+  const has = (v: unknown) => v != null && v !== "";
+
   return (
     <>
       <Badge label={t("dam.panelBadge")} color="text-indigo-300 border-indigo-500/40" />
-      <PanelHeader>{name || (raw ? t("dam.goodIdHeader", { id: raw }) : "—")}</PanelHeader>
+      <PanelHeader>{name || (gdwId ? t("dam.gdwIdHeader", { id: gdwId }) : "—")}</PanelHeader>
       <Section title={t("dam.detailsSectionTitle")}>
-        {isBareId && <Row label={t("dam.goodIdLabel")} value={raw} />}
-        {p.river != null && <Row label={t("dam.riverLabel")}       value={String(p.river)} />}
-        {p.country != null && <Row label={t("dam.countryLabel")}   value={String(p.country)} />}
-        {p.height_m != null && <Row label={t("dam.heightLabel")}   value={`${p.height_m} m`} />}
-        {p.purpose != null && <Row label={t("dam.purposeLabel")}   value={String(p.purpose)} />}
-        {p.year_built != null && <Row label={t("dam.yearBuiltLabel")} value={String(p.year_built)} />}
-        {p.volume_mcm != null && <Row label={t("dam.volumeLabel")} value={`${Number(p.volume_mcm).toLocaleString()} MCM`} />}
+        {has(gdwId)         && <Row label={t("dam.gdwIdLabel")}      value={gdwId} />}
+        {has(p.river)       && <Row label={t("dam.riverLabel")}      value={String(p.river)} />}
+        {has(p.country)     && <Row label={t("dam.countryLabel")}    value={String(p.country)} />}
+        {has(p.main_basin)  && <Row label={t("dam.basinLabel")}      value={String(p.main_basin)} />}
+        {has(p.dam_type)    && <Row label={t("dam.damTypeLabel")}    value={String(p.dam_type)} />}
+        {has(p.height_m)    && <Row label={t("dam.heightLabel")}     value={`${p.height_m} m`} />}
+        {has(p.purpose)     && <Row label={t("dam.purposeLabel")}    value={String(p.purpose)} />}
+        {has(p.year_built)  && <Row label={t("dam.yearBuiltLabel")}  value={String(p.year_built)} />}
+        {has(p.volume_mcm)  && <Row label={t("dam.volumeLabel")}     value={`${Number(p.volume_mcm).toLocaleString()} MCM`} />}
+        {has(p.area_skm)    && <Row label={t("dam.areaLabel")}       value={`${Number(p.area_skm).toLocaleString()} km²`} />}
+        {has(p.power_mw)    && <Row label={t("dam.powerLabel")}      value={`${Number(p.power_mw).toLocaleString()} MW`} />}
+        {has(p.grand_id)    && <Row label={t("dam.grandIdLabel")}    value={String(p.grand_id)} />}
       </Section>
-      {/* ⛔ Say what this source is, rather than letting six empty rows imply a
-          failed fetch. GOODD georeferences dams; it does not describe them. */}
-      {isBareId && (
-        <p className="text-xs text-white/65 italic mt-1">{t("dam.locationOnlyNote")}</p>
+      {/* A nameless barrier is the majority case in GDW. Say so, so that an
+          absent name never reads as a fetch that failed. */}
+      {!name && (
+        <p className="text-xs text-white/65 italic mt-1">{t("dam.unnamedNote")}</p>
       )}
       <SourceAttribution link={sourceLinkFor("global-dam-watch", p)} />
       <ExternalLinks>
-        {/* A Wikipedia search for "1000000 dam" cannot succeed. Offered only
-            when there is a real name to search for. */}
+        {/* A Wikipedia search only works when there is a name to search for. */}
         {name && <ExternalLink href={`https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(name + " dam")}`} label="Wikipedia" />}
         <ExternalLink href="https://www.globaldamwatch.org" label="Global Dam Watch" />
       </ExternalLinks>
     </>
   );
 }
-

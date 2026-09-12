@@ -31,6 +31,7 @@ import { analytics } from "../utils/analytics";
 import type { ClaimFeatureCollection } from "../types/claims";
 import { LAYER_CONFIGS } from "../types/layers";
 import type { LayerId } from "../types/layers";
+import type { AssertComplete, AssertDisjoint } from "../types/layerRegistry";
 import { LayerUnavailableNotice } from "./LayerUnavailableNotice";
 import { fetchWithProgress } from "../utils/fetchWithProgress";
 import { oceansitesPasses as oceansitesPassesRule } from "../utils/oceansitesFilter";
@@ -237,6 +238,47 @@ function BathymetryClickPopup({
     </div>
   );
 }
+
+/**
+ * Layers with no fly-to target in `flyConfigs` below.
+ *
+ * Group A — genuine rasters/animated fields: the frontend never holds a
+ * feature list for these, only a `TileLayer`/`BitmapLayer` tile stack or (for
+ * ocean-currents) a decoded texture. There is nothing to cycle through.
+ *   bathymetry, ocean-currents, forest-loss, surface-water, carbon-flux, soil-carbon
+ *
+ * Group B — dual-mode field/hex layers: the frontend DOES fetch a real
+ * PolygonLayer feature set for these (e.g. `seabedHexData`, `acidHexData`,
+ * `vmeHex`, `chiHexData`, `coralExposureFeatures`), but that data was never
+ * wired into flyToLayer's `layerMap` — clicking zoom either lands on a fixed
+ * regional viewport from `rasterViews` (marine-carbon, seabed-substrate,
+ * vme-suitability, coral-acid-exposure) or does nothing at all (the rest).
+ * That is an existing gap in flyToLayer, not something this list fixes.
+ *   woa-climatology, oxygen-deox, ocean-carbon, ocean-co2-surface,
+ *   marine-carbon, seabed-substrate, vme-suitability, ocean-acidification,
+ *   coral-acid-exposure, cumulative-human-impact
+ */
+const NO_FLY_TO = [
+  // Group A — true rasters/animated fields, no client-side feature list ever.
+  "bathymetry",
+  "ocean-currents",
+  "forest-loss",
+  "surface-water",
+  "carbon-flux",
+  "soil-carbon",
+  // Group B — hex/field dual-mode layers; real feature data exists client-side
+  // but isn't wired into flyToLayer's layerMap.
+  "woa-climatology",
+  "oxygen-deox",
+  "ocean-carbon",
+  "ocean-co2-surface",
+  "marine-carbon",
+  "seabed-substrate",
+  "vme-suitability",
+  "ocean-acidification",
+  "coral-acid-exposure",
+  "cumulative-human-impact",
+] as const satisfies readonly LayerId[];
 
 export function Map3D() {
   const { t } = useTranslation("common");
@@ -2043,7 +2085,7 @@ export function Map3D() {
     filter?: (f: any) => boolean;
     fallback?: (f: any) => boolean;
   };
-  const flyConfigs: Record<string, FlyConfig> = useMemo(() => ({
+  const flyConfigs = useMemo(() => ({
     "contracts":             { deckLayerId: "mining-contracts-mvt", idProp: "isa_id",
                                filter: (f: any) => claimPassesFilter(f.properties) },
     "reserved-areas":        { deckLayerId: "reserved-areas" },
@@ -2238,7 +2280,18 @@ export function Map3D() {
         return cascadeDecadeFilters.has(String(d));
       },
     },
-  }), [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses, datasetStats, chessHabitatFilters, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
+  }) as const satisfies Record<string, FlyConfig>, [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses, datasetStats, chessHabitatFilters, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
+
+  // Completeness guard. Cheap at runtime (one boolean); the work is at compile
+  // time. `void` rather than `export` because this sits inside a component.
+  type FlyCovered = Extract<keyof typeof flyConfigs, LayerId>;
+  const _flyToIsComplete: AssertComplete<FlyCovered, (typeof NO_FLY_TO)[number]> = true;
+  void _flyToIsComplete;
+  // Completeness alone would pass even if a layer sat in BOTH flyConfigs and
+  // NO_FLY_TO — e.g. someone silencing a completeness error by adding a
+  // working layer to the opt-out list. Disjointness catches that lie.
+  const _flyToIsDisjoint: AssertDisjoint<FlyCovered, (typeof NO_FLY_TO)[number]> = true;
+  void _flyToIsDisjoint;
 
   // ── Fly-to-layer callback ────────────────────────────────────────────────
   const flyToLayer = useCallback((id: LayerId) => {
@@ -2387,7 +2440,11 @@ export function Map3D() {
     }
 
     // Apply layer-specific filter, then fallback preference
-    const cfg = flyConfigs[id];
+    // Cast needed here only: `id` is the full LayerId union, but flyConfigs'
+    // sealed literal type only has keys for the 41 covered layers (that's what
+    // makes the completeness assertion below bite). Excluded ids correctly
+    // resolve to undefined at runtime, same as before this narrowing.
+    const cfg = (flyConfigs as Partial<Record<LayerId, FlyConfig>>)[id];
     if (cfg?.filter) {
       const filtered = candidates.filter(cfg.filter);
       if (!filtered.length) return; // active filter matches nothing — don't zoom to invisible spot

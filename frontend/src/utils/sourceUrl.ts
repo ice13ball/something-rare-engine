@@ -299,7 +299,10 @@ const LAYER_SOURCES: Record<string, SourceEntry> = {
     homepage: "https://gpm.nasa.gov/landslides/",
   },
   "global-dam-watch": {
-    org: "Global Dam Watch — GOODD v2 (dam locations only)",
+    // ⛔ CC BY 4.0 — this credit is the licence condition, not decoration.
+    // It said "GOODD v2 (dam locations only)" until 2026-09-11, which was true
+    // of the old dataset and is not true of this one.
+    org: "Global Dam Watch — GDW database v1.0 (CC BY 4.0)",
     homepage: "https://www.globaldamwatch.org/",
   },
   "jrc-surface-water": {

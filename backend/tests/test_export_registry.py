@@ -98,17 +98,18 @@ def test_offshore_activities_excludes_geom_3857():
 
 # --- Task 5: Life & geology batch ---
 
-# "eez" left this set on 2026-09-04 when the layer was taken out of the export
-# registry — see NOT_EXPORTABLE at the foot of this file for why.
+# "eez" left this set on 2026-09-04 and "protected-marine-sites" on 2026-09-11, both
+# when the layer was taken out of the export registry — see NOT_EXPORTABLE at the foot
+# of this file for why. They came from the same VLIZ WFS and now share the same fate.
 LIFE_GEO_VECTORS = {
     "seamounts", "hydrothermal-vents", "biodiversity-hotspots",
-    "chess", "protected-marine-sites", "deepdata-stations",
+    "chess", "deepdata-stations",
 }
 # These three tables have geography(Point,4326) geom columns → require ::geometry cast.
 LIFE_GEO_GEOGRAPHY_CAST = {"seamounts", "hydrothermal-vents", "deepdata-stations"}
 
 
-def test_six_life_geo_layers_present():
+def test_life_geo_layers_present():
     for k in LIFE_GEO_VECTORS:
         assert k in EXPORT_LAYERS, f"missing: {k}"
         assert isinstance(EXPORT_LAYERS[k], VectorExport), f"wrong type: {k}"
@@ -151,13 +152,10 @@ def test_life_geo_non_geography_layers_no_cast():
 
 
 def test_life_geo_geom_kinds():
-    points = {"seamounts", "hydrothermal-vents", "biodiversity-hotspots",
-               "chess", "deepdata-stations"}
-    polygons = {"protected-marine-sites"}
-    for k in points:
+    # Every remaining member of this batch is a point. The one polygon,
+    # protected-marine-sites, left the registry on 2026-09-11.
+    for k in LIFE_GEO_VECTORS:
         assert EXPORT_LAYERS[k].geom_kind == "point", k
-    for k in polygons:
-        assert EXPORT_LAYERS[k].geom_kind == "polygon", k
 
 
 def test_life_geo_id_cols():
@@ -165,7 +163,6 @@ def test_life_geo_id_cols():
     assert EXPORT_LAYERS["hydrothermal-vents"].id_col == "id"
     assert EXPORT_LAYERS["biodiversity-hotspots"].id_col == "obis_id"
     assert EXPORT_LAYERS["chess"].id_col == "occurrence_id"
-    assert EXPORT_LAYERS["protected-marine-sites"].id_col == "site_id"
     assert EXPORT_LAYERS["deepdata-stations"].id_col == "station_id"
 
 
@@ -545,6 +542,9 @@ NOT_EXPORTABLE = {
                            "activities only — a clause on use, not just redistribution",
     "eez": "VLIZ asks that their products not be made available for download "
            "elsewhere; a courtesy rather than a licence obligation",
+    "protected-marine-sites": "same VLIZ WFS as eez, so the same courtesy; and it is "
+                              "compiled partly from Protected Planet, the UNEP-WCMC "
+                              "source behind the wdpa withdrawal",
 }
 
 

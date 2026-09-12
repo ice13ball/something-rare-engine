@@ -857,7 +857,12 @@ const LAYER_META = {
   'argo':                { label: 'Argo Floats',                 source: 'International Argo Programme / ArgoVis',        category: 'ocean', desc: 'Real-time autonomous ocean profiling floats measuring temperature, salinity, oxygen, and pH across the global ocean.' },
   'hydrothermal-vents':  { label: 'Hydrothermal Vents',          source: 'InterRidge Database v3.4 / PANGAEA',           category: 'ocean', desc: '721 hydrothermal vent fields worldwide — unique ecosystems hosting species found nowhere else on Earth.' },
   'eez':                 { label: 'EEZ Boundaries',              source: 'MarineRegions.org World EEZ v12',              category: 'ocean', desc: 'Exclusive Economic Zones — maritime boundaries defining national jurisdiction over ocean resources.' },
-  'protected-marine-sites': { label: 'UNESCO Marine Heritage',   source: 'UNESCO World Heritage Centre',                 category: 'ocean', desc: 'UNESCO-designated marine World Heritage sites of outstanding universal value.' },
+  // `source` also becomes the JSON-LD Dataset `creator` Organization, so it must name
+  // whoever actually built the dataset. VLIZ compiled these boundaries from the UNESCO
+  // World Heritage Marine Programme and Protected Planet; naming the UNESCO World
+  // Heritage Centre as creator was both factually wrong and the closest thing on the
+  // site to asserting an affiliation UNESCO has not granted.
+  'protected-marine-sites': { label: 'UNESCO Marine Heritage',   source: 'MarineRegions.org (VLIZ) — compiled from the UNESCO World Heritage Marine Programme', category: 'ocean', desc: 'UNESCO-designated marine World Heritage sites of outstanding universal value.' },
   'noise-risk':          { label: 'Noise Risk Grid',             source: 'ICES / EMODnet + OBIS-SEAMAP',                 category: 'ocean', desc: 'Underwater noise pollution risk grid combining shipping, sonar, and seismic survey data with cetacean habitat sensitivity.' },
   'oceansites':          { label: 'OceanSITES Moorings',         source: 'OceanSITES / OceanOPS',                        category: 'ocean', desc: 'Long-term ocean reference stations providing sustained time-series of ocean-atmosphere observations.' },
   'onc':                 { label: 'ONC Observatories',           source: 'Ocean Networks Canada',                        category: 'ocean', desc: 'Cabled deep-sea observatories delivering real-time data from the ocean floor.' },

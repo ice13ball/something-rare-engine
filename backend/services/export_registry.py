@@ -588,16 +588,20 @@ _VECTORS: dict[str, VectorExport] = {
     # request costs one endpoint; the layer still renders and the boundaries are
     # still visible. Note this is a courtesy, not a licence obligation — it can
     # be reversed without asking anyone.
-    "protected-marine-sites": VectorExport(
-        id="protected-marine-sites", label="Marine protected sites (UNESCO)",
-        table="protected_marine_sites",
-        geom_col="t.geom", id_col="site_id", geom_kind="polygon", cap=5_000,
-        fields=("site_id", "name", "country", "lat_whc", "lon_whc", "area_km2", "synced_at"),
-        prov=Provenance(
-            source="UNESCO World Heritage Marine + MarineRegions.org",
-            source_url="https://whc.unesco.org/en/marine/",
-        ),
-    ),
+    #
+    # "protected-marine-sites" removed 2026-09-11, for the same reason and from the
+    # same provider: it comes from the same geo.vliz.be WFS as eez did. Extending the
+    # courtesy to one VLIZ product and not the other was an inconsistency we invented,
+    # not a distinction VLIZ drew. With cap=5000 against a 50-row table the endpoint
+    # served the entire product as a bulk download, which is precisely what the request
+    # asks us not to host.
+    #
+    # A second reason applies only to this layer: MarineRegions compiled it from the
+    # UNESCO World Heritage Marine Programme *and Protected Planet* — the same
+    # UNEP-WCMC source whose redistribution clause forced the `wdpa` withdrawal on
+    # 2026-09-03. Until that is settled, not offering the bulk download is the cheap
+    # side of the bet. The layer still renders and /v1/map/protected-marine-sites
+    # still serves it.
     "deepdata-stations": VectorExport(
         id="deepdata-stations", label="DeepData stations (ISA)", table="deepdata_stations",
         geom_col="t.geom::geometry", id_col="station_id", geom_kind="point", cap=10_000,

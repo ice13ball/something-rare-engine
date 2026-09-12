@@ -7,6 +7,7 @@ import { analytics } from "../utils/analytics";
 import { WOD_DECADE_HEX } from "../utils/wodDecades";
 import { useMapStore } from "../store/mapStore";
 import type { LayerId } from "../types/layers";
+import type { AssertComplete, LayerIdOf } from "../types/layerRegistry";
 import { TemporalFrame } from "./panels/shared/TemporalFrame";
 import { useTemporalCoverage } from "../utils/useTemporalCoverage";
 
@@ -70,7 +71,7 @@ interface LayerStruct {
   colorRampHex?: string[];
 }
 
-const LAYER_STRUCT: LayerStruct[] = [
+const LAYER_STRUCT = [
   { id: "miningConcessions",   layerId: "contracts",           color: "#00f2ff", symbol: "polygon", syncKey: "mining_contracts" },
   { id: "relinquishedAreas",   layerId: "relinquished-areas",   color: "#ff4466", symbol: "polygon", syncKey: "relinquished_areas" },
   { id: "reservedAreas",       layerId: "reserved-areas",       color: "#00ff9f", symbol: "polygon", syncKey: "reserved_areas" },
@@ -173,7 +174,23 @@ const LAYER_STRUCT: LayerStruct[] = [
     colorRampHex: ["#214e64", "#4ea0a0", "#f0be5a", "#961c1c"] },
   { id: "ais-live",      layerId: "ais-live",      color: "#22d3ee", symbol: "dot", syncKey: "ais_aois" },
   { id: "vessel-events", layerId: "vessel-events", color: "#f59e0b", symbol: "dot", syncKey: "vessel_events" },
-];
+] as const satisfies readonly LayerStruct[];
+
+// One entry ("area-export") omits the `layerId` key entirely, so a plain
+// indexed access — (typeof LAYER_STRUCT)[number]["layerId"] — doesn't compile;
+// LayerIdOf distributes over the union instead. See its docstring.
+type LegendCovered = LayerIdOf<(typeof LAYER_STRUCT)[number]>;
+
+// LAYER_STRUCT covers all 57 layers today. Nothing is opted out: a layer with
+// no legend entry is undocumented in the Reference tab, which is never correct.
+export const _legendIsComplete: AssertComplete<LegendCovered, never> = true;
+
+// `as const satisfies` keeps LAYER_STRUCT's per-entry literal type (needed above
+// for LegendCovered) rather than widening every entry to LayerStruct — so a
+// union access like `s.layerId` fails on the one entry ("area-export") that
+// omits the key entirely. Render code below wants the widened interface shape
+// instead; this alias is that view.
+const LEGEND_ENTRIES: readonly LayerStruct[] = LAYER_STRUCT;
 
 // ── Symbol renderer ───────────────────────────────────────────────────────────
 function LayerSymbol({ doc }: { doc: LayerStruct }) {
@@ -369,7 +386,7 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           {active === "layers" && (
             <div className="divide-y divide-white/[0.04]">
-              {LAYER_STRUCT
+              {LEGEND_ENTRIES
                 .filter((s) => !s.layerId || !enabledLayerIds || enabledLayerIds.has(s.layerId))
                 .map(s => {
                 // i18next strict-key types enforce literal keys — for computed keys we
