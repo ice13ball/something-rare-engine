@@ -28,7 +28,8 @@ import type { DatasetStats } from "../utils/argoAlarms";
 import { loadMapState, saveMapState, consumeReturnFly, saveReturnFlyFromViewState } from "../utils/mapState";
 import { setLiveMapState } from "../utils/liveMapState";
 import { useLiveShareUrl } from "./map3d/useLiveShareUrl";
-import { resolveOpenTarget, isOpenableLayer } from "./map3d/openFromLink";
+import { openTargetFor, isOpenableLayer, OPENABLE_LOOKUP } from "./map3d/openFromLink";
+import { pointTargetFor, isPointLayer } from "./map3d/pointFromLink";
 import { FocusUnavailableNotice } from "./FocusUnavailableNotice";
 import { decodeShareState } from "../utils/shareState";
 import { applyShareableFilters } from "../types/filterRegistry";
@@ -1893,31 +1894,62 @@ export function Map3D() {
   // trigger is interaction-end and not a timer.
   useLiveShareUrl(viewState, activeLayers, isInteracting, restored);
 
-  // ── Objects named by a share link ───────────────────────────────────────
+  // ── Objects and spots named by a share link ─────────────────────────────
   // Runs once per link. Mirrors the `?focus=` effect below: turn the layer on,
   // wait for its data to land, then fly and open. The difference is that this
   // one SAYS SO when it misses.
+  //
+  // Two kinds arrive here. A RECORD (`o`) is looked up by id and can genuinely
+  // be gone. A SPOT (`p`) is a coordinate on a continuous field: it is always
+  // there, needs no lookup, and moves no camera — see openPoint below.
   const linkObjectsDoneRef = useRef(false);
+  const linkObjectsAbortRef = useRef<AbortController | null>(null);
+  // Panels open on a 1.3 s delay so they land after the fly-to settles. ⛔ The
+  // handles have to be kept: a reader who clicks through to a report inside
+  // that window unmounts this component, and the timer would still reach the
+  // module-level store — so coming back to the map would show a panel they
+  // never opened in that session, with nothing to explain it.
+  const linkPanelTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const openPanelLater = (f: { id: string | number; layer: string; properties: Record<string, unknown> }) => {
+    linkPanelTimersRef.current.push(setTimeout(() => setSelectedFeature(f, true), 1300));
+  };
+  // ⛔ Aborting from the effect's own cleanup was wrong: the deps below change
+  // while a `/by-id` request is in flight, React runs the previous cleanup,
+  // and the fetch died — recording a "this object is gone" failure for an
+  // object that was on its way. Only unmount may cancel.
+  useEffect(() => () => {
+    linkObjectsAbortRef.current?.abort();
+    linkPanelTimersRef.current.forEach(clearTimeout);
+  }, []);
   useEffect(() => {
     if (linkObjectsDoneRef.current) return;
-    const wanted = _urlShare?.openObjects;
-    if (!wanted || wanted.length === 0) { linkObjectsDoneRef.current = true; return; }
+    const wanted = _urlShare?.openObjects ?? [];
+    // Spots on a continuous field, carried as coordinates rather than ids.
+    // ⛔ Handled in THIS effect, not a second one: both kinds compete for the
+    // same three panel slots and both may need their layer switched on, and
+    // two effects racing to do that would turn a layer on twice and open the
+    // fourth panel of three.
+    const wantedPoints = _urlShare?.points ?? [];
+    if (wanted.length === 0 && wantedPoints.length === 0) { linkObjectsDoneRef.current = true; return; }
 
-    const dataFor: Record<string, FeatureCollection | null> = {
-      "contracts": claimsData as FeatureCollection | null,
-      "hydrothermal-vents": ventsData,
-      "argo": argoData,
-      "chess": chessData,
-      "seamounts": seamountsData,
+    // ⭐ One lookup for every openable layer, through the map the search bar
+    // already maintains. The five hand-written entries this replaces were the
+    // same shape as `searchById`'s four branches and `?focus=`'s two — the
+    // habit this stage exists to end.
+    const dataFor = (layerId: string): FeatureCollection | null | undefined => {
+      const key = OPENABLE_LOOKUP[layerId]?.dataKey;
+      return key ? searchDataRef.current[key] : undefined;
     };
 
     // ⛔ A layer whose data has not arrived is NOT a miss. Reporting it as one
     // would put a "this object is gone" notice on screen a second before the
     // object appears. Wait; the effect re-runs when the fetch lands.
     const missingData = wanted.some(([layerId]) =>
-      isOpenableLayer(layerId) && activeLayers.has(layerId as LayerId) && dataFor[layerId] === null);
-    const notActive = wanted.filter(([layerId]) =>
-      isOpenableLayer(layerId) && !activeLayers.has(layerId as LayerId)).map(([l]) => l);
+      isOpenableLayer(layerId) && activeLayers.has(layerId as LayerId) && dataFor(layerId) === null);
+    const notActive = [
+      ...wanted.filter(([layerId]) => isOpenableLayer(layerId)).map(([l]) => l as string),
+      ...wantedPoints.filter(([layerId]) => isPointLayer(layerId)).map(([l]) => l as string),
+    ].filter((l) => !activeLayers.has(l as LayerId));
     if (notActive.length > 0) {
       const next = new Set(activeLayers);
       notActive.forEach(l => next.add(l as LayerId));
@@ -1928,16 +1960,22 @@ export function Map3D() {
 
     linkObjectsDoneRef.current = true;
     const store = useMapStore.getState();
+    const ctrl = new AbortController();
+    linkObjectsAbortRef.current = ctrl;
     let flewTo = false;
-    for (const [layerId, featureId] of wanted) {
-      const target = resolveOpenTarget(layerId, featureId, dataFor[layerId]);
+    const open = async ([layerId, featureId]: readonly [string, string]) => {
+      // ⛔ Client-held data first, the network only as a fallback — see
+      // fetchOpenTarget for what `/by-id` does not return.
+      const target = await openTargetFor(layerId, featureId, dataFor(layerId), API, ctrl.signal);
       if (!target) {
         store.addSharePanelFailure({ layerId, featureId });
-        continue;
+        return;
       }
       // ⛔ `?fly=`/`?focus=` mean "jump to this ONE feature" and outrank a whole
       // restored view — so a link's own camera only moves when neither is present.
-      if (!flewTo && !_urlFly) {
+      // `/by-id` may answer without geometry; then there is nothing to fly to
+      // and the link's own camera stands.
+      if (!flewTo && !_urlFly && target.feature.geometry) {
         const c = getBBoxCenter([target.feature as any]);
         setViewState({ ...viewStateRef.current, longitude: c.longitude, latitude: c.latitude,
           zoom: target.zoom, pitch: 45, bearing: 0,
@@ -1945,10 +1983,36 @@ export function Map3D() {
         flewTo = true;
       }
       // `shift: true` stacks — the sender may have had up to three side by side.
-      setTimeout(() => setSelectedFeature(
-        { id: target.id, layer: target.routingKey, properties: target.properties }, true), 1300);
-    }
-  }, [claimsData, ventsData, argoData, chessData, seamountsData, activeLayers, setSelectedFeature]);
+      openPanelLater({ id: target.id, layer: target.routingKey, properties: target.properties });
+    };
+    // ⭐ A coordinate needs no lookup at all — the spot always exists and the
+    // panel asks the API itself. The only way this fails is a layer that is no
+    // longer addressable by coordinate, or a link missing the selector value
+    // the panel needs; both are reported rather than swallowed.
+    //
+    // ⛔ And nothing here touches the camera. The link already carries the
+    // sender's framing, and a field layer has no landing zoom to fly to —
+    // picking one would replace what the sender chose with a guess.
+    const openPoint = ([layerId, lon, lat, extra]: readonly [string, number, number, number?]) => {
+      const target = pointTargetFor(layerId, lon, lat, extra);
+      if (!target) {
+        store.addSharePanelFailure({ layerId, featureId: `${lat}, ${lon}` });
+        return;
+      }
+      openPanelLater({ id: target.id, layer: target.routingKey, properties: target.properties });
+    };
+
+    // Sequential, not parallel: the fly-to belongs to the FIRST object the
+    // sender listed, and a race would hand it to whichever `/by-id` answered
+    // soonest.
+    void (async () => {
+      for (const entry of wanted) await open(entry);
+      wantedPoints.forEach(openPoint);
+    })();
+    // ⚠️ `searchDataVersion` is the signal, not the 30-odd data variables: the
+    // ref it tracks is exactly the map read above, and listing every dataset
+    // here would rot the moment a layer is added.
+  }, [searchDataVersion, activeLayers, setSelectedFeature]);
 
   // ── Flush map state on unmount (e.g. navigating to a report) ────────────
   // Also write RETURN_FLY here — latestStateRef is always current, unlike

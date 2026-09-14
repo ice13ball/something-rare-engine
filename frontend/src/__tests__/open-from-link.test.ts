@@ -5,14 +5,15 @@
 // PUBLIC layer id; `DetailPanel` dispatches on a PRIVATE routing key, and 24 of
 // those keys differ from any layer id. Getting the bridge wrong produces a link
 // that is well-formed, opens nothing, and blames the data.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import type { FeatureCollection } from "geojson";
 
 import {
   resolveOpenTarget,
   layerIdForRoutingKey,
   openObjectsFor,
-  STAGE1_OPENABLE,
+  openTargetFor,
+  OPENABLE,
   OPENABLE_LAYER_IDS,
 } from "../components/map3d/openFromLink";
 
@@ -88,7 +89,7 @@ describe("the two directions agree", () => {
     const probes = [{}, { status: "Active" }, { status: "Extinct" }, { status: "Inactive" }];
     expect(OPENABLE_LAYER_IDS.length).toBeGreaterThan(0);
     for (const layerId of OPENABLE_LAYER_IDS) {
-      const cfg = STAGE1_OPENABLE[layerId];
+      const cfg = OPENABLE[layerId as keyof typeof OPENABLE];
       expect(cfg.routingKeys.length).toBeGreaterThan(0);
       for (const p of probes) {
         expect(cfg.routingKeys).toContain(cfg.routingKey(p));
@@ -98,7 +99,7 @@ describe("the two directions agree", () => {
 
   it("maps every routing key back to its public layer id", () => {
     for (const layerId of OPENABLE_LAYER_IDS) {
-      for (const key of STAGE1_OPENABLE[layerId].routingKeys) {
+      for (const key of OPENABLE[layerId as keyof typeof OPENABLE].routingKeys) {
         expect(layerIdForRoutingKey(key)).toBe(layerId);
       }
     }
@@ -132,3 +133,36 @@ describe("what the write side puts in a link", () => {
     expect(out).toEqual([["contracts", "ISA-002"]]);
   });
 });
+
+describe("client-held data comes first, the network only as a fallback", () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it("does not go to the network for a feature it already has", async () => {
+    // ⛔ `/by-id` supplements a tile, it does not reproduce one — PermafrostThaw
+    // renders category, type and site name straight from the tile's properties
+    // and the endpoint returns none of them. Asking the network first opens a
+    // panel poorer than a click does, and says nothing about the difference.
+    const spy = vi.spyOn(globalThis, "fetch");
+    const data = fc([{ unique_id: "PF-1", feature_category: "thermokarst" }]);
+    const t = await openTargetFor("permafrost-thaw", "PF-1", data, "");
+    expect(t).not.toBeNull();
+    expect(t!.properties.feature_category).toBe("thermokarst");
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("asks the network when the client does not hold the feature", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true, json: async () => ({ gid: 77, ocs_mean: 12 }),
+    } as unknown as Response);
+    const t = await openTargetFor("arctic-catchments", "77", null, "");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(t!.routingKey).toBe("arctic-catchments");
+    expect(t!.properties.ocs_mean).toBe(12);
+  });
+
+  it("returns null — for the caller to report — when the network refuses", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
+    expect(await openTargetFor("arctic-catchments", "nope", null, "")).toBeNull();
+  });
+});
+

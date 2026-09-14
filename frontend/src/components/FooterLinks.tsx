@@ -8,6 +8,7 @@ import { clearStoredConsent } from "../utils/analytics";
 import { useMapStore } from "../store/mapStore";
 import { getLiveMapState } from "../utils/liveMapState";
 import { openObjectsFor } from "./map3d/openFromLink";
+import { pointObjectsFor } from "./map3d/pointFromLink";
 import { collectShareableFilters } from "../types/filterRegistry";
 import { buildShareUrl } from "../utils/shareState";
 
@@ -35,6 +36,7 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
       // was optional the two disagreed: the URL had the reader's open panel,
       // a link copied from the button did not.
       openObjects: openObjectsFor(useMapStore.getState().selectedFeatures),
+      points: pointObjectsFor(useMapStore.getState().selectedFeatures),
     });
     try {
       await navigator.clipboard.writeText(url);

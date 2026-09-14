@@ -29,7 +29,12 @@ import type { LayerId } from "../types/layers";
 export type LiveShareParam = {
   /** The `s` value to put in the URL, or null if even camera+layers won't fit. */
   param: string | null;
-  /** What had to be left out to fit, in the order things are given up. */
+  /**
+   * What had to be left out to fit, in the order things are given up.
+   * ⚠️ "objects" covers both kinds a link can point at — records (`o`) and
+   * spots on a field (`p`). They are given up together: keeping one kind and
+   * dropping the other would show the reader a subset that looks deliberate.
+   */
   dropped: "nothing" | "filters" | "filters+objects";
 };
 
@@ -37,13 +42,16 @@ export function liveShareParam(state: {
   camera: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number };
   layers: readonly string[];
   filters: Record<string, string[]>;
-  /** `[public layer id, feature id]` for each open panel, at most 3. */
+  /** `[public layer id, feature id]` for each open record panel. */
   openObjects: ReadonlyArray<[string, string]>;
+  /** `[public layer id, lon, lat, selector?]` for each open field panel. */
+  points: ReadonlyArray<readonly [string, number, number, number?]>;
 }): LiveShareParam {
   const layers = [...state.layers] as LayerId[];
   const openObjects = state.openObjects.map(([l, i]) => [l, i] as [string, string]);
+  const points = state.points;
 
-  const full = encodeShareState({ camera: state.camera, layers, filters: state.filters, openObjects });
+  const full = encodeShareState({ camera: state.camera, layers, filters: state.filters, openObjects, points });
   if (full.length <= MAX_PARAM_LENGTH) {
     return { param: full, dropped: "nothing" };
   }
@@ -52,14 +60,14 @@ export function liveShareParam(state: {
   // docstring. Objects survive this step because they are what the sender
   // pointed at — a filter can be re-applied by hand, the object they meant
   // cannot be guessed.
-  const noFilters = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects });
+  const noFilters = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects, points });
   if (noFilters.length <= MAX_PARAM_LENGTH) {
     return { param: noFilters, dropped: "filters" };
   }
 
   // Objects next, also as a whole. A partial set would open some of what the
   // sender had and look deliberate.
-  const bare = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects: [] });
+  const bare = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects: [], points: [] });
   if (bare.length <= MAX_PARAM_LENGTH) {
     return { param: bare, dropped: "filters+objects" };
   }

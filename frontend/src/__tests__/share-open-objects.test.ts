@@ -39,6 +39,7 @@ describe("round-trip", () => {
         ["contracts", "feature-1"],
         ["argo", "feature-2"],
       ],
+      points: [],
     });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.openObjects).toEqual([
@@ -58,6 +59,7 @@ describe("one bad entry does not cost the good ones", () => {
         ["contracts", "feature-1"],
         ["argo", "feature-2"],
       ],
+      points: [],
     });
     const payload = toEnvelope(encoded);
     // Insert a bad entry alongside the two good ones.
@@ -83,7 +85,7 @@ describe("a corrupt `o` must not damage the other fields", () => {
       camera: CAMERA,
       layers: ["contracts"] as any,
       filters: { ventStatusFilters: ["Active"] },
-      openObjects: [["contracts", "feature-1"]],
+      openObjects: [["contracts", "feature-1"]], points: [],
     });
     const payload = toEnvelope(encoded);
     payload.o = "not-an-array"; // corrupt in place of the real shape
@@ -107,6 +109,7 @@ describe("duplicates collapse", () => {
         ["contracts", "feature-1"],
         ["contracts", "feature-1"],
       ],
+      points: [],
     });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.openObjects).not.toBeNull();
@@ -117,7 +120,7 @@ describe("duplicates collapse", () => {
 describe("cap", () => {
   it(`caps five valid entries at ${MAX_OPEN_OBJECTS}`, () => {
     const payload = toEnvelope(
-      encodeShareState({ camera: CAMERA, layers: [], filters: {}, openObjects: [] }),
+      encodeShareState({ camera: CAMERA, layers: [], filters: {}, openObjects: [], points: [] }),
     );
     payload.o = [
       ["contracts", "feature-1"],
@@ -145,7 +148,7 @@ describe("empty array", () => {
       camera: CAMERA,
       layers: [],
       filters: {},
-      openObjects: [],
+      openObjects: [], points: [],
     });
     const payload = toEnvelope(encoded);
     expect(Object.prototype.hasOwnProperty.call(payload, "o")).toBe(false);

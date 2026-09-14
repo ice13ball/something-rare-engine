@@ -32,6 +32,7 @@ import { collectShareableFilters } from "../../types/filterRegistry";
 import type { LayerId } from "../../types/layers";
 import { liveShareParam } from "../../utils/liveShareUrl";
 import { openObjectsFor } from "./openFromLink";
+import { pointObjectsFor } from "./pointFromLink";
 
 /** No more than one address-bar write per this many ms. See the Safari note above. */
 const MIN_WRITE_INTERVAL_MS = 2000;
@@ -54,6 +55,7 @@ function currentParam(
     layers: [...activeLayers],
     filters: collectShareableFilters(store),
     openObjects: openObjectsFor(store.selectedFeatures),
+    points: pointObjectsFor(store.selectedFeatures),
   }).param;
 }
 

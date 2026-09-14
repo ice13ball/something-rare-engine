@@ -14,10 +14,14 @@
  * chosen AFTER the feature is found — so the resolver has the properties in
  * hand, exactly as `SearchBar`'s `DECK_LAYER_ID[id]?.(properties)` does today.
  *
- * Stage 1 covers the five layers `?focus=` already proves: anything else is
- * refused here rather than emitted into a link the reader cannot honour.
+ * Which layers may be carried, and how each one is found, lives in
+ * `types/openableRegistry.ts` — where a compile-time guard forces every layer
+ * to be either wired or opted out with a reason. Anything not wired is refused
+ * here rather than emitted into a link the reader cannot honour.
  */
 import type { Feature, FeatureCollection } from "geojson";
+
+import { OPENABLE, OPENABLE_LOOKUP } from "../../types/openableRegistry";
 
 /** What the caller needs to fly to a feature and open its panel. */
 export interface OpenTarget {
@@ -30,78 +34,15 @@ export interface OpenTarget {
   zoom: number;
 }
 
-interface OpenableLayer {
-  /**
-   * Properties that may hold the identifier a link carries, in priority order.
-   *
-   * ⛔ A LIST, not one name, because the write side and the read side must agree
-   * and they reach the id by different routes. The store takes whatever the
-   * click path put in `SelectedFeature.id`; `?focus=vent:<name>` and the SEO
-   * "View on map" buttons carry a NAME. Vents have both `id` and `name`, and a
-   * single-property lookup made a link built from the search bar (which emits
-   * `id`) unresolvable — the panel never opened and only the new notice
-   * revealed it. Measured against live data on 2026-09-14.
-   */
-  idProps: readonly string[];
-  /** Chosen once the feature is in hand — see the module note. */
-  routingKey: (properties: Record<string, unknown>) => string;
-  /**
-   * Every key `routingKey` can return. Needed for the WRITE direction: the
-   * store holds the routing key, a link must carry the public layer id.
-   * ⚠️ Two lists that must agree; `open-from-link.test.ts` pins them together
-   * so a new branch in `routingKey` cannot be forgotten here.
-   */
-  routingKeys: readonly string[];
-  zoom: number;
-}
-
-/**
- * ⛔ Stage 1 only. Adding a layer here without checking that `DetailPanel`
- * has a branch for the routing key produces a link that opens nothing and
- * blames the data. Every key below was verified against `DetailPanel.tsx`
- * on 2026-09-14 — exactly one branch each.
- */
-export const STAGE1_OPENABLE: Record<string, OpenableLayer> = {
-  "contracts": {
-    idProps: ["isa_id"],
-    routingKey: () => "mining-contracts-mvt",
-    routingKeys: ["mining-contracts-mvt"],
-    zoom: 6,
-  },
-  "hydrothermal-vents": {
-    idProps: ["id", "name"],
-    // The one value-dependent case, and the reason the routing key cannot be
-    // decided before the lookup: the two panels render differently.
-    routingKey: (p) => (p.status === "Active" ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive"),
-    routingKeys: ["hydrothermal-vents-active", "hydrothermal-vents-inactive"],
-    zoom: 8,
-  },
-  "argo": {
-    idProps: ["platform_id"],
-    routingKey: () => "argo-floats-3d",
-    routingKeys: ["argo-floats-3d"],
-    zoom: 7,
-  },
-  "chess": {
-    idProps: ["locality"],
-    routingKey: () => "chess",
-    routingKeys: ["chess"],
-    zoom: 7,
-  },
-  "seamounts": {
-    idProps: ["peak_id"],
-    routingKey: () => "seamounts",
-    routingKeys: ["seamounts"],
-    zoom: 7,
-  },
-};
-
-/** The layer ids a link may carry today. Used on the WRITE side too. */
-export const OPENABLE_LAYER_IDS: readonly string[] = Object.keys(STAGE1_OPENABLE);
+/** The layer ids a link may carry. Used on the WRITE side too. */
+export const OPENABLE_LAYER_IDS: readonly string[] = Object.keys(OPENABLE);
 
 export function isOpenableLayer(layerId: string): boolean {
-  return layerId in STAGE1_OPENABLE;
+  return layerId in OPENABLE;
 }
+
+/** Re-exported so callers have one import for the whole subject. */
+export { OPENABLE, OPENABLE_LOOKUP };
 
 /**
  * Find the feature a link names. Returns null when the layer is not openable,
@@ -117,7 +58,7 @@ export function resolveOpenTarget(
   featureId: string,
   collection: FeatureCollection | null | undefined,
 ): OpenTarget | null {
-  const cfg = STAGE1_OPENABLE[layerId];
+  const cfg = OPENABLE_LOOKUP[layerId];
   if (!cfg || !collection?.features?.length) return null;
 
   const wanted = featureId.trim().toLowerCase();
@@ -160,7 +101,7 @@ export function resolveOpenTarget(
  * months — and `argo-floats-3d` is not a thing anyone can look up.
  */
 const ROUTING_KEY_TO_LAYER: Record<string, string> = Object.fromEntries(
-  Object.entries(STAGE1_OPENABLE).flatMap(([layerId, cfg]) =>
+  Object.entries(OPENABLE_LOOKUP).flatMap(([layerId, cfg]) =>
     cfg.routingKeys.map((k) => [k, layerId] as const),
   ),
 );
@@ -188,5 +129,66 @@ export function openObjectsFor(
     out.push([layerId, String(f.id)]);
   }
   return out;
+}
+
+/**
+ * Ask the server for one feature of a tiled layer.
+ *
+ * ⛔ Tried only AFTER the client-held collection, never instead of it. `/by-id`
+ * supplements a tile, it does not reproduce one: `PermafrostThawPanel` renders
+ * category, type and site name straight from the tile's properties and the
+ * endpoint returns none of them. Preferring the network would open a panel
+ * poorer than a click produces — and say nothing about the difference.
+ *
+ * Returns null on any failure. The caller must report a null, not swallow it.
+ */
+export async function fetchOpenTarget(
+  layerId: string,
+  featureId: string,
+  api: string,
+  signal?: AbortSignal,
+): Promise<OpenTarget | null> {
+  const cfg = OPENABLE_LOOKUP[layerId];
+  if (!cfg?.byIdPath) return null;
+  try {
+    const r = await fetch(`${api}${cfg.byIdPath}${encodeURIComponent(featureId)}`, { signal });
+    if (!r.ok) return null;
+    const body = await r.json();
+    // The endpoints answer either a bare object or a GeoJSON Feature.
+    const feature = (body?.type === "Feature" ? body : null) as Feature | null;
+    const properties = (feature?.properties ?? body ?? {}) as Record<string, unknown>;
+    if (Object.keys(properties).length === 0) return null;
+    return {
+      routingKey: cfg.routingKey(properties),
+      id: featureId,
+      properties,
+      feature: feature ?? ({ type: "Feature", geometry: null, properties } as unknown as Feature),
+      zoom: cfg.zoom,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The whole lookup, in the order that matters: what the client already holds,
+ * and only then the network.
+ *
+ * ⛔ Reversing these two compiles, passes a smoke test, and quietly opens a
+ * poorer panel than a click does — `/by-id` supplements a tile rather than
+ * reproducing it. Exists as one function so that ordering can be sabotaged in
+ * a test instead of living inside a React effect nothing can reach.
+ */
+export async function openTargetFor(
+  layerId: string,
+  featureId: string,
+  collection: FeatureCollection | null | undefined,
+  api: string,
+  signal?: AbortSignal,
+): Promise<OpenTarget | null> {
+  return (
+    resolveOpenTarget(layerId, featureId, collection) ??
+    (await fetchOpenTarget(layerId, featureId, api, signal))
+  );
 }
 

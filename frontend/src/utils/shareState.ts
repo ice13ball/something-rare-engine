@@ -27,11 +27,24 @@ export interface ShareCamera {
 }
 
 /** What a link can carry, each field independently present-or-null. */
+/**
+ * One spot on a continuous field: `[layer, lon, lat]`, plus the one selector
+ * value that layer's panel needs (`depth` in metres, or a decade index).
+ *
+ * ⛔ Longitude first, matching `c` and GeoJSON — and NOT matching the
+ * `<lat>,<lon>` order of the synthetic selection id this eventually rebuilds.
+ * The two orders genuinely differ; the range check below is what stops a swap
+ * from passing silently, since a real latitude past ±90 is rejected.
+ */
+export type SharePoint = [LayerId, number, number, number?];
+
+/** What a link can carry, each field independently present-or-null. */
 export interface ShareState {
   camera: ShareCamera | null;
   layers: LayerId[] | null;
   filters: Record<string, string[]> | null;
   openObjects: Array<[LayerId, string]> | null;
+  points: SharePoint[] | null;
 }
 
 // `o` is additive and optional, so it does NOT need a SHARE_STATE_VERSION
@@ -46,10 +59,20 @@ interface ShareEnvelope {
   l?: string[];
   f?: Record<string, string[]>;
   o?: Array<[string, string]>; // [public layer id, feature id]
+  p?: Array<[string, number, number] | [string, number, number, number]>;
 }
 
-// mapStore.ts caps open detail panels at 3 — a link must not promise a
-// fourth panel it can never actually open.
+/**
+ * mapStore.ts caps open detail panels at 3 — a link must not promise a fourth
+ * panel it can never actually open.
+ *
+ * ⛔ The cap is JOINT across `o` and `p`. They are separate fields but they
+ * open panels from the same pool of three: a link claiming three records and
+ * two points would have two of its five quietly never appear. A link this side
+ * produces can never exceed three (both lists are built from one `≤3`
+ * selection), so hitting the joint cap means the value was edited or corrupted
+ * — `o` is honoured first and `p` gets what is left.
+ */
 export const MAX_OPEN_OBJECTS = 3;
 
 // base64url, not base64 — the value rides in a query string, where `+`, `/`
@@ -135,6 +158,41 @@ function validateOpenObjects(o: ShareEnvelope["o"]): Array<[LayerId, string]> | 
   return out.length > 0 ? out : null;
 }
 
+/**
+ * Structural validation only — shape, types and geographic range. Whether the
+ * named layer can actually be addressed by coordinate is NOT decided here.
+ *
+ * ⛔ That split is deliberate and mirrors `o`: a layer that has stopped being
+ * point-addressable must reach the map as a request it can REPORT, not vanish
+ * during parsing. Dropping it here would make a link to a retired layer look
+ * exactly like a link that asked for nothing — the failure this feature exists
+ * to end.
+ */
+function validatePoints(p: ShareEnvelope["p"], budget: number): SharePoint[] | null {
+  if (!Array.isArray(p) || budget <= 0) return null;
+
+  const seen = new Set<string>();
+  const out: SharePoint[] = [];
+  for (const entry of p) {
+    if (out.length >= budget) break;
+    if (!Array.isArray(entry) || entry.length < 3 || entry.length > 4) continue;
+    const [layer, lon, lat, extra] = entry as [unknown, unknown, unknown, unknown];
+    if (typeof layer !== "string" || !VALID_LAYER_IDS.has(layer)) continue;
+    if (!isFiniteNumber(lon) || !isFiniteNumber(lat)) continue;
+    if (lon < -180 || lon > 180 || lat < -90 || lat > 90) continue;
+    if (entry.length === 4 && !isFiniteNumber(extra)) continue;
+    // ⛔ Dedup on the extra too. The same spot at 0 m and at 1000 m are two
+    // different readings, and the sender may well have had both open.
+    const key = `${layer} ${lon} ${lat} ${entry.length === 4 ? extra : ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(entry.length === 4
+      ? [layer as LayerId, lon, lat, extra as number]
+      : [layer as LayerId, lon, lat]);
+  }
+  return out.length > 0 ? out : null;
+}
+
 export function encodeShareState(state: {
   camera: ShareCamera | PersistedViewState;
   layers: LayerId[];
@@ -146,6 +204,8 @@ export function encodeShareState(state: {
    * place that builds a link must decide, even if the decision is `[]`.
    */
   openObjects: Array<[string, string]>;
+  /** ⛔ Required for the same reason as `openObjects` — see above. */
+  points: ReadonlyArray<readonly [string, number, number, number?]>;
 }): string {
   const envelope: ShareEnvelope = { v: SHARE_STATE_VERSION };
   const { longitude, latitude, zoom, pitch, bearing } = state.camera;
@@ -153,6 +213,16 @@ export function encodeShareState(state: {
   if (state.layers.length > 0) envelope.l = state.layers;
   if (Object.keys(state.filters).length > 0) envelope.f = state.filters;
   if (state.openObjects && state.openObjects.length > 0) envelope.o = state.openObjects;
+  if (state.points && state.points.length > 0) {
+    // ⛔ A 4th slot is emitted only when there IS a value. Writing `null` to
+    // keep the tuples uniform would cost bytes and, worse, make "this layer
+    // has no selector" indistinguishable from "the selector was lost".
+    envelope.p = state.points.map(([l, lon, lat, extra]) =>
+      (extra === undefined
+        ? [l, lon, lat]
+        : [l, lon, lat, extra]) as [string, number, number] | [string, number, number, number],
+    );
+  }
   return toBase64Url(JSON.stringify(envelope));
 }
 
@@ -174,11 +244,13 @@ export function decodeShareState(raw: string | null): ShareState | null {
   }
   if (!envelope || envelope.v !== SHARE_STATE_VERSION) return null;
 
+  const openObjects = validateOpenObjects(envelope.o);
   return {
     camera: validateCamera(envelope.c),
     layers: validateLayers(envelope.l),
     filters: validateFilters(envelope.f),
-    openObjects: validateOpenObjects(envelope.o),
+    openObjects,
+    points: validatePoints(envelope.p, MAX_OPEN_OBJECTS - (openObjects?.length ?? 0)),
   };
 }
 
@@ -190,6 +262,7 @@ export function buildShareUrl(
     layers: LayerId[];
     filters: Record<string, string[]>;
     openObjects: Array<[string, string]>;
+    points: ReadonlyArray<readonly [string, number, number, number?]>;
   },
 ): string {
   const s = encodeShareState(state);
