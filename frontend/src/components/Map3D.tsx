@@ -28,6 +28,8 @@ import type { DatasetStats } from "../utils/argoAlarms";
 import { loadMapState, saveMapState, consumeReturnFly, saveReturnFlyFromViewState } from "../utils/mapState";
 import { setLiveMapState } from "../utils/liveMapState";
 import { useLiveShareUrl } from "./map3d/useLiveShareUrl";
+import { resolveOpenTarget, isOpenableLayer } from "./map3d/openFromLink";
+import { FocusUnavailableNotice } from "./FocusUnavailableNotice";
 import { decodeShareState } from "../utils/shareState";
 import { applyShareableFilters } from "../types/filterRegistry";
 import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam } from "./map3d/shareBootstrap";
@@ -336,6 +338,8 @@ export function Map3D() {
   const oceansitesNetworkFilters = useMapStore(s => s.oceansitesNetworkFilters);
   const oceansitesStatusFilters  = useMapStore(s => s.oceansitesStatusFilters);
   const cableSourceFilters = useMapStore(s => s.cableSourceFilters);
+  const sharePanelFailures = useMapStore(s => s.sharePanelFailures);
+  const clearSharePanelFailures = useMapStore(s => s.clearSharePanelFailures);
   const arcticRiverSourceFilters = useMapStore(s => s.arcticRiverSourceFilters);
   const chessHabitatFilters = useMapStore(s => s.chessHabitatFilters);
   const chessPhylumFilters  = useMapStore(s => s.chessPhylumFilters);
@@ -1889,6 +1893,63 @@ export function Map3D() {
   // trigger is interaction-end and not a timer.
   useLiveShareUrl(viewState, activeLayers, isInteracting, restored);
 
+  // ── Objects named by a share link ───────────────────────────────────────
+  // Runs once per link. Mirrors the `?focus=` effect below: turn the layer on,
+  // wait for its data to land, then fly and open. The difference is that this
+  // one SAYS SO when it misses.
+  const linkObjectsDoneRef = useRef(false);
+  useEffect(() => {
+    if (linkObjectsDoneRef.current) return;
+    const wanted = _urlShare?.openObjects;
+    if (!wanted || wanted.length === 0) { linkObjectsDoneRef.current = true; return; }
+
+    const dataFor: Record<string, FeatureCollection | null> = {
+      "contracts": claimsData as FeatureCollection | null,
+      "hydrothermal-vents": ventsData,
+      "argo": argoData,
+      "chess": chessData,
+      "seamounts": seamountsData,
+    };
+
+    // ⛔ A layer whose data has not arrived is NOT a miss. Reporting it as one
+    // would put a "this object is gone" notice on screen a second before the
+    // object appears. Wait; the effect re-runs when the fetch lands.
+    const missingData = wanted.some(([layerId]) =>
+      isOpenableLayer(layerId) && activeLayers.has(layerId as LayerId) && dataFor[layerId] === null);
+    const notActive = wanted.filter(([layerId]) =>
+      isOpenableLayer(layerId) && !activeLayers.has(layerId as LayerId)).map(([l]) => l);
+    if (notActive.length > 0) {
+      const next = new Set(activeLayers);
+      notActive.forEach(l => next.add(l as LayerId));
+      setActiveLayers(next);
+      return;
+    }
+    if (missingData) return;
+
+    linkObjectsDoneRef.current = true;
+    const store = useMapStore.getState();
+    let flewTo = false;
+    for (const [layerId, featureId] of wanted) {
+      const target = resolveOpenTarget(layerId, featureId, dataFor[layerId]);
+      if (!target) {
+        store.addSharePanelFailure({ layerId, featureId });
+        continue;
+      }
+      // ⛔ `?fly=`/`?focus=` mean "jump to this ONE feature" and outrank a whole
+      // restored view — so a link's own camera only moves when neither is present.
+      if (!flewTo && !_urlFly) {
+        const c = getBBoxCenter([target.feature as any]);
+        setViewState({ ...viewStateRef.current, longitude: c.longitude, latitude: c.latitude,
+          zoom: target.zoom, pitch: 45, bearing: 0,
+          transitionDuration: 1200, transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }) });
+        flewTo = true;
+      }
+      // `shift: true` stacks — the sender may have had up to three side by side.
+      setTimeout(() => setSelectedFeature(
+        { id: target.id, layer: target.routingKey, properties: target.properties }, true), 1300);
+    }
+  }, [claimsData, ventsData, argoData, chessData, seamountsData, activeLayers, setSelectedFeature]);
+
   // ── Flush map state on unmount (e.g. navigating to a report) ────────────
   // Also write RETURN_FLY here — latestStateRef is always current, unlike
   // the debounced localStorage write, so the saved coords are always right.
@@ -2631,6 +2692,11 @@ export function Map3D() {
         flyTo(sm, 7);
         const props = (sm as any).properties;
         setTimeout(() => setSelectedFeature({ id: props.peak_id, layer: "seamounts", properties: props }), 1300);
+      } else {
+        // ⛔ Was: nothing. The layer came on, the param vanished, no panel
+        // opened and nothing was said — so the reader concluded that was the
+        // sender's point. Report it instead.
+        useMapStore.getState().addSharePanelFailure({ layerId: "seamounts", featureId: value });
       }
       stripParam();
       return;
@@ -2644,6 +2710,9 @@ export function Map3D() {
         const props = (v as any).properties;
         const deckId = props.status === "Active" ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive";
         setTimeout(() => setSelectedFeature({ id: props.id ?? props.name, layer: deckId, properties: props }), 1300);
+      } else {
+        // Same silence, same fix — see the seamount branch above.
+        useMapStore.getState().addSharePanelFailure({ layerId: "hydrothermal-vents", featureId: value });
       }
       stripParam();
       return;
@@ -2651,8 +2720,16 @@ export function Map3D() {
 
     // Plain focus (argo/claim/chess) — resolved via searchById once argo loads.
     if (!argoData) return;
-    if (searchById(focus)) stripParam();
-  }, [argoData, seamountsData, ventsData, activeLayers, setActiveLayers, locationSearch, searchById]);
+    if (searchById(focus)) { stripParam(); return; }
+    // ⛔ Not found — but "not found YET" and "not there" look identical here,
+    // so give up only once every dataset `searchById` consults has landed.
+    // Reporting earlier would put a "this object is gone" notice on screen a
+    // second before the object appears.
+    if (claimsData && ventsData && argoData && chessData) {
+      useMapStore.getState().addSharePanelFailure({ layerId: "", featureId: focus });
+      stripParam();
+    }
+  }, [argoData, seamountsData, ventsData, claimsData, chessData, activeLayers, setActiveLayers, locationSearch, searchById]);
 
   // ── Sync ventsData to store for claim panel lookups ──────────────────────
   useEffect(() => { if (ventsData) storeSetVentsData(ventsData); }, [ventsData, storeSetVentsData]);
@@ -5020,6 +5097,15 @@ export function Map3D() {
           onRetry={retryFailedLayers}
         />
       )}
+
+      {/* ⛔ Independent of failedLayers: a link naming a vanished object is a
+          different failure with a different remedy, and it must be able to
+          appear when every layer loaded perfectly. Bottom-LEFT so the two
+          never stack on the same strip of screen. */}
+      <FocusUnavailableNotice
+        failures={sharePanelFailures}
+        onDismiss={clearSharePanelFailures}
+      />
 
       <div
         id="map-canvas"

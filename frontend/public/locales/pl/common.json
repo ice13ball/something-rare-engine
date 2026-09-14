@@ -54,6 +54,11 @@
     "tracingPlume": "Śledzenie smugi…",
     "referenceButton": "Odniesienie"
   },
+  "focusUnavailable": {
+    "title": "Link wskazuje na coś, czego już nie ma",
+    "body": "Ten link prosił o obiekt, którego mapa już nie zawiera. Reszta linku została odtworzona.",
+    "staleId": "Jedno z tych źródeł nadaje nowe identyfikatory przy każdej ponownej publikacji, więc linki do pojedynczego rekordu starzeją się szybciej niż pozostałe."
+  },
   "layerUnavailable": {
     "title": "Niektóre warstwy niedostępne",
     "titleFull": "Niektóre warstwy są tymczasowo niedostępne",

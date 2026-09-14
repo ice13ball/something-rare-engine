@@ -54,6 +54,11 @@
     "tracingPlume": "Tracing plume…",
     "referenceButton": "Reference"
   },
+  "focusUnavailable": {
+    "title": "Link points at something missing",
+    "body": "This link asked for an object the map no longer has. Everything else in the link was restored.",
+    "staleId": "One of these sources issues new identifiers each time it republishes, so links to a single record age faster than the rest."
+  },
   "layerUnavailable": {
     "title": "Some layers unavailable",
     "titleFull": "Some layers are temporarily unavailable",

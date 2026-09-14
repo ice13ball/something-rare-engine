@@ -35,8 +35,7 @@ describe("a small state round-trips unchanged", () => {
     const state = {
       camera: CAMERA,
       layers: ["contracts", "argo"],
-      filters: { hiddenContractors: ["acme"] },
-    };
+      filters: { hiddenContractors: ["acme"] }, openObjects: [] };
 
     const result = liveShareParam(state);
     expect(result.dropped).toBe("nothing");
@@ -52,7 +51,7 @@ describe("a small state round-trips unchanged", () => {
 
 describe("overflow drops filters wholesale, keeps camera and layers", () => {
   const heavy = heavyFilters();
-  const state = { camera: CAMERA, layers: ALL_LAYERS, filters: heavy };
+  const state = { camera: CAMERA, layers: ALL_LAYERS, filters: heavy, openObjects: [] };
 
   it("has a non-empty layer list and a non-empty filter set to begin with", () => {
     // ⛔ An empty comparison is not evidence — prove both sides are real
@@ -62,7 +61,7 @@ describe("overflow drops filters wholesale, keeps camera and layers", () => {
   });
 
   it("positive control: the same state WITH filters would exceed the cap", () => {
-    const withFilters = encodeShareState({ camera: CAMERA, layers: ALL_LAYERS as never, filters: heavy });
+    const withFilters = encodeShareState({ camera: CAMERA, layers: ALL_LAYERS as never, filters: heavy, openObjects: [] });
     expect(withFilters.length).toBeGreaterThan(MAX_PARAM_LENGTH);
   });
 
@@ -89,13 +88,12 @@ describe("the returned param always decodes", () => {
     const result = liveShareParam({
       camera: CAMERA,
       layers: ["contracts"],
-      filters: {},
-    });
+      filters: {}, openObjects: [] });
     expect(decodeShareState(result.param)).not.toBeNull();
   });
 
   it("is accepted by decodeShareState for the overflowed state", () => {
-    const result = liveShareParam({ camera: CAMERA, layers: ALL_LAYERS, filters: heavyFilters() });
+    const result = liveShareParam({ camera: CAMERA, layers: ALL_LAYERS, filters: heavyFilters(), openObjects: [] });
     expect(result.param!.length).toBeLessThanOrEqual(MAX_PARAM_LENGTH);
     expect(decodeShareState(result.param)).not.toBeNull();
   });
@@ -103,7 +101,7 @@ describe("the returned param always decodes", () => {
 
 describe("empty layers and empty filters still carry the camera", () => {
   it("encodes a param decodeShareState accepts, with a null layer list", () => {
-    const result = liveShareParam({ camera: CAMERA, layers: [], filters: {} });
+    const result = liveShareParam({ camera: CAMERA, layers: [], filters: {}, openObjects: [] });
     expect(result.dropped).toBe("nothing");
     const decoded = decodeShareState(result.param);
     expect(decoded).not.toBeNull();
@@ -112,3 +110,32 @@ describe("empty layers and empty filters still carry the camera", () => {
     expect(decoded!.filters).toBeNull();
   });
 });
+
+describe("what is given up first when the link will not fit", () => {
+  const CAM = { longitude: 12.5, latitude: -3.25, zoom: 6, pitch: 45, bearing: 0 };
+  const HEAVY = { aisFlagFilters: Array.from({ length: 900 }, (_, i) => `FLAG${i}`) };
+  const OBJECTS: Array<[string, string]> = [["contracts", "ISA-001"], ["seamounts", "12345"]];
+
+  it("drops the filters but keeps the objects", () => {
+    // ⛔ The order is not arbitrary. A filter can be re-applied by hand; the
+    // object the sender was pointing at cannot be guessed from a map view.
+    const r = liveShareParam({ camera: CAM, layers: ["contracts"], filters: HEAVY, openObjects: OBJECTS });
+    expect(r.dropped).toBe("filters");
+    const decoded = decodeShareState(r.param)!;
+    expect(decoded.openObjects).toEqual(OBJECTS);   // survived
+    expect(decoded.filters).toBeNull();             // did not
+    expect(decoded.camera).toEqual(CAM);            // positive control
+  });
+
+  it("keeps both when both fit", () => {
+    const r = liveShareParam({
+      camera: CAM, layers: ["contracts"],
+      filters: { ventStatusFilters: ["Active"] }, openObjects: OBJECTS,
+    });
+    expect(r.dropped).toBe("nothing");
+    const decoded = decodeShareState(r.param)!;
+    expect(decoded.openObjects).toEqual(OBJECTS);
+    expect(decoded.filters).toEqual({ ventStatusFilters: ["Active"] });
+  });
+});
+

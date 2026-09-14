@@ -54,6 +54,11 @@
     "tracingPlume": "Sedimentfahne wird verfolgt…",
     "referenceButton": "Referenz"
   },
+  "focusUnavailable": {
+    "title": "Link verweist auf etwas Fehlendes",
+    "body": "Dieser Link hat ein Objekt angefordert, das die Karte nicht mehr enthält. Alles Übrige aus dem Link wurde wiederhergestellt.",
+    "staleId": "Eine dieser Quellen vergibt bei jeder Neuveröffentlichung neue Kennungen, daher altern Links auf einen einzelnen Datensatz schneller als die übrigen."
+  },
   "layerUnavailable": {
     "title": "Einige Ebenen nicht verfügbar",
     "titleFull": "Einige Ebenen sind vorübergehend nicht verfügbar",

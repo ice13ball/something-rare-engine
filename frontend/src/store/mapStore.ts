@@ -21,6 +21,20 @@ export interface SelectedFeature {
   slot: number; // monotonically increasing; used for stable panel positioning
 }
 
+/** One object a link asked for and the map could not show. */
+export interface SharePanelFailure {
+  /** Public layer id, so the notice can name the layer in the reader's language. */
+  layerId: string;
+  /** The identifier that did not resolve — shown so the sender can be told what to re-send. */
+  featureId: string;
+  /**
+   * `true` for sources that mint new identifiers on every republication, so the
+   * notice can say the link aged rather than implying the object never existed.
+   * ⛔ Documented for OBIS in `.claude/rules/layers/obis-occurrences.md`.
+   */
+  idRegenerates?: boolean;
+}
+
 export interface VentConflict {
   vent_name: string;
   vent_status: string;
@@ -52,6 +66,19 @@ export interface MapStore {
   selectedFeatures: SelectedFeature[];
   setSelectedFeature: (f: Omit<SelectedFeature, "slot"> | null, shift?: boolean) => void;
   removeSelectedFeature: (id: string | number, layer: string) => void;
+
+  /**
+   * Objects a deep link named but the map could not produce.
+   *
+   * ⛔ Exists because the alternative is silence. `?focus=` has always done
+   * `if (found) { open it }` and then cleared the param either way, so a link
+   * to a vanished vent turned its layer on, opened nothing, and said nothing —
+   * and the reader concluded that was what the sender meant. Both the share
+   * link and `?focus=` write here, so one notice covers both doors.
+   */
+  sharePanelFailures: SharePanelFailure[];
+  addSharePanelFailure: (f: SharePanelFailure) => void;
+  clearSharePanelFailures: () => void;
 
   // Risk data for claim panels
   riskAreas: RiskArea[];
@@ -396,6 +423,16 @@ export const useMapStore = create<MapStore>((set) => ({
       _nextSlot = 1; // reset after clearing
       return { selectedFeatures: [{ ...f, slot: 0 }] };
     }),
+  sharePanelFailures: [],
+  addSharePanelFailure: (f) =>
+    set((s) =>
+      // Same object reported twice (the effect re-runs as each dataset lands)
+      // must not stack into two lines of the same complaint.
+      s.sharePanelFailures.some(x => x.layerId === f.layerId && x.featureId === f.featureId)
+        ? {}
+        : { sharePanelFailures: [...s.sharePanelFailures, f] },
+    ),
+  clearSharePanelFailures: () => set({ sharePanelFailures: [] }),
   removeSelectedFeature: (id, layer) =>
     set((s) => ({
       selectedFeatures: s.selectedFeatures.filter(x => !(x.id === id && x.layer === layer)),

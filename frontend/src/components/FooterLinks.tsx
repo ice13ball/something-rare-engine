@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { clearStoredConsent } from "../utils/analytics";
 import { useMapStore } from "../store/mapStore";
 import { getLiveMapState } from "../utils/liveMapState";
+import { openObjectsFor } from "./map3d/openFromLink";
 import { collectShareableFilters } from "../types/filterRegistry";
 import { buildShareUrl } from "../utils/shareState";
 
@@ -30,6 +31,10 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
       },
       layers: [...live.activeLayers],
       filters: collectShareableFilters(useMapStore.getState()),
+      // ⛔ The button must carry what the address bar carries. When this field
+      // was optional the two disagreed: the URL had the reader's open panel,
+      // a link copied from the button did not.
+      openObjects: openObjectsFor(useMapStore.getState().selectedFeatures),
     });
     try {
       await navigator.clipboard.writeText(url);

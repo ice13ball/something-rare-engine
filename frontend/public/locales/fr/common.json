@@ -54,6 +54,11 @@
     "tracingPlume": "Traçage du panache…",
     "referenceButton": "Référence"
   },
+  "focusUnavailable": {
+    "title": "Le lien pointe vers un élément absent",
+    "body": "Ce lien demandait un objet que la carte ne contient plus. Tout le reste du lien a été restauré.",
+    "staleId": "L’une de ces sources attribue de nouveaux identifiants à chaque republication ; les liens vers un enregistrement isolé vieillissent donc plus vite que les autres."
+  },
   "layerUnavailable": {
     "title": "Certaines couches indisponibles",
     "titleFull": "Certaines couches sont temporairement indisponibles",

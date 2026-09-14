@@ -31,14 +31,26 @@ export interface ShareState {
   camera: ShareCamera | null;
   layers: LayerId[] | null;
   filters: Record<string, string[]> | null;
+  openObjects: Array<[LayerId, string]> | null;
 }
 
+// `o` is additive and optional, so it does NOT need a SHARE_STATE_VERSION
+// bump: an older client decoding a link that carries it sees `v:1`, ignores
+// the unknown `o` key entirely, and simply doesn't open a panel — the rest of
+// the envelope still decodes normally. A version bump is reserved for
+// INCOMPATIBLE shape changes (a field renamed/repurposed); adding an optional
+// field a reader can safely ignore is not one.
 interface ShareEnvelope {
   v: number;
   c?: [number, number, number, number, number];
   l?: string[];
   f?: Record<string, string[]>;
+  o?: Array<[string, string]>; // [public layer id, feature id]
 }
+
+// mapStore.ts caps open detail panels at 3 — a link must not promise a
+// fourth panel it can never actually open.
+export const MAX_OPEN_OBJECTS = 3;
 
 // base64url, not base64 — the value rides in a query string, where `+`, `/`
 // and `=` either get percent-encoded (harmless but ugly) or, if a caller ever
@@ -96,16 +108,51 @@ function validateFilters(f: ShareEnvelope["f"]): Record<string, string[]> | null
   return Object.keys(out).length > 0 ? out : null;
 }
 
+/**
+ * Modeled on `validateFilters` (per-entry drop), NOT on `validateLayers`
+ * (whole-list reject). `validateLayers` rejects wholesale because a typo
+ * there would silently become "show zero layers" — it changes what the map
+ * shows. One unopenable object here does not: the map still renders exactly
+ * as requested, and rejecting the whole list would additionally cost the
+ * reader the two objects that WERE fine, for no corresponding safety gain.
+ */
+function validateOpenObjects(o: ShareEnvelope["o"]): Array<[LayerId, string]> | null {
+  if (!Array.isArray(o)) return null;
+
+  const seen = new Set<string>();
+  const out: Array<[LayerId, string]> = [];
+  for (const entry of o) {
+    if (out.length >= MAX_OPEN_OBJECTS) break;
+    if (!Array.isArray(entry) || entry.length !== 2) continue;
+    const [layer, id] = entry;
+    if (typeof layer !== "string" || typeof id !== "string") continue;
+    if (!VALID_LAYER_IDS.has(layer)) continue;
+    const key = `${layer} ${id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push([layer as LayerId, id]);
+  }
+  return out.length > 0 ? out : null;
+}
+
 export function encodeShareState(state: {
   camera: ShareCamera | PersistedViewState;
   layers: LayerId[];
   filters: Record<string, string[]>;
+  /**
+   * ⛔ Required, not optional. Making it optional kept the old call sites
+   * compiling — and would have shipped a "Share view" button whose link
+   * silently lacked the panel the address bar was already carrying. Every
+   * place that builds a link must decide, even if the decision is `[]`.
+   */
+  openObjects: Array<[string, string]>;
 }): string {
   const envelope: ShareEnvelope = { v: SHARE_STATE_VERSION };
   const { longitude, latitude, zoom, pitch, bearing } = state.camera;
   envelope.c = [longitude, latitude, zoom, pitch, bearing];
   if (state.layers.length > 0) envelope.l = state.layers;
   if (Object.keys(state.filters).length > 0) envelope.f = state.filters;
+  if (state.openObjects && state.openObjects.length > 0) envelope.o = state.openObjects;
   return toBase64Url(JSON.stringify(envelope));
 }
 
@@ -131,6 +178,7 @@ export function decodeShareState(raw: string | null): ShareState | null {
     camera: validateCamera(envelope.c),
     layers: validateLayers(envelope.l),
     filters: validateFilters(envelope.f),
+    openObjects: validateOpenObjects(envelope.o),
   };
 }
 
@@ -141,6 +189,7 @@ export function buildShareUrl(
     camera: ShareCamera | PersistedViewState;
     layers: LayerId[];
     filters: Record<string, string[]>;
+    openObjects: Array<[string, string]>;
   },
 ): string {
   const s = encodeShareState(state);

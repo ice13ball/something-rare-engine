@@ -31,6 +31,7 @@ import { useMapStore } from "../../store/mapStore";
 import { collectShareableFilters } from "../../types/filterRegistry";
 import type { LayerId } from "../../types/layers";
 import { liveShareParam } from "../../utils/liveShareUrl";
+import { openObjectsFor } from "./openFromLink";
 
 /** No more than one address-bar write per this many ms. See the Safari note above. */
 const MIN_WRITE_INTERVAL_MS = 2000;
@@ -41,6 +42,7 @@ function currentParam(
 ): string | null {
   const vs = viewState as Record<string, number>;
   if (typeof vs.longitude !== "number" || typeof vs.latitude !== "number") return null;
+  const store = useMapStore.getState();
   return liveShareParam({
     camera: {
       longitude: vs.longitude,
@@ -50,7 +52,8 @@ function currentParam(
       bearing: vs.bearing ?? 0,
     },
     layers: [...activeLayers],
-    filters: collectShareableFilters(useMapStore.getState()),
+    filters: collectShareableFilters(store),
+    openObjects: openObjectsFor(store.selectedFeatures),
   }).param;
 }
 

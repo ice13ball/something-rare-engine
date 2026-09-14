@@ -29,40 +29,44 @@ import type { LayerId } from "../types/layers";
 export type LiveShareParam = {
   /** The `s` value to put in the URL, or null if even camera+layers won't fit. */
   param: string | null;
-  /** What had to be left out to fit. */
-  dropped: "nothing" | "filters";
+  /** What had to be left out to fit, in the order things are given up. */
+  dropped: "nothing" | "filters" | "filters+objects";
 };
 
 export function liveShareParam(state: {
   camera: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number };
   layers: readonly string[];
   filters: Record<string, string[]>;
+  /** `[public layer id, feature id]` for each open panel, at most 3. */
+  openObjects: ReadonlyArray<[string, string]>;
 }): LiveShareParam {
   const layers = [...state.layers] as LayerId[];
+  const openObjects = state.openObjects.map(([l, i]) => [l, i] as [string, string]);
 
-  const withFilters = encodeShareState({
-    camera: state.camera,
-    layers,
-    filters: state.filters,
-  });
-  if (withFilters.length <= MAX_PARAM_LENGTH) {
-    return { param: withFilters, dropped: "nothing" };
+  const full = encodeShareState({ camera: state.camera, layers, filters: state.filters, openObjects });
+  if (full.length <= MAX_PARAM_LENGTH) {
+    return { param: full, dropped: "nothing" };
   }
 
-  // Filters alone pushed it over the cap — re-encode without them. Never a
-  // partial filter set: see the module docstring above.
-  const withoutFilters = encodeShareState({
-    camera: state.camera,
-    layers,
-    filters: {},
-  });
-  if (withoutFilters.length <= MAX_PARAM_LENGTH) {
-    return { param: withoutFilters, dropped: "filters" };
+  // Filters go first, as a whole. Never a partial filter set: see the module
+  // docstring. Objects survive this step because they are what the sender
+  // pointed at — a filter can be re-applied by hand, the object they meant
+  // cannot be guessed.
+  const noFilters = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects });
+  if (noFilters.length <= MAX_PARAM_LENGTH) {
+    return { param: noFilters, dropped: "filters" };
+  }
+
+  // Objects next, also as a whole. A partial set would open some of what the
+  // sender had and look deliberate.
+  const bare = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects: [] });
+  if (bare.length <= MAX_PARAM_LENGTH) {
+    return { param: bare, dropped: "filters+objects" };
   }
 
   // Measured today: camera + all 57 layers alone is 1302 chars, well under
   // the 4000 cap, so this branch should be unreachable in practice. Guard it
   // anyway rather than assume — emitting an oversized URL would just hand
   // `decodeShareState` a value it rejects on arrival.
-  return { param: null, dropped: "filters" };
+  return { param: null, dropped: "filters+objects" };
 }
