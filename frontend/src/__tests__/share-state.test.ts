@@ -22,7 +22,7 @@ describe("round-trip", () => {
     const encoded = encodeShareState({
       camera: CAMERA,
       layers: ["contracts", "argo"] as any,
-      filters: { ventStatusFilters: ["Active"] }, openObjects: [], points: [] });
+      filters: { ventStatusFilters: ["Active"] }, openObjects: [], points: [], display: {} });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.camera).toEqual(CAMERA);
     expect(decoded.layers).toEqual(["contracts", "argo"]);
@@ -30,7 +30,7 @@ describe("round-trip", () => {
   });
 
   it("omits empty layers/filters from the payload (short links)", () => {
-    const encoded = encodeShareState({ camera: CAMERA, layers: [], filters: {}, openObjects: [], points: [] });
+    const encoded = encodeShareState({ camera: CAMERA, layers: [], filters: {}, openObjects: [], points: [], display: {} });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.camera).toEqual(CAMERA);
     expect(decoded.layers).toBeNull();
@@ -40,7 +40,7 @@ describe("round-trip", () => {
 
 describe("requirement 1 — version gate", () => {
   it("rejects the whole envelope on version mismatch, never reinterprets it", () => {
-    const encoded = encodeShareState({ camera: CAMERA, layers: ["contracts"] as any, filters: {}, openObjects: [], points: [] });
+    const encoded = encodeShareState({ camera: CAMERA, layers: ["contracts"] as any, filters: {}, openObjects: [], points: [], display: {} });
     const payload = JSON.parse(decodeURIComponent(escape(atob(encoded.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (encoded.length % 4)) % 4)))));
     payload.v = SHARE_STATE_VERSION + 1;
     const tampered = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -50,7 +50,7 @@ describe("requirement 1 — version gate", () => {
 
 describe("requirement 2 — unknown layer id rejects the whole layer list, camera survives", () => {
   it("a bad layer list does not discard a good camera", () => {
-    const encoded = encodeShareState({ camera: CAMERA, layers: ["contracts", "not-a-real-layer"] as any, filters: {}, openObjects: [], points: [] });
+    const encoded = encodeShareState({ camera: CAMERA, layers: ["contracts", "not-a-real-layer"] as any, filters: {}, openObjects: [], points: [], display: {} });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.camera).toEqual(CAMERA);
     expect(decoded.layers).toBeNull();
@@ -68,7 +68,7 @@ describe("requirement 4 — length cap checked before parsing", () => {
       layers: ["contracts"] as any,
       // Real shape, real field name, just far too many values to fit a URL.
       filters: { aisFlagFilters: Array.from({ length: 900 }, (_, i) => `FLAG${i}`) },
-      openObjects: [], points: [],
+      openObjects: [], points: [], display: {},
     });
     expect(bloated.length).toBeGreaterThan(4000);
     expect(decodeShareState(bloated)).toBeNull();
@@ -78,7 +78,7 @@ describe("requirement 4 — length cap checked before parsing", () => {
     const slim = encodeShareState({
       camera: CAMERA,
       layers: ["contracts"] as any,
-      filters: { aisFlagFilters: ["FLAG0"] }, openObjects: [], points: [] });
+      filters: { aisFlagFilters: ["FLAG0"] }, openObjects: [], points: [], display: {} });
     expect(slim.length).toBeLessThan(4000);
     expect(decodeShareState(slim)).not.toBeNull();
   });
@@ -90,7 +90,7 @@ describe("requirement 4 — length cap checked before parsing", () => {
       camera: CAMERA,
       layers: ["contracts"] as any,
       filters: { aisFlagFilters: Array.from({ length: 900 }, (_, i) => `FLAG${i}`) },
-      openObjects: [], points: [],
+      openObjects: [], points: [], display: {},
     });
     const parse = vi.spyOn(JSON, "parse");
     try {
@@ -115,7 +115,7 @@ describe("buildShareUrl", () => {
     const url = buildShareUrl("https://something-rare.com", "/", {
       camera: CAMERA,
       layers: ["contracts"] as any,
-      filters: {}, openObjects: [], points: [] });
+      filters: {}, openObjects: [], points: [], display: {} });
     expect(url.startsWith("https://something-rare.com/?s=")).toBe(true);
     const parsed = new URL(url);
     expect([...parsed.searchParams.keys()]).toEqual(["s"]);

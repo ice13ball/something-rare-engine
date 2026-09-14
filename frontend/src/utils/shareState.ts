@@ -5,6 +5,7 @@ import type { LayerId } from "../types/layers";
 import type { PersistedViewState } from "./mapState";
 import { VALID_LAYER_IDS } from "./layersParam";
 import { isShareableFilterField } from "../types/filterRegistry";
+import { isValidDisplayValue } from "../types/displayRegistry";
 
 // Bump on any incompatible envelope change. A version MISMATCH returns null
 // from decode — never "best effort reinterpret an old shape as the new one".
@@ -45,6 +46,8 @@ export interface ShareState {
   filters: Record<string, string[]> | null;
   openObjects: Array<[LayerId, string]> | null;
   points: SharePoint[] | null;
+  /** Per-layer display selectors the sender had changed from their defaults. */
+  display: Record<string, string | number | boolean> | null;
 }
 
 // `o` is additive and optional, so it does NOT need a SHARE_STATE_VERSION
@@ -60,6 +63,7 @@ interface ShareEnvelope {
   f?: Record<string, string[]>;
   o?: Array<[string, string]>; // [public layer id, feature id]
   p?: Array<[string, number, number] | [string, number, number, number]>;
+  d?: Record<string, string | number | boolean>;
 }
 
 /**
@@ -193,6 +197,25 @@ function validatePoints(p: ShareEnvelope["p"], budget: number): SharePoint[] | n
   return out.length > 0 ? out : null;
 }
 
+/**
+ * Per-entry drop, like `f` and never like `l`.
+ *
+ * ⛔ And every value is checked against the registry, not merely type-checked.
+ * Four of these fields are interpolated into a request PATH, so "it is a string"
+ * is not enough — a link is a stranger's input arriving in someone else's
+ * browser. `isValidDisplayValue` is the only thing standing between that input
+ * and a URL we build.
+ */
+function validateDisplay(d: ShareEnvelope["d"]): Record<string, string | number | boolean> | null {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+  const out: Record<string, string | number | boolean> = {};
+  for (const [field, value] of Object.entries(d)) {
+    if (!isValidDisplayValue(field, value)) continue;
+    out[field] = value;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 export function encodeShareState(state: {
   camera: ShareCamera | PersistedViewState;
   layers: LayerId[];
@@ -206,6 +229,8 @@ export function encodeShareState(state: {
   openObjects: Array<[string, string]>;
   /** ⛔ Required for the same reason as `openObjects` — see above. */
   points: ReadonlyArray<readonly [string, number, number, number?]>;
+  /** ⛔ Required for the same reason. Empty object is a real answer. */
+  display: Record<string, string | number | boolean>;
 }): string {
   const envelope: ShareEnvelope = { v: SHARE_STATE_VERSION };
   const { longitude, latitude, zoom, pitch, bearing } = state.camera;
@@ -223,6 +248,7 @@ export function encodeShareState(state: {
         : [l, lon, lat, extra]) as [string, number, number] | [string, number, number, number],
     );
   }
+  if (state.display && Object.keys(state.display).length > 0) envelope.d = state.display;
   return toBase64Url(JSON.stringify(envelope));
 }
 
@@ -251,6 +277,7 @@ export function decodeShareState(raw: string | null): ShareState | null {
     filters: validateFilters(envelope.f),
     openObjects,
     points: validatePoints(envelope.p, MAX_OPEN_OBJECTS - (openObjects?.length ?? 0)),
+    display: validateDisplay(envelope.d),
   };
 }
 
@@ -263,6 +290,7 @@ export function buildShareUrl(
     filters: Record<string, string[]>;
     openObjects: Array<[string, string]>;
     points: ReadonlyArray<readonly [string, number, number, number?]>;
+    display: Record<string, string | number | boolean>;
   },
 ): string {
   const s = encodeShareState(state);

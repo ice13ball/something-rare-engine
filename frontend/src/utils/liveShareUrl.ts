@@ -46,12 +46,23 @@ export function liveShareParam(state: {
   openObjects: ReadonlyArray<[string, string]>;
   /** `[public layer id, lon, lat, selector?]` for each open field panel. */
   points: ReadonlyArray<readonly [string, number, number, number?]>;
+  /**
+   * Per-layer display selectors that differ from their defaults.
+   *
+   * ⛔ Never dropped, and deliberately not given a rung below. These decide
+   * WHICH DATA a layer draws — a link that gave up the sender's depth would
+   * render the recipient a different measurement under the sender's camera and
+   * look completely normal. They are also bounded and small (32 short keys,
+   * only the changed ones emitted), so they cannot be the cause of an overflow.
+   */
+  display: Record<string, string | number | boolean>;
 }): LiveShareParam {
   const layers = [...state.layers] as LayerId[];
   const openObjects = state.openObjects.map(([l, i]) => [l, i] as [string, string]);
   const points = state.points;
+  const display = state.display;
 
-  const full = encodeShareState({ camera: state.camera, layers, filters: state.filters, openObjects, points });
+  const full = encodeShareState({ camera: state.camera, layers, filters: state.filters, openObjects, points, display });
   if (full.length <= MAX_PARAM_LENGTH) {
     return { param: full, dropped: "nothing" };
   }
@@ -60,14 +71,14 @@ export function liveShareParam(state: {
   // docstring. Objects survive this step because they are what the sender
   // pointed at — a filter can be re-applied by hand, the object they meant
   // cannot be guessed.
-  const noFilters = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects, points });
+  const noFilters = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects, points, display });
   if (noFilters.length <= MAX_PARAM_LENGTH) {
     return { param: noFilters, dropped: "filters" };
   }
 
   // Objects next, also as a whole. A partial set would open some of what the
   // sender had and look deliberate.
-  const bare = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects: [], points: [] });
+  const bare = encodeShareState({ camera: state.camera, layers, filters: {}, openObjects: [], points: [], display });
   if (bare.length <= MAX_PARAM_LENGTH) {
     return { param: bare, dropped: "filters+objects" };
   }

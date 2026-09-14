@@ -38,6 +38,7 @@ describe("round-trip", () => {
       filters: {},
       openObjects: [],
       points: [["ocean-carbon", -140.25, 12.5, 1000]],
+      display: {},
     });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.points).toEqual([["ocean-carbon", -140.25, 12.5, 1000]]);
@@ -55,6 +56,7 @@ describe("exact precision", () => {
       filters: {},
       openObjects: [],
       points: [["ocean-carbon", lon, lat, 1000]],
+      display: {},
     });
     const decoded = decodeShareState(encoded)!;
     const [, decodedLon, decodedLat] = decoded.points![0];
@@ -73,6 +75,7 @@ describe("range check", () => {
       openObjects: [],
       // lon slot carries 12.5, lat slot carries -140.25 — out of range for a latitude.
       points: [["ocean-carbon", 12.5, -140.25, 1000]],
+      display: {},
     });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.points).toBeNull();
@@ -91,8 +94,7 @@ describe("one bad entry does not cost the good ones", () => {
         ["ocean-carbon", -140.25, 12.5, 1000],
         ["not-a-real-layer", 1, 2, 3],
         ["vme-suitability", -10, 20, undefined],
-      ],
-    });
+      ], display: {} });
     const decoded = decodeShareState(encoded)!;
     // Positive control: assert the survivors are non-empty AND are exactly
     // the right two, in order — "not null" alone would also pass if the
@@ -115,6 +117,7 @@ describe("a corrupt `p` must not damage the other fields", () => {
       filters: {},
       openObjects: [],
       points: [["ocean-carbon", -140.25, 12.5, 1000]],
+      display: {},
     });
     const payload = toEnvelope(encoded);
     // Every entry in `p` is broken: bad layer id, then out-of-range lat/lon.
@@ -143,8 +146,7 @@ describe("the cap is joint with openObjects", () => {
       points: [
         ["ocean-carbon", -140.25, 12.5, 1000],
         ["vme-suitability", -10, 20, undefined],
-      ],
-    });
+      ], display: {} });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.openObjects).not.toBeNull();
     expect(decoded.openObjects!.length).toBe(MAX_OPEN_OBJECTS);
@@ -161,8 +163,7 @@ describe("the cap is joint with openObjects", () => {
         ["ocean-carbon", -140.25, 12.5, 1000],
         ["vme-suitability", -10, 20, undefined],
         ["cumulative-human-impact", -50, 30, undefined],
-      ],
-    });
+      ], display: {} });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.openObjects).not.toBeNull();
     expect(decoded.openObjects!.length).toBe(1);
@@ -186,8 +187,7 @@ describe("duplicates collapse, extra keeps them apart", () => {
       points: [
         ["ocean-carbon", -140.25, 12.5, 1000],
         ["ocean-carbon", -140.25, 12.5, 1000],
-      ],
-    });
+      ], display: {} });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.points).not.toBeNull();
     expect(decoded.points).toEqual([["ocean-carbon", -140.25, 12.5, 1000]]);
@@ -202,8 +202,7 @@ describe("duplicates collapse, extra keeps them apart", () => {
       points: [
         ["ocean-carbon", -140.25, 12.5, 0],
         ["ocean-carbon", -140.25, 12.5, 1000],
-      ],
-    });
+      ], display: {} });
     const decoded = decodeShareState(encoded)!;
     expect(decoded.points).not.toBeNull();
     expect(decoded.points!.length).toBe(2);

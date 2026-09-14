@@ -1379,6 +1379,47 @@ def serialize_profiles(rows) -> str:
     return json.dumps(out)
 
 
+def prune_dead_profile_layers(
+    profiles: list[dict], live: set[str]
+) -> tuple[list[dict], list[str]]:
+    """Drop layers a profile names that are no longer enabled, and hide a profile
+    left with none.
+
+    A startup profile is the first thing a new visitor clicks. Nothing kept its
+    layer list in step with `layer_config`: switching a layer off left every
+    profile still offering it, so the visitor got a mode that turns two layers
+    on and shows an empty map. That is exactly the failure this codebase treats
+    as worse than no feature — it looks like it worked.
+
+    ⛔ An EMPTY `live` set is refused, not obeyed. If the layer_config read
+    returns nothing — a failed query, a fresh database, a typo in the status
+    filter — then "no layer is alive" is indistinguishable from "every layer is
+    dead", and obeying it would hide every profile and blank the welcome screen
+    for everyone. Non-empty is asserted before any set difference is taken.
+
+    Returns the profiles to serve plus a list of notes naming what was removed,
+    so the caller can log it. A silent prune would swap one invisible problem
+    for another.
+    """
+    if not live:
+        return profiles, ["layer_config yielded no enabled layers — prune skipped"]
+
+    kept: list[dict] = []
+    notes: list[str] = []
+    for p in profiles:
+        gone = [l for l in p["layers"] if l not in live]
+        if not gone:
+            kept.append(p)
+            continue
+        alive = [l for l in p["layers"] if l in live]
+        notes.append(f"{p['id']}: dropped {', '.join(gone)}")
+        if alive:
+            kept.append({**p, "layers": alive})
+        else:
+            notes.append(f"{p['id']}: hidden — no enabled layer left")
+    return kept, notes
+
+
 def _bust_profiles_cache() -> None:
     global _startup_profiles_cache, _startup_profiles_cache_ts
     _startup_profiles_cache = None
@@ -1396,7 +1437,12 @@ async def get_startup_profiles():
             "SELECT id, section, order_idx, layers, label, description, accent, views "
             "FROM startup_profiles WHERE status = 'enabled' "
             "ORDER BY section, order_idx")
-    data = serialize_profiles(rows).encode()
+        live = {r["id"] for r in await conn.fetch(
+            "SELECT id FROM layer_config WHERE status = 'enabled'")}
+    profiles_out, notes = prune_dead_profile_layers(json.loads(serialize_profiles(rows)), live)
+    for n in notes:
+        log.warning("startup-profiles: %s", n)
+    data = json.dumps(profiles_out).encode()
     _startup_profiles_cache = data
     _startup_profiles_cache_ts = time.monotonic()
     return Response(data, media_type="application/json")

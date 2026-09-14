@@ -10,6 +10,7 @@ import { getLiveMapState } from "../utils/liveMapState";
 import { openObjectsFor } from "./map3d/openFromLink";
 import { pointObjectsFor } from "./map3d/pointFromLink";
 import { collectShareableFilters } from "../types/filterRegistry";
+import { collectShareableDisplay } from "../types/displayRegistry";
 import { buildShareUrl } from "../utils/shareState";
 
 export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConsent?: () => void; onOpenFeedback?: () => void }) {
@@ -37,6 +38,7 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
       // a link copied from the button did not.
       openObjects: openObjectsFor(useMapStore.getState().selectedFeatures),
       points: pointObjectsFor(useMapStore.getState().selectedFeatures),
+      display: collectShareableDisplay(useMapStore.getState()),
     });
     try {
       await navigator.clipboard.writeText(url);

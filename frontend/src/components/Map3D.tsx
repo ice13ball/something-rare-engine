@@ -33,6 +33,7 @@ import { pointTargetFor, isPointLayer } from "./map3d/pointFromLink";
 import { FocusUnavailableNotice } from "./FocusUnavailableNotice";
 import { decodeShareState } from "../utils/shareState";
 import { applyShareableFilters } from "../types/filterRegistry";
+import { applyShareableDisplay } from "../types/displayRegistry";
 import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam } from "./map3d/shareBootstrap";
 import { SearchBar } from "./SearchBar";
 import { analytics } from "../utils/analytics";
@@ -164,6 +165,11 @@ const _urlShare = (() => {
   // shared filter is visible in the very first paint rather than flashing
   // unfiltered-then-filtered.
   if (decoded.filters) applyShareableFilters(decoded.filters);
+  // Same timing, same reason, different registry: the depth/decade/variable a
+  // layer is drawn at. ⚠️ Applied BEFORE first render because these feed the
+  // tile URLs — arriving late means the recipient fetches their own default
+  // first and sees the sender's data replace it, which reads as a glitch.
+  if (decoded.display) applyShareableDisplay(decoded.display);
   return decoded;
 })();
 

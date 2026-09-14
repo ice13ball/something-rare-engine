@@ -383,6 +383,22 @@ let _nextSlot = 0;
 // Exported so filterRegistry.ts can derive its "every Set<string> field must be
 // classified" universe from the store shape itself, rather than a hand-typed
 // list that silently stops growing the day someone adds a 36th filter field.
+/**
+ * Every scalar field of the store — the universe a share link's display-state
+ * registry must account for.
+ *
+ * ⛔ `NonNullable` is load-bearing: `currentsDate` is `string | null`, and a
+ * plain `extends string` test drops it silently. A field this universe cannot
+ * see is a field the completeness guard can never ask about.
+ *
+ * Sibling of `FilterSetKey` below, which does the same job for `Set<string>`
+ * filters. Two universes because the two kinds validate and travel differently,
+ * not because one was forgotten.
+ */
+export type ScalarStateKey = {
+  [K in keyof MapStore]: NonNullable<MapStore[K]> extends string | number | boolean ? K : never;
+}[keyof MapStore];
+
 export type FilterSetKey = { [K in keyof MapStore]: MapStore[K] extends Set<string> ? K : never }[keyof MapStore];
 
 function _makeToggle(

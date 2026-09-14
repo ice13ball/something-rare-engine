@@ -29,6 +29,7 @@ import { useEffect, useRef } from "react";
 
 import { useMapStore } from "../../store/mapStore";
 import { collectShareableFilters } from "../../types/filterRegistry";
+import { collectShareableDisplay } from "../../types/displayRegistry";
 import type { LayerId } from "../../types/layers";
 import { liveShareParam } from "../../utils/liveShareUrl";
 import { openObjectsFor } from "./openFromLink";
@@ -56,6 +57,7 @@ function currentParam(
     filters: collectShareableFilters(store),
     openObjects: openObjectsFor(store.selectedFeatures),
     points: pointObjectsFor(store.selectedFeatures),
+    display: collectShareableDisplay(store),
   }).param;
 }
 

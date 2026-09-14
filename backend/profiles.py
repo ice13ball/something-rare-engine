@@ -139,9 +139,12 @@ PROFILE_SEED: list[dict] = [
        ["submarine-cables", "ports", "noise-risk"],
        "Infrastructure & Noise",
        "Submarine cables, ports and modelled underwater-noise risk."),
-    _p("vessel-surveillance", "ocean", 80,
-       ["ais-live", "vessel-events"],
-       "Vessel Surveillance",
-       "Live AIS positions and SAR×AIS dark-vessel detection in coastal waters. "
-       "Free-tier AIS is nearshore only — open-ocean ISA leases are out of AIS scope."),
+    # ⛔ No "vessel-surveillance" profile. It offered ais-live + vessel-events,
+    # both switched off on 2026-09-14 (the free AIS tier is nearshore-only and
+    # produced 0 matched vessels in 161,875 detections), so the profile handed a
+    # first-time visitor a mode that turns two layers on and shows nothing.
+    # ⚠️ Removing it here only protects a FRESH database — the seed is
+    # ON CONFLICT DO NOTHING, so an existing row survives. What actually
+    # protects a live one is `prune_dead_profile_layers` in main.py, which drops
+    # layers that are not enabled before a profile is served.
 ]
