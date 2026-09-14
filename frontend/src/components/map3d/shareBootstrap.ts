@@ -70,3 +70,24 @@ export function resolveInitialLayers(
   }
   return active;
 }
+
+/**
+ * Does a `?s=` param found at boot stay in the address bar?
+ *
+ * It used to be stripped unconditionally, so a share link applied once and the
+ * bar went back to a bare URL. Now `useLiveShareUrl` keeps the param in step
+ * with the map, which is what makes "copy the URL" a way to share — so a
+ * param that decoded is left alone for the live writer to own.
+ *
+ * ⛔ One that did NOT decode is still stripped. Leaving a malformed `s` in the
+ * bar hands the reader a broken link to pass on, and the live writer only
+ * overwrites it on the first change the reader makes — which may never come.
+ * "Broken" and "absent" must not look the same to the person copying.
+ */
+export function shouldStripShareParam(
+  raw: string | null,
+  decoded: unknown | null,
+): boolean {
+  if (raw === null) return false;   // nothing there to strip
+  return decoded === null;          // present but unusable
+}

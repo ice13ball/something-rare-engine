@@ -27,9 +27,10 @@ import { computeDatasetStats, floatHasAlarm, phImplausible } from "../utils/argo
 import type { DatasetStats } from "../utils/argoAlarms";
 import { loadMapState, saveMapState, consumeReturnFly, saveReturnFlyFromViewState } from "../utils/mapState";
 import { setLiveMapState } from "../utils/liveMapState";
+import { useLiveShareUrl } from "./map3d/useLiveShareUrl";
 import { decodeShareState } from "../utils/shareState";
 import { applyShareableFilters } from "../types/filterRegistry";
-import { resolveInitialCamera, resolveInitialLayers } from "./map3d/shareBootstrap";
+import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam } from "./map3d/shareBootstrap";
 import { SearchBar } from "./SearchBar";
 import { analytics } from "../utils/analytics";
 import type { ClaimFeatureCollection } from "../types/claims";
@@ -127,10 +128,18 @@ const _urlFly = (() => {
   window.history.replaceState({}, "", window.location.pathname + (clean ? `?${clean}` : ""));
   return { longitude: lon, latitude: lat, zoom: isNaN(z) ? 9 : z };
 })();
-// `?s=` — a shareable view link. Read once at module init, same shape as
-// `?fly=` above: strip the param immediately so it can't reapply on refresh
-// (a refreshed share link should behave like any other visit from then on,
-// not re-fight the user's own subsequent navigation every reload).
+// `?s=` — a shareable view link, read once at module init.
+//
+// ⭐ Unlike `?fly=` above, this param is NOT stripped once it has been applied.
+// `useLiveShareUrl` now keeps it in step with what the map is showing, so the
+// address bar is itself the shareable link. The old reason for stripping — "a
+// refreshed link shouldn't re-fight the user's later navigation" — dissolves
+// exactly when the URL becomes live: a reload now restores where the user
+// actually is, which is not a fight but the point.
+//
+// ⛔ A param that FAILED to decode is still stripped. Leaving a malformed `s`
+// in the bar would hand the reader a broken link to pass on, and the live
+// writer only overwrites it on the first change — which may never come.
 //
 // ⛔ `?fly=`/`?focus=` mean "jump to one feature" and must still win over a
 // whole restored view — a report back-link is more specific intent than a
@@ -141,9 +150,11 @@ const _urlShare = (() => {
   const raw = params.get("s");
   if (!raw) return null;
   const decoded = decodeShareState(raw);
-  params.delete("s");
-  const clean = params.toString();
-  window.history.replaceState({}, "", window.location.pathname + (clean ? `?${clean}` : ""));
+  if (shouldStripShareParam(raw, decoded)) {
+    params.delete("s");
+    const clean = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (clean ? `?${clean}` : ""));
+  }
   if (!decoded) return null;
   // Filters are governed entirely by the store, not by React state threaded
   // through this component — applied here, once, before first render, so a
@@ -1868,6 +1879,11 @@ export function Map3D() {
     }, 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [viewState, activeLayers]);
+
+  // The address bar carries the same view, updated when the user settles —
+  // so "copy the URL" works as a share. See useLiveShareUrl for why the
+  // trigger is interaction-end and not a timer.
+  useLiveShareUrl(viewState, activeLayers, isInteracting);
 
   // ── Flush map state on unmount (e.g. navigating to a report) ────────────
   // Also write RETURN_FLY here — latestStateRef is always current, unlike

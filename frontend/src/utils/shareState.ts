@@ -16,7 +16,7 @@ export const SHARE_STATE_VERSION = 1;
 // generated — it's either a corrupted paste or an attempt to make the app do
 // expensive work parsing garbage. Checked BEFORE any base64/JSON work so a
 // hostile value costs a string length check, not a parse.
-const MAX_PARAM_LENGTH = 4000;
+export const MAX_PARAM_LENGTH = 4000;
 
 export interface ShareCamera {
   longitude: number;

@@ -6,7 +6,7 @@
 // itself (which drags in deck.gl/MapLibre — see map3d-helpers.test.ts).
 import { describe, it, expect } from "vitest";
 
-import { resolveInitialCamera, resolveInitialLayers } from "../components/map3d/shareBootstrap";
+import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam } from "../components/map3d/shareBootstrap";
 import type { LayerId } from "../types/layers";
 
 const FLY = { longitude: 1, latitude: 2, zoom: 9 };
@@ -83,5 +83,25 @@ describe("layer precedence — a link's layer list is authoritative, never merge
 
   it("returns null (do nothing) when there is neither a link nor saved state", () => {
     expect(resolveInitialLayers(null, null, ALL_IDS)).toBeNull();
+  });
+});
+
+describe("a share param in the address bar — kept, or cleared", () => {
+  it("keeps a param that decoded, so the live writer can own the bar", () => {
+    // This is what makes "copy the URL" a way to share: the param stays and
+    // useLiveShareUrl keeps it current. Stripping it, as this used to, sent
+    // the reader back to a bare URL the moment the link was applied.
+    expect(shouldStripShareParam("some-valid-looking-blob", { camera: null })).toBe(false);
+  });
+
+  it("clears a param that did NOT decode", () => {
+    // ⛔ Otherwise the reader keeps a broken link in the bar and can pass it
+    // on, and the live writer only overwrites it when they change something —
+    // which may never happen. Broken must not look like absent.
+    expect(shouldStripShareParam("!!!not-base64!!!", null)).toBe(true);
+  });
+
+  it("does nothing when there is no param at all", () => {
+    expect(shouldStripShareParam(null, null)).toBe(false);
   });
 });
