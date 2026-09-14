@@ -1233,8 +1233,15 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_sio_bic_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_slow_sources_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_air_quality_readings_task()).add_done_callback(_watch)
-        asyncio.create_task(_ais_partition_maintenance_task()).add_done_callback(_watch)
-        asyncio.create_task(_vessel_events_sync_task()).add_done_callback(_watch)
+        # ⛔ AIS retired 2026-09-14 on Michal's instruction. The ingest service is
+        # stopped and disabled on the VPS, every ais_positions partition dropped
+        # (39 GB), and ais_vessels with them. Neither task is registered here any
+        # more: partition maintenance would create an empty weekly partition
+        # forever, and SAR×AIS correlation would keep writing rows that can only
+        # say "ambiguous" — in 161,875 correlated detections it produced 0
+        # "matched" and exactly 1 "dark", which is why the feed was retired.
+        # The modules stay on disk; re-registering these two lines is the whole
+        # of bringing it back.
         asyncio.create_task(_acoustic_stations_task()).add_done_callback(_watch)
         asyncio.create_task(_acoustic_soundscape_task()).add_done_callback(_watch)
         asyncio.create_task(_offshore_activities_sync_task()).add_done_callback(_watch)

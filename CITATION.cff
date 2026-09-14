@@ -18,14 +18,13 @@ type: software
 # deposit's version (which is at 1.6). Do not sync the two — they have different
 # cadences; that separation is the whole reason the code gets its own Zenodo record.
 version: "1.0.0"
-date-released: "2026-07-29"
+date-released: "2026-09-12"
 license: AGPL-3.0-or-later
-# TODO after the first GitHub release is archived by Zenodo: replace `doi` below with
-# the SOFTWARE concept DOI, and move the documentation DOI to `identifiers` only.
-# Until then this points at the documentation deposit so the citation still resolves.
-# `version` above needs the same post-release update: it currently tracks this
-# repository's own release cadence, independent of the doc deposit's version (1.6).
-doi: "10.5281/zenodo.19745884"
+# Concept DOI of the SOFTWARE record, minted by the Zenodo-GitHub integration from
+# release v1.0.0 on 2026-09-12. A concept DOI always resolves to the newest version,
+# so this line does not change per release. The documentation deposit keeps its own
+# concept DOI and lives under `identifiers` below.
+doi: "10.5281/zenodo.22728476"
 url: "https://something-rare.com"
 repository-code: "https://github.com/ice13ball/something-rare-engine"
 repository-artifact: "https://github.com/ice13ball/something-rare-engine/releases"
@@ -100,6 +99,9 @@ authors:
     orcid: "https://orcid.org/0009-0007-3786-0310"
     affiliation: "Independent Researcher"
 identifiers:
+  - description: "This release — Zenodo version DOI for v1.0.0 (pins the exact archived snapshot)"
+    type: doi
+    value: "10.5281/zenodo.22728477"
   - description: "Methods and data documentation — Zenodo concept DOI, CC-BY-4.0 (always resolves to the latest version)"
     type: doi
     value: "10.5281/zenodo.19745884"

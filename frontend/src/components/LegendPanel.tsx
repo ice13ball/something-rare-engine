@@ -292,6 +292,20 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
   const clearLegendFocus = useMapStore(s => s.clearLegendFocus);
   const enabledLayerIds = useMapStore((s) => s.enabledLayerIds);
 
+  /**
+   * Is this layer still served? The Reference tab has always gated on
+   * `enabledLayerIds` because it maps over LAYER_STRUCT, so retiring a layer
+   * server-side emptied it there for free. The Dates and Verify tabs are
+   * hand-written lists with no registry behind them, so they kept documenting
+   * `ais-live` and `vessel-events` as live feeds after both had already gone
+   * from the map and from Reference — seen in production on 2026-09-14.
+   *
+   * ⚠️ `enabledLayerIds` is null when the config has not loaded or its fetch
+   * failed. Null must mean "show everything": a network blip is not a reason
+   * to tell a reader that the platform's sources do not exist.
+   */
+  const layerShown = (id: string) => !enabledLayerIds || enabledLayerIds.has(id);
+
   // Deep-link from a tooltip/panel button: jump to the Layers tab and scroll
   // to the focused layer's row, then clear the request.
   useEffect(() => {
@@ -835,8 +849,12 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li><span className="text-white/90">Arctic Sediment Carbon</span> — Static (CASCADE v2 release; cores 1934–2018){syncDates["cascade"] && <span className="text-white/75 font-mono ml-1">({syncDates["cascade"]})</span>}</li>
                   <li><span className="text-white/90">Permafrost Thaw</span> — static (Webb et al. 2026 + ARTS v6.0.0 releases), synced from Zenodo{syncDates["permafrost-thaw"] && <span className="text-white/75 font-mono ml-1">({syncDates["permafrost-thaw"]})</span>}</li>
                   <li><span className="text-white/90">Bathymetry confidence</span> — Static (GEBCO_2024 / GMRT){syncDates["bathymetry-stats"] && <span className="text-white/75 font-mono ml-1">({syncDates["bathymetry-stats"]})</span>}</li>
+                  {layerShown("ais-live") && (
                   <li><span className="text-white/90">Live Vessels (AIS)</span> — live, last 60 min (AISStream.io WebSocket feed){syncDates["ais_aois"] && <span className="text-white/75 font-mono ml-1">({syncDates["ais_aois"]})</span>}</li>
+                  )}
+                  {layerShown("vessel-events") && (
                   <li><span className="text-white/90">Dark Vessels (SAR×AIS)</span> — SAR×AIS correlation, synced every 6 h (Sentinel-1 revisit cadence){syncDates["vessel_events"] && <span className="text-white/75 font-mono ml-1">({syncDates["vessel_events"]})</span>}</li>
+                  )}
                   <li><span className="text-white/90">ONC Observatories</span> — {t("dates.fresh_onc")}{syncDates["onc-sensors"] && <span className="text-white/75 font-mono ml-1">({syncDates["onc-sensors"]})</span>}</li>
                   <li><span className="text-white/90">ONC Instruments</span> — {t("dates.fresh_oncInstruments")}{syncDates["onc_instruments"] && <span className="text-white/75 font-mono ml-1">({syncDates["onc_instruments"]})</span>}</li>
                   <li><span className="text-white/90">Submarine Cables</span> — {t("dates.fresh_cables")}{syncDates["submarine_cables"] && <span className="text-white/75 font-mono ml-1">({syncDates["submarine_cables"]})</span>}</li>
@@ -1095,14 +1113,18 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                     <span className="text-white/90 font-medium">Bathymetry &amp; mapping confidence</span>
                     <p className="mt-0.5">This enrichment appears in Argo profile and other per-feature click panels. Depth values come from GEBCO_2024; mapping confidence (TID category) from the GEBCO_2024 Type Identifier grid. Cross-check at <span className="text-cyan-400">gebco.net/data_and_products/gridded_bathymetry_data/</span> — select "GEBCO_2024 TID Grid" and query the same coordinates. Shiptrack density can be explored in GMRT at <span className="text-cyan-400">gmrt.org</span>. Limitations: cells labelled "predicted" or "interpolated" are satellite-gravity-derived (accuracy may be ±100 m or worse in unsurveyed areas); GEBCO applies spatial interpolation between sounding lines; GMRT data are CC-BY with regional coverage gaps; values are not certified for navigation.</p>
                   </li>
+                  {layerShown("ais-live") && (
                   <li>
                     <span className="text-white/90 font-medium">Live Vessels (AIS)</span>
                     <p className="mt-0.5">Raw AIS positions from the AISStream.io WebSocket feed, last 60 minutes. Cross-check any vessel by its <code className="text-white/75">MMSI</code> at <span className="text-cyan-400">aisstream.io</span> or <span className="text-cyan-400">marinetraffic.com</span>. Coverage reflects terrestrial + satellite AIS receiver density — dense in coastal shipping lanes and shipping-route corridors, sparse in the open ocean. An empty stretch of ocean does not mean no vessels are present, only that none were within range of an AIS receiver.</p>
                   </li>
+                  )}
+                  {layerShown("vessel-events") && (
                   <li>
                     <span className="text-white/90 font-medium">Dark Vessels (SAR×AIS)</span>
                     <p className="mt-0.5">SAR detections come from Copernicus Sentinel-1 (ESA/EU), correlated against AIS positions within ±10 min / ±500 m. A "dark" classification means a SAR-detected vessel had no matching AIS broadcast — this can mean AIS was switched off, but can equally mean AIS coverage was too sparse in that area to expect a match (see the Live Vessels coastal-coverage caveat above); it is not on its own evidence of evasion. A detection is only marked 'dark' when other vessels' AIS was being received within 50 km and ±1 h; with no nearby AIS reception it is marked 'ambiguous' (a coverage gap, not a finding). Cross-check a detection's scene via its <code className="text-white/75">sar_detection_id</code> at <span className="text-cyan-400">dataspace.copernicus.eu</span>, or a matched vessel's <code className="text-white/75">matched_mmsi</code> at <span className="text-cyan-400">aisstream.io</span>.</p>
                   </li>
+                  )}
                   <li>
                     <span className="text-white/90 font-medium">{t("verify.onc_title")}</span>
                     <p className="mt-0.5">{t("verify.onc")}</p>

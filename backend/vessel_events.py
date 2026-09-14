@@ -263,16 +263,15 @@ async def auto_discover_contractors(force: bool = False) -> int:
                     (imo, mmsi, vessel_name, contractor_name, contractor_short,
                      role, source_url, verified_at)
                 SELECT
-                    COALESCE(av.imo::text, 'mmsi:' || i.mmsi::text)        AS imo,
+                    'mmsi:' || i.mmsi::text                                AS imo,
                     i.mmsi::text                                           AS mmsi,
-                    COALESCE(av.name, 'MMSI ' || i.mmsi::text)             AS vessel_name,
+                    'MMSI ' || i.mmsi::text                                AS vessel_name,
                     COALESCE(i.contractor_name, 'Unknown contractor')      AS contractor_name,
                     NULL                                                   AS contractor_short,
                     'auto-discovered (loiter ≥ {DISCOVERY_MIN_DURATION} in ISA concession)' AS role,
                     'isa:' || COALESCE(i.isa_id, '')                       AS source_url,
                     CURRENT_DATE                                           AS verified_at
                 FROM inside i
-                LEFT JOIN ais_vessels av ON av.mmsi = i.mmsi
                 ON CONFLICT (imo) DO UPDATE SET
                     mmsi            = EXCLUDED.mmsi,
                     vessel_name     = EXCLUDED.vessel_name,

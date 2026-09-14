@@ -8,7 +8,8 @@ Arctic land→ocean processes and terrestrial mining impacts — onto a single i
 3D globe, so the environmental and governance context of seabed and land mineral
 extraction is legible to researchers, journalists, policy analysts and the public.
 
-Live: **https://something-rare.com** · Methods & data documentation (Zenodo, CC-BY-4.0):
+Live: **https://something-rare.com** · Source code (Zenodo, AGPL-3.0-or-later):
+**https://doi.org/10.5281/zenodo.22728476** · Methods & data documentation (Zenodo, CC-BY-4.0):
 **https://doi.org/10.5281/zenodo.19745884**
 
 ![Abyssal Claims — system architecture](docs/architecture.png)

@@ -3235,6 +3235,20 @@ exports[`DetailPanel dispatch matrix > renders coral-acid-exposure after data lo
                     0.550
                   </td>
                 </tr>
+                <tr
+                  class="odd:bg-white/[0.025]"
+                >
+                  <td
+                    class="px-2 py-0.5 text-white/85"
+                  >
+                    VME uncertainty
+                  </td>
+                  <td
+                    class="px-2 py-0.5 text-right text-rose-300"
+                  >
+                    0.100
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>

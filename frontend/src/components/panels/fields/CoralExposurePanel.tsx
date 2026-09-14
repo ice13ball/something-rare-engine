@@ -117,6 +117,19 @@ export function CoralExposurePanel({ props: p }: { props: Record<string, unknown
                     {point.suitability != null ? point.suitability.toFixed(3) : "no data here"}
                   </td>
                 </tr>
+                {/* ⛔ Never show the suitability score without this. It is the SAME
+                    MaxEnt model's own uncertainty for the SAME cell, populated on
+                    every row the endpoint can return, and it reaches 0.474 on a
+                    0–1 scale — a bare "0.837" reads as a measurement when it is a
+                    model output with a wide band. VmeSuitabilityPanel has always
+                    shown this pair together; this panel sent the field over the
+                    wire and dropped it on the floor. */}
+                <tr className="odd:bg-white/[0.025]">
+                  <td className="px-2 py-0.5 text-white/85">VME uncertainty</td>
+                  <td className="px-2 py-0.5 text-right text-rose-300">
+                    {point.uncertainty != null ? point.uncertainty.toFixed(3) : "no data here"}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
