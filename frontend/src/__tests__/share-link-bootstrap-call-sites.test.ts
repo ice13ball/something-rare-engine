@@ -43,3 +43,29 @@ describe("a share link's store-side state is actually applied at bootstrap", () 
     expect(block).toMatch(/applyShareableDisplay\(\s*decoded\.display\s*\)/);
   });
 });
+
+/**
+ * ⛔ Same file, same reason, different failure: a link's layers can be applied
+ * perfectly and still look lost. Tested on production 2026-09-14 — a 20-layer
+ * link put seven LAND layers into the active set, drawn on the globe, with the
+ * whole "LAND DATA" section of the left menu collapsed. The reader scrolls the
+ * panel, counts fewer rows than the sender had, and reports missing layers.
+ *
+ * ⚠️ Gated on `linkCarriesView` on purpose. Doing it unconditionally would
+ * re-open, on every single reload, a section the visitor collapsed themselves.
+ */
+describe("a link's layers are made visible in the menu, not just active", () => {
+  const block = MAP3D.match(/if \(resolved\) \{[\s\S]*?\n    \}/)?.[0] ?? "";
+
+  it("finds the layer-restore block at all", () => {
+    expect(block).toContain("setActiveLayers(resolved)");
+  });
+
+  it("expands the sections the link's layers live in", () => {
+    expect(block).toMatch(/applyMenuExpansion\(\s*resolved\s*\)/);
+  });
+
+  it("does it ONLY for a link, never for the reader's own saved state", () => {
+    expect(block).toMatch(/if \(linkCarriesView\(_urlShare\)\)\s*applyMenuExpansion/);
+  });
+});

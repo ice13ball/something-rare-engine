@@ -9,6 +9,8 @@ import type { LayerId } from "../types/layers";
 import { parseLayersParam } from "../utils/layersParam";
 import { useLayerConfig } from "../utils/layerConfig";
 import { loadMapState } from "../utils/mapState";
+import { decodeShareState } from "../utils/shareState";
+import { linkCarriesView } from "./map3d/shareBootstrap";
 import { ProfilePicker } from "./ProfilePicker";
 import { useStartupProfiles, applyProfile, applyMode, applyMenuExpansion, type StartupProfile } from "../utils/startupProfiles";
 
@@ -28,8 +30,29 @@ export function WelcomeOverlay() {
   const [layerConfig] = useLayerConfig();
   const { profiles } = useStartupProfiles();
   const [searchParams, setSearchParams] = useSearchParams();
+  // ⛔ A share link that already names layers or panels is an ANSWER to the
+  // question this overlay asks — so the overlay must not ask it. Every mode and
+  // profile button replaces the active set wholesale, and the recipient has no
+  // "keep what the link gave me" button, so showing the picker over a link is
+  // showing a trap. See `linkCarriesView` for why a camera-only link is
+  // deliberately excluded.
+  //
+  // ⚠️ Read from the URL, not from `activeLayers`: the link's layers land in an
+  // effect inside Map3D, which React runs AFTER this initializer. The store is
+  // still empty at this moment, which is exactly why the overlay appeared over
+  // a fully-specified link in the first place.
+  const fromLink = useMemo(
+    () => linkCarriesView(decodeShareState(new URLSearchParams(window.location.search).get("s"))),
+    [],
+  );
   // Skip overlay if user already has active layers (e.g. returning from a report page)
-  const [visible, setVisible] = useState(() => activeLayers.size === 0);
+  const [visible, setVisible] = useState(() => !fromLink && activeLayers.size === 0);
+
+  // The overlay's own exit does this; a link that skipped the overlay must do
+  // it too, or the first-visit coach never starts for anyone arriving by link.
+  useEffect(() => {
+    if (fromLink) useMapStore.getState().setTutorialReady(true);
+  }, [fromLink]);
   // Layer selection saved from the previous session (the app already persists
   // it as abyssal_map_state and Map3D restores it on mount). Read once, purely
   // to decide whether to offer "Continue where I left off".

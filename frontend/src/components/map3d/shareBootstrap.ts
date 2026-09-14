@@ -91,3 +91,32 @@ export function shouldStripShareParam(
   if (raw === null) return false;   // nothing there to strip
   return decoded === null;          // present but unusable
 }
+
+/**
+ * Does this link already say what to show — so the mode picker must not ask?
+ *
+ * ⛔ The welcome overlay is not cosmetic here: every curated profile and both
+ * "all ocean/land layers" buttons call `setActiveLayers(new Set(...))`, which
+ * REPLACES the set wholesale. A recipient who opens a 20-layer link and picks a
+ * mode (the overlay gives them no other way out) loses all 20 — and because the
+ * address bar is live, the overwritten set is immediately re-encoded into `?s=`,
+ * so the sender's link is gone from the recipient's bar too. Reproduced on
+ * production 2026-09-14: a 20-layer link became the profile's 10.
+ *
+ * ⚠️ "Carries a view" is layers OR panels, NOT a camera. A camera-only link
+ * leaves the globe with nothing drawn on it, and the picker is then the only
+ * way the recipient can get any data at all — suppressing it there would trade
+ * one silent failure for a blank map.
+ */
+export function linkCarriesView(
+  share: {
+    layers?: LayerId[] | null;
+    openObjects?: unknown[] | null;
+    points?: unknown[] | null;
+  } | null,
+): boolean {
+  if (!share) return false;
+  return Boolean(
+    share.layers?.length || share.openObjects?.length || share.points?.length,
+  );
+}

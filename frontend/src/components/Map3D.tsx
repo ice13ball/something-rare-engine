@@ -34,7 +34,8 @@ import { FocusUnavailableNotice } from "./FocusUnavailableNotice";
 import { decodeShareState } from "../utils/shareState";
 import { applyShareableFilters } from "../types/filterRegistry";
 import { applyShareableDisplay } from "../types/displayRegistry";
-import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam } from "./map3d/shareBootstrap";
+import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam, linkCarriesView } from "./map3d/shareBootstrap";
+import { applyMenuExpansion } from "../utils/startupProfiles";
 import { SearchBar } from "./SearchBar";
 import { analytics } from "../utils/analytics";
 import type { ClaimFeatureCollection } from "../types/claims";
@@ -704,7 +705,16 @@ export function Map3D() {
       freshSaved,
       LAYER_CONFIGS.map(cfg => cfg.id),
     );
-    if (resolved) setActiveLayers(resolved);
+    if (resolved) {
+      setActiveLayers(resolved);
+      // ⛔ Only for a link, and only here. A link's layers can land in a menu
+      // section this reader has collapsed: tested on production, seven land
+      // layers arrived ACTIVE and drawn, with the whole "LAND DATA" section
+      // shut — which reads as "the link lost half my layers". The saved-state
+      // path deliberately does NOT do this; re-opening a section the visitor
+      // closed on purpose, on every reload, is a different bug.
+      if (linkCarriesView(_urlShare)) applyMenuExpansion(resolved);
+    }
     // From here the view is the one the page opens with; anything after this
     // is the reader's own doing and may go in the address bar.
     setRestored(true);
