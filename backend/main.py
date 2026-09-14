@@ -1480,12 +1480,33 @@ async def get_vent_mining_conflicts():
     return Response(content=data, media_type="application/json")
 
 
+def _sync_dates(rows) -> dict[str, str]:
+    """source → the DATE we last completed a sync, for the freshness display.
+
+    ⛔ `last_synced_at` is NULL for a source that has never completed one.
+    `log_sync_skipped` records the attempt and its reason WITHOUT stamping a
+    time, on purpose: a missing-credential skip that stamped NOW() would read
+    as freshly synced forever, which is worse than silence because silence at
+    least ages.
+
+    Calling `.date()` on that NULL raised AttributeError and took the WHOLE
+    endpoint down with it — so one never-completed source (sbma-cook-islands)
+    blanked the freshness date of every OTHER layer in the legend. Seen in
+    production 2026-09-14.
+
+    A source with no date is omitted rather than given a placeholder; the
+    frontend renders a missing key as "no date known", which is what it is.
+    """
+    return {r["source"]: r["last_synced_at"].date().isoformat()
+            for r in rows if r["last_synced_at"] is not None}
+
+
 @app.get("/v1/sync/status", dependencies=[Depends(get_api_key)])
 async def get_sync_status():
     """Return last sync timestamp per source — used by frontend for data freshness display."""
     async with _pool.acquire() as conn:
         rows = await conn.fetch("SELECT source, last_synced_at FROM sync_log ORDER BY source")
-    return {r["source"]: r["last_synced_at"].date().isoformat() for r in rows}
+    return _sync_dates(rows)
 
 
 @app.get("/v1/layers/temporal-coverage", dependencies=[Depends(get_api_key)])
