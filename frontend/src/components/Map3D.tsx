@@ -439,6 +439,7 @@ export function Map3D() {
 
   const [viewState,          setViewState]           = useState<Record<string, unknown>>(INITIAL_VIEW);
   const [isInteracting,      setIsInteracting]       = useState(false);
+  const [restored,           setRestored]            = useState(false);
   const interactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Active "render bbox" for mining-footprints viewport culling. Held wider
   // than the visible viewport so small pans don't trigger refilter; widens
@@ -693,6 +694,9 @@ export function Map3D() {
       LAYER_CONFIGS.map(cfg => cfg.id),
     );
     if (resolved) setActiveLayers(resolved);
+    // From here the view is the one the page opens with; anything after this
+    // is the reader's own doing and may go in the address bar.
+    setRestored(true);
 
     fetchLayer("/api/v1/map/claims", fc => { setClaimsData(fc as ClaimFeatureCollection); setLoading(false); }, "Mining Concessions")
       .then(failed => {
@@ -1883,7 +1887,7 @@ export function Map3D() {
   // The address bar carries the same view, updated when the user settles —
   // so "copy the URL" works as a share. See useLiveShareUrl for why the
   // trigger is interaction-end and not a timer.
-  useLiveShareUrl(viewState, activeLayers, isInteracting);
+  useLiveShareUrl(viewState, activeLayers, isInteracting, restored);
 
   // ── Flush map state on unmount (e.g. navigating to a report) ────────────
   // Also write RETURN_FLY here — latestStateRef is always current, unlike

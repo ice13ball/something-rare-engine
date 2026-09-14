@@ -32,11 +32,17 @@ const MOVED = { longitude: 105.4, latitude: -6.1, zoom: 9, pitch: 45, bearing: 0
 
 const shareParam = () => new URLSearchParams(window.location.search).get("s");
 
-/** Render the hook and drive it like the component does. */
-function mount(view: Record<string, unknown>, interacting: boolean) {
+/**
+ * Render the hook and drive it like the component does.
+ *
+ * `restored` defaults to true: every test below except the restore one is
+ * about behaviour AFTER the page has finished opening.
+ */
+function mount(view: Record<string, unknown>, interacting: boolean, restored = true) {
   return renderHook(
-    ({ v, i }: { v: Record<string, unknown>; i: boolean }) => useLiveShareUrl(v, LAYERS, i),
-    { initialProps: { v: view, i: interacting } },
+    ({ v, i, r }: { v: Record<string, unknown>; i: boolean; r: boolean }) =>
+      useLiveShareUrl(v, LAYERS, i, r),
+    { initialProps: { v: view, i: interacting, r: restored } },
   );
 }
 
@@ -58,20 +64,20 @@ describe("useLiveShareUrl — when the address bar is allowed to change", () => 
 
   it("writes nothing while the map is still being moved", () => {
     const { rerender } = mount(AT_HOME, false);
-    rerender({ v: MOVED, i: true });          // dragging
+    rerender({ v: MOVED, i: true, r: true });          // dragging
     vi.advanceTimersByTime(5000);
     expect(shareParam()).toBeNull();
   });
 
   it("writes the new view once the drag ends", () => {
     const { rerender } = mount(AT_HOME, false);
-    rerender({ v: MOVED, i: true });
+    rerender({ v: MOVED, i: true, r: true });
     vi.advanceTimersByTime(5000);
     // ⛔ Positive control: prove it was still silent right up to the release,
     // so the assertion below is about the release and not about elapsed time.
     expect(shareParam()).toBeNull();
 
-    rerender({ v: MOVED, i: false });         // released
+    rerender({ v: MOVED, i: false, r: true });   // released
     vi.advanceTimersByTime(2500);
 
     const param = shareParam();
@@ -89,7 +95,7 @@ describe("useLiveShareUrl — when the address bar is allowed to change", () => 
     // subscription, which fires on ANY store change — selecting a feature,
     // opening a panel — none of which belongs in the link.
     const { rerender } = mount(AT_HOME, false);
-    rerender({ v: MOVED, i: false });
+    rerender({ v: MOVED, i: false, r: true });
     vi.advanceTimersByTime(2500);
     const after = replaceSpy.mock.calls.length;
     expect(after).toBeGreaterThan(0);          // it did write once
@@ -104,10 +110,41 @@ describe("useLiveShareUrl — when the address bar is allowed to change", () => 
   it("leaves any other query parameter alone", () => {
     window.history.replaceState({}, "", "/?lang=pl");
     const { rerender } = mount(AT_HOME, false);
-    rerender({ v: MOVED, i: false });
+    rerender({ v: MOVED, i: false, r: true });
     vi.advanceTimersByTime(2500);
     const params = new URLSearchParams(window.location.search);
     expect(params.get("lang")).toBe("pl");
     expect(params.get("s")).not.toBeNull();
+  });
+
+  it("writes nothing while the page is still restoring its own opening view", () => {
+    // ⛔ The camera is resolved before the first render, but the LAYERS land an
+    // effect later. Freezing the baseline in between made a returning
+    // visitor's own restored layers read as a change they had made, and the
+    // bar filled with a blob on arrival for everyone who had used the site
+    // before. Seen in production 2026-09-14, which is why this test exists.
+    const { rerender } = mount(AT_HOME, false, false);
+    rerender({ v: MOVED, i: false, r: false });     // restore still landing
+    vi.advanceTimersByTime(6000);
+    expect(shareParam()).toBeNull();
+
+    // ...and the view it settled on becomes the baseline, not a change.
+    rerender({ v: MOVED, i: false, r: true });
+    vi.advanceTimersByTime(6000);
+    expect(shareParam()).toBeNull();
+  });
+
+  it("a store event during the restore does not write either", () => {
+    // ⛔ The store subscription schedules writes without going through the
+    // camera/layers effect, so this is the path the single `restored` guard in
+    // `publish` has to cover — and the only test that makes that guard go red
+    // when it is removed.
+    mount(AT_HOME, false, false);
+    for (let i = 0; i < 3; i++) {
+      act(() => { useMapStore.setState({ selectedFeatures: [] }); });
+      vi.advanceTimersByTime(3000);
+    }
+    expect(shareParam()).toBeNull();
+    expect(replaceSpy.mock.calls.length).toBe(0);
   });
 });

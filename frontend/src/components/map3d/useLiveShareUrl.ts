@@ -65,6 +65,17 @@ export function useLiveShareUrl(
   viewState: Record<string, unknown>,
   activeLayers: Set<LayerId>,
   isInteracting: boolean,
+  /**
+   * Has the page finished restoring the view it opens with?
+   *
+   * ⛔ The camera is resolved at module init, but the LAYERS are applied by an
+   * effect one tick after the first render. Freezing the baseline before that
+   * lands made a returning visitor's own restored layers look like a change
+   * they had made, so the bar filled with a blob on arrival for everyone who
+   * had ever used the site — seen in production 2026-09-14. Until this is
+   * true the baseline keeps tracking the current view and nothing is written.
+   */
+  restored: boolean,
 ): void {
   const lastWritten = useRef<string | null>(null);
   const lastWriteAt = useRef(0);
@@ -94,6 +105,7 @@ export function useLiveShareUrl(
   publish.current = () => {
     if (interacting.current) return;           // still moving — the settle will re-schedule
     const param = currentParam(viewState, activeLayers);
+    if (!restored) { baseline.current = param; return; }
     if (baseline.current === undefined) baseline.current = param;
     if (param === null || param === baseline.current || param === lastWritten.current) return;
     writeParam(param);
@@ -112,11 +124,16 @@ export function useLiveShareUrl(
   };
 
   // Camera and layers: wait until the drag/zoom has actually finished.
+  // ⛔ No `restored` check here on purpose. It would bind nothing: sabotaging
+  // it left every test green, because `publish` refuses anyway — and `publish`
+  // is the only place that covers BOTH paths, since the store subscription
+  // below schedules without consulting this effect at all. One guard, in the
+  // place that actually sees every write.
   useEffect(() => {
     if (baseline.current === undefined) baseline.current = currentParam(viewState, activeLayers);
     if (isInteracting) return;
     schedule.current();
-  }, [isInteracting, viewState, activeLayers]);
+  }, [restored, isInteracting, viewState, activeLayers]);
 
   // Filters live in the store, not in props. Any store change schedules a write;
   // `publish` drops it when the resulting param is unchanged, so selecting a
