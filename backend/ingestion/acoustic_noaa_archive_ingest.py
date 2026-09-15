@@ -153,7 +153,13 @@ PROGRAMS: dict[str, dict[str, Any]] = {
     "ioos": {
         "display":   "IOOS ESONS",
         "operator":  "US Integrated Ocean Observing System (ESONS)",
-        "prefix":    "ioos/audio/",
+        # ⛔ Was "ioos/audio/", which is EMPTY in the bucket — verified
+        # 2026-09-15: zero objects, zero sub-prefixes. The archive publishes
+        # this network under "esons/" instead (50 deployment folders, all named
+        # ESONS_*). Our 19 rows were fetched once on 2026-05-30 and never
+        # refreshed again, while every other program refreshed on 2026-09-10 —
+        # the sync kept succeeding and kept serving 3.5-month-old positions.
+        "prefix":    "esons/audio/",
         "portal":    "https://ioos.noaa.gov/project/passive-acoustic-monitoring/",
         "skip_mobile_platforms": True,
     },
@@ -552,6 +558,19 @@ async def fetch_program_stations(program: str) -> list[dict[str, Any]]:
             return []
         log.info("acoustic_noaa_archive_ingest: %s -> %d metadata JSONs", program, len(meta_paths))
         if not meta_paths:
+            # ⛔ A configured program that yields nothing is NOT the same as a
+            # program with nothing to yield, and returning [] quietly made them
+            # identical. `ioos` pointed at a prefix the publisher had emptied;
+            # the sync went on succeeding for 3.5 months while serving stale
+            # rows, because 12 programs share one row count and a zero hides in
+            # the sum. Warn by name so the next move is visible on the day it
+            # happens, not the day someone counts.
+            log.warning(
+                "acoustic_noaa_archive_ingest: program %r is configured but its "
+                "prefix %r yielded NO metadata — the publisher may have moved it; "
+                "existing rows for this program are now stale, not refreshed",
+                program, prefix,
+            )
             return []
 
         # Fetch JSONs in bounded-concurrency batches. Sequential fetching

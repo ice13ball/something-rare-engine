@@ -74,6 +74,19 @@ LIFE_AND_GEOLOGY_LAYERS = (
     "bathymetry",              # Seafloor Bathymetry
 )
 
+#: Every row of the left menu's "Sensors & Monitoring" group, in menu order.
+#: ⛔ The list is the whole point: a section is "done" only if something can
+#: say which layers were in it. Sourced from
+#: frontend/src/components/controls/sections/SensorsSection.tsx, 2026-09-15.
+SENSORS_LAYERS = (
+    "argo",                 # Argo Floats
+    "oceansites",           # OceanSITES Moorings
+    "onc",                  # ONC Observatories
+    "onc-instruments",      # ONC Instruments
+    "hydrophone-stations",  # Hydrophone Stations
+    "ocean-currents",       # Ocean Currents — modelled, not measured
+)
+
 BY_ID = {c.layer_id: c for c in COVERAGE}
 
 
@@ -103,6 +116,38 @@ def test_every_life_and_geology_layer_is_anchored():
         "not 'when the seamount appeared', but which bathymetry vintage the "
         "catalogue was predicted from, which is what decides if it may be pooled."
     )
+
+
+def test_every_sensors_layer_is_anchored():
+    """Same gate, third group. ⚠️ A sensor layer without a frame is the worst
+    case of the three: a reader sees an instrument on the map and assumes it is
+    reporting now. `hydrophone-stations` holds station positions and no sound
+    at all, and `ocean-currents` is a model — neither says so without a frame."""
+    missing = [lid for lid in SENSORS_LAYERS if lid not in BY_ID]
+    assert not missing, (
+        f"{len(missing)} of {len(SENSORS_LAYERS)} Sensors & Monitoring layers "
+        f"carry no temporal anchor: {missing}"
+    )
+
+
+def test_a_modelled_sensor_layer_is_not_called_an_observation():
+    """⛔ `ocean-currents` draws arrows that look exactly like measurements and
+    are not. Mislabelling its kind would make the one caveat that matters
+    invisible in the one field a reader can filter on."""
+    c = BY_ID["ocean-currents"]
+    assert c.kind == "modelled", (
+        "ocean-currents is a Copernicus analysis-and-forecast model, not "
+        f"observations — kind is {c.kind!r}"
+    )
+
+
+@pytest.mark.parametrize("layer_id", SENSORS_LAYERS)
+def test_a_sensor_frame_answers_the_pooling_question(layer_id):
+    c = BY_ID.get(layer_id)
+    if c is None:
+        pytest.skip("covered by test_every_sensors_layer_is_anchored")
+    assert c.start_year is not None or c.end_year is not None, layer_id
+    assert c.kind in KINDS, f"{layer_id}: unknown kind {c.kind!r}"
 
 
 @pytest.mark.parametrize("layer_id", IOPAN_LAYERS)

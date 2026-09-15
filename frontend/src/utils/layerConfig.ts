@@ -104,6 +104,11 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
   "biodiversity-hotspots-grid-fine":   "biodiversity-hotspots",
   "argo-glow":                      "argo",
   "argo-floats-3d":                 "argo",
+  // A dot on a float's drift trail is the same Argo layer, and the panel it
+  // opens is an Argo panel — without this it resolved to itself and showed no
+  // time frame. Caught by test_no_variant_of_an_anchored_layer_is_left_without_its_frame
+  // the moment `argo` was anchored, 2026-09-15.
+  "argo-trail-dot":                 "argo",
   "hydrothermal-vents-active-glow": "hydrothermal-vents",
   "hydrothermal-vents-active":      "hydrothermal-vents",
   "hydrothermal-vents-inactive":    "hydrothermal-vents",

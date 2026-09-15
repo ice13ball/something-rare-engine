@@ -602,6 +602,148 @@ COVERAGE: tuple[Coverage, ...] = (
         source_url="https://api.obis.org/v3/statistics",
         verified_on="2026-09-08",
     ),
+
+    Coverage(
+        layer_id="argo",
+        # ⛔ Three different years are in play and only one belongs here.
+        # The Argo programme says "deployments began in 2000" — a DEPLOYMENT
+        # date, not a measurement window. Our own backfill floor is 1999-01-01
+        # (`ARGO_BACKFILL_START`). The feed itself answers from 1997-07-28:
+        # queried live 2026-09-15, ArgoVis returns 232 profiles for 1996-1998
+        # and HTTP 404 for anything before 1997. The row describes the SOURCE,
+        # so 1997 — with our narrower copy named in the wording.
+        start_year=1997, end_year=None,
+        kind="observations",
+        wording="Argo is an ongoing global array of profiling floats; each row "
+                "is a dated CTD profile with its own position. \u26a0\ufe0f Neither the "
+                "ArgoVis API documentation nor its overview endpoint states a "
+                "coverage span, and the Argo programme states only that "
+                "\u201cdeployments began in 2000\u201d \u2014 a deployment date, not the "
+                "window the floats measured. Queried directly, the feed returns "
+                "profiles from 1997-07-28 onward (pre-Argo PALACE-era floats "
+                "carried into the archive) and nothing earlier. \u26a0\ufe0f Our own copy "
+                "starts at 1999-01-01, the floor our backfill walks from, so the "
+                "1997\u20131998 profiles the source holds cannot be reached here. The "
+                "end is open \u2014 new profiles arrive daily. \u26d4 Our copy is also "
+                "INCOMPLETE in the middle: it holds 1999\u20132007 and the current "
+                "year, and nothing at all between 2008 and 2025. The historical "
+                "walk that fills it backwards is admin-triggered and has reached "
+                "August 2007; until it finishes, a filter on any year in that "
+                "gap returns nothing \u2014 which is absence on our side, not "
+                "absence at the source.",
+        source_url="https://argovis-api.colorado.edu/argo",
+        verified_on="2026-09-15",
+    ),
+    Coverage(
+        layer_id="ocean-currents",
+        # ⛔ The span is the PRODUCT's, per this file's own rule, but the span a
+        # reader can actually reach is ~180 days: we bake one texture per day
+        # and prune past CURRENTS_PRUNE_KEEP_DAYS. Writing 2026 instead would
+        # say the model begins in 2026, which is false about the data; leaving
+        # the limit out of the wording would promise four years of slider the
+        # reader does not have. Both halves are needed.
+        start_year=2022, end_year=None,
+        kind="modelled",
+        wording="Currents come from the Copernicus Marine global "
+                "analysis-and-forecast system at 1/12\u00b0 \u2014 \u26a0\ufe0f these are "
+                "MODELLED velocities, not measurements. Copernicus states the "
+                "dataset covers 2022-06-01 onward on a rolling window, updated "
+                "daily, with its end reaching about ten days into the forecast. "
+                "\u26d4 This map serves far less: only the trailing ~180 days are "
+                "kept, so the date slider steps through roughly the last six "
+                "months and no further back \u2014 do not read \u201c2022 onward\u201d as "
+                "something reachable here. The newest selectable day is the "
+                "latest analysis day; forecast days are deliberately never served.",
+        source_url="https://stac.marine.copernicus.eu/metadata/GLOBAL_ANALYSISFORECAST_PHY_001_024/",
+        verified_on="2026-09-15",
+    ),
+    Coverage(
+        layer_id="deepdata-stations",
+        # ⛔ DERIVED, not quoted: all 142 ISA/OBIS Darwin Core archives were
+        # fetched 2026-09-15 and not one `eml.xml` carries a <temporalCoverage>
+        # element. The pair below comes from the archives' own `eventDate` —
+        # sampling time, not registration or submission. The only date the
+        # publisher does state is pubDate 2026, the regeneration date, which
+        # says nothing about when anyone sampled and is deliberately unused.
+        # Cross-checked against our production copy: 2004-05-26 to 2024-07-08.
+        start_year=2004, end_year=None,
+        kind="observations",
+        wording="The ISA/OBIS-hosted Darwin Core archives behind this layer "
+                "state no temporal extent of their own \u2014 none of the 142 "
+                "metadata files carries one, and the DeepData portal gives no "
+                "period either. \u26a0\ufe0f The span here is therefore DERIVED from the "
+                "archives\u2019 own sampling dates, not quoted from the publisher. "
+                "\u26d4 The one date the publisher does state, a 2026 publication "
+                "stamp, is when the archives were regenerated and is not used. "
+                "Coverage is uneven: a 2004 block, then nothing until 2010, then "
+                "near-continuous to 2024, with most records in 2015, 2020 and "
+                "2021. The end is open \u2014 contractors keep submitting cruises.",
+        source_url="https://datasets.obis.org/hosted/isa/index.html",
+        verified_on="2026-09-15",
+    ),
+
+    Coverage(
+        layer_id="submarine-cables",
+        # ⛔ DERIVED, and closed at the top on purpose. Six registries sit under
+        # this one toggle (EMODnet, NOAA, LINZ, ACMA/CSIRO, ONC, OOI) and not
+        # one of them publishes a temporal extent — checked live 2026-09-15.
+        # The pair below is the range of `inst_year`, present on 720 of 1255
+        # EMODnet cables (verified on the production database).
+        #
+        # ⚠️ `end_year=None` was the tempting choice — the registries ARE live
+        # and refresh annually. But nothing carries a year after 2019, so
+        # "ongoing" would invite a reader to filter 2020-2026 and get silence
+        # they cannot explain. `deepdata-stations` gets None precisely because
+        # its tail is still filling; this one's stopped seven years ago.
+        #
+        # ⚠️ 1899 is real, not a sentinel: the neighbouring years are 1920,
+        # 1921, 1922, 1923, 1942, 1947, 1948 — a telegraph-era tail, not a
+        # spike on one filler value.
+        start_year=1899, end_year=2019,
+        kind="compilation",
+        wording="Six independent cable registries under one layer. \u26d4 Not one "
+                "publisher states a temporal coverage: EMODnet\u2019s ISO record "
+                "carries no temporal extent, NOAA\u2019s gives \u201ccurrentness "
+                "reference: publication date\u201d, and LINZ reports no collection "
+                "date at all. The span here is DERIVED from the data \u2014 the range "
+                "of the installation year on the 720 of 1255 EMODnet cables that "
+                "carry one. \u26a0\ufe0f That is when a cable entered service, not a "
+                "measurement window, so it cannot be pooled with dated "
+                "observations. The other five sub-sources publish no per-cable "
+                "year at all. \u26a0\ufe0f The registries themselves are live and "
+                "refresh yearly, but nothing in them is dated after 2019 \u2014 a "
+                "recent cable is on the map, just without a year.",
+        source_url="https://ows.emodnet-humanactivities.eu/wfs",
+        verified_on="2026-09-15",
+    ),
+
+    Coverage(
+        layer_id="hydrophone-stations",
+        # ⛔ A UNION of 22 passive-acoustic networks, and the union is the least
+        # informative thing about it: no single position has been listening for
+        # a quarter of a century. Most contributors are short closed windows
+        # (SAMBAH 2011-2013, PALAOA 2005-2011, IMOS 2008-2018).
+        #
+        # ⚠️ 2000, not 2001. The earliest at source is IMS Cape Leeuwin's
+        # station epoch, 2001-08-28 — but our own copy holds a US Navy MBARC
+        # station running 2000-10-01 to 2002-03-27, a full deployment window
+        # with both ends, which reads as a real record rather than a filler.
+        # Verified on the production database 2026-09-15.
+        start_year=2000, end_year=None,
+        kind="observations",
+        wording="Hydrophone positions aggregated from 22 passive-acoustic "
+                "networks. \u26a0\ufe0f The 2000-to-present span is a UNION, not a "
+                "description of any one station: most contributing networks "
+                "cover a short closed window, so nowhere on this map has been "
+                "listening for twenty-five years. \u26d4 The dates are deployment "
+                "and recovery times as each publisher reports them \u2014 a station "
+                "epoch, not proof that audio exists for every day between. "
+                "\u26d4 This layer shows WHERE the instruments are, not what they "
+                "recorded: no sound measurements are held here at all, so it "
+                "cannot answer a question about noise at a place and time.",
+        source_url="https://service.iris.edu/fdsnws/station/1/query?net=IM&level=station",
+        verified_on="2026-09-15",
+    ),
 )
 
 

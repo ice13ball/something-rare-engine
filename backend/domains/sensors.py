@@ -1256,7 +1256,18 @@ async def _connect_for_lock():
 
 ARGO_HISTORY_FLOOR_DAYS = 180
 
-ARGO_BACKFILL_START = date(1999, 1, 1)  # Argo programme's earliest profiles
+# ⛔ NOT "the Argo programme's earliest profiles", which this line used to claim
+# of 1999-01-01. Three different years are in play and that was none of them:
+# the programme states deployments began in 2000, and the feed answers from
+# 1997-07-28. Counted live 2026-09-15 against ArgoVis: 232 profiles in 1997,
+# 708 in 1998, and HTTP 404 for anything before 1997 — so 940 real profiles sat
+# below the old floor, unreachable, for no reason anyone had written down.
+#
+# ⚠️ Lowering this does NOT retro-fetch them on a database that already has a
+# cursor: `argo_backfill_state.done_through` wins, and this value is only the
+# fallback when no cursor exists. Collecting them needs one bounded walk with
+# `since=1997-01-01`, which deliberately leaves the cursor alone.
+ARGO_BACKFILL_START = date(1997, 1, 1)
 ARGO_BACKFILL_DEFAULT_BUDGET_SECONDS = 1200
 _ARGO_BACKFILL_CHUNK_PACING_SECONDS = 5
 
