@@ -15,6 +15,7 @@ import { Row, Section, Badge, PanelHeader, WarningBanner } from "../shared/primi
 interface MementoSample {
   depth_m: number | null;
   sample_time: string | null;
+  time_precision: string | null;
   ch4: number | null;
   n2o: number | null;
   n2o_perc: number | null;
@@ -32,6 +33,8 @@ interface MementoCastDetail {
   set_name: string | null;
   station: string | null;
   sample_time: string | null;
+  /** "minute" or "month". ⛔ Load-bearing — see the Date row below. */
+  time_precision: string | null;
   lat: number;
   lon: number;
   decade: number | null;
@@ -162,7 +165,16 @@ export function MementoPanel({ id }: { id: number | string }) {
   if (loading) return <p className="text-white/60 text-xs animate-pulse">Loading…</p>;
   if (!data)   return <p className="text-white/60 text-xs">No data found.</p>;
 
-  const dateStr = data.sample_time ? String(data.sample_time).slice(0, 10) : null;
+  // ⛔ A month-precision cast must NOT print a day. MEMENTO's source pads such
+  // a record to day 01 at midnight, so `2009-01-01` here can mean either "the
+  // 1st of January" or "some time in January" — and 875 of 155,425 casts are
+  // the second. Slicing to 10 characters made both look like the first, which
+  // is the one reading a reader cannot check. Truncating to the month is not a
+  // loss: it is the precision the source actually had.
+  const monthOnly = data.time_precision === "month";
+  const dateStr = data.sample_time
+    ? String(data.sample_time).slice(0, monthOnly ? 7 : 10)
+    : null;
   const samples = data.samples ?? [];
   const isSingle = data.n_samples === 1 || samples.length <= 1;
 
@@ -263,7 +275,21 @@ export function MementoPanel({ id }: { id: number | string }) {
       <Section title="Cast details">
         {data.set_name    != null && <Row label="Cruise / set" value={String(data.set_name)} />}
         {data.station     != null && <Row label="Station"      value={String(data.station)} />}
-        {dateStr          != null && <Row label="Date"         value={dateStr} />}
+        {dateStr != null && (
+          <Row
+            label="Date"
+            value={
+              monthOnly ? (
+                <span>
+                  {dateStr}{" "}
+                  <span className="text-white/50">(month only at source)</span>
+                </span>
+              ) : (
+                dateStr
+              )
+            }
+          />
+        )}
         {data.decade      != null && <Row label="Decade"       value={`${data.decade}s`} />}
         {/* 47 casts store lon on a 0-360 axis; the map wraps them, the column doesn't. */}
         <Row label="Lat / Lon"   value={formatLatLon(data.lat, data.lon)} />

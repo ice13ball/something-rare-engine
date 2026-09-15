@@ -1144,7 +1144,14 @@ async def memento_by_id(cast_id: str):
         raise HTTPException(503, "Database pool unavailable")
     async with db.pool.acquire() as conn:
         cast = await conn.fetchrow(
-            """SELECT cast_id,set_name,station,sample_time,lat,lon,decade,n_samples,
+            # ⛔ `time_precision` is NOT decoration. MEMENTO's source pads a
+            # month-only record to day 01, so `sample_time` alone renders as a
+            # precise sampling day for 875 of 155,425 casts (and 6,805 of
+            # 218,271 samples) that never had one. The column has been filled
+            # at ingest since the start; only this SELECT never asked for it,
+            # so the panel could not tell the two apart. Same three-state
+            # treatment as `wod_oxygen`'s `time_precision`.
+            """SELECT cast_id,set_name,station,sample_time,time_precision,lat,lon,decade,n_samples,
                       min_depth_m,max_depth_m,has_ch4,has_n2o,ch4_surf,n2o_surf
                FROM memento_casts WHERE cast_id = $1""",
             cast_id,
@@ -1152,7 +1159,7 @@ async def memento_by_id(cast_id: str):
         if cast is None:
             raise HTTPException(status_code=404, detail="not found")
         samples = await conn.fetch(
-            """SELECT depth_m,sample_time,ch4,n2o,n2o_perc,o2,temp,sal,params,
+            """SELECT depth_m,sample_time,time_precision,ch4,n2o,n2o_perc,o2,temp,sal,params,
                       ch4_is_atmospheric,n2o_is_atmospheric
                FROM memento_samples WHERE cast_id = $1 ORDER BY depth_m NULLS LAST""",
             cast_id,
