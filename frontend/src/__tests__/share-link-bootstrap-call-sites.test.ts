@@ -69,3 +69,56 @@ describe("a link's layers are made visible in the menu, not just active", () => 
     expect(block).toMatch(/if \(linkCarriesView\(_urlShare\)\)\s*applyMenuExpansion/);
   });
 });
+
+/**
+ * ⛔ The pure rule is covered by `link-layer-activation.test.ts`, and that
+ * cover is worthless if the call site hands it the wrong base set. The whole
+ * defect was the ARGUMENT, not the rule: merging onto the effect's closure
+ * value instead of the live store. Both spellings compile, both pass every
+ * executing test, and only one keeps the link's layers.
+ */
+describe("the link's panels merge onto the live layer set, not a stale snapshot", () => {
+  const block = MAP3D.match(/const liveActive = [\s\S]*?\n    \}/)?.[0] ?? "";
+
+  it("finds the activation block at all", () => {
+    expect(block).toContain("nextActiveForLink");
+  });
+
+  it("reads the layer set from the store, not from the closure", () => {
+    expect(block).toMatch(/const liveActive = useMapStore\.getState\(\)\.activeLayers/);
+  });
+
+  it("passes that live set as the base", () => {
+    expect(block).toMatch(/nextActiveForLink\(\s*liveActive,/);
+  });
+
+  it("asks the live set about loaded data too", () => {
+    expect(block).toMatch(/liveActive\.has\(layerId\)/);
+  });
+});
+
+/**
+ * ⛔ The value is a literal in a React ref assignment, so no executing test can
+ * reach it. What it guards is worth a shape test anyway: three layers wrote a
+ * permanent `null` there, which the link opener reads as "still loading", and
+ * a link naming one of them hung silently forever.
+ */
+describe("no layer claims its data is still loading forever", () => {
+  const block = MAP3D.match(/searchDataRef\.current = \{[\s\S]*?\n    \};/)?.[0] ?? "";
+
+  it("finds the search-data block at all", () => {
+    expect(block.length).toBeGreaterThan(400);
+    expect(block).toContain("claims:");
+  });
+
+  it("has no entry pinned to a bare null", () => {
+    const pinned = [...block.matchAll(/^\s*([a-zA-Z]+):\s*null,/gm)].map(m => m[1]);
+    expect(pinned).toEqual([]);
+  });
+
+  it("the three MVT-only layers use the explicit sentinel", () => {
+    for (const key of ["memento", "geotraces", "mosaic"]) {
+      expect(block).toMatch(new RegExp(`${key}: NO_CLIENT_COPY`));
+    }
+  });
+});

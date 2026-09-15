@@ -35,6 +35,7 @@ import { decodeShareState } from "../utils/shareState";
 import { applyShareableFilters } from "../types/filterRegistry";
 import { applyShareableDisplay } from "../types/displayRegistry";
 import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam, linkCarriesView } from "./map3d/shareBootstrap";
+import { nextActiveForLink, NO_CLIENT_COPY } from "./map3d/linkLayerActivation";
 import { applyMenuExpansion } from "../utils/startupProfiles";
 import { SearchBar } from "./SearchBar";
 import { analytics } from "../utils/analytics";
@@ -597,9 +598,9 @@ export function Map3D() {
       vessels: vesselEventsData,
       aisLive: aisLiveData,
       miningFootprints: miningFootprintsData,
-      memento: null, // MVT-only layer; null keeps SearchBar key present without breaking the search
-      geotraces: null, // MVT-only layer; null keeps SearchBar key present without breaking the search
-      mosaic: null, // MVT-only layer; null keeps SearchBar key present without breaking the search
+      memento: NO_CLIENT_COPY, // MVT-only — see NO_CLIENT_COPY: a bare null reads as "still loading"
+      geotraces: NO_CLIENT_COPY, // MVT-only — see NO_CLIENT_COPY: a bare null reads as "still loading"
+      mosaic: NO_CLIENT_COPY, // MVT-only — see NO_CLIENT_COPY: a bare null reads as "still loading"
       methaneSeeps: methaneSeepsData,
       sios: siosData,
       arcticSedimentCarbon: cascadeStationsData,
@@ -1960,16 +1961,22 @@ export function Map3D() {
     // ⛔ A layer whose data has not arrived is NOT a miss. Reporting it as one
     // would put a "this object is gone" notice on screen a second before the
     // object appears. Wait; the effect re-runs when the fetch lands.
+    // Same staleness trap as the activation below: asking the closure's
+    // `activeLayers` whether a layer is on can answer "no" for a layer the
+    // restore just switched on, which turns "its data is still loading" into
+    // "the object is gone" — the one notice that must never be wrong.
+    const liveActive = useMapStore.getState().activeLayers as ReadonlySet<string>;
     const missingData = wanted.some(([layerId]) =>
-      isOpenableLayer(layerId) && activeLayers.has(layerId as LayerId) && dataFor(layerId) === null);
-    const notActive = [
-      ...wanted.filter(([layerId]) => isOpenableLayer(layerId)).map(([l]) => l as string),
-      ...wantedPoints.filter(([layerId]) => isPointLayer(layerId)).map(([l]) => l as string),
-    ].filter((l) => !activeLayers.has(l as LayerId));
-    if (notActive.length > 0) {
-      const next = new Set(activeLayers);
-      notActive.forEach(l => next.add(l as LayerId));
-      setActiveLayers(next);
+      isOpenableLayer(layerId) && liveActive.has(layerId) && dataFor(layerId) === null);
+    // ⛔ The LIVE set, not the `activeLayers` this effect closed over. That
+    // closure value is one render behind the layer restore above, so merging
+    // onto it silently dropped every layer the link carried but the panel did
+    // not need. Reproduced on production 2026-09-15 — see linkLayerActivation.
+    const next = nextActiveForLink(
+      liveActive, wanted, wantedPoints, isOpenableLayer, isPointLayer,
+    );
+    if (next) {
+      setActiveLayers(next as Set<LayerId>);
       return;
     }
     if (missingData) return;
