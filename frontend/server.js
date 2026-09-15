@@ -1042,19 +1042,48 @@ app.get(['/privacy', '/terms', '/about', '/api-docs'], (req, res, next) => {
          source; it does not advocate a policy position.</p>
       <h2 id="citation">How to cite</h2>
       <p>Built and maintained by ${escapeHtml(siteCitation.author)}
-         (ORCID <a href="${escapeHtml(siteCitation.orcidUrl)}">${escapeHtml(orcid)}</a>),
-         archived on Zenodo with a citable DOI
-         <a href="${escapeHtml(siteCitation.doiUrl)}">${escapeHtml(siteCitation.doi)}</a>,
-         licensed CC-BY-4.0.</p>
-      <p><strong>Suggested citation (APA):</strong><br />
-         Mazurowski, M. (2026). Abyssal Claims: Ocean &amp; Land Environmental Transparency Map [Dataset]. Zenodo. ${escapeHtml(siteCitation.doiUrl)}</p>
-      <pre style="white-space:pre-wrap;background:#111826;padding:1rem;border-radius:6px;overflow-x:auto;font-size:13px">@misc{mazurowski_abyssal_claims_2026,
+         (ORCID <a href="${escapeHtml(siteCitation.orcidUrl)}">${escapeHtml(orcid)}</a>).</p>
+      <p>There are <strong>two</strong> archived records on Zenodo and they are not
+         interchangeable. Cite the one that matches what you used.</p>
+      <ul>
+        <li><strong>The software</strong> — the engine that runs this platform, source
+            published under ${escapeHtml(siteCitation.licenceName)}:
+            <a href="${escapeHtml(siteCitation.doiUrl)}">${escapeHtml(siteCitation.doi)}</a></li>
+        <li><strong>The methods and data documentation</strong> — sources, refresh
+            strategies, derived products and known limitations,
+            ${escapeHtml(siteCitation.docsLicenceName)}:
+            <a href="${escapeHtml(siteCitation.docsDoiUrl)}">${escapeHtml(siteCitation.docsDoi)}</a></li>
+      </ul>
+      <p>Citing the platform as a whole? Cite the software record; it declares the
+         documentation record as its companion.</p>
+      <p><strong>Suggested citation (APA) — software:</strong><br />
+         Mazurowski, M. (2026). <em>Abyssal Claims: source code of a FAIR-aligned integration
+         platform for deep-sea and terrestrial mining transparency</em> (v1.0.0) [Computer
+         software]. Zenodo. ${escapeHtml(siteCitation.doiUrl)}</p>
+      <p><strong>Suggested citation (APA) — methods documentation:</strong><br />
+         Mazurowski, M. (2026). <em>Abyssal Claims: A FAIR-aligned integration platform for
+         deep-sea and terrestrial mining transparency</em> (Version 1.6) [Software
+         documentation]. Zenodo. ${escapeHtml(siteCitation.docsDoiUrl)}</p>
+      <pre style="white-space:pre-wrap;background:#111826;padding:1rem;border-radius:6px;overflow-x:auto;font-size:13px">@software{mazurowski_abyssal_claims_code_2026,
   author       = {Mazurowski, Michal},
-  title        = {Abyssal Claims: Ocean &amp; Land Environmental Transparency Map},
+  title        = {Abyssal Claims: source code of a FAIR-aligned integration
+                  platform for deep-sea and terrestrial mining transparency},
   year         = {2026},
   publisher    = {Zenodo},
+  version      = {v1.0.0},
   doi          = {${escapeHtml(siteCitation.doi)}},
   url          = {${escapeHtml(siteCitation.doiUrl)}}
+}
+
+@misc{mazurowski_abyssal_claims_docs_2026,
+  author       = {Mazurowski, Michal},
+  title        = {Abyssal Claims: A FAIR-aligned integration platform for
+                  deep-sea and terrestrial mining transparency},
+  year         = {2026},
+  publisher    = {Zenodo},
+  version      = {1.6},
+  doi          = {${escapeHtml(siteCitation.docsDoi)}},
+  url          = {${escapeHtml(siteCitation.docsDoiUrl)}}
 }</pre>
       <p>Contact: <a href="mailto:m.mazurowski@ai-wall.com">m.mazurowski@ai-wall.com</a> · <a href="/api-docs">API documentation</a></p>` : '';
   // The interactive reference is rendered client-side by Scalar, so without this

@@ -51,11 +51,12 @@ def clear_caches() -> None:
 
 
 async def sync_submarine_cables(force: bool = False) -> int:
-    """Sync EMODnet submarine cables — 7 layers aggregated into submarine_cables.
+    """Sync EMODnet submarine cables — every published layer, into submarine_cables.
 
-    Layers: pcablesnve (Norway power), rijkscables (NL telecom), pcablesbshcontis
-    (DE power), sigcables (Spain/Atlantic), pcablesrijks (NL power), ukfibrecables
-    (UK), bshcontiscables (DE telecom). Total ~1,260 features. CC-BY 4.0.
+    The layer list lives in `emodnet_cables_ingest.LAYERS` and is not repeated
+    here: this docstring said "7 layers … sigcables (Spain/Atlantic) … ~1,260
+    features" while EMODnet published 11, and sigcables is French. A list
+    written twice is a list that disagrees with itself. CC-BY 4.0.
 
     Cadence: weekly (7-day guard). Pass force=True to bypass for admin sync.
 
@@ -63,6 +64,7 @@ async def sync_submarine_cables(force: bool = False) -> int:
     others continue. Only TRUNCATE+INSERT if at least 1 layer succeeded.
     """
     from ingestion.emodnet_cables_ingest import (
+        LAYERS,
         fetch_all_layers,
         coords_to_geojson_multilinestring,
     )
@@ -93,12 +95,17 @@ async def sync_submarine_cables(force: bool = False) -> int:
                 json.dumps(geom_gj),
             ))
 
-    # Require at least 6 of 7 layers to have succeeded before TRUNCATE+insert.
-    # A single transient EMODnet layer outage is acceptable (we still get ~1,200
-    # of 1,260 features). Anything worse — preserve existing data, log warning,
-    # and let the next scheduled run retry.
+    # Require all but one layer to have succeeded before TRUNCATE+insert.
+    # A single transient EMODnet layer outage is acceptable. Anything worse —
+    # preserve existing data, log warning, let the next scheduled run retry.
+    #
+    # ⛔ DERIVED from the layer list, never typed. This was `required = 6`
+    # beside a note asking whoever changed the count to revisit it. The count
+    # went from 7 to 11 on 2026-09-15, and six of eleven would have been enough
+    # to TRUNCATE the table and re-fill it with 45% of the cables. A TRUNCATE
+    # does not come back, and the sync would have reported success.
     succeeded_layers = sum(1 for c in per_layer_counts.values() if c > 0)
-    required = 6  # of 7 — allow one transient failure
+    required = max(1, len(LAYERS) - 1)
     if succeeded_layers < required:
         log.warning(
             "submarine_cables: only %d/%d layers succeeded (per-layer: %s) — "
@@ -108,7 +115,8 @@ async def sync_submarine_cables(force: bool = False) -> int:
         return 0
 
     if not rows:
-        log.warning("submarine_cables: all 7 layers returned 0 — aborting without TRUNCATE")
+        log.warning("submarine_cables: all %d layers returned 0 — aborting without TRUNCATE",
+                    len(LAYERS))
         return 0
 
     inserted = 0

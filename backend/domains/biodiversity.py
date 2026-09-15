@@ -587,6 +587,9 @@ async def upsert_dwc_archive_and_stations(
         "pub_date", "last_modified", "etag", "content_length",
         "occurrence_count", "station_count", "last_fetched_at",
         "last_parsed_at", "parse_error",
+        # ⛔ Adding a column here without adding it to the archive_meta dict
+        # writes NULL forever, silently — the INSERT is built from this list.
+        "measurement_count", "measurement_types",
     ]
     arch_placeholders = ", ".join(f"${i+1}" for i in range(len(arch_cols)))
     arch_update = ", ".join(f"{c} = EXCLUDED.{c}" for c in arch_cols if c != "slug")

@@ -17,8 +17,16 @@
       "applicationCategory": "EnvironmentalApplication",
       "operatingSystem": "Any",
       "description": "Interactive 3D map tracking 50+ environmental data layers across ocean and land. Deep-sea mining concessions, global mining footprints, deforestation, active fires, air quality, biodiversity hotspots, hydrothermal vents, and real-time monitoring — powered by ISA, OBIS, NASA FIRMS, OpenAQ, WRI, and more.",
-      "identifier": "https://doi.org/10.5281/zenodo.19745884",
-      "sameAs": ["https://zenodo.org/records/19745884"],
+      "identifier": "https://doi.org/10.5281/zenodo.22728476",
+      "sameAs": ["https://zenodo.org/records/22728476"],
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "citation": {
+        "@type": "CreativeWork",
+        "name": "Abyssal Claims: A FAIR-aligned integration platform for deep-sea and terrestrial mining transparency",
+        "identifier": "https://doi.org/10.5281/zenodo.19745884",
+        "sameAs": ["https://zenodo.org/records/19745884"],
+        "license": "https://creativecommons.org/licenses/by/4.0/"
+      },
       "creator": {
         "@type": "Person",
         "name": "Michal Mazurowski",

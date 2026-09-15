@@ -85,3 +85,25 @@ def find_locale_divergence(by_locale: dict[str, list[LinkRow]]) -> list[dict]:
                     "missing": missing, "extra": extra,
                 })
     return findings
+
+
+def extract_site_graph(payload: Any, path: str) -> list[LinkRow]:
+    """Every external URL in the JSON-LD graph served to crawlers.
+
+    ⛔ Never audited before 2026-09-15. `seo/site-graph.json` is the document
+    Google and Scholar read: it carries the platform's DOI, the companion
+    documentation record's DOI, the author ORCID and the licence deeds. A dead
+    URL here is a dead citation in the structured data, and the extractor named
+    `seo-jsonld` did not reach it — it scanned SEO.tsx's own literals, while
+    the graph arrives via an import.
+    """
+    rows: list[LinkRow] = []
+    for text in _walk_strings(payload):
+        for raw in _URL_IN_PROSE.findall(text):
+            norm = normalize_url(raw)
+            rows.append(LinkRow(
+                layer_id=UNATTRIBUTED, surface="citation", url_raw=raw,
+                url_normalized=norm, kind=classify_kind(norm),
+                file=path, line=0,  # JSON: no meaningful line without a re-parse
+            ))
+    return rows

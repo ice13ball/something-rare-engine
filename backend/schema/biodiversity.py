@@ -455,6 +455,18 @@ async def ensure_deepdata(conn) -> None:
             parse_error      TEXT
         )
     """)
+    # Added 2026-09-15. Every ISA archive ships extendedmeasurementorfact.txt
+    # and the ingest had never opened one. These two columns record what is in
+    # there — 42 of 140 archives carry real rows, 98 carry a header alone — so
+    # that deciding whether to store the values is a decision made from
+    # numbers. ⛔ NULL means "never parsed since this column existed"; 0 means
+    # "parsed, and the archive measured nothing". They are not the same.
+    await conn.execute(
+        "ALTER TABLE deepdata_dwc_archives "
+        "ADD COLUMN IF NOT EXISTS measurement_count INTEGER")
+    await conn.execute(
+        "ALTER TABLE deepdata_dwc_archives "
+        "ADD COLUMN IF NOT EXISTS measurement_types TEXT[]")
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS deepdata_stations (
             station_id          TEXT PRIMARY KEY,

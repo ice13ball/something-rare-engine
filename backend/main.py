@@ -214,6 +214,21 @@ ARGO_SYNC_INTERVAL_SECONDS = 12 * 3600   # 12 hours
 # nothing and the pass is cheap. Six-hourly so a gap closes within a day.
 ARGO_HISTORY_FLOOR_INTERVAL_SECONDS = 6 * 3600
 
+# The full-history walk (1997..today) had no cadence at all until 2026-09-15.
+# Measured on production that day: argo_profiles held 1999..2007 and 2026, and
+# NOTHING in between — eighteen years missing — while
+# argo_backfill_state.done_through sat at 2007-08-01, where a hand-run had left
+# it five days earlier. The walk works; nobody was asking it to run.
+#
+# ⚠️ The budget is only checked at MONTH boundaries (see _argo_backfill_walk),
+# so a pass runs to the end of whichever month it is in: the real hold is this
+# budget plus one month, and a dense 2020s month is not cheap.
+# _run_unless_paused holds _sync_lock for the whole call, so every other sync
+# queues behind it — 15 minutes keeps that worst case bounded. Four-hourly
+# because this is repair work, not freshness, and ~216 months remain.
+ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS = 4 * 3600
+ARGO_HISTORY_BACKFILL_BUDGET_SECONDS = 900
+
 # ── Sync helpers ──────────────────────────────────────────────────────────────
 
 GBIF_SPECIES_URL = "https://api.gbif.org/v1/species/{key}"
@@ -487,6 +502,59 @@ async def _argo_history_floor_task():
         except Exception:
             log.exception("Argo history-floor top-up failed")
         await asyncio.sleep(ARGO_HISTORY_FLOOR_INTERVAL_SECONDS)
+
+
+async def _argo_history_backfill_task():
+    """Walk the full Argo history until it reaches today, then go quiet.
+
+    ⛔ A resumable walk with no caller is a walk that does not happen. Every
+    piece of this machinery already existed on 2026-09-09 — cursor, month
+    chunking, advisory lock, rate-limit backoff — and the only way to advance
+    it was POST /v1/admin/argo-backfill, by hand, roughly forty times. It was
+    pressed twice. Eighteen years stayed missing and no dashboard said so,
+    because this path writes no sync_log row: the gap was invisible until
+    somebody counted profiles per year.
+
+    A completed history makes the pass free — the walk reads its cursor, sees
+    it has reached today, and returns without one request. So this task needs
+    no end condition. It needs only to keep asking.
+    """
+    await asyncio.sleep(3600)  # 60 min after boot — behind the floor top-up
+    while True:
+        try:
+            await _run_unless_paused(
+                "argo-backfill", _run_argo_history_backfill, "argo_history_backfill")
+        except Exception:
+            log.exception("Argo full-history backfill failed")
+        await asyncio.sleep(ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS)
+
+
+async def _run_argo_history_backfill():
+    """One bounded pass, with its outcome said out loud.
+
+    ⛔ Four outcomes return months_done == 0 and only one of them is a problem:
+    the history finished, the single-walk lock refused a second runner, the
+    vocabulary fetch failed, or the walk tried and got nowhere. Collapsing them
+    into one log line is how a stalled backfill hides inside a healthy cadence
+    for weeks — which is exactly what an operator reading "0 months" would
+    have concluded before this existed.
+    """
+    result = await sensors.sync_argo_profiles_backfill(
+        budget_seconds=ARGO_HISTORY_BACKFILL_BUDGET_SECONDS)
+    if result.get("complete"):
+        log.info("argo backfill: history complete through %s — nothing to walk",
+                 result.get("done_through"))
+    elif result.get("skipped_reason"):
+        log.info("argo backfill: %s", result["skipped_reason"])
+    elif result.get("stalled"):
+        log.warning(
+            "argo backfill: STALLED at %s — walked no month this pass (%s)",
+            result.get("done_through"),
+            result.get("failed_chunk") or result.get("error") or "no reason given")
+    else:
+        log.info("argo backfill: %s month(s), %s row(s), now through %s",
+                 result.get("months_done"), result.get("inserted"), result.get("done_through"))
+    return result
 
 
 async def _worms_sync_task():
@@ -1220,6 +1288,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_weekly_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_argo_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_argo_history_floor_task()).add_done_callback(_watch)
+        asyncio.create_task(_argo_history_backfill_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_sensor_sync_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_instruments_daily_task()).add_done_callback(_watch)
         asyncio.create_task(_onc_sparkline_task()).add_done_callback(_watch)
@@ -1986,6 +2055,11 @@ _SYNC_SOURCES = {
     "oceansites":       lambda: sensors.sync_oceansites(),
     "oceansites-obs":   lambda: sensors.sync_oceansites_obs(),
     "argo-recent-history": lambda: sensors.sync_argo_recent_history(),
+    # ⛔ Registered so the action can be un-paused. _argo_history_backfill_task
+    # calls _run_unless_paused("argo-backfill", …); an action absent from this
+    # registry can still be paused, but has no force-sync button — so an
+    # operator who stopped the walk would have no way to start it again.
+    "argo-backfill":    lambda: _run_argo_history_backfill(),
     "onc":              lambda: onc.sync_onc(),
     "onc-sensors":      lambda: onc.sync_onc_sensors(),
     "noise-risk":       lambda: acoustic.sync_noise_risk(),

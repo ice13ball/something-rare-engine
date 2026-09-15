@@ -132,3 +132,63 @@ export function noiseRiskColor(level: string): [number, number, number, number] 
 // unchanged across React re-renders (array literals create new refs each render).
 export const MINING_FOOTPRINTS_FILL: [number, number, number, number] = [220, 38, 127, 140];
 export const MINING_FOOTPRINTS_STROKE: [number, number, number, number] = [255, 255, 255, 200];
+
+// ── Hydrophone-station source colour registry ──────────────────────────────
+// Extracted from an inline switch that lived in Map3D.tsx (was re-created on
+// every render — closures aren't referentially stable, unlike this Record).
+// Keys MUST match `acoustic_stations.source` exactly (see
+// backend/ingestion/acoustic_noaa_archive_ingest.py PROGRAMS — read-only,
+// frontend does not import it). This Record, HYDROPHONE_SOURCE_DEFS
+// (controls/filterDefs.ts) and HYDROPHONE_SOURCE_LABEL
+// (panels/ocean/HydrophoneStationPanel.tsx) are three independent registries
+// over the same key set — guarded by __tests__/hydrophone-source-registries.test.ts.
+export const HYDROPHONE_SOURCE_COLOR: Record<string, [number, number, number, number]> = {
+  ooi:    [232, 121, 249, 255],   // magenta
+  imos:   [ 52, 211, 153, 255],   // green
+  mars:   [ 34, 211, 238, 255],   // cyan
+  palaoa: [248, 250, 252, 255],   // ice white (Antarctic)
+  obsea:  [250, 204,  21, 255],   // amber (Iberian)
+  km3net: [129, 140, 248, 255],   // indigo (deep Med physics)
+  nrs:    [ 56, 189, 248, 255],   // sky-400 — global ocean reference
+  sanctsound: [251, 146, 60, 255], // orange-400 — US sanctuaries
+  nefsc:  [244, 114, 182, 255],   // pink-400 — right whale corridor
+  // Phase 4 — NOAA Passive Acoustic Archive programs
+  pifsc:  [ 14, 165, 233, 255],   // sky-500 — Pacific Islands
+  sefsc:  [251, 191,  36, 255],   // amber-400 — Gulf of Mexico
+  onms:   [249, 115,  22, 255],   // orange-500 — sanctuaries-2
+  adeon:  [139,  92, 246, 255],   // violet-500 — Atlantic deepwater
+  boem:   [ 75,  85,  99, 255],   // gray-600 — federal regulatory
+  aeon:   [167, 139, 250, 255],   // violet-400 — Atlantic ecosystem
+  navy:   [ 31,  41,  55, 255],   // gray-800 — Navy
+  nps:    [ 16, 185, 129, 255],   // emerald-500 — Park Service
+  jasco:  [217,  70, 239, 255],   // fuchsia-500 — contractor
+  fram:   [225, 211,  20, 255],   // lime-yellow — Arctic ice
+  coastal_studies_institute: [ 14, 116, 144, 255], // cyan-700
+  ioos:   [ 79,  70, 229, 255],   // indigo-600 — IOOS
+  // Phase 3 — PANGAEA/Dryad additions
+  sambah: [ 52, 211, 153, 255],   // emerald-400 — Baltic C-POD (HAUSGARTEN folds into 'fram')
+  // Phase 4 — CTBTO IMS
+  ims:    [103, 232, 249, 255],   // cyan-300 — treaty-verified global network
+  // Phase 5 — 8 NOAA Passive Acoustic Archive programs added 2026-09-15
+  // (see PROGRAMS comment in the ingest file for the discovery story).
+  // Colours chosen by Euclidean RGB distance against every existing entry
+  // above — all ≥58 apart, no two of these 8 closer than ~71 to each other.
+  afsc:   [  6,  95,  70, 255],   // emerald-800 — Alaska
+  cornell:[185,  28,  28, 255],   // red-700 ("Cornell red")
+  mbarc_socal:  [ 59, 130, 246, 255], // blue-500 — Navy family (see 'navy' above)
+  mbarc_arctic: [191, 219, 254, 255], // blue-200 — Navy family, icy pale
+  mbarc_flip:   [ 30,  64, 175, 255], // blue-800 — Navy family, deep
+  swfsc:  [120,  53,  15, 255],   // amber-900 — Southwest Fisheries
+  rutgers_njrmi: [101, 163, 13, 255], // lime-600 — NJ Research & Monitoring
+  // ⚠️ Lowercase key against an uppercase bucket prefix — deliberate, see the
+  // PROGRAMS comment in the ingest file. `acoustic_stations.source` is
+  // lowercase for every program; matching anything else here silently drops
+  // this source into the gray fallback below.
+  md_wea_cpod: [219,  39, 119, 255], // pink-600 — Maryland WEA C-POD
+};
+
+const HYDROPHONE_SOURCE_COLOR_DEFAULT: [number, number, number, number] = [156, 163, 175, 255]; // slate fallback
+
+export function hydrophoneSourceColor(source: unknown): [number, number, number, number] {
+  return HYDROPHONE_SOURCE_COLOR[String(source)] ?? HYDROPHONE_SOURCE_COLOR_DEFAULT;
+}

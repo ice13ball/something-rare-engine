@@ -73,6 +73,7 @@ import {
   siosTopicColor, rampColor, divergingRampColor, _arcticCatchmentColor,
   RESOURCE_COLOR, hotspotPointColor, noiseRiskColor,
   MINING_FOOTPRINTS_FILL, MINING_FOOTPRINTS_STROKE,
+  hydrophoneSourceColor,
 } from "./map3d/colors";
 import {
   type Box, expandBox, walkCoords, bboxToView, getBBoxCenter,
@@ -1712,37 +1713,8 @@ export function Map3D() {
     });
   }, [hydrophoneData, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters]);
 
-  const hydrophoneSourceColor = (source: unknown): [number, number, number, number] => {
-    switch (String(source)) {
-      case "ooi":    return [232, 121, 249, 255];   // magenta
-      case "imos":   return [ 52, 211, 153, 255];   // green
-      case "mars":   return [ 34, 211, 238, 255];   // cyan
-      case "palaoa": return [248, 250, 252, 255];   // ice white (Antarctic)
-      case "obsea":  return [250, 204,  21, 255];   // amber (Iberian)
-      case "km3net": return [129, 140, 248, 255];   // indigo (deep Med physics)
-      case "nrs":    return [ 56, 189, 248, 255];   // sky-400 — global ocean reference
-      case "sanctsound": return [251, 146, 60, 255]; // orange-400 — US sanctuaries
-      case "nefsc":  return [244, 114, 182, 255];   // pink-400 — right whale corridor
-      // Phase 4 — NOAA Passive Acoustic Archive programs
-      case "pifsc":  return [ 14, 165, 233, 255];   // sky-500 — Pacific Islands
-      case "sefsc":  return [251, 191,  36, 255];   // amber-400 — Gulf of Mexico
-      case "onms":   return [249, 115,  22, 255];   // orange-500 — sanctuaries-2
-      case "adeon":  return [139,  92, 246, 255];   // violet-500 — Atlantic deepwater
-      case "boem":   return [ 75,  85,  99, 255];   // gray-600 — federal regulatory
-      case "aeon":   return [167, 139, 250, 255];   // violet-400 — Atlantic ecosystem
-      case "navy":   return [ 31,  41,  55, 255];   // gray-800 — Navy
-      case "nps":    return [ 16, 185, 129, 255];   // emerald-500 — Park Service
-      case "jasco":  return [217,  70, 239, 255];   // fuchsia-500 — contractor
-      case "fram":   return [225, 211,  20, 255];   // lime-yellow — Arctic ice
-      case "coastal_studies_institute": return [ 14, 116, 144, 255]; // cyan-700
-      case "ioos":   return [ 79,  70, 229, 255];   // indigo-600 — IOOS
-      // Phase 3 — PANGAEA/Dryad additions
-      case "sambah": return [ 52, 211, 153, 255];   // emerald-400 — Baltic C-POD (HAUSGARTEN folds into 'fram')
-      // Phase 4 — CTBTO IMS
-      case "ims":    return [103, 232, 249, 255];   // cyan-300 — treaty-verified global network
-      default:       return [156, 163, 175, 255];   // slate fallback
-    }
-  };
+  // hydrophoneSourceColor is imported from ./map3d/colors (HYDROPHONE_SOURCE_COLOR
+  // registry) — was an inline switch here, re-created on every render.
 
   const filteredFiresFeatures = useMemo(() => {
     if (!firesData) return [];

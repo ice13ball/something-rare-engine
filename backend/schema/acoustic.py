@@ -13,6 +13,37 @@ import logging
 # The DDL snapshot test could not see this: it compares statements, not error paths.
 log = logging.getLogger(__name__)
 
+# ⛔ ONE list, two SQL statements. `acoustic_stations.source` is CHECK-
+# constrained, so a source the ingest produces but this tuple omits is rejected
+# by the database on every row — and the sync's per-row try/except turns that
+# into a warning per row and a run that reports success. Eight NOAA-archive
+# programs were added to the ingest on 2026-09-15 and would have landed in
+# exactly that hole.
+#
+# 📌 `backend/tests/test_acoustic_bucket_is_fully_classified.py` asserts this
+# tuple covers everything `domains.acoustic.station_sources()` can emit. The
+# list is not derived in code because `schema/` sits below `domains/` and must
+# not import it; the test is what keeps the two honest.
+ACOUSTIC_SOURCES = (
+    "ooi", "imos", "mars", "palaoa", "obsea", "km3net", "nrs", "sanctsound",
+    "nefsc", "pifsc", "sefsc", "onms", "adeon", "boem", "aeon", "navy", "nps",
+    "jasco", "fram", "coastal_studies_institute", "ioos", "sambah", "ims",
+    # Added 2026-09-15 with the eight new NOAA-archive programs.
+    "afsc", "cornell", "mbarc_socal", "mbarc_arctic", "mbarc_flip", "swfsc",
+    "rutgers_njrmi", "md_wea_cpod",
+)
+
+
+def _sources_sql() -> str:
+    """The enum members as a SQL list. Quoting is fixed, not interpolated:
+    every member must match `[a-z0-9_]+` or this raises rather than building a
+    statement out of whatever arrived."""
+    for s in ACOUSTIC_SOURCES:
+        if not s or not all(c.isalnum() or c == "_" for c in s) or s != s.lower():
+            raise ValueError(f"ACOUSTIC_SOURCES member {s!r} is not a bare lowercase token")
+    return ",".join(f"'{s}'" for s in ACOUSTIC_SOURCES)
+
+
 async def ensure_acoustic_stations(conn) -> None:
     """acoustic_stations, acoustic_soundscape."""
     await conn.execute("""
@@ -29,7 +60,7 @@ async def ensure_acoustic_stations(conn) -> None:
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS acoustic_stations (
             station_id      TEXT PRIMARY KEY,
-            source          TEXT NOT NULL CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims')),
+            source          TEXT NOT NULL,
             name            TEXT,
             operator        TEXT,
             lat             DOUBLE PRECISION NOT NULL,
@@ -64,23 +95,26 @@ async def ensure_acoustic_stations(conn) -> None:
     # Migration: expand source enum
     # Phase 2 P1: added nrs/sanctsound
     # Phase 2 P3: added nefsc
-    # Phase 2 P4 (this migration): added 12 NOAA-archive programs (pifsc,
-    #   sefsc, onms, adeon, boem, aeon, navy, nps, jasco, fram,
-    #   coastal_studies_institute, ioos) — 21 total enum members.
-    # Phase 3: added sambah (Baltic Sea C-POD) — 22 total enum members.
+    # Phase 2 P4: added 12 NOAA-archive programs (pifsc, sefsc, onms, adeon,
+    #   boem, aeon, navy, nps, jasco, fram, coastal_studies_institute, ioos).
+    # Phase 3: added sambah (Baltic Sea C-POD).
     #   HAUSGARTEN reuses the existing 'fram' enum; no new enum needed for it.
     # Phase 4: added ims (CTBTO IMS Hydroacoustic Network) — 23 total.
-    try:
-        await conn.execute("ALTER TABLE acoustic_stations DROP CONSTRAINT IF EXISTS acoustic_stations_source_check")
-        await conn.execute(
-            "ALTER TABLE acoustic_stations ADD CONSTRAINT acoustic_stations_source_check "
-            "CHECK (source IN ("
-            "'ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc',"
-            "'pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram',"
-            "'coastal_studies_institute','ioos','sambah','ims'))"
-        )
-    except Exception as exc:
-        log.warning("acoustic_stations CHECK constraint migration: %s", exc)
+    # 2026-09-15: added 8 more NOAA-archive programs — see ACOUSTIC_SOURCES.
+    #
+    # ⛔ No longer swallowed. This ran inside `except Exception: log.warning`,
+    # which is the worst possible place for a swallow: if the constraint is not
+    # widened, the table rejects every row of the new source and the sync's own
+    # per-row try/except logs a warning and carries on, so the run reports
+    # success while writing nothing. A failure here must stop the deploy —
+    # deploy-if-new.sh applies the schema while the OLD process is still
+    # serving, precisely so that this is survivable.
+    await conn.execute(
+        "ALTER TABLE acoustic_stations DROP CONSTRAINT IF EXISTS acoustic_stations_source_check")
+    await conn.execute(
+        "ALTER TABLE acoustic_stations ADD CONSTRAINT acoustic_stations_source_check "
+        f"CHECK (source IN ({_sources_sql()}))"
+    )
 
     # acoustic_soundscape — daily soundscape metrics per station
     await conn.execute("""

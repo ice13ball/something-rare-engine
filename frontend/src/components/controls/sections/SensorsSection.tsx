@@ -7,7 +7,7 @@ import type { LayerId } from "../../../types/layers";
 import { ALARM_DEFS } from "../../../utils/argoAlarms";
 import { analytics } from "../../../utils/analytics";
 import { ONC_EOV_ORDER, ONC_EOV_LABELS } from "../../../types/onc";
-import { OCEANSITES_NETWORK_DEFS, OCEANSITES_STATUS_DEFS } from "../filterDefs";
+import { OCEANSITES_NETWORK_DEFS, OCEANSITES_STATUS_DEFS, HYDROPHONE_SOURCE_DEFS } from "../filterDefs";
 import {
   LayerRow, SubGroup, CheckboxFilter, FilterResetLink,
 } from "../rows";
@@ -196,34 +196,7 @@ export function SensorsSection({
                     <p className="text-white/70 text-[10px] uppercase tracking-wider mt-1 mb-1">
                       {t("controls.hydrophone.source" as any)}
                     </p>
-                    {[
-                      { key: "ooi",    label: "OOI",         color: "#e879f9" },
-                      { key: "imos",   label: "IMOS",        color: "#22c55e" },
-                      { key: "mars",   label: "MARS",        color: "#22d3ee" },
-                      { key: "palaoa", label: "AWI PALAOA",  color: "#f8fafc" },
-                      { key: "obsea",  label: "OBSEA",       color: "#facc15" },
-                      { key: "km3net", label: "KM3NeT",      color: "#818cf8" },
-                      { key: "nrs",        label: "NOAA NRS",        color: "#38bdf8" },
-                      { key: "sanctsound", label: "NOAA SanctSound", color: "#fb923c" },
-                      { key: "nefsc",      label: "NOAA NEFSC",      color: "#f472b6" },
-                      // Phase 4 — 12 NOAA Passive Acoustic Archive programs
-                      { key: "pifsc",  label: "PIFSC", color: "#0ea5e9" },
-                      { key: "sefsc",  label: "SEFSC", color: "#fbbf24" },
-                      { key: "onms",   label: "ONMS",  color: "#f97316" },
-                      { key: "adeon",  label: "ADEON", color: "#8b5cf6" },
-                      { key: "boem",   label: "BOEM",  color: "#4b5563" },
-                      { key: "aeon",   label: "AEON",  color: "#a78bfa" },
-                      { key: "navy",   label: "Navy",  color: "#1f2937" },
-                      { key: "nps",    label: "NPS",   color: "#10b981" },
-                      { key: "jasco",  label: "JASCO", color: "#d946ef" },
-                      { key: "fram",   label: "FRAM",  color: "#e1d314" },
-                      { key: "coastal_studies_institute", label: "CSI", color: "#0e7490" },
-                      { key: "ioos",   label: "IOOS",  color: "#4f46e5" },
-                      // Phase 3 — PANGAEA/Dryad
-                      { key: "sambah", label: "SAMBAH", color: "#34d399" },
-                      // Phase 4 — CTBTO IMS
-                      { key: "ims", label: "CTBTO IMS", color: "#67e8f9" },
-                    ].map(({ key, label, color }) => {
+                    {HYDROPHONE_SOURCE_DEFS.map(({ key, label, color }) => {
                       const disabled = hydrophoneSourceFilters.size > 0 && !hydrophoneSourceFilters.has(key);
                       return (
                         <button

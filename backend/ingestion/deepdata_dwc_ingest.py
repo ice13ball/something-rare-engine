@@ -122,7 +122,13 @@ def parse_archive(slug: str, zip_bytes: bytes) -> tuple[dict[str, Any], list[dic
         if "occurrence.txt" not in names or "eml.xml" not in names:
             raise ValueError(f"{slug}: missing occurrence.txt or eml.xml in archive")
         eml_meta = _parse_eml(zf.read("eml.xml"))
-        occurrences = list(_iter_occurrences(zf.read("occurrence.txt")))
+        occurrences = list(_iter_occurrences(zf.read("occurrence.txt"), slug))
+        # ⛔ Every archive ships this file and we had never opened one.
+        # Measured across all 140 archives on 2026-09-15: 42 carry real rows
+        # (1.7 MB in total) and 98 carry a header and nothing else. Reading it
+        # is what turns "we don't hold these measurements" into a fact with a
+        # size, instead of an absence nobody had looked at.
+        m_count, m_types = _read_measurements(zf, names, slug)
 
     archive_meta = {
         "slug":             slug,
@@ -132,6 +138,13 @@ def parse_archive(slug: str, zip_bytes: bytes) -> tuple[dict[str, Any], list[dic
         "rights_holder":    eml_meta.get("rights_holder"),
         "pub_date":         eml_meta.get("pub_date"),
         "occurrence_count": len(occurrences),
+        # ⚠️ The measurement VALUES are deliberately not stored yet — every
+        # row sampled so far is one type, "Relative abundance", and it belongs
+        # against a species, not against a station aggregate. What is stored
+        # is the inventory, so choosing to keep them later is a decision made
+        # from numbers rather than from a guess.
+        "measurement_count": m_count,
+        "measurement_types": m_types,
     }
 
     stations = aggregate_stations(slug, archive_meta, occurrences)
@@ -234,7 +247,10 @@ def _parse_iso_date(s: str | None) -> date | None:
 # Single occurrence.txt files reach ~92 MB (NORI biology). csv.DictReader
 # is line-by-line so we never hold the whole file as Python objects.
 
-# Permissive list of columns we read. Columns not in the file are tolerated.
+# The columns we keep. ISA's occurrence.txt publishes 52 (counted across all
+# 140 archives, 2026-09-15); the rest are inventoried in _OCC_FIELDS_UNUSED
+# below so that "we chose not to keep this" and "nobody ever looked at the
+# header" stop being the same silence.
 _OCC_FIELDS = (
     "id", "dataset_id", "occurrenceID", "eventID",
     "eventDate", "year",
@@ -245,11 +261,156 @@ _OCC_FIELDS = (
     "scientificName", "phylum",
 )
 
+# ⛔ Without these, a field we DO depend on is indistinguishable from a field
+# the archive stopped publishing: `row.get(k)` answers None either way. If ISA
+# renamed `decimalLatitude`, `aggregate_stations` would skip every occurrence
+# for want of coordinates and the archive would parse to zero stations —
+# successfully, with no error anywhere.
+_OCC_FIELDS_REQUIRED = frozenset({
+    "id", "occurrenceID", "eventID", "decimalLatitude", "decimalLongitude",
+    "scientificName",
+})
 
-def _iter_occurrences(occ_bytes: bytes) -> Iterable[dict[str, Any]]:
-    """Stream-parse occurrence.txt; yield only the fields we need."""
+# Every other column ISA publishes, with why we do not keep it. ⛔ A reason
+# here must be something somebody checked; where it is not, the word is
+# "nieustalone". The column list was read from the real archives on
+# 2026-09-15, not from the Darwin Core specification.
+_OCC_FIELDS_UNUSED: dict[str, str] = {
+    # Quantitative — the strongest candidates if we ever want specimen counts
+    # on a station. Not kept because deepdata_stations aggregates occurrences,
+    # not individuals, and summing counts across species would be a number
+    # with no meaning. A deliberate choice, not an oversight.
+    "individualCount":     "would need a per-species home; station rows count occurrences",
+    "organismQuantity":    "as individualCount; paired with organismQuantityType",
+    "organismQuantityType": "unit for organismQuantity, useless without it",
+    "occurrenceStatus":    "present/absent flag; every ISA row sampled is 'present'",
+    # Taxonomy below phylum. top_species and top_phyla already carry the two
+    # ranks the panel shows.
+    "kingdom":    "one value across the whole dataset (Animalia/Chromista)",
+    "class":      "rank between phylum and species; panel shows neither",
+    "order":      "rank between phylum and species; the panel shows neither",
+    "family":     "rank between phylum and species; the panel shows neither",
+    "genus":      "carried inside scientificName already; no separate use",
+    "taxonRank":  "rank of scientificName; the panel does not qualify names",
+    "taxonomicStatus": "accepted/synonym; we do not resolve synonymy here",
+    "taxonRemarks":    "free text, per record",
+    "taxonID":         "internal to the archive",
+    "scientificNameID": "LSID; WoRMS resolution happens on the OBIS-REST tier",
+    # Identification provenance
+    "identificationID": "internal to the archive",
+    "typeStatus":       "holotype/paratype; nieustalone whether any ISA row sets it",
+    "dateIdentified":   "when a specimen was identified, not when it was collected",
+    "identificationVerificationStatus": "nieustalone what values ISA uses",
+    # Event detail finer than the station aggregate
+    "eventTime":     "station rows span dates, not times",
+    "month":         "eventDate already carries it",
+    "day":           "eventDate already carries it",
+    "habitat":       "free text; nieustalone how consistently ISA fills it",
+    "eventRemarks":  "free text, per record",
+    # Position detail
+    "verbatimDepth":            "decimal min/max depth kept instead",
+    "verbatimCoordinateSystem": "we keep the decimal coordinates DwC requires",
+    "verbatimSRS":              "we keep the decimal coordinates DwC requires",
+    # Record-level boilerplate, constant per archive and already taken from
+    # eml.xml where we DO keep it.
+    "type":                  "constant 'Event'/'PhysicalObject' per archive",
+    "license":               "taken from eml.xml for the archive as a whole",
+    "rightsHolder":          "taken from eml.xml",
+    "accessRights":          "taken from eml.xml",
+    "bibliographicCitation": "taken from eml.xml",
+    "institutionID":         "taken from eml.xml",
+    "basisOfRecord":         "constant per archive",
+    # Other
+    "catalogNumber":        "museum accession, per specimen",
+    "associatedSequences":  "genetic accessions; no sequence view exists",
+    "occurrenceRemarks":    "free text, per record",
+    "sex":                  "per specimen; not aggregated",
+}
+
+
+# The occurrence.txt header as ISA publishes it, read from the real archives
+# on 2026-09-15. Held as data so the split between "kept" and "refused with a
+# reason" can be checked without the network, and so a column the publisher
+# ADDS shows up as a diff rather than as silence.
+OCC_COLUMNS_SEEN = (
+    "id", "dataset_id", "occurrenceID", "catalogNumber", "individualCount",
+    "organismQuantity", "organismQuantityType", "occurrenceStatus",
+    "associatedSequences", "occurrenceRemarks", "sex", "eventID", "eventDate",
+    "eventTime", "year", "month", "day", "habitat", "samplingProtocol",
+    "eventRemarks", "locationID", "minimumDepthInMeters",
+    "maximumDepthInMeters", "verbatimDepth", "decimalLatitude",
+    "decimalLongitude", "verbatimCoordinateSystem", "verbatimSRS",
+    "coordinateUncertaintyInMeters", "identificationID", "typeStatus",
+    "dateIdentified", "identificationVerificationStatus", "type", "license",
+    "rightsHolder", "accessRights", "bibliographicCitation", "institutionID",
+    "basisOfRecord", "taxonID", "scientificName", "scientificNameID",
+    "kingdom", "phylum", "class", "order", "family", "genus", "taxonRank",
+    "taxonomicStatus", "taxonRemarks",
+)
+
+_EMOF_NAME = "extendedmeasurementorfact.txt"
+
+
+def _read_measurements(zf, names: set[str], slug: str) -> tuple[int, list[str]]:
+    """`(row_count, sorted distinct measurementType)` from the archive's
+    extended-measurement file.
+
+    ⛔ Returns (0, []) for a file that is present but holds only a header —
+    which is 98 of the 140 archives — and the SAME (0, []) is never reached
+    for a file that fails to parse: that raises. "This archive measured
+    nothing" and "we could not read what it measured" are different facts.
+    """
+    if _EMOF_NAME not in names:
+        log.info("deepdata_dwc %s: no %s in the archive", slug, _EMOF_NAME)
+        return 0, []
+    text = zf.read(_EMOF_NAME).decode("utf-8", errors="replace")
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    header = set(reader.fieldnames or ())
+    if "measurementType" not in header:
+        raise ValueError(
+            f"{slug}: {_EMOF_NAME} has no measurementType column — header is "
+            f"{sorted(header)}. Counting its rows without knowing what they "
+            f"measure would be a number that means nothing."
+        )
+    count = 0
+    types: set[str] = set()
+    for row in reader:
+        count += 1
+        t = (row.get("measurementType") or "").strip()
+        if t:
+            types.add(t)
+    return count, sorted(types)
+
+
+class MissingOccurrenceColumns(ValueError):
+    """An archive stopped publishing a column the station build depends on."""
+
+
+def _iter_occurrences(occ_bytes: bytes, slug: str = "?") -> Iterable[dict[str, Any]]:
+    """Stream-parse occurrence.txt; yield only the fields we keep.
+
+    ⛔ Checks the header before reading a single row. A renamed or dropped
+    column otherwise costs nothing at parse time and everything afterwards:
+    every value comes back None, the station build skips the occurrence for
+    want of coordinates, and the archive lands as a clean zero.
+    """
     text = occ_bytes.decode("utf-8", errors="replace")
     reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    header = set(reader.fieldnames or ())
+    missing = sorted(_OCC_FIELDS_REQUIRED - header)
+    if missing:
+        raise MissingOccurrenceColumns(
+            f"{slug}: occurrence.txt does not publish {missing}. Every station "
+            f"built from it would be dropped for want of these values, and the "
+            f"archive would parse to zero rows without an error. Header has "
+            f"{len(header)} column(s)."
+        )
+    # ⚠️ Optional columns stay optional on purpose — archives legitimately vary
+    # — but a column that vanishes EVERYWHERE is worth knowing about, so log it
+    # once per archive rather than per row.
+    absent_optional = sorted(set(_OCC_FIELDS) - _OCC_FIELDS_REQUIRED - header)
+    if absent_optional:
+        log.info("deepdata_dwc %s: occurrence.txt omits optional %s", slug, absent_optional)
     for row in reader:
         yield {k: row.get(k) for k in _OCC_FIELDS}
 

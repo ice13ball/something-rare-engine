@@ -163,7 +163,131 @@ PROGRAMS: dict[str, dict[str, Any]] = {
         "portal":    "https://ioos.noaa.gov/project/passive-acoustic-monitoring/",
         "skip_mobile_platforms": True,
     },
+    # ── Added 2026-09-15 ────────────────────────────────────────────────────
+    # The bucket publishes 29 top-level prefixes; this registry covered 12 of
+    # them, and nothing anywhere said which 17 were left out or why. Counted
+    # with our own `_discover_metadata_jsons` on 2026-09-15, the eight below
+    # hold 173 deployment metadata files that we had simply never asked for.
+    # The count per program is recorded beside each entry so a later drop to
+    # zero is a change somebody can see, not a number nobody had.
+    "afsc": {
+        "display":   "NOAA AFSC",
+        "operator":  "NOAA Alaska Fisheries Science Center",
+        "prefix":    "afsc/audio/",
+        "portal":    "https://www.fisheries.noaa.gov/about/alaska-fisheries-science-center",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 1 deployment → 0 stations (Seaglider)
+    },
+    "cornell": {
+        "display":   "Cornell / NOAA NERRS",
+        "operator":  "Cornell University K. Lisa Yang Center for Conservation Bioacoustics",
+        "prefix":    "cornell/audio/",
+        "portal":    "https://www.birds.cornell.edu/ccb/",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 30 deployments → 6 stations
+    },
+    "mbarc_socal": {
+        "display":   "MBARC SoCal",
+        "operator":  "US Navy Marine Bioacoustics Research Collaboration — Southern California",
+        "prefix":    "mbarc_socal/audio/",
+        "portal":    "https://www.navfac.navy.mil/",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 90 deployments → 21 stations (largest gap)
+    },
+    "mbarc_arctic": {
+        "display":   "MBARC Arctic",
+        "operator":  "US Navy Marine Bioacoustics Research Collaboration — Arctic",
+        "prefix":    "mbarc_arctic/audio/",
+        "portal":    "https://www.navfac.navy.mil/",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 7 deployments → 3 stations
+    },
+    "mbarc_flip": {
+        "display":   "MBARC FLIP",
+        "operator":  "US Navy Marine Bioacoustics Research Collaboration — R/P FLIP",
+        "prefix":    "mbarc_flip/audio/",
+        "portal":    "https://www.navfac.navy.mil/",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 10 deployments → 3 stations
+    },
+    "swfsc": {
+        "display":   "NOAA SWFSC",
+        "operator":  "NOAA Southwest Fisheries Science Center",
+        "prefix":    "swfsc/audio/",
+        "portal":    "https://www.fisheries.noaa.gov/about/southwest-fisheries-science-center",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 33 deployments → 0 stations (CCES drifters)
+    },
+    "rutgers_njrmi": {
+        "display":   "Rutgers NJRMI",
+        "operator":  "Rutgers University — New Jersey Research and Monitoring Initiative",
+        "prefix":    "rutgers_njrmi/audio/",
+        "portal":    "https://rucool.marine.rutgers.edu/",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 1 deployment → 0 stations (Slocum glider)
+    },
+    # ⚠️ Lowercase key against an uppercase prefix, deliberately. The key
+    # becomes `acoustic_stations.source` and the id prefix in
+    # `station_id`; every other source there is lowercase, and the frontend
+    # matches those strings exactly. The bucket's casing is the bucket's
+    # business and stays in `prefix`.
+    "md_wea_cpod": {
+        "display":   "Maryland WEA C-POD",
+        "operator":  "Maryland Wind Energy Area C-POD porpoise monitoring",
+        # ⚠️ NOT `{prog}/audio/`. This prefix has no audio tree at all — it
+        # holds `detection_data/` and `metadata/`, because a C-POD publishes
+        # click detections rather than recordings. Its one metadata file sits
+        # at the prefix root, so the root is what we walk.
+        "prefix":    "MD_WEA_CPOD/",
+        "portal":    "https://www.boem.gov/renewable-energy/state-activities/maryland",
+        "skip_mobile_platforms": True,   # measured 2026-09-15: 1 deployment → 0 stations, see the Null Island guard
+    },
 }
+
+# ⛔ Every top-level prefix in the bucket is either walked above or listed
+# HERE, with a reason somebody checked. This is the whole point of the pair:
+# without it, "we decided not to ingest this" and "nobody ever looked" are the
+# same empty space, which is how `ioos/` stayed pointed at an empty prefix for
+# three and a half months and how seventeen programs went unnoticed.
+#
+# ⛔ A reason must be something that was verified. Where it was not, the word
+# is "nieustalone" — never a plausible-sounding guess.
+NOT_INGESTED: dict[str, str] = {
+    "big_query_metadata":
+        "not a program — the archive's own BigQuery export of everything else.",
+    "listen":
+        "holds only `products/`; walked to depth 4 on 2026-09-15 and found zero "
+        "deployment metadata files. Nothing here describes a station.",
+    "mbari":
+        "holds only `products/`; same walk, zero metadata files. MBARI's own "
+        "MARS hydrophone reaches us through acoustic_mars_ingest instead.",
+    "mbarc_cencal":
+        "holds only `products/`; zero metadata files. Its sibling prefixes "
+        "mbarc_socal / mbarc_arctic / mbarc_flip DO carry audio and are walked.",
+    "soundcoop":
+        "15 site folders at the prefix root, no `audio/` tree and zero metadata "
+        "files to depth 4. The site names (AEON5, ARCTIC-A..C, NRS01, NRS11, "
+        "BOEM-MD, BOEM-VA, SB01, SB03) are other programs' sites re-published "
+        "under one roof, so ingesting it would duplicate rows we already hold.",
+    "dclde":
+        "conference datasets, foldered by workshop year. The metadata files we "
+        "found are re-publications of deployments that arrive from their own "
+        "programs — e.g. dclde/2013/nefsc_sbnms_200903_nopp6_ch10 is a NEFSC "
+        "deployment. Ingesting it would give the same hydrophone two ids.",
+    # These three are ingested, just not by this module.
+    "nefsc":     "handled by ingestion/acoustic_nefsc_ingest.py.",
+    "nrs":       "handled by ingestion/acoustic_nrs_ingest.py.",
+    "sanctsound": "handled by ingestion/acoustic_sanctsound_ingest.py.",
+}
+# ⛔ `esons` is deliberately absent here: it IS walked, by the `ioos` program
+# whose prefix points at it. The check below derives coverage from the
+# prefixes, not from the keys, so a program that walks somebody else's prefix
+# still counts as covering it — and listing esons as "not ingested" would be
+# the false reason this whole structure exists to prevent.
+
+# The bucket's top-level prefixes as listed on 2026-09-15. Held as data so the
+# classification above can be checked without a network call, and so a program
+# the archive ADDS shows up as a diff rather than as silence.
+BUCKET_PREFIXES_SEEN = (
+    "MD_WEA_CPOD", "adeon", "aeon", "afsc", "big_query_metadata", "boem",
+    "coastal_studies_institute", "cornell", "dclde", "esons", "fram", "jasco",
+    "listen", "mbarc_arctic", "mbarc_cencal", "mbarc_flip", "mbarc_socal",
+    "mbari", "navy", "nefsc", "nps", "nrs", "onms", "pifsc", "rutgers_njrmi",
+    "sanctsound", "sefsc", "soundcoop", "swfsc",
+)
 
 # Platforms we consider mobile / non-positional. When `skip_mobile_platforms`
 # is set on a program config, deployments with these PLATFORM_NAME values are
@@ -437,6 +561,29 @@ def _extract_record(meta: dict[str, Any], program: str) -> dict[str, Any] | None
     if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
         return None
 
+    # ⛔ Null Island. (0, 0) passes every bounds check ever written and puts a
+    # hydrophone in the Gulf of Guinea, 6,000 km from wherever it really is.
+    #
+    # ⛔ A sentinel is proved by its neighbourhood, not by its value, so this
+    # is not a guess about zero being suspicious. MD_WEA_CPOD/metadata publishes
+    # DEPLOY_LAT "0" AND DEPLOY_LON "0" AND RECOVER_LAT "0" AND RECOVER_LON "0"
+    # AND DEPLOYMENT_TIME "2000-01-01T00:00:00", in a file whose own abstract
+    # describes the Maryland Wind Energy Area — four independent fields at
+    # their type's null value in a record that plainly knows where it is. The
+    # publisher left the template unfilled.
+    #
+    # Both coordinates, never one: 0.0 is an ordinary latitude on the equator
+    # and an ordinary longitude through Greenwich, and dropping a real station
+    # would be the worse error.
+    if lat == 0 and lon == 0:
+        log.warning(
+            "acoustic_noaa_archive_ingest: %s dropped a deployment at (0, 0) — "
+            "site %r, platform %r. The source published an unfilled position, "
+            "not a position in the Atlantic off Africa.",
+            program, site or "?", platform or "?",
+        )
+        return None
+
     return {
         "lat":          lat,
         "lon":          lon,
@@ -670,7 +817,25 @@ def _make_soundscape_fetcher(program: str) -> Callable[..., Any]:
     return _f
 
 
-# Generate the 12 fetchers up-front so callers can import them by name.
+def station_fetchers() -> list[tuple[str, Callable[[], Any]]]:
+    """`(source, fetcher)` for EVERY configured program — derived, not typed.
+
+    ⛔ This exists because adding a program to PROGRAMS did nothing. The sync
+    chain in `domains/acoustic.py` held its own hand-written list of twelve
+    `(name, module.fetch_x_stations)` rows, and the module held twelve
+    hand-written assignments below. A thirteenth program was therefore three
+    edits in three places, two of them invisible from the registry — and a
+    program added to only the registry would be config nobody calls, with no
+    error anywhere to say so.
+
+    Deriving the list means the registry IS the wiring. A program that stops
+    being fetched can now only be a program somebody deleted.
+    """
+    return [(name, _make_station_fetcher(name)) for name in PROGRAMS]
+
+
+# The named fetchers below are kept for callers that import one by name. They
+# are NOT the sync's source list any more — `station_fetchers()` is.
 fetch_pifsc_stations                       = _make_station_fetcher("pifsc")
 fetch_sefsc_stations                       = _make_station_fetcher("sefsc")
 fetch_onms_stations                        = _make_station_fetcher("onms")

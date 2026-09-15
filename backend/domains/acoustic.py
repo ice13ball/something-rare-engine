@@ -52,6 +52,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 import db
 from auth import get_api_key
@@ -102,11 +103,16 @@ def clear_caches() -> None:
     _acoustic_soundscape_cache.clear()
 
 
-async def sync_acoustic_stations(force: bool = False) -> int:
-    """Sync hydrophone station metadata from OOI + IMOS + MARS + PALAOA + OBSEA + KM3NeT.
+def station_sources() -> list[tuple[str, Any]]:
+    """Every `(source, fetcher)` the station sync walks, in order.
 
-    Per-source try/except — partial failure leaves stale rows but never blocks
-    other sources. Upserts on station_id PK; no TRUNCATE.
+    ⛔ Module level, and public, so a test can ask what the sync will actually
+    do. Inside the function this was a local list: the only way to check that
+    a configured source reaches the chain was to read it, and a source missing
+    from a list cannot raise — it just never runs, and its rows quietly age.
+
+    Imports stay inside the function body: `domains/acoustic.py` is imported
+    at startup and these ingest modules are not.
     """
     from ingestion import (
         acoustic_ooi_ingest,
@@ -124,15 +130,6 @@ async def sync_acoustic_stations(force: bool = False) -> int:
         acoustic_ims_ingest,
     )
 
-    if not force:
-        async with db.pool.acquire() as conn:
-            last = await conn.fetchval(
-                "SELECT MAX(last_synced_at) FROM sync_log WHERE source = 'acoustic-stations'"
-            )
-        if last and (datetime.now(timezone.utc) - last).days < 7:
-            log.info("_sync_acoustic_stations: within 7-day guard, skipping")
-            return 0
-
     sources = [
         ("ooi",        acoustic_ooi_ingest.fetch_ooi_stations),
         ("imos",       acoustic_imos_ingest.fetch_imos_stations),
@@ -143,26 +140,40 @@ async def sync_acoustic_stations(force: bool = False) -> int:
         ("nrs",        acoustic_nrs_ingest.fetch_nrs_stations),
         ("sanctsound", acoustic_sanctsound_ingest.fetch_sanctsound_stations),
         ("nefsc",      acoustic_nefsc_ingest.fetch_nefsc_stations),
-        # Phase 4 — 12 NOAA Passive Acoustic Archive programs from the
-        # shared GCS bucket (one generic walker, per-program config).
-        ("pifsc",      acoustic_noaa_archive_ingest.fetch_pifsc_stations),
-        ("sefsc",      acoustic_noaa_archive_ingest.fetch_sefsc_stations),
-        ("onms",       acoustic_noaa_archive_ingest.fetch_onms_stations),
-        ("adeon",      acoustic_noaa_archive_ingest.fetch_adeon_stations),
-        ("boem",       acoustic_noaa_archive_ingest.fetch_boem_stations),
-        ("aeon",       acoustic_noaa_archive_ingest.fetch_aeon_stations),
-        ("navy",       acoustic_noaa_archive_ingest.fetch_navy_stations),
-        ("nps",        acoustic_noaa_archive_ingest.fetch_nps_stations),
-        ("jasco",      acoustic_noaa_archive_ingest.fetch_jasco_stations),
-        ("fram",       acoustic_noaa_archive_ingest.fetch_fram_stations),
-        ("coastal_studies_institute", acoustic_noaa_archive_ingest.fetch_coastal_studies_institute_stations),
-        ("ioos",       acoustic_noaa_archive_ingest.fetch_ioos_stations),
+        # NOAA Passive Acoustic Archive programs from the shared GCS bucket
+        # (one generic walker, per-program config).
+        #
+        # ⛔ Derived from the registry, never re-typed here. This used to be
+        # twelve hand-written rows, so a program added to PROGRAMS was config
+        # nobody called — silent, because a source missing from this list
+        # cannot fail: it simply never runs. Eight programs were added on
+        # 2026-09-15 and all eight would have landed in that hole.
+        *acoustic_noaa_archive_ingest.station_fetchers(),
         # Phase 3 — PANGAEA/Dryad additions
         ("fram",       acoustic_hausgarten_ingest.fetch_hausgarten_stations),   # 7 HAUSGARTEN moorings; reuses 'fram' enum
         ("sambah",     acoustic_sambah_ingest.fetch_sambah_stations),           # ~298 Baltic C-POD stations
         # Phase 4 — CTBTO IMS
         ("ims",        acoustic_ims_ingest.fetch_ims_stations),                 # 11 global IMS hydroacoustic stations
     ]
+    return sources
+
+
+async def sync_acoustic_stations(force: bool = False) -> int:
+    """Sync hydrophone station metadata from every source in `station_sources()`.
+
+    Per-source try/except — partial failure leaves stale rows but never blocks
+    other sources. Upserts on station_id PK; no TRUNCATE.
+    """
+    if not force:
+        async with db.pool.acquire() as conn:
+            last = await conn.fetchval(
+                "SELECT MAX(last_synced_at) FROM sync_log WHERE source = 'acoustic-stations'"
+            )
+        if last and (datetime.now(timezone.utc) - last).days < 7:
+            log.info("_sync_acoustic_stations: within 7-day guard, skipping")
+            return 0
+
+    sources = station_sources()
     total_inserted = 0
     total_fetched = 0
     succeeded = 0

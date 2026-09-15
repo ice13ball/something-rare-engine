@@ -68,3 +68,61 @@ def test_no_configured_program_points_at_the_emptied_prefix():
         f"{bad} still point at ioos/audio/, which the NOAA archive has emptied — "
         "this network is published under esons/"
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# A position that was never filled in must not become a position.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _meta_at(lat, lon, **extra):
+    """One metadata JSON in the archive's nested (Schema A) shape."""
+    meta = {
+        "SITE": "WEA",
+        "PLATFORM_NAME": "Mooring",
+        "INSTRUMENT_TYPE": "C-POD",
+        "DEPLOYMENT": {
+            "DEPLOYMENT_TIME": "2019-06-01T00:00:00",
+            "DEPLOY_LAT": lat,
+            "DEPLOY_LON": lon,
+            "DEPLOY_INSTRUMENT_DEPTH": "-8.5",
+        },
+    }
+    meta["DEPLOYMENT"].update(extra)
+    return meta
+
+
+def test_null_island_is_not_a_hydrophone(caplog):
+    """⛔ (0, 0) passes every bounds check and lands in the Gulf of Guinea.
+
+    Real file, read 2026-09-15: MD_WEA_CPOD/metadata/MD_WEA_CPOD.json carries
+    DEPLOY_LAT "0", DEPLOY_LON "0", RECOVER_LAT "0", RECOVER_LON "0" and
+    DEPLOYMENT_TIME "2000-01-01T00:00:00" — while its own abstract describes
+    the Maryland Wind Energy Area. That is an unfilled template, and on a map
+    it is a station 6,000 km from the truth with nothing marking it as wrong.
+    """
+    with caplog.at_level(logging.WARNING):
+        rec = mod._extract_record(_meta_at("0", "0"), "pifsc")
+
+    assert rec is None, (
+        f"a deployment at (0, 0) was accepted as a station: {rec}. It would "
+        "render in the Atlantic off Africa, indistinguishable from a real one.")
+    said = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+    assert any("(0, 0)" in m for m in said), (
+        "the record was dropped in silence, so a source that stops publishing "
+        "positions is indistinguishable from a source with no deployments")
+
+
+def test_a_real_position_on_the_equator_survives():
+    """⛔ Positive control, and the reason the test above uses AND, not OR.
+
+    0.0 is an ordinary latitude on the equator and an ordinary longitude
+    through Greenwich. A guard that dropped either one alone would quietly
+    delete real stations — a worse error than the one it fixes.
+    """
+    on_equator = mod._extract_record(_meta_at("0", "-24.5"), "pifsc")
+    assert on_equator is not None, "a station on the equator was thrown away"
+    assert on_equator["lat"] == 0.0 and on_equator["lon"] == -24.5
+
+    on_greenwich = mod._extract_record(_meta_at("51.4", "0"), "pifsc")
+    assert on_greenwich is not None, "a station on the prime meridian was thrown away"
+    assert on_greenwich["lat"] == 51.4 and on_greenwich["lon"] == 0.0

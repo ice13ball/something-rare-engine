@@ -29,12 +29,41 @@ const SITE_GRAPH_JSON = JSON.stringify(_siteGraph).replace(/<\//g, '<\\/');
 // Citation facts, derived from the SAME single-source graph (never re-typed) so
 // the SSR /about + /cite pages can't drift from the JSON-LD or the client copy.
 const _wa = _siteGraph['@graph'].find(n => n['@type'] === 'WebApplication') || {};
+// ⛔ TWO records, and they are not interchangeable. `identifier` on the
+// WebApplication node is the SOFTWARE record (AGPL-3.0-or-later); its
+// `citation` is the METHODS documentation (CC-BY-4.0). The software record's
+// own Zenodo metadata says `isDocumentedBy` the other one — cite the
+// documentation for the method, the code record for the code. Swapping them
+// puts a CC-BY licence on AGPL software on a page people quote.
+//
+// ⚠️ No `||` fallbacks any more. A default that silently substitutes a DOI is
+// the one thing a citation surface must never do: a typo in the graph would
+// have produced a confident, wrong citation instead of a failure.
+const _cite = _wa.citation || {};
+function _need(value, what) {
+  if (!value) {
+    throw new Error(
+      `site-graph.json is missing ${what}. The citation blocks on /about and ` +
+      `/cite are rendered from it, and a missing value here would otherwise ` +
+      `fall back to a hardcoded DOI that nobody would notice was stale.`,
+    );
+  }
+  return value;
+}
 export const siteCitation = {
-  doiUrl: _wa.identifier || 'https://doi.org/10.5281/zenodo.19745884',
-  doi: (_wa.identifier || 'https://doi.org/10.5281/zenodo.19745884').replace('https://doi.org/', ''),
-  zenodoUrl: (_wa.sameAs && _wa.sameAs[0]) || 'https://zenodo.org/records/19745884',
-  author: (_wa.creator && _wa.creator.name) || 'Michal Mazurowski',
-  orcidUrl: (_wa.creator && _wa.creator.url) || 'https://orcid.org/0009-0007-3786-0310',
+  // The code: what the running platform IS.
+  doiUrl: _need(_wa.identifier, 'WebApplication.identifier (the code DOI)'),
+  doi: _need(_wa.identifier, 'WebApplication.identifier').replace('https://doi.org/', ''),
+  zenodoUrl: _need(_wa.sameAs && _wa.sameAs[0], 'WebApplication.sameAs[0]'),
+  licenceUrl: _need(_wa.license, 'WebApplication.license'),
+  licenceName: 'AGPL-3.0-or-later',
+  // The methods documentation: what the platform is DESCRIBED by.
+  docsDoiUrl: _need(_cite.identifier, 'WebApplication.citation.identifier (the docs DOI)'),
+  docsDoi: _need(_cite.identifier, 'WebApplication.citation.identifier')
+    .replace('https://doi.org/', ''),
+  docsLicenceName: 'CC-BY-4.0',
+  author: _need(_wa.creator && _wa.creator.name, 'WebApplication.creator.name'),
+  orcidUrl: _need(_wa.creator && _wa.creator.url, 'WebApplication.creator.url'),
 };
 
 /**

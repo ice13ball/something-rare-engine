@@ -1609,8 +1609,15 @@ async def _argo_backfill_walk(budget_seconds: int, since: date | None, bounded: 
         except httpx.HTTPError as e:
             log.error("argo backfill: vocabulary fetch failed, no chunk attempted: %s", type(e).__name__)
             return {
-                "months_done": 0, "inserted": 0,
+                "months_done": 0, "inserted": 0, "bounded": bounded,
                 "done_through": cursor.isoformat(), "error": "vocabulary_fetch_failed",
+                # ⛔ This branch shipped without `stalled`, and a missing key is
+                # not a false key — it is worse. A caller reading
+                # `result.get("stalled")` got None, which is falsy, so a
+                # vocabulary outage that fetched nothing at all read exactly
+                # like a healthy completed walk. The cadence below turns that
+                # from an operator's mistake into a daily silent one.
+                "stalled": True, "complete": False,
             }
 
         while cursor < today and (time.monotonic() - started) < budget_seconds:
@@ -1715,7 +1722,15 @@ async def _argo_backfill_walk(budget_seconds: int, since: date | None, bounded: 
         # ⛔ A run that walked zero months is NOT a success. Saying so here is
         # what stops an operator (or a cron) from reading a silent stall as
         # healthy — the shape this exact endpoint shipped with.
-        "stalled": months_done == 0,
+        #
+        # ⛔ …but a FINISHED walk also walks zero months, and it must not wear
+        # the same label. Once a cadence runs this every few hours, a history
+        # that has reached today would report `stalled: true` forever — the
+        # permanent state of a perfectly healthy system, and an alarm that is
+        # always on is an alarm nobody reads. "Nothing left to do" and "could
+        # not do anything" are different facts, so they get different fields.
+        "stalled": months_done == 0 and cursor < today,
+        "complete": cursor >= today,
         "failed_chunk": failed_chunk,
     }
 

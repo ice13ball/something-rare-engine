@@ -3,6 +3,16 @@
 
 import { Helmet } from "react-helmet-async";
 import siteGraph from "../../seo/site-graph.json";
+// ⛔ Imported, not re-typed. The DOIs used to be literals in three separate
+// files and the site ended up citing the documentation record for the
+// software. `citation-records.test.ts` asserts these, the JSON-LD graph and
+// the SSR pages all name the same two records.
+import {
+  CODE_DOI,
+  CODE_TITLE,
+  DOCS_DOI,
+  ORCID_URL,
+} from "../content/legalContent";
 
 const SITE_URL = "https://something-rare.com";
 const OG_IMAGE = `${SITE_URL}/og.jpg`;
@@ -42,13 +52,22 @@ export function SEO() {
       <meta name="twitter:image" content={OG_IMAGE} />
       <meta name="twitter:image:alt" content="3D globe showing ocean and land environmental data layers" />
 
-      {/* Google Scholar / Highwire Press citation tags */}
-      <meta name="citation_title" content="Abyssal Claims: Ocean & Land Environmental Transparency Map" />
+      {/* Google Scholar / Highwire Press citation tags.
+          ⛔ `citation_doi` is the SOFTWARE record. This page is the running
+          engine, and Scholar accepts exactly one DOI here — so it gets the one
+          that identifies what the page IS. The methods documentation is a
+          separate record, offered beside it on /about and carried in the
+          JSON-LD as the WebApplication's `citation`. Until 2026-09-15 this tag
+          named the documentation record, i.e. Scholar was told the software
+          was a CC-BY publication. */}
+      <meta name="citation_title" content={CODE_TITLE} />
       <meta name="citation_author" content="Mazurowski, Michal" />
-      <meta name="citation_author_orcid" content="https://orcid.org/0009-0007-3786-0310" />
-      <meta name="citation_doi" content="10.5281/zenodo.19745884" />
+      <meta name="citation_author_orcid" content={ORCID_URL} />
+      <meta name="citation_doi" content={CODE_DOI} />
       <meta name="citation_publication_date" content="2026" />
       <meta name="citation_publisher" content="Zenodo" />
+      {/* The companion record, so a crawler that follows one finds the other. */}
+      <meta name="citation_reference" content={`doi:${DOCS_DOI}`} />
       <meta name="citation_public_url" content={SITE_URL} />
 
       {/* Structured data */}

@@ -27,6 +27,8 @@ SURFACES = (
     "detail-prefix",      # DetailPanel.tsx template, checked at its static prefix
     "detail-deep-link",   # DetailPanel.tsx template, built from a sampled feature
     "seo-jsonld",         # SEO.tsx JSON-LD url/identifier/sameAs/license
+    "citation",           # legalContent.ts + site-graph.json — DOIs, ORCID,
+                          # Zenodo records, licence deeds
 )
 
 KINDS = ("homepage", "doi", "endpoint", "deep-link")

@@ -81,10 +81,13 @@ from pathlib import Path
 from backend.scripts.link_audit.cli import (
     UNWALKED_SURFACES, collect_static_rows, unwalked_surface_entries,
 )
-from backend.scripts.link_audit.extract_locales import extract_locale_urls
+from backend.scripts.link_audit.extract_locales import (
+    extract_locale_urls, extract_site_graph,
+)
 from backend.scripts.link_audit.extract_py import extract_inventory, extract_provenance
 from backend.scripts.link_audit.extract_ts import (
     _is_comment,
+    extract_citation_ts,
     extract_deep_link_templates,
     extract_detail_panel,
     extract_legend_tsx,
@@ -341,9 +344,23 @@ def test_unwalked_surfaces_may_only_be_emptied_by_real_extractors():
             "the manifest — the DetailPanel split's URLs were hidden, not "
             "closed"
         )
-        assert "frontend/src/components/SEO.tsx" in walked, (
-            "UNWALKED_SURFACES was emptied but frontend/src/components/SEO.tsx "
-            "is not in the manifest — the gap was hidden, not closed")
+        # SEO.tsx's own URLs moved on 2026-09-15: it stopped re-typing the
+        # DOIs and the ORCID and started importing them from
+        # content/legalContent.ts, so like DetailPanel.tsx above it is now a
+        # component with zero literals of its own. Same rule applies — what
+        # must survive is that the extraction still REACHES those URLs.
+        #
+        # ⭐ seo/site-graph.json joined the walk at the same time. It is the
+        # JSON-LD document crawlers actually read, it carries both Zenodo DOIs,
+        # the ORCID and the licence deeds, and it had never been audited: the
+        # `seo-jsonld` extractor scanned SEO.tsx's literals, while the graph
+        # arrives there through an import.
+        for moved in ("frontend/src/content/legalContent.ts",
+                      "frontend/seo/site-graph.json"):
+            assert moved in walked, (
+                f"UNWALKED_SURFACES was emptied but {moved} is not in the "
+                "manifest — the citation URLs that used to be walked in "
+                "SEO.tsx were hidden, not closed")
         return
 
     for path, count, reason in UNWALKED_SURFACES:
@@ -428,11 +445,47 @@ def test_detail_panel_count_matches_dumb_external_url_count():
 
 
 def test_seo_tsx_count_matches_dumb_external_url_count():
+    """SEO.tsx keeps its extractor and its pairing even at zero.
+
+    ⚠️ The `assert rows` that used to open this test was removed when SEO.tsx
+    legitimately dropped to zero literals. That is a real loosening, so the
+    non-emptiness requirement moved to the citation surface below, where the
+    URLs now live — it did not disappear.
+    """
     path = REPO / "frontend/src/components/SEO.tsx"
     text = _read(path)
     rows = extract_seo_tsx(text, "SEO.tsx")
-    assert rows, "extractor returned zero SEO.tsx URLs"
     assert len(rows) == _dumb_external_url_count(text)
+
+
+def test_citation_surface_count_matches_dumb_external_url_count():
+    """The citation apparatus — both Zenodo DOIs, both record pages, the ORCID.
+
+    ⛔ These were walked as SEO.tsx literals until 2026-09-15. Pairing the
+    extractor against an independently-derived count here is what stops the
+    same silent emptying happening to their new home.
+    """
+    path = REPO / "frontend/src/content/legalContent.ts"
+    text = _read(path)
+    rows = extract_citation_ts(text, "legalContent.ts")
+    assert rows, "extractor returned zero citation URLs"
+    assert len(rows) == _dumb_external_url_count(text)
+
+
+def test_the_json_ld_graph_is_walked_and_names_both_records():
+    """⭐ Never audited before 2026-09-15 — the document crawlers read."""
+    import json as _json
+
+    payload = _json.loads(_read(REPO / "frontend/seo/site-graph.json"))
+    rows = extract_site_graph(payload, "site-graph.json")
+    urls = {r.url_raw for r in rows}
+
+    assert rows, "the JSON-LD graph yielded no URLs at all"
+    assert any("zenodo.22728476" in u for u in urls), (
+        "the software DOI is not in the walked graph")
+    assert any("zenodo.19745884" in u for u in urls), (
+        "the documentation DOI is not in the walked graph")
+    assert any("orcid.org" in u for u in urls), "the author ORCID is not walked"
 
 
 def test_widening_self_hosts_to_eat_a_real_citation_would_fail_this_guard():

@@ -16,11 +16,15 @@ import os
 from dataclasses import asdict
 from pathlib import Path
 
-from .extract_locales import extract_locale_urls, find_locale_divergence
+from .extract_locales import (
+    extract_locale_urls,
+    extract_site_graph,
+    find_locale_divergence,
+)
 from .extract_py import extract_inventory, extract_provenance
 from .extract_ts import (
-    extract_deep_link_templates, extract_detail_panel, extract_legend_tsx,
-    extract_seo_tsx, extract_source_url_ts, extract_tooltips,
+    extract_citation_ts, extract_deep_link_templates, extract_detail_panel,
+    extract_legend_tsx, extract_seo_tsx, extract_source_url_ts, extract_tooltips,
 )
 from .fetch import classify, fetch_all
 from .models import DetailTemplate, LinkRow
@@ -94,6 +98,10 @@ def collect_static_rows(repo: Path) -> list[LinkRow]:
     mn = repo / "backend/main.py"
     er = repo / "backend/services/export_registry.py"
     seo = repo / "frontend/src/components/SEO.tsx"
+    # The citation apparatus. SEO.tsx imports these rather than re-typing them
+    # (since 2026-09-15), so walking SEO.tsx alone now reaches zero URLs.
+    lc = repo / "frontend/src/content/legalContent.ts"
+    sg = repo / "frontend/seo/site-graph.json"
 
     rows: list[LinkRow] = []
     rows += extract_source_url_ts(_read(su), str(su.relative_to(repo)))
@@ -105,6 +113,8 @@ def collect_static_rows(repo: Path) -> list[LinkRow]:
     for p in _detail_panel_files(repo):
         rows += extract_detail_panel(_read(p), str(p.relative_to(repo)))[0]
     rows += extract_seo_tsx(_read(seo), str(seo.relative_to(repo)))
+    rows += extract_citation_ts(_read(lc), str(lc.relative_to(repo)))
+    rows += extract_site_graph(json.loads(_read(sg)), str(sg.relative_to(repo)))
 
     for path in sorted(glob.glob(str(repo / "frontend/public/locales/*/legend.json"))):
         p = Path(path)

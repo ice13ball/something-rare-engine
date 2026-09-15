@@ -11,9 +11,39 @@ export interface LegalSection {
   paragraphs: (string | { list: string[] } | { code: string })[];
 }
 
-export const DOI = "10.5281/zenodo.19745884";
-export const DOI_URL = "https://doi.org/10.5281/zenodo.19745884";
-export const ZENODO_URL = "https://zenodo.org/records/19745884";
+// ⛔ TWO Zenodo records, and swapping them is a licence error, not a typo.
+//
+//   CODE_DOI — the engine that runs this platform. Resource type "Software",
+//              AGPL-3.0-or-later, v1.0.0, minted 2026-09-12 when the mirror
+//              `ice13ball/something-rare-engine` went public.
+//   DOCS_DOI — the methods and data documentation. Resource type "Software
+//              documentation", CC-BY-4.0, version 1.6.
+//
+// The software record's own Zenodo metadata carries `isDocumentedBy` pointing
+// at the documentation record: they are two halves of one pair. Cite the
+// documentation for the METHOD and the code record for the CODE. Putting the
+// documentation's DOI beside the words "the software is licensed AGPL" — which
+// this file did until 2026-09-15 — attaches a CC-BY licence to AGPL software
+// on the page people copy citations from.
+//
+// 📌 Both are CONCEPT DOIs: they always resolve to the newest version, which
+// is what a citation should point at. Version DOIs (…22728477, …21684359) are
+// for pinning an exact release.
+export const CODE_DOI = "10.5281/zenodo.22728476";
+export const CODE_DOI_URL = "https://doi.org/10.5281/zenodo.22728476";
+export const CODE_ZENODO_URL = "https://zenodo.org/records/22728476";
+export const CODE_TITLE =
+  "Abyssal Claims: source code of a FAIR-aligned integration platform for deep-sea and terrestrial mining transparency";
+export const CODE_VERSION = "v1.0.0";
+export const CODE_LICENCE = "AGPL-3.0-or-later";
+
+export const DOCS_DOI = "10.5281/zenodo.19745884";
+export const DOCS_DOI_URL = "https://doi.org/10.5281/zenodo.19745884";
+export const DOCS_ZENODO_URL = "https://zenodo.org/records/19745884";
+export const DOCS_TITLE =
+  "Abyssal Claims: A FAIR-aligned integration platform for deep-sea and terrestrial mining transparency";
+export const DOCS_VERSION = "1.6";
+export const DOCS_LICENCE = "CC-BY-4.0";
 export const ORCID = "0009-0007-3786-0310";
 export const ORCID_URL = "https://orcid.org/0009-0007-3786-0310";
 export const AUTHOR_NAME = "Michal Mazurowski";
@@ -155,6 +185,19 @@ export const TERMS_OF_USE: LegalDoc = {
         { list: [SOURCE_REPO_URL] },
         "One additional term applies, permitted under section 7(b) of the licence. Any redistribution, modification or network deployment must preserve this notice, both in the source files that carry it and in the legal notices shown by the running program:",
         {
+          // ⛔ A LITERAL, deliberately — not CODE_DOI_URL or DOCS_DOI_URL.
+          //
+          // This block is not a citation. It is the verbatim notice that
+          // §7(b) requires every redistributor to PRESERVE, and it must match
+          // `LICENSE-ADDITIONAL-TERMS.md` character for character. Rewriting
+          // it to interpolate a constant would make the required text change
+          // whenever the constant does, which is the opposite of preserved.
+          //
+          // ⚠️ The DOI it names is the documentation record, while the notice
+          // governs the code. That reads oddly now that a code record exists,
+          // but v1.0.0 is already published and archived with this exact
+          // wording, so changing it is Michal's call, not a cleanup. Raised
+          // 2026-09-15; unchanged on purpose.
           code: [
             "Based on Abyssal Claims — © 2026 Michal Mazurowski",
             "https://something-rare.com",
@@ -286,19 +329,39 @@ export const ABOUT: LegalDoc = {
       id: "citation",
       paragraphs: [
         `Abyssal Claims is built and maintained by ${AUTHOR_NAME} (ORCID: ${ORCID} — ${ORCID_URL}).`,
-        `The platform is archived on Zenodo with a citable DOI: ${DOI} (${DOI_URL}).`,
-        "If you use Abyssal Claims in research, journalism, or reporting, please cite it using the DOI above.",
-        "Suggested citation (APA):",
-        `Mazurowski, M. (2026). Abyssal Claims: Ocean & Land Environmental Transparency Map [Dataset]. Zenodo. https://doi.org/${DOI}`,
+        "There are two archived records on Zenodo and they are not interchangeable. Cite the one that matches what you used; if you are citing the platform as a whole, cite the software record, which declares the documentation record as its companion.",
+        {
+          list: [
+            `The software — the engine that runs this platform, published under ${CODE_LICENCE}: ${CODE_DOI} (${CODE_DOI_URL})`,
+            `The methods and data documentation — sources, refresh strategies, derived products and known limitations, ${DOCS_LICENCE}: ${DOCS_DOI} (${DOCS_DOI_URL})`,
+          ],
+        },
+        "Suggested citation (APA) — software:",
+        `Mazurowski, M. (2026). ${CODE_TITLE} (${CODE_VERSION}) [Computer software]. Zenodo. ${CODE_DOI_URL}`,
+        "Suggested citation (APA) — methods documentation:",
+        `Mazurowski, M. (2026). ${DOCS_TITLE} (Version ${DOCS_VERSION}) [Software documentation]. Zenodo. ${DOCS_DOI_URL}`,
         "BibTeX:",
         {
-          code: `@misc{mazurowski_abyssal_claims_2026,
+          code: `@software{mazurowski_abyssal_claims_code_2026,
   author       = {Mazurowski, Michal},
-  title        = {Abyssal Claims: Ocean \\& Land Environmental Transparency Map},
+  title        = {Abyssal Claims: source code of a FAIR-aligned integration
+                  platform for deep-sea and terrestrial mining transparency},
   year         = {2026},
   publisher    = {Zenodo},
-  doi          = {${DOI}},
-  url          = {${DOI_URL}}
+  version      = {${CODE_VERSION}},
+  doi          = {${CODE_DOI}},
+  url          = {${CODE_DOI_URL}}
+}
+
+@misc{mazurowski_abyssal_claims_docs_2026,
+  author       = {Mazurowski, Michal},
+  title        = {Abyssal Claims: A FAIR-aligned integration platform for
+                  deep-sea and terrestrial mining transparency},
+  year         = {2026},
+  publisher    = {Zenodo},
+  version      = {${DOCS_VERSION}},
+  doi          = {${DOCS_DOI}},
+  url          = {${DOCS_DOI_URL}}
 }`,
         },
       ],

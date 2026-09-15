@@ -26,7 +26,10 @@ type SoundscapeRow = {
   source_url: string | null;
 };
 
-const HYDROPHONE_SOURCE_LABEL: Record<string, string> = {
+// Exported so __tests__/hydrophone-source-registries.test.ts can guard this
+// against colors.ts (HYDROPHONE_SOURCE_COLOR) and filterDefs.ts
+// (HYDROPHONE_SOURCE_DEFS) disagreeing on the source-key set.
+export const HYDROPHONE_SOURCE_LABEL: Record<string, string> = {
   ooi:    "OOI",
   imos:   "IMOS",
   mars:   "MBARI MARS",
@@ -54,6 +57,21 @@ const HYDROPHONE_SOURCE_LABEL: Record<string, string> = {
   // HAUSGARTEN uses source='fram' — no separate label entry needed
   // Phase 4 — CTBTO IMS
   ims: "CTBTO IMS (Hydroacoustic)",
+  // Phase 5 — 8 NOAA Passive Acoustic Archive programs added 2026-09-15.
+  // Labels copied verbatim from PROGRAMS[key]["display"] in
+  // backend/ingestion/acoustic_noaa_archive_ingest.py.
+  afsc:    "NOAA AFSC",
+  cornell: "Cornell / NOAA NERRS",
+  mbarc_socal:  "MBARC SoCal",
+  mbarc_arctic: "MBARC Arctic",
+  mbarc_flip:   "MBARC FLIP",
+  swfsc:   "NOAA SWFSC",
+  rutgers_njrmi: "Rutgers NJRMI",
+  // ⚠️ Lowercase key — the bucket prefix is `MD_WEA_CPOD/` but
+  // `acoustic_stations.source` is lowercase `md_wea_cpod` (deliberate, see
+  // the PROGRAMS comment). Keying this uppercase would silently fall back
+  // to the raw source string instead of a label.
+  md_wea_cpod: "Maryland WEA C-POD",
 };
 
 export function HydrophoneStationPanel({ properties: p }: { properties: Record<string, unknown> }) {

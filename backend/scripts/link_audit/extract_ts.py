@@ -275,6 +275,35 @@ def extract_seo_tsx(text: str, path: str) -> list[LinkRow]:
     return rows
 
 
+def extract_citation_ts(text: str, path: str) -> list[LinkRow]:
+    """External citations in the site's citation constants.
+
+    ⛔ These URLs used to be literals inside SEO.tsx and were walked there. On
+    2026-09-15 SEO.tsx stopped re-typing them and started importing them from
+    `content/legalContent.ts`, which left it with no URL of its own — so the
+    audit's SEO surface went silently to zero while the URLs were still on
+    every page. Same shape as the DetailPanel split: the links did not go away,
+    they moved, and the walk has to move with them.
+
+    ⚠️ What lives here is the citation apparatus itself — two Zenodo concept
+    DOIs, their record pages, the author ORCID, and the AGPL §7(b) notice's
+    DOI. It had never been link-audited in its own right.
+    """
+    rows: list[LinkRow] = []
+    for raw, line in _scan_string_literals(text):
+        if _is_self(raw) or not _HAS_HOST.match(raw):
+            continue
+        if "${" in raw:
+            continue
+        norm = normalize_url(raw)
+        rows.append(LinkRow(
+            layer_id=UNATTRIBUTED, surface="citation", url_raw=raw,
+            url_normalized=norm, kind=classify_kind(norm),
+            file=path, line=line,
+        ))
+    return rows
+
+
 def extract_legend_tsx(text: str, path: str) -> list[LinkRow]:
     """Residual hardcoded URLs in LegendPanel.tsx (3 at time of writing).
 

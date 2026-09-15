@@ -270,13 +270,13 @@ ALTER TABLE usgs_earthquakes ADD COLUMN IF NOT EXISTS usgs_updated_at TIMESTAMPT
 COMMENT ON COLUMN usgs_earthquakes.depth_km IS 'Kilometres below sea level. NEGATIVE values are correct - USGS reports events ' 'above sea level that way. Not a defect.'
 CREATE INDEX IF NOT EXISTS usgs_earthquakes_geom_gix ON usgs_earthquakes USING GIST (geom)
 CREATE INDEX IF NOT EXISTS usgs_earthquakes_time ON usgs_earthquakes (occurred_at DESC)
-CREATE TABLE IF NOT EXISTS acoustic_stations ( station_id TEXT PRIMARY KEY, source TEXT NOT NULL CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims')), name TEXT, operator TEXT, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m REAL, deploy_start DATE, deploy_end DATE, model TEXT, hz_range_lo REAL, hz_range_hi REAL, portal_url TEXT, license TEXT, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED )
+CREATE TABLE IF NOT EXISTS acoustic_stations ( station_id TEXT PRIMARY KEY, source TEXT NOT NULL, name TEXT, operator TEXT, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m REAL, deploy_start DATE, deploy_end DATE, model TEXT, hz_range_lo REAL, hz_range_hi REAL, portal_url TEXT, license TEXT, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED )
 CREATE INDEX IF NOT EXISTS acoustic_stations_geom_gix ON acoustic_stations USING GIST(geom)
 CREATE INDEX IF NOT EXISTS acoustic_stations_source_idx ON acoustic_stations (source)
 ALTER TABLE acoustic_stations OWNER TO abyssal_user
 ALTER TABLE acoustic_stations ADD COLUMN IF NOT EXISTS license TEXT
 ALTER TABLE acoustic_stations DROP CONSTRAINT IF EXISTS acoustic_stations_source_check
-ALTER TABLE acoustic_stations ADD CONSTRAINT acoustic_stations_source_check CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims'))
+ALTER TABLE acoustic_stations ADD CONSTRAINT acoustic_stations_source_check CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims','afsc','cornell','mbarc_socal','mbarc_arctic','mbarc_flip','swfsc','rutgers_njrmi','md_wea_cpod'))
 CREATE TABLE IF NOT EXISTS acoustic_soundscape ( station_id TEXT NOT NULL REFERENCES acoustic_stations(station_id) ON DELETE CASCADE, day DATE NOT NULL, broadband_spl_db REAL, spl_10hz_db REAL, spl_63hz_db REAL, spl_100hz_db REAL, spl_125hz_db REAL, spl_1khz_db REAL, spl_10khz_db REAL, l50_db REAL, l95_db REAL, n_minutes_recorded INTEGER, source_url TEXT, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (station_id, day) )
 CREATE INDEX IF NOT EXISTS acoustic_soundscape_day_idx ON acoustic_soundscape (day DESC)
 ALTER TABLE acoustic_soundscape OWNER TO abyssal_user
@@ -312,6 +312,8 @@ CREATE INDEX IF NOT EXISTS deepdata_occurrences_contractor_idx ON deepdata_occur
 CREATE INDEX IF NOT EXISTS deepdata_occurrences_dataset_idx ON deepdata_occurrences (dataset_id)
 ALTER TABLE deepdata_occurrences OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS deepdata_dwc_archives ( slug TEXT PRIMARY KEY, title TEXT, citation TEXT, license TEXT, rights_holder TEXT, pub_date DATE, last_modified TIMESTAMPTZ, etag TEXT, content_length BIGINT, occurrence_count INTEGER, station_count INTEGER, last_fetched_at TIMESTAMPTZ, last_parsed_at TIMESTAMPTZ, parse_error TEXT )
+ALTER TABLE deepdata_dwc_archives ADD COLUMN IF NOT EXISTS measurement_count INTEGER
+ALTER TABLE deepdata_dwc_archives ADD COLUMN IF NOT EXISTS measurement_types TEXT[]
 CREATE TABLE IF NOT EXISTS deepdata_stations ( station_id TEXT PRIMARY KEY, archive_slug TEXT NOT NULL REFERENCES deepdata_dwc_archives(slug) ON DELETE CASCADE, contractor_code TEXT, event_id_raw TEXT, location_id TEXT, sampling_protocol TEXT, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m_min REAL, depth_m_max REAL, coord_uncertainty_m REAL, first_event_date TIMESTAMPTZ, last_event_date TIMESTAMPTZ, occurrence_count INTEGER NOT NULL, species_count INTEGER, top_species TEXT[], top_phyla TEXT[], sediment_horizons TEXT[], geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED, derived_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
 CREATE INDEX IF NOT EXISTS deepdata_stations_geom_gix ON deepdata_stations USING GIST (geom)
 CREATE INDEX IF NOT EXISTS deepdata_stations_contractor_idx ON deepdata_stations (contractor_code)
