@@ -69,6 +69,12 @@ def _decode_depth(depth: int):
     meta = json.loads(js.read_text())
 
     if npz.is_file():
+        # NOT mmap_mode: this is a .npz (zip) archive, not a flat .npy — numpy's
+        # mmap_mode applies to a single uncompressed .npy array and is not a
+        # meaningful option for a zip member (unsupported for a compressed npz,
+        # and the on-disk layout for an uncompressed one still isn't a plain
+        # memory-mappable array). The context-manager form below already only
+        # decodes the two arrays actually requested ("u", "v"), not the archive.
         with np.load(npz) as z:
             u = z["u"].astype("float32")
             v = z["v"].astype("float32")

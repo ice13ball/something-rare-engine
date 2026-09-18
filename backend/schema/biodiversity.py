@@ -467,6 +467,18 @@ async def ensure_deepdata(conn) -> None:
     await conn.execute(
         "ALTER TABLE deepdata_dwc_archives "
         "ADD COLUMN IF NOT EXISTS measurement_types TEXT[]")
+    # Added 2026-09-18, and it is what makes the two columns above reachable.
+    # The sync skips an archive whose ETag and content-length are unchanged —
+    # correct about the SOURCE, wrong about US: measured on production the same
+    # day, all 140 archives still said last_parsed_at = 2026-05-05 and
+    # measurement_count IS NULL, because nothing upstream had moved since the
+    # parser learned to read the measurement file. A new field would have
+    # stayed NULL forever with every run reporting success.
+    # ⛔ Compared against ingest.PARSER_VERSION, never against a date: a
+    # timestamp cannot say WHICH parser ran.
+    await conn.execute(
+        "ALTER TABLE deepdata_dwc_archives "
+        "ADD COLUMN IF NOT EXISTS parser_version TEXT")
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS deepdata_stations (
             station_id          TEXT PRIMARY KEY,

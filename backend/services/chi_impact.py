@@ -190,6 +190,16 @@ def _load_grid() -> "_Grid | None":
         return _GRID_CACHE["impact"]
     npy, metap = _npy_path(), _meta_path()
     if npy.exists() and metap.exists():
+        # NOT mmap_mode, on purpose: grid.npy (~26 MB, 1800x3600 float32) is written
+        # in place by np.save(npy, data) further down in this function — no
+        # tmp+rename — and the admin Force-Sync "chi" action (main.py
+        # _SYNC_SOURCES["chi"] -> sync_chi_impact(force=True) -> bake_all() ->
+        # this same _load_grid()) can run that rewrite while another request is
+        # still holding the previous grid live. A memory-mapped reader could see a
+        # torn/truncated read mid-rewrite. Needs an atomic writer (tempfile +
+        # os.replace, as acidification.py's _save_png already does) before this
+        # read can safely go lazy — reported, not fixed here (out of scope: that's
+        # a writer-side concurrency change, not a read-path optimisation).
         data = np.load(npy)
         m = json.loads(metap.read_text())
         g = _Grid(np.asarray(m["lats"], dtype="float64"),

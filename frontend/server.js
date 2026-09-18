@@ -4,7 +4,6 @@
 import express from 'express';
 import compression from 'compression';
 import expressStaticGzip from 'express-static-gzip';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -14,6 +13,7 @@ import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './seo/urls.js';
 import { forceHttpsMiddleware, wwwRedirectMiddleware } from './seo/canonical-hosts.js';
 import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, wrapHtml, siteCitation, renderHubPage, hubNavHtml, BackendUnavailable, EntityGone } from './seo/render-page.js';
 import { fetchUpstream } from './seo/upstream-fetch.js';
+import { createApiProxy } from './seo/api-proxy.js';
 
 config();
 
@@ -347,45 +347,10 @@ app.use('/admin', (req, res) => {
   res.status(404).type('text/plain').send('Not Found');
 });
 
-app.use('/api', createProxyMiddleware({
-  target: VPS_API_URL,
-  changeOrigin: true,
-  pathRewrite: { '^/api': '' },
-  timeout: 120000,        // 2 min — report generation can take 30-60s on first run
-  proxyTimeout: 120000,
-  on: {
-    proxyReq: (proxyReq, req) => {
-      console.log(`Proxying: ${req.method} ${req.url} -> ${VPS_API_URL}${proxyReq.path}`);
-      if (ABYSSAL_API_KEY) {
-        proxyReq.setHeader('X-API-Key', ABYSSAL_API_KEY);
-      }
-      // ⛔ ALWAYS ask the origin for gzip, whatever the client asked for.
-      //
-      // Cloud Run refuses a response over 32 MiB and enforces it on the bytes
-      // it RECEIVES from the origin. /v1/map/argo/trails is 40.1 MB
-      // uncompressed and 4.69 MB gzipped, so the header decides whether the
-      // request works at all. Measured 2026-09-09:
-      //
-      //     curl --compressed  -> 200, 4,687,536 B
-      //     curl (no header)   -> 500, 0 B
-      //
-      // Browsers always advertise gzip, so the map looked fine while every
-      // script, curl and API consumer got a 500. Forwarding the client's
-      // header made that difference invisible from here — the origin hop is
-      // ours, and it should never depend on what a caller happened to send.
-      // Express `compression()` re-encodes for the client, so a client that
-      // cannot take gzip still gets plain bytes.
-      proxyReq.setHeader('Accept-Encoding', 'gzip');
-    },
-    proxyRes: (proxyRes, req) => {
-      console.log(`VPS response: ${proxyRes.statusCode} for ${req.url}`);
-    },
-    error: (err, req, res) => {
-      console.error('Proxy Error:', err);
-      res.status(500).json({ error: 'Proxy to VPS failed', details: err.message });
-    },
-  },
-}));
+// The generic /api/* proxy lives in seo/api-proxy.js — see the comment there
+// for the 2026-09-18 incident (Googlebot 504s) this timeout value fixes and
+// why `timeout` (the client-facing socket) is deliberately absent.
+app.use('/api', createApiProxy({ target: VPS_API_URL, apiKey: ABYSSAL_API_KEY }));
 
 // IndexNow verification key
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY;

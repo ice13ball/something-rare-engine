@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
 import db
+import sync_log
 from auth import get_api_key
 from domains.land.common import _log_land_sync, _pg_conn_string
 
@@ -372,6 +373,19 @@ _READINGS_MAX_RUNTIME_S = 8 * 60
 # still allow an unbounded number of requests.
 _READINGS_MAX_REQUESTS = 2000
 _MAX_BACKOFF_S = 120
+# Abort the sweep after this many CONSECUTIVE upstream 5xx responses —
+# consecutive, never cumulative. Cumulative would abort a perfectly healthy
+# run: verified against the live API 2026-09-09, ~4% of OpenAQ locations
+# answer /sensors with a 500 that is THEIR fault, not ours (see the
+# ORDER BY readings_attempted_at comment above), and those are scattered
+# across the whole station list, not clustered. At that rate, 20 5xx IN A ROW
+# is astronomically unlikely from scattered breakage but happens immediately
+# during a real upstream outage — e.g. 2026-09-18 06:20 UTC, when every call
+# to /v3/locations/<id>/sensors answered 500 and the sweep never stopped,
+# pegging the single uvicorn process at 100% CPU while it kept hammering a
+# dead endpoint and Googlebot got 503s. 20 catches that outage within
+# seconds instead of grinding through a full 500-station batch.
+_CONSECUTIVE_5XX_ABORT = 20
 
 
 async def _sync_air_quality_readings() -> int:
@@ -427,6 +441,11 @@ async def _sync_air_quality_readings() -> int:
     # so an upstream outage is never recorded as an absence of measurements.
     upstream_errors: dict[int, object] = {}
     attempted: list[int] = []
+    # Consecutive-5xx circuit breaker state — see _CONSECUTIVE_5XX_ABORT.
+    consecutive_5xx = 0
+    last_5xx_status: int | None = None
+    last_5xx_url: str | None = None
+    consecutive_5xx_abort = False
 
     async def _stamp(lid: int) -> None:
         # ⛔ Stamp per station, inside the loop, NOT in one batch at the end.
@@ -472,8 +491,9 @@ async def _sync_air_quality_readings() -> int:
             while True:
                 attempt += 1
                 requests_made += 1
+                url = f"https://api.openaq.org/v3/locations/{loc_id}/sensors"
                 try:
-                    resp = await client.get(f"https://api.openaq.org/v3/locations/{loc_id}/sensors")
+                    resp = await client.get(url)
                 except Exception as exc:
                     upstream_errors[loc_id] = type(exc).__name__
                     skipped += 1
@@ -494,7 +514,12 @@ async def _sync_air_quality_readings() -> int:
                         # Give up on THIS station only — never on the sweep.
                         skipped += 1
                         break
-                    log.info("air_quality_readings: 429 for station %s, waiting %.0fs (attempt %d)",
+                    # DEBUG, not INFO: this can fire on every retry attempt
+                    # (up to 6) for every rate-limited station in a 500-station
+                    # batch — thousands of lines during a sustained 429 spell.
+                    # The run-end summary below already reports the total
+                    # rate_limited_events count.
+                    log.debug("air_quality_readings: 429 for station %s, waiting %.0fs (attempt %d)",
                               loc_id, wait_s, attempt)
                     await asyncio.sleep(wait_s)
                     backoff = min(backoff * 2, _MAX_BACKOFF_S)
@@ -507,13 +532,26 @@ async def _sync_air_quality_readings() -> int:
                     # fact. Record the reason so the two stay distinguishable.
                     upstream_errors[loc_id] = resp.status_code
                     skipped += 1
+                    if resp.status_code >= 500:
+                        consecutive_5xx += 1
+                        last_5xx_status = resp.status_code
+                        # Safe to log verbatim: OPENAQ_API_KEY travels in the
+                        # X-API-Key HEADER for this endpoint (see `headers`
+                        # above) — this call passes no `params=`, so the URL
+                        # itself never carries the credential. If that ever
+                        # changes, log loc_id instead, never the URL.
+                        last_5xx_url = url
                     break
 
                 data = resp.json()
+                consecutive_5xx = 0  # a success resets the streak, never a partial one
                 break
 
             if data is None:
                 await _stamp(loc_id)
+                if consecutive_5xx >= _CONSECUTIVE_5XX_ABORT:
+                    consecutive_5xx_abort = True
+                    break
                 if requests_made >= _READINGS_MAX_REQUESTS:
                     stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
                     break
@@ -645,6 +683,26 @@ async def _sync_air_quality_readings() -> int:
 
             await asyncio.sleep(1.2)  # ~50 req/min baseline pace between stations
 
+    global _air_quality_cache
+    _air_quality_cache = None
+
+    if consecutive_5xx_abort:
+        # ⛔ Record through log_sync_skipped, NEVER _log_land_sync/log_sync —
+        # this run did NOT complete a sweep, and log_sync(source, 0, 0) or
+        # equivalent stamps last_synced_at = NOW(), which would read as
+        # freshly synced while the run actually gave up after seconds. One
+        # summary line replaces what used to be one log line per failed
+        # call (the 2026-09-18 06:20 UTC incident: thousands of them, while
+        # the same process was trying to serve Googlebot).
+        reason = (
+            f"aborted after {consecutive_5xx} consecutive HTTP {last_5xx_status} "
+            f"from OpenAQ ({requests_made} calls attempted this run; "
+            f"last call: {last_5xx_url})"
+        )
+        log.warning("air_quality_readings: %s", reason)
+        await sync_log.log_sync_skipped("air_quality_readings", reason)
+        return updated
+
     async with db.pool.acquire() as conn:
         total_remaining_after = await conn.fetchval(
             "SELECT COUNT(*) FROM air_quality_stations s "
@@ -652,8 +710,6 @@ async def _sync_air_quality_readings() -> int:
             "  AND NOT EXISTS (SELECT 1 FROM air_quality_params p WHERE p.location_id = s.location_id)"
         )
 
-    global _air_quality_cache
-    _air_quality_cache = None
     # total_records = stations still uncovered after this run. 0 means this
     # run finished the whole backlog (a complete sweep); >0 means it stopped
     # early (throttled or budget-bound) and the next run must resume — the

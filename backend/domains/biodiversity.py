@@ -208,12 +208,29 @@ async def sync_deepdata() -> int:
     Source: contractor environmental reports submitted to ISA, mirrored
     into OBIS as DwC archives. ~201k records across ~153 datasets, ~10
     contractor codes (NORI, TOML, BGR, UKSRL, …).
+
+    Streamed: `fetch_deepdata_records` yields page-sized lists (same shape
+    as `sync_noaa_corals` below) so the ~201k-row result set is never held
+    in memory at once. Each page is upserted before the next page is
+    fetched, and there is no transaction spanning pages.
+
+    That is a deliberate choice, not an oversight: the old list-based
+    version only wrote after the ENTIRE fetch succeeded, so a failure
+    partway through left zero rows written and a clean retry. Streaming
+    means a failure on page N leaves pages 1..N-1 already committed. We
+    accept that because (a) the upsert is `ON CONFLICT DO NOTHING` on
+    `obis_id`, so a retry from page 1 just no-ops the rows already written
+    — no duplication, no need to detect "where we left off"; and (b) the
+    exception still propagates out of this function before `_log_sync` is
+    called, so a failed run does NOT get stamped as a fresh sync — the
+    monitor still sees the previous `last_synced_at` and ages normally,
+    same as a total failure would. The only real difference from before is
+    that a failed run now leaves partial (correct, not corrupt) data
+    visible in the table instead of none — which is strictly better for a
+    201k-row source that used to lose ALL page-1..N-1 progress on a single
+    late-page timeout.
     """
     from ingestion.deepdata_ingest import fetch_deepdata_records
-    records = await fetch_deepdata_records()
-    if not records:
-        log.info("deepdata: no records fetched")
-        return 0
 
     cols = [
         "obis_id", "occurrence_id", "dataset_id", "dataset_title",
@@ -227,13 +244,16 @@ async def sync_deepdata() -> int:
         f"VALUES ({placeholders}) "
         f"ON CONFLICT (obis_id) DO NOTHING"
     )
+
+    fetched = 0
     async with db.pool.acquire() as conn:
-        for i in range(0, len(records), 1000):
-            chunk = records[i:i + 1000]
-            await conn.executemany(sql, [tuple(r[c] for c in cols) for r in chunk])
+        async for page in fetch_deepdata_records():
+            fetched += len(page)
+            await conn.executemany(sql, [tuple(r[c] for c in cols) for r in page])
         total = await conn.fetchval("SELECT COUNT(*) FROM deepdata_occurrences")
-    await _log_sync("deepdata", len(records), total)
-    log.info("deepdata: %d processed, %d total in table", len(records), total)
+
+    await _log_sync("deepdata", fetched, total)
+    log.info("deepdata: %d processed, %d total in table", fetched, total)
     return total
 
 
@@ -245,12 +265,15 @@ async def sync_mbari_vars() -> int:
     (`a419c8da-…`). ~175k records, mostly NE Pacific. Same records also arrive
     via the broader OBIS parquet sync into `biodiversity_hotspots`; surfaced
     separately here so the density panel can credit MBARI by name.
+
+    Streamed for the same reason and with the same atomicity trade-off as
+    `sync_deepdata` above: `fetch_mbari_records` yields page-sized lists,
+    each page is upserted (`ON CONFLICT DO NOTHING` on `obis_id`) before
+    the next page is fetched, there is no cross-page transaction, and a
+    mid-walk failure leaves earlier pages committed while still raising
+    before `_log_sync` — so a failed run is never mistaken for a fresh one.
     """
     from ingestion.mbari_vars_ingest import fetch_mbari_records
-    records = await fetch_mbari_records()
-    if not records:
-        log.info("mbari-vars: no records fetched")
-        return 0
 
     cols = [
         "obis_id", "occurrence_id", "dataset_id",
@@ -264,13 +287,16 @@ async def sync_mbari_vars() -> int:
         f"VALUES ({placeholders}) "
         f"ON CONFLICT (obis_id) DO NOTHING"
     )
+
+    fetched = 0
     async with db.pool.acquire() as conn:
-        for i in range(0, len(records), 1000):
-            chunk = records[i:i + 1000]
-            await conn.executemany(sql, [tuple(r[c] for c in cols) for r in chunk])
+        async for page in fetch_mbari_records():
+            fetched += len(page)
+            await conn.executemany(sql, [tuple(r[c] for c in cols) for r in page])
         total = await conn.fetchval("SELECT COUNT(*) FROM mbari_vars_records")
-    await _log_sync("mbari-vars", len(records), total)
-    log.info("mbari-vars: %d processed, %d total in table", len(records), total)
+
+    await _log_sync("mbari-vars", fetched, total)
+    log.info("mbari-vars: %d processed, %d total in table", fetched, total)
     return total
 
 
@@ -465,6 +491,7 @@ async def sync_deepdata_stations() -> int:
     import time
     from datetime import datetime
     from ingestion.deepdata_dwc_ingest import (
+        PARSER_VERSION as dwc_parser_version,
         list_remote_slugs, head_probe_all, fetch_archive, parse_archive,
     )
 
@@ -482,7 +509,8 @@ async def sync_deepdata_stations() -> int:
         # Local state
         async with db.pool.acquire() as conn:
             local_rows = await conn.fetch(
-                "SELECT slug, etag, content_length FROM deepdata_dwc_archives"
+                "SELECT slug, etag, content_length, parser_version "
+                "FROM deepdata_dwc_archives"
             )
         local_by_slug = {r["slug"]: r for r in local_rows}
 
@@ -500,6 +528,15 @@ async def sync_deepdata_stations() -> int:
         new_slugs: list[str] = []
         changed_slugs: list[str] = []
         skipped_slugs: list[str] = []
+        # ⛔ "Unchanged upstream" is not "we hold everything we now extract".
+        # ISA's archives sit still for months, so an archive skipped on ETag
+        # keeps whatever the parser of the day produced. Measured 2026-09-18:
+        # all 140 rows still said last_parsed_at = 2026-05-05 and
+        # measurement_count IS NULL, three days after the parser learned to
+        # read extendedmeasurementorfact.txt. Re-parsing is cheap (11 MB for
+        # the whole corpus) and this comparison is the only thing that makes
+        # a parser change reach data that has not moved.
+        stale_parser: list[str] = []
         for slug in slugs_remote:
             h = head_by_slug.get(slug, {"slug": slug, "error": "no head"})
             if "error" in h:
@@ -509,13 +546,20 @@ async def sync_deepdata_stations() -> int:
             if row is None:
                 new_slugs.append(slug)
             elif h["etag"] == row["etag"] and h["content_length"] == row["content_length"]:
-                skipped_slugs.append(slug)
+                if row["parser_version"] != dwc_parser_version:
+                    stale_parser.append(slug)
+                else:
+                    skipped_slugs.append(slug)
             else:
                 changed_slugs.append(slug)
 
-        queue = new_slugs + changed_slugs
-        log.info("deepdata-stations: %d new, %d changed, %d unchanged",
-                 len(new_slugs), len(changed_slugs), len(skipped_slugs))
+        queue = new_slugs + changed_slugs + stale_parser
+        log.info("deepdata-stations: %d new, %d changed, %d stale-parser, %d unchanged",
+                 len(new_slugs), len(changed_slugs), len(stale_parser), len(skipped_slugs))
+        if stale_parser:
+            log.info("deepdata-stations: re-parsing %d archive(s) the source has not "
+                     "touched, because they were parsed by an older parser than %s",
+                     len(stale_parser), dwc_parser_version)
 
         if not queue:
             async with db.pool.acquire() as conn:
@@ -590,6 +634,11 @@ async def upsert_dwc_archive_and_stations(
         # ⛔ Adding a column here without adding it to the archive_meta dict
         # writes NULL forever, silently — the INSERT is built from this list.
         "measurement_count", "measurement_types",
+        # ⛔ Load-bearing: the skip below reads it back to decide whether an
+        # unchanged archive still needs re-parsing. Omit it here and every row
+        # stays NULL, which reads as "parsed by an unknown parser" — so every
+        # run would re-parse all 140 archives, forever.
+        "parser_version",
     ]
     arch_placeholders = ", ".join(f"${i+1}" for i in range(len(arch_cols)))
     arch_update = ", ".join(f"{c} = EXCLUDED.{c}" for c in arch_cols if c != "slug")

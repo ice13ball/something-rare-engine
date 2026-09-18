@@ -210,7 +210,16 @@ PROGRAMS: dict[str, dict[str, Any]] = {
         "operator":  "NOAA Southwest Fisheries Science Center",
         "prefix":    "swfsc/audio/",
         "portal":    "https://www.fisheries.noaa.gov/about/southwest-fisheries-science-center",
-        "skip_mobile_platforms": True,   # measured 2026-09-15: 33 deployments → 0 stations (CCES drifters)
+        # ⚠️ Re-measured against the live bucket 2026-09-18, because the old note
+        # ("33 deployments → 0 stations (CCES drifters)") said more than the
+        # source can support. What is actually there:
+        #     swfsc/audio/cces/ 15 · pascal/ 20 · sbplayback/ 1  = 36 deployment
+        #     folders, and ZERO metadata/*.json anywhere under swfsc/
+        # So nothing is skipped as mobile here — nothing is read at all. The
+        # platform claim was inferred from the project names (CCES and PASCAL
+        # both used drifting recorders), never from a file we opened, and it is
+        # kept only as that: an inference.
+        "skip_mobile_platforms": True,
     },
     "rutgers_njrmi": {
         "display":   "Rutgers NJRMI",
@@ -293,6 +302,61 @@ BUCKET_PREFIXES_SEEN = (
 # is set on a program config, deployments with these PLATFORM_NAME values are
 # dropped (they don't have a stable DEPLOY_LAT/LON to place on a map).
 _MOBILE_PLATFORMS = {"glider", "drifter", "sonobuoy", "auv", "rov", "ship", "vessel"}
+
+
+class _StationRows(list):
+    """A plain list of station rows, plus — only when it ends up empty — the
+    one-sentence reason nothing came back.
+
+    ⛔ `station_sources()` in `domains/acoustic.py` reads this via
+    `getattr(rows, "note", None)`, never via `isinstance`: every OTHER
+    fetcher in that list returns a bare `list`, and `getattr` on a bare list
+    returns `None` for a plain "no reason reported" instead of raising. The
+    contract `station_sources()` promises its 23 other fetchers — "return a
+    list of row dicts" — is unchanged; this only adds an attribute a bare
+    list does not have.
+    """
+
+    def __init__(self, rows, note: str | None = None):
+        super().__init__(rows)
+        self.note = note
+
+
+def _zero_rows_reason(program: str, counters: dict[str, int]) -> str:
+    """Build the one-sentence reason THIS run saw zero stations from `program`.
+
+    ⛔ Never a hardcoded string per program — every clause below reads a
+    counter this run actually incremented while walking the bucket. A program
+    with 173 metadata files under an emptied prefix and a program with one
+    glider deployment must not share a sentence just because both yielded
+    zero rows.
+    """
+    prefix = PROGRAMS[program]["prefix"]
+    meta_files  = counters.get("meta_files", 0)
+    parsed      = counters.get("parsed", 0)
+    mobile      = counters.get("mobile", 0)
+    null_island = counters.get("null_island", 0)
+
+    if meta_files == 0:
+        return f"no metadata published under {prefix} (0 files)"
+
+    if parsed == 0:
+        return (f"{meta_files} metadata file(s) found under {prefix}, "
+                "0 parsed successfully")
+
+    dep_word = "deployment" if parsed == 1 else "deployments"
+    causes: list[str] = []
+    if mobile:
+        causes.append("all on mobile platforms (skipped by rule)" if mobile == parsed
+                       else f"{mobile} on mobile platforms (skipped by rule)")
+    if null_island:
+        causes.append("position (0,0) published upstream" if null_island == parsed
+                       else f"{null_island} at position (0,0) published upstream")
+
+    if not causes:
+        return f"{parsed} {dep_word} parsed, 0 produced a usable station"
+
+    return f"{parsed} {dep_word}, " + " and ".join(causes)
 
 
 def _safe_float(v: Any) -> float | None:
@@ -446,11 +510,18 @@ def _is_metadata_json(name: str) -> bool:
     return True
 
 
-def _extract_record(meta: dict[str, Any], program: str) -> dict[str, Any] | None:
+def _extract_record(
+    meta: dict[str, Any], program: str, counters: dict[str, int] | None = None,
+) -> dict[str, Any] | None:
     """Pull station fields from one metadata JSON.
 
     Tries Schema A (nested DEPLOYMENT.*) first, then Schema B (flat top-level
     DEPLOY_LAT etc.). Returns None if no usable lat/lon found.
+
+    `counters`, when given, is incremented at the two drop points that get
+    their own reason sentence in `_zero_rows_reason` — mobile-platform skips
+    and Null Island. Optional so the existing direct callers/tests that check
+    a single record in isolation don't have to thread a dict through.
     """
     if not isinstance(meta, dict):
         return None
@@ -458,6 +529,8 @@ def _extract_record(meta: dict[str, Any], program: str) -> dict[str, Any] | None
     platform = _str_or_none(meta.get("PLATFORM_NAME"))
     if PROGRAMS[program].get("skip_mobile_platforms") and platform:
         if platform.lower() in _MOBILE_PLATFORMS:
+            if counters is not None:
+                counters["mobile"] += 1
             return None
 
     instrument = _str_or_none(meta.get("INSTRUMENT_TYPE")) \
@@ -582,6 +655,8 @@ def _extract_record(meta: dict[str, Any], program: str) -> dict[str, Any] | None
             "not a position in the Atlantic off Africa.",
             program, site or "?", platform or "?",
         )
+        if counters is not None:
+            counters["null_island"] += 1
         return None
 
     return {
@@ -696,6 +771,10 @@ async def fetch_program_stations(program: str) -> list[dict[str, Any]]:
         return []
     prefix = cfg["prefix"]
 
+    # Counted, not guessed — feeds `_zero_rows_reason` if this run ends with
+    # zero stations. See that function for what each counter means.
+    counters = {"meta_files": 0, "parsed": 0, "mobile": 0, "null_island": 0}
+
     rows: list[dict[str, Any]] = []
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         try:
@@ -703,6 +782,7 @@ async def fetch_program_stations(program: str) -> list[dict[str, Any]]:
         except Exception as exc:
             log.warning("acoustic_noaa_archive_ingest: list %s failed: %s", prefix, exc)
             return []
+        counters["meta_files"] = len(meta_paths)
         log.info("acoustic_noaa_archive_ingest: %s -> %d metadata JSONs", program, len(meta_paths))
         if not meta_paths:
             # ⛔ A configured program that yields nothing is NOT the same as a
@@ -718,7 +798,7 @@ async def fetch_program_stations(program: str) -> list[dict[str, Any]]:
                 "existing rows for this program are now stale, not refreshed",
                 program, prefix,
             )
-            return []
+            return _StationRows([], _zero_rows_reason(program, counters))
 
         # Fetch JSONs in bounded-concurrency batches. Sequential fetching
         # of 80+ metadata files runs into per-program 30s+ wall time, which
@@ -736,8 +816,9 @@ async def fetch_program_stations(program: str) -> list[dict[str, Any]]:
         for path, meta in results:
             if meta is None:
                 continue
+            counters["parsed"] += 1
             try:
-                rec = _extract_record(meta, program)
+                rec = _extract_record(meta, program, counters)
             except Exception as exc:
                 log.debug("acoustic_noaa_archive_ingest: parse %s failed: %s", path, exc)
                 continue
@@ -748,7 +829,7 @@ async def fetch_program_stations(program: str) -> list[dict[str, Any]]:
 
     if not clusters:
         log.info("acoustic_noaa_archive_ingest: %s produced no usable records", program)
-        return []
+        return _StationRows([], _zero_rows_reason(program, counters))
 
     for site_key, members in clusters.items():
         records = [m[1] for m in members]

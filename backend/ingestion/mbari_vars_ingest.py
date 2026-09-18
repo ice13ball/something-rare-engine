@@ -25,7 +25,7 @@ in the legend's `limitations` block.
 """
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, AsyncIterator
 
 import httpx
 
@@ -36,15 +36,21 @@ OBIS_OCCURRENCE_URL = "https://api.obis.org/v3/occurrence"
 PAGE_SIZE = 10000
 
 
-async def fetch_mbari_records() -> list[dict[str, Any]]:
-    """Fetch all OBIS occurrences in MBARI's VARS dataset.
+async def fetch_mbari_records() -> AsyncIterator[list[dict[str, Any]]]:
+    """Async iterator yielding page-sized lists of canonical-shape dicts,
+    ready for upsert into `mbari_vars_records`. Skips rows with missing
+    coordinates or a missing `id`.
 
-    Returns canonical-shape dicts ready for upsert into `mbari_vars_records`.
-    Skips rows with missing coordinates.
+    Same shape as `noaa_corals_ingest.fetch_noaa_corals_records` and
+    `deepdata_ingest.fetch_deepdata_records` — at ~175,476 rows the old
+    `list[dict]` return held ~250-350MB in memory for the whole run, on a
+    process that also runs every other sync. Streaming lets the caller
+    upsert each page as it arrives instead of buffering the full result
+    set first.
     """
-    out: list[dict[str, Any]] = []
     after: str | None = None
     page_num = 0
+    total_yielded = 0
 
     async with httpx.AsyncClient(timeout=120) as client:
         while True:
@@ -63,6 +69,7 @@ async def fetch_mbari_records() -> list[dict[str, Any]]:
                 break
 
             page_num += 1
+            cleaned: list[dict[str, Any]] = []
             for occ in results:
                 lat = occ.get("decimalLatitude")
                 lon = occ.get("decimalLongitude")
@@ -72,7 +79,7 @@ async def fetch_mbari_records() -> list[dict[str, Any]]:
                 if not obis_id:
                     continue
 
-                out.append({
+                cleaned.append({
                     "obis_id":         obis_id,
                     "occurrence_id":   occ.get("occurrenceID") or None,
                     "dataset_id":      occ.get("dataset_id") or None,
@@ -91,8 +98,11 @@ async def fetch_mbari_records() -> list[dict[str, Any]]:
                     "locality":        occ.get("locality") or None,
                 })
 
+            total_yielded += len(cleaned)
             log.info("mbari_vars: page %d — %d records (cumulative %d)",
-                     page_num, len(results), len(out))
+                     page_num, len(cleaned), total_yielded)
+            if cleaned:
+                yield cleaned
 
             if len(results) < PAGE_SIZE:
                 break
@@ -100,8 +110,8 @@ async def fetch_mbari_records() -> list[dict[str, Any]]:
             if not after:
                 break
 
-    log.info("mbari_vars: fetched %d total records across %d pages", len(out), page_num)
-    return out
+    log.info("mbari_vars: fetch complete — %d records across %d pages",
+              total_yielded, page_num)
 
 
 def _safe_float(v: Any) -> float | None:

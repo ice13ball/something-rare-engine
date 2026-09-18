@@ -59,6 +59,7 @@ from auth import get_api_key
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -188,7 +189,21 @@ async def sync_acoustic_stations(force: bool = False) -> int:
             log.warning("acoustic stations %s fetch failed/timed out: %s", name, exc)
             continue
         if not rows:
-            log.info("acoustic stations %s: 0 rows returned", name)
+            # ⛔ "0 rows" used to mean one thing regardless of source. Four
+            # NOAA-archive programs hit this branch every run for THREE
+            # different reasons (no metadata published, every deployment
+            # mobile, the only deployment at (0,0)) and nothing here could
+            # tell them apart — so nothing reached sync_log and the staleness
+            # monitor saw four silent zeros. A fetcher that knows why (a
+            # `_StationRows` with `.note` set) carries that reason here; any
+            # other fetcher is a bare list, and `getattr` reads it as "no
+            # reason reported" instead of raising.
+            reason = getattr(rows, "note", None)
+            if reason:
+                await _log_sync_skipped(f"acoustic-{name}", reason)
+                log.info("acoustic stations %s: 0 rows returned — %s", name, reason)
+            else:
+                log.info("acoustic stations %s: 0 rows returned (no reason reported)", name)
             succeeded += 1
             continue
         try:

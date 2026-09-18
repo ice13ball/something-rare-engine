@@ -15,8 +15,20 @@ RUN npm ci
 
 COPY . .
 
-# VITE_API_BASE_URL=/api so the SPA calls /api/* which server.js proxies
-ENV VITE_API_BASE_URL=/api
+# ⛔ Deliberately UNSET. Every call site across src/ already hardcodes the
+# literal "/api" prefix itself (`${API}/api/v1/...` — grep confirms 100+ of
+# them, e.g. SeoPage.tsx, VentReport.tsx, useTemporalCoverage.ts, Map3D.tsx,
+# every panel). Setting VITE_API_BASE_URL=/api here — as this line used to —
+# baked a SECOND "/api" onto every one of those requests, producing
+# /api/api/v1/... in production only (dev never showed it: vite.config.ts's
+# proxy needs no VITE_API_BASE_URL at all). Both layers of the BFF proxy
+# happen to strip a leading /api twice (Express's own mount-prefix strip on
+# `app.use('/api', …)`, then http-proxy-middleware's pathRewrite matching
+# AGAIN on what Express left behind) so the request still reached the right
+# backend route — which is exactly why this went unnoticed until Googlebot's
+# crawl surfaced the literal doubled URL and its extra proxy hop timed out as
+# a 504 during a slow backend (2026-09-18 incident). Leaving this unset makes
+# `import.meta.env.VITE_API_BASE_URL ?? ""` resolve to "", matching dev.
 RUN npm run build
 
 # Prune devDependencies so the runtime stage gets a lean node_modules

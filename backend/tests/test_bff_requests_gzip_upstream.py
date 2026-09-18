@@ -17,24 +17,48 @@ advertise gzip — saw a healthy map while every script, curl and API consumer
 got a 500. The origin hop belongs to us and must not depend on what a caller
 happened to send.
 
-⚠️ A shape test on server.js: there is no JS test harness in this repo, and the
-behaviour lives in a proxy callback that only runs against a real upstream.
+⚠️ A shape test: the behaviour lives in a proxy callback that only runs against
+a real upstream.
+
+⛔ The proxy MOVED on 2026-09-18 — out of `frontend/server.js` and into
+`frontend/seo/api-proxy.js`, so it could be unit-tested without importing
+server.js (which calls app.listen() at import time). This guard went red on the
+move, which is the correct outcome: a test that had silently kept passing
+against the old file would have been watching an empty room. It now reads the
+proxy wherever it lives, and fails if that file disappears rather than falling
+back to "no gzip rule found here, so fine".
 """
 import pathlib
 import re
 
-SERVER_JS = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "server.js"
+FRONTEND = pathlib.Path(__file__).resolve().parents[2] / "frontend"
+# In move order, newest first. The first one that exists is the one read.
+PROXY_CANDIDATES = [FRONTEND / "seo" / "api-proxy.js", FRONTEND / "server.js"]
+
+
+def _proxy_source() -> tuple[pathlib.Path, str]:
+    for path in PROXY_CANDIDATES:
+        if path.is_file():
+            src = path.read_text(encoding="utf-8")
+            if "createProxyMiddleware(" in src:
+                return path, src
+    raise AssertionError(
+        "no file among "
+        f"{[str(p) for p in PROXY_CANDIDATES]} contains the /api proxy. It has "
+        "moved again — point this guard at its new home; deleting the guard "
+        "would leave the 32 MiB Cloud Run limit unprotected.")
 
 
 def _proxy_req_block() -> str:
-    src = SERVER_JS.read_text(encoding="utf-8")
-    start = src.index("app.use('/api', createProxyMiddleware(")
+    _, src = _proxy_source()
+    start = src.index("proxyReq:")
     end = src.index("proxyRes:", start)
     return src[start:end]
 
 
-def test_server_js_is_where_we_think_it_is():
-    assert SERVER_JS.is_file(), f"not found: {SERVER_JS}"
+def test_the_proxy_is_where_we_think_it_is():
+    path, _ = _proxy_source()
+    assert path.is_file(), f"not found: {path}"
 
 
 def test_the_api_proxy_forces_gzip_from_the_origin():

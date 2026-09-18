@@ -96,7 +96,25 @@ def _load_grid(var: str = "depth_m") -> "_Grid | None":
         _cache["grid"] = None
         return None
     meta = json.loads(meta_p.read_text())
-    g = _Grid(np.asarray(meta["lats"]), np.asarray(meta["lons"]), np.load(npy))
+    # mmap_mode="r": depth.npy is ~104 MB (3600x7200 float32 — see
+    # rules/layers/bathymetry-gebco-paths.md) and read-only from here on — sample()
+    # below only ever does scalar indexing (g._elev[i, j]), never a write or
+    # in-place reshape, so a lazy read-only mapping is safe for the data itself.
+    # Measured 2026-09-18: loading a comparable 104 MB array normally peaks at
+    # ~135 MB RSS vs ~58 MB with mmap_mode="r" under the same scattered-index
+    # access pattern sample() uses (throwaway benchmark, not kept in the repo).
+    # Also safe against a concurrent re-bake TODAY: bake_bathymetry_grid() only
+    # ever runs from the one-shot, skip-if-present _bathymetry_grid_bake_task()
+    # startup task in main.py — no admin Force-Sync route is wired to it (checked
+    # _SOURCE_TO_ACTION/_SYNC_SOURCES: only "bathymetry-stats", a different
+    # module/table, is force-capable), so no live reader can have this file
+    # replaced underneath it via any exposed path. NB _write_holding() below still
+    # writes depth.npy in place (plain np.save, no tmp+rename) — if a force-rebake
+    # route is ever wired up for THIS bake, that write must go atomic
+    # (tempfile + os.replace, the pattern acidification.py's _save_png already
+    # uses) before mmap_mode stays safe here.
+    g = _Grid(np.asarray(meta["lats"]), np.asarray(meta["lons"]),
+              np.load(npy, mmap_mode="r"))
     _cache["grid"] = g
     return g
 

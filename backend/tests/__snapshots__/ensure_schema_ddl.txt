@@ -53,6 +53,7 @@ ALTER TABLE argo_backfill_state OWNER TO abyssal_user
 ALTER TABLE argo_skipped_profiles OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS mining_contracts ( id SERIAL PRIMARY KEY, isa_id TEXT UNIQUE, contractor_name TEXT, resource_type TEXT, area_km2 DOUBLE PRECISION, expiry_date TIMESTAMPTZ, region TEXT, is_high_risk BOOLEAN DEFAULT FALSE, geom geometry(MultiPolygon, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, act_date TIMESTAMPTZ )
 CREATE INDEX IF NOT EXISTS idx_mining_contracts_geom ON mining_contracts USING GIST(geom)
+CREATE INDEX IF NOT EXISTS idx_mining_contracts_geog ON mining_contracts USING GIST((geom::geography))
 CREATE TABLE IF NOT EXISTS biodiversity_hotspots ( id SERIAL PRIMARY KEY, obis_id TEXT UNIQUE, scientific_name TEXT, vernacular_name TEXT, category TEXT, is_endangered BOOLEAN DEFAULT FALSE, geom geometry(Point, 4326), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, phylum TEXT, class_name TEXT, order_name TEXT, family TEXT, depth NUMERIC, description TEXT, image_url TEXT, iucn_category TEXT DEFAULT 'NE' )
 CREATE INDEX IF NOT EXISTS idx_biodiversity_hotspots_geom ON biodiversity_hotspots USING GIST(geom)
 ALTER TABLE mining_contracts ADD COLUMN IF NOT EXISTS jurisdiction_text TEXT DEFAULT 'International Waters / ISA'
@@ -314,6 +315,7 @@ ALTER TABLE deepdata_occurrences OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS deepdata_dwc_archives ( slug TEXT PRIMARY KEY, title TEXT, citation TEXT, license TEXT, rights_holder TEXT, pub_date DATE, last_modified TIMESTAMPTZ, etag TEXT, content_length BIGINT, occurrence_count INTEGER, station_count INTEGER, last_fetched_at TIMESTAMPTZ, last_parsed_at TIMESTAMPTZ, parse_error TEXT )
 ALTER TABLE deepdata_dwc_archives ADD COLUMN IF NOT EXISTS measurement_count INTEGER
 ALTER TABLE deepdata_dwc_archives ADD COLUMN IF NOT EXISTS measurement_types TEXT[]
+ALTER TABLE deepdata_dwc_archives ADD COLUMN IF NOT EXISTS parser_version TEXT
 CREATE TABLE IF NOT EXISTS deepdata_stations ( station_id TEXT PRIMARY KEY, archive_slug TEXT NOT NULL REFERENCES deepdata_dwc_archives(slug) ON DELETE CASCADE, contractor_code TEXT, event_id_raw TEXT, location_id TEXT, sampling_protocol TEXT, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m_min REAL, depth_m_max REAL, coord_uncertainty_m REAL, first_event_date TIMESTAMPTZ, last_event_date TIMESTAMPTZ, occurrence_count INTEGER NOT NULL, species_count INTEGER, top_species TEXT[], top_phyla TEXT[], sediment_horizons TEXT[], geom GEOGRAPHY(POINT, 4326) GENERATED ALWAYS AS ( ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography ) STORED, derived_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
 CREATE INDEX IF NOT EXISTS deepdata_stations_geom_gix ON deepdata_stations USING GIST (geom)
 CREATE INDEX IF NOT EXISTS deepdata_stations_contractor_idx ON deepdata_stations (contractor_code)

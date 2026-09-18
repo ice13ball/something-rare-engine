@@ -23,7 +23,7 @@ Volume snapshot (2026-05-05): ~201,323 occurrences, 153 datasets,
 import logging
 import re
 from datetime import datetime
-from typing import Any
+from typing import Any, AsyncIterator
 
 import httpx
 
@@ -80,15 +80,21 @@ async def _fetch_dataset_map(client: httpx.AsyncClient) -> dict[str, str]:
     return dataset_map
 
 
-async def fetch_deepdata_records() -> list[dict[str, Any]]:
-    """Fetch all OBIS occurrences under the ISA node.
+async def fetch_deepdata_records() -> AsyncIterator[list[dict[str, Any]]]:
+    """Async iterator yielding page-sized lists of canonical-shape dicts,
+    ready for upsert into `deepdata_occurrences`. Skips rows with missing
+    coordinates or a missing `id`.
 
-    Returns canonical-shape dicts ready for upsert into deepdata_occurrences.
-    Skips rows with missing coordinates.
+    Same shape as `noaa_corals_ingest.fetch_noaa_corals_records` — at
+    ~201,323 rows the old `list[dict]` return held ~250-350MB in memory for
+    the whole run, on a process that also runs every other sync (measured
+    peaking at 6GB cgroup / 3.3GB swap on a 15GB box, 2026-09-18). Streaming
+    lets the caller upsert each page as it arrives instead of buffering the
+    full result set first.
     """
-    out: list[dict[str, Any]] = []
     after: str | None = None
     page_num = 0
+    total_yielded = 0
 
     async with httpx.AsyncClient(timeout=120) as client:
         dataset_map = await _fetch_dataset_map(client)
@@ -109,6 +115,7 @@ async def fetch_deepdata_records() -> list[dict[str, Any]]:
                 break
 
             page_num += 1
+            cleaned: list[dict[str, Any]] = []
             for occ in results:
                 lat = occ.get("decimalLatitude")
                 lon = occ.get("decimalLongitude")
@@ -121,7 +128,7 @@ async def fetch_deepdata_records() -> list[dict[str, Any]]:
                 dataset_title = dataset_map.get(ds_id, "") if ds_id else ""
                 contractor = parse_contractor_code(dataset_title)
 
-                out.append({
+                cleaned.append({
                     "obis_id":         obis_id,
                     "occurrence_id":   occ.get("occurrenceID") or None,
                     "dataset_id":      ds_id,
@@ -143,8 +150,11 @@ async def fetch_deepdata_records() -> list[dict[str, Any]]:
                     "locality":        occ.get("locality") or None,
                 })
 
+            total_yielded += len(cleaned)
             log.info("deepdata: page %d — %d records (cumulative %d)",
-                     page_num, len(results), len(out))
+                     page_num, len(cleaned), total_yielded)
+            if cleaned:
+                yield cleaned
 
             # OBIS paginates by `after`, which expects the last record's `id`
             # from the previous response.
@@ -154,8 +164,8 @@ async def fetch_deepdata_records() -> list[dict[str, Any]]:
             if not after:
                 break
 
-    log.info("deepdata: fetched %d total records across %d pages", len(out), page_num)
-    return out
+    log.info("deepdata: fetch complete — %d records across %d pages",
+              total_yielded, page_num)
 
 
 def _safe_float(v: Any) -> float | None:

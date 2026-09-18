@@ -340,6 +340,24 @@ async def ensure_core_tables(conn) -> None:
         CREATE INDEX IF NOT EXISTS idx_mining_contracts_geom
             ON mining_contracts USING GIST(geom);
 
+        -- ⛔ A SECOND index, on the geography CAST, and it is not a duplicate.
+        -- `geom` is `geometry`; every proximity query in the SEO path asks
+        -- `ST_DWithin(mc.geom::geography, ..., 10000)` because metres only mean
+        -- metres on a geography. The cast produces a value the geometry index
+        -- above cannot serve, so the planner fell back to a sequential scan of
+        -- all 1,318 contract polygons and computed a geodesic distance for each
+        -- one — per request, twice per seamount page.
+        --
+        -- Measured on production 2026-09-18, /v1/seo/seamount/4272884:
+        --     without this index   Seq Scan, 41.9 ms   → endpoint 65 ms
+        --     with it              Index Scan, 0.17 ms → endpoint 3.9 ms
+        --
+        -- Googlebot crawling ~20 seamount pages a minute was enough to saturate
+        -- the single backend process; nginx logged 48 × 499 and the BFF handed
+        -- Google 503s across ~37,900 URLs.
+        CREATE INDEX IF NOT EXISTS idx_mining_contracts_geog
+            ON mining_contracts USING GIST((geom::geography));
+
         CREATE TABLE IF NOT EXISTS biodiversity_hotspots (
             id              SERIAL PRIMARY KEY,
             obis_id         TEXT UNIQUE,

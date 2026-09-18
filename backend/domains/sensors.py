@@ -534,6 +534,21 @@ async def _fetch_argo_profile(client: httpx.AsyncClient, profile_id: str) -> lis
     return list(r.json())
 
 
+def _is_empty_argo_window(r: httpx.Response) -> bool:
+    """Is this 404 the source saying "nothing here", or a real failure?
+
+    ⛔ Narrow on purpose. Only a body that parses as an EMPTY JSON LIST counts
+    as "no profiles". A 404 carrying a message, an object, or anything
+    unparsable is a genuine error and must keep raising — otherwise a
+    mistyped endpoint would read as a quiet, permanently empty ocean.
+    """
+    try:
+        body = r.json()
+    except ValueError:
+        return False
+    return isinstance(body, list) and not body
+
+
 async def _fetch_argo_window(
     client: httpx.AsyncClient, start: datetime, end: datetime,
     params: list[str] | None,
@@ -586,6 +601,20 @@ async def _fetch_argo_window(
             "data": "all",
         })
     r = await client.get(_ARGO_API, params=query)
+    if r.status_code == 404 and _is_empty_argo_window(r):
+        # ⛔ 404 here means "this window holds nothing", not "something broke".
+        # Verified live 2026-09-18, one day each:
+        #     1997-01-15 → 404, body is a literal empty JSON array
+        #     1997-07-28 → 200, profiles                (the feed's first day)
+        # Treating it as an error cost us two whole years: the bounded walk
+        # from 1997-01-01 raised on its FIRST day, the month never completed,
+        # the cursor could not advance, and the run reported
+        # `failed_chunk=1997-01-01..1997-02-01` — a stall caused entirely by a
+        # day that simply has no floats in it. Any empty day mid-history would
+        # have done the same to the long walk.
+        log.info("argo: %s..%s — source holds no profiles for this window (404, empty list)",
+                 start.date(), end.date())
+        return []
     r.raise_for_status()
     seen: set[str] = set()
     profiles: list[dict] = []

@@ -111,6 +111,23 @@ async def fetch_archive(client: httpx.AsyncClient, slug: str) -> bytes:
     return r.content
 
 
+# ⛔ Bump this whenever the parser starts extracting something it did not
+# extract before. The sync compares it against the value stored on each
+# archive row and re-parses anything older — otherwise a new field is written
+# only for archives that happen to change upstream, and ISA's do not: on
+# 2026-09-18 all 140 rows still carried last_parsed_at = 2026-05-05, so the
+# measurement columns added on 2026-09-15 were NULL everywhere while every run
+# reported success.
+#
+# ⚠️ A date string, not a number, because the useful question when reading a
+# row is "which parser produced this", and the answer is easiest to place in
+# time. History:
+#   2026-05-05-base   first ingest: eml + occurrence.txt, 15 columns
+#   2026-09-15-emof   + extendedmeasurementorfact.txt inventory, 52-column
+#                     header check (a renamed column now raises)
+PARSER_VERSION = "2026-09-15-emof"
+
+
 def parse_archive(slug: str, zip_bytes: bytes) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Open a DwC zip, return (archive_meta, list[station]).
 
@@ -145,6 +162,8 @@ def parse_archive(slug: str, zip_bytes: bytes) -> tuple[dict[str, Any], list[dic
         # from numbers rather than from a guess.
         "measurement_count": m_count,
         "measurement_types": m_types,
+        # What produced this row — see PARSER_VERSION above.
+        "parser_version":   PARSER_VERSION,
     }
 
     stations = aggregate_stations(slug, archive_meta, occurrences)

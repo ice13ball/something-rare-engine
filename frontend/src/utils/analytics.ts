@@ -64,12 +64,24 @@ export function clearStoredConsent(): void {
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
+// ⛔ Fire-and-forget, and bounded. Nothing here is awaited and every failure is
+// swallowed, so a counter can never delay or break a page — that part was
+// already true. What was missing is the deadline: on 2026-09-18 the backend
+// was saturated and Cloud Run logged 504s on /api/v1/pageview, each one an
+// open proxy socket held for as long as the BFF would wait (then 120 s). A
+// beacon that outlives the page view it describes is pure cost.
+//
+// 3 s is chosen against the beacon's own worth: a page view recorded later
+// than that is still recorded, and one lost is one row in a counter table.
+const PAGEVIEW_TIMEOUT_MS = 3000;
+
 export function sendPageView(path: string): void {
   fetch(`${API}/api/v1/pageview`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path }),
     keepalive: true,
+    signal: AbortSignal.timeout(PAGEVIEW_TIMEOUT_MS),
   }).catch(() => {});
 }
 
