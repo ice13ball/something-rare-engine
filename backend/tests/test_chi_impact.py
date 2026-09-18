@@ -92,7 +92,13 @@ def test_reproject_preserves_value_range_and_nodata():
 @_needs_rasterio
 def test_sample_roundtrips_a_known_cell():
     data, lats, lons = chi._reproject_to_4326(FIXTURE)
-    chi._GRID_CACHE["impact"] = chi._Grid(lats, lons, data)
+    # ⚠️ _GRID_CACHE holds (file_stamp, grid), not a bare grid, since the
+    # web/worker split: the bake runs in another process, so _load_grid
+    # re-checks the files' identity before trusting the cache. Seed with the
+    # SAME expression production uses, so this keeps working whether or not
+    # the cache files happen to exist in this environment.
+    _stamp = chi.cache_swap.file_stamp((chi._npy_path(), chi._meta_path()))
+    chi._GRID_CACHE["impact"] = (_stamp, chi._Grid(lats, lons, data))
     try:
         ys, xs = np.where(np.isfinite(data))
         yi, xi = int(ys[0]), int(xs[0])
