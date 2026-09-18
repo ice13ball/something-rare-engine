@@ -809,6 +809,29 @@ async def seo_onc(code: str):
     )
 
 
+SITEMAP_LASTMOD_FALLBACK = "2026-04-01"
+
+
+def sitemap_lastmod(sync_map: dict) -> str:
+    """Newest sync timestamp in `sync_map`, as a YYYY-MM-DD `lastmod`.
+
+    ⛔ `sync_log.last_synced_at` is NULL for a source that was RECORDED but
+    never ran — the row also carries `skipped_reason` (e.g. 'sbma-cook-islands',
+    "no Landfolio candidate base resolved", inserted 2026-09-15). `max()` over
+    values holding one NULL raises
+    `TypeError: '>' not supported between instances of 'NoneType' and
+    'datetime.datetime'`, which took /v1/seo/sitemap/core to 500 in production
+    on 2026-09-18 — and with it /sitemap-core.xml, ~2,900 URLs.
+
+    A source that never ran carries no date, so it cannot date anything: drop
+    the NULLs, and fall back only when NOTHING has a timestamp. ⚠️ The fallback
+    is for an empty table, not for a NULL — those are different facts and the
+    difference is visible in `skipped_reason`, never here.
+    """
+    stamps = [t for t in sync_map.values() if t is not None]
+    return str(max(stamps).date()) if stamps else SITEMAP_LASTMOD_FALLBACK
+
+
 @router.get("/v1/seo/sitemap-entries", dependencies=[Depends(get_api_key)])
 async def seo_sitemap_entries():
     async with db.pool.acquire() as conn:
@@ -856,7 +879,7 @@ async def seo_sitemap_entries():
     seamount_lastmod = str(seamount_sync.date()) if seamount_sync else "2026-04-01"
 
     entries: list[dict] = [
-        {"loc": "https://something-rare.com/", "lastmod": str(max(sync_map.values()).date()) if sync_map else "2026-04-01", "changefreq": "weekly", "priority": 1.0},
+        {"loc": "https://something-rare.com/", "lastmod": sitemap_lastmod(sync_map), "changefreq": "weekly", "priority": 1.0},
         {"loc": "https://something-rare.com/about", "lastmod": "2026-04-01", "changefreq": "monthly", "priority": 0.5},
         {"loc": "https://something-rare.com/privacy", "lastmod": "2026-03-27", "changefreq": "yearly", "priority": 0.3},
         {"loc": "https://something-rare.com/terms", "lastmod": "2026-03-27", "changefreq": "yearly", "priority": 0.3},
@@ -938,7 +961,7 @@ async def seo_sitemap_entries():
     for slug in _RESOURCE_SLUGS.values():
         entries.append({
             "loc": f"https://something-rare.com/resource/{slug}",
-            "lastmod": str(max(sync_map.values()).date()) if sync_map else "2026-04-01",
+            "lastmod": sitemap_lastmod(sync_map),
             "changefreq": "monthly",
             "priority": 0.8,
         })
@@ -948,7 +971,7 @@ async def seo_sitemap_entries():
         slug = contractor_slug(c["contractor_name"])
         entries.append({
             "loc": f"https://something-rare.com/contractor/{slug}",
-            "lastmod": str(max(sync_map.values()).date()) if sync_map else "2026-04-01",
+            "lastmod": sitemap_lastmod(sync_map),
             "changefreq": "monthly",
             "priority": 0.7,
         })
@@ -1054,7 +1077,7 @@ async def seo_sitemap_core():
             layer_counts[key] = 0
 
     sync_map = {r["source"]: r["last_synced_at"] for r in sync}
-    latest = str(max(sync_map.values()).date()) if sync_map else "2026-04-01"
+    latest = sitemap_lastmod(sync_map)
 
     entries: list[dict] = [
         {"loc": "https://something-rare.com/", "lastmod": latest, "changefreq": "weekly", "priority": "1.0"},
