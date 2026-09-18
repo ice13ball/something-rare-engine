@@ -4,6 +4,9 @@
 """OOI (Ocean Observatories Initiative) hydrophone ingest.
 
 Stations: fetched from public GitHub raw CSVs in oceanobservatories/asset-management.
+⚠️ Scope is "every deployment file that carries a hydrophone" — measured, not
+assumed: 9 of the 185 files do, and all 9 are listed in
+`DEPLOYMENT_ARRAYS_WITH_HYDROPHONES` below. Four were listed before 2026-09-18.
 Soundscape: not a first-party aggregated product; returns []. Phase 2 may add
 on-the-fly SPL computation from raw M2M streams.
 
@@ -21,13 +24,57 @@ from ingestion.http_retry import get_with_retry
 
 log = logging.getLogger(__name__)
 
-# Regional Cabled Array sites that host HYDBBA / HYDLFA instruments.
-_ARRAY_CSV_URLS = [
-    "https://raw.githubusercontent.com/oceanobservatories/asset-management/master/deployment/RS01SBPS_Deploy.csv",
-    "https://raw.githubusercontent.com/oceanobservatories/asset-management/master/deployment/RS01SLBS_Deploy.csv",
-    "https://raw.githubusercontent.com/oceanobservatories/asset-management/master/deployment/RS03AXPS_Deploy.csv",
-    "https://raw.githubusercontent.com/oceanobservatories/asset-management/master/deployment/RS03AXBS_Deploy.csv",
+_DEPLOY_BASE = (
+    "https://raw.githubusercontent.com/oceanobservatories/asset-management/"
+    "master/deployment/"
+)
+
+# Arrays whose deployment CSV contains at least one HYDBBA / HYDLFA row.
+#
+# ⚠️ Measured 2026-09-18 by downloading the whole `deployment/` directory of
+# oceanobservatories/asset-management@master and grepping every file:
+# **185 CSVs, of which exactly 9 mention a hydrophone.** Until that date this
+# list named only the four Regional Cabled Array sites (RS01SBPS, RS01SLBS,
+# RS03AXPS, RS03AXBS); the other five were never fetched, so six instruments —
+# half the layer — were missing with nothing logged. They are not obscure: two
+# sit on the Coastal Endurance array (CE02SHBP, CE04OSBP) and three are
+# low-frequency seismic-site hydrophones (RS01SUM1, RS03CCAL, RS03ECAL).
+#
+# ⛔ "Regional Cabled Array" was the old comment's own justification and it was
+# wrong twice over: CE* arrays are not RCA, and RS01SUM1/RS03CCAL/RS03ECAL are.
+# The scope is "every deployment file that carries a hydrophone", nothing else.
+DEPLOYMENT_ARRAYS_WITH_HYDROPHONES: list[str] = [
+    "CE02SHBP",   # measured 2026-09-18: 13 rows -> 1 instrument (HYDBBA106, 77-81 m)
+    "CE04OSBP",   # 14 rows -> 2 instruments (HYDBBA105, HYDBBA110, ~580 m)
+    "RS01SBPS",   # 12 rows -> 1 (HYDBBA103, ~191 m)
+    "RS01SLBS",   #  8 rows -> 2 (HYDBBA102, HYDLFA101, ~2 900 m)
+    "RS01SUM1",   #  1 row  -> 1 (HYDLFA104, 774 m)
+    "RS03AXBS",   #  6 rows -> 2 (HYDBBA302, HYDLFA301, ~2 600 m)
+    "RS03AXPS",   # 11 rows -> 1 (HYDBBA303, ~187 m)
+    "RS03CCAL",   #  1 row  -> 1 (HYDLFA305, 1 527 m)
+    "RS03ECAL",   #  1 row  -> 1 (HYDLFA304, 1 518 m)
 ]
+
+# ⭐ The registry IS the wiring: the URLs are derived, never hand-written, so a
+# name added above cannot be left unfetched.
+_ARRAY_CSV_URLS = [f"{_DEPLOY_BASE}{a}_Deploy.csv" for a in DEPLOYMENT_ARRAYS_WITH_HYDROPHONES]
+
+# Every hydrophone the 2026-09-18 sweep found, per array. Snapshot, not a
+# filter: the parser still reads whatever the CSV holds. It exists so a test
+# can state what "complete" meant on that date — an upstream addition changes
+# the live count, and the comparison against this list is what makes the
+# difference visible instead of invisible.
+HYDROPHONES_SEEN: dict[str, tuple[str, ...]] = {
+    "CE02SHBP": ("CE02SHBP-LJ01D-11-HYDBBA106",),
+    "CE04OSBP": ("CE04OSBP-LJ01C-11-HYDBBA105", "CE04OSBP-LJ01C-11-HYDBBA110"),
+    "RS01SBPS": ("RS01SBPS-PC01A-08-HYDBBA103",),
+    "RS01SLBS": ("RS01SLBS-LJ01A-09-HYDBBA102", "RS01SLBS-MJ01A-05-HYDLFA101"),
+    "RS01SUM1": ("RS01SUM1-LJ01B-05-HYDLFA104",),
+    "RS03AXBS": ("RS03AXBS-LJ03A-09-HYDBBA302", "RS03AXBS-MJ03A-05-HYDLFA301"),
+    "RS03AXPS": ("RS03AXPS-PC03A-08-HYDBBA303",),
+    "RS03CCAL": ("RS03CCAL-MJ03F-06-HYDLFA305",),
+    "RS03ECAL": ("RS03ECAL-MJ03E-09-HYDLFA304",),
+}
 _TIMEOUT = httpx.Timeout(60.0, connect=20.0)
 
 
@@ -79,21 +126,28 @@ async def fetch_ooi_stations() -> list[dict[str, Any]]:
     rows_by_designator: dict[str, dict[str, Any]] = {}
 
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        for url in _ARRAY_CSV_URLS:
+        for array, url in zip(DEPLOYMENT_ARRAYS_WITH_HYDROPHONES, _ARRAY_CSV_URLS):
             try:
                 resp = await get_with_retry(client, url, label="ooi asset")
                 resp.raise_for_status()
             except Exception as exc:
                 log.warning("fetch_ooi_stations: %s failed: %s", url, exc)
                 continue
+            found_here: set[str] = set()
             reader = csv.DictReader(io.StringIO(resp.text))
             for row in reader:
                 designator = (row.get("Reference Designator") or "").strip()
                 if not designator or not _is_hydrophone(designator):
                     continue
+                found_here.add(designator)
                 lat = _safe_float(row.get("lat"))
                 lon = _safe_float(row.get("lon"))
                 if lat is None or lon is None:
+                    log.warning(
+                        "fetch_ooi_stations: %s in %s has no position (lat=%r lon=%r) "
+                        "— dropped. The source published a deployment cycle without "
+                        "coordinates; every row of this file carried them on 2026-09-18.",
+                        designator, array, row.get("lat"), row.get("lon"))
                     continue
                 start = _parse_iso(row.get("startDateTime"))
                 stop = _parse_iso(row.get("stopDateTime"))
@@ -136,6 +190,24 @@ async def fetch_ooi_stations() -> list[dict[str, Any]]:
                     existing["lat"] = lat
                     existing["lon"] = lon
                     existing["depth_m"] = _safe_float(row.get("deployment_depth"))
+
+            # ⛔ An array in the registry that yields nothing is a CHANGE at the
+            # source, not a quiet zero. Without this, a renamed designator
+            # family (HYDBBA -> something else) would shrink the layer and the
+            # only visible sign would be a smaller number nobody was watching.
+            expected = set(HYDROPHONES_SEEN.get(array, ()))
+            if not found_here:
+                log.warning(
+                    "fetch_ooi_stations: %s yielded NO hydrophone rows; %d were "
+                    "measured there on 2026-09-18 (%s). The file parsed, so this "
+                    "is the source changing, not a fetch failure.",
+                    array, len(expected), ", ".join(sorted(expected)) or "?")
+            elif expected - found_here:
+                log.warning("fetch_ooi_stations: %s no longer lists %s",
+                            array, ", ".join(sorted(expected - found_here)))
+            elif found_here - expected:
+                log.info("fetch_ooi_stations: %s gained %s since the 2026-09-18 sweep",
+                         array, ", ".join(sorted(found_here - expected)))
 
     rows = []
     for r in rows_by_designator.values():
