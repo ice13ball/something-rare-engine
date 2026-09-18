@@ -10,13 +10,19 @@ from __future__ import annotations
 import json, logging, os, pathlib
 import numpy as np
 
+from services import cache_swap
+
 log = logging.getLogger(__name__)
 
 GRID_DIR = pathlib.Path(os.getenv("BATHY_GRID_DIR", "/var/cache/abyssal-bathymetry-grid"))
 STEP_DEG = 0.05                      # ~5.5 km export grid
 _DEPTH_NPY = "depth.npy"
 _META_JSON = "meta.json"
-_cache: "dict[str, _Grid | None]" = {}
+#: "grid" -> (stamp-at-load-time, grid-or-None). The stamp is taken BEFORE the
+#: load on purpose: if the file is swapped in between, the cached stamp is older
+#: than the data and the next request reloads. The reverse order could cache a
+#: NEW stamp beside OLD data and serve it forever.
+_cache: "dict[str, tuple[tuple, _Grid | None]]" = {}
 
 
 class _Grid:
@@ -32,8 +38,13 @@ def reset_cache() -> None:
 
 def _write_holding(lats, lons, elev) -> int:
     GRID_DIR.mkdir(parents=True, exist_ok=True)
-    np.save(GRID_DIR / _DEPTH_NPY, elev)
-    (GRID_DIR / _META_JSON).write_text(json.dumps({
+    # ⛔ ATOMIC, not np.save(path, …): _load_grid() below holds depth.npy through
+    # mmap_mode="r", and since the web/worker process split the writer is a
+    # DIFFERENT process from that reader. A truncate-and-refill under a live
+    # mapping does not raise — it yields garbage or SIGBUS, which kills the web
+    # process. Temp file beside the target, then os.replace. See services/cache_swap.py.
+    cache_swap.atomic_np_save(GRID_DIR / _DEPTH_NPY, elev)
+    cache_swap.atomic_write_text(GRID_DIR / _META_JSON, json.dumps({
         "lats": [float(x) for x in lats], "lons": [float(x) for x in lons],
         "step_deg": STEP_DEG,
     }))
@@ -88,12 +99,21 @@ def bake_bathymetry_grid(force: bool = False) -> int:
 
 
 def _load_grid(var: str = "depth_m") -> "_Grid | None":
-    if "grid" in _cache:
-        return _cache["grid"]
     npy = GRID_DIR / _DEPTH_NPY
     meta_p = GRID_DIR / _META_JSON
+    # Two os.stat calls before trusting the cache. The worker process re-bakes
+    # these files; nothing tells this process about it, and reset_cache() only
+    # ever reaches the process that called it. Without this check a mapping made
+    # before the swap keeps serving the OLD inode's data for the lifetime of the
+    # web process — silently, which is the failure mode this project treats as
+    # worse than a crash. st_ino catches the os.replace, st_mtime_ns an in-place
+    # rewrite onto a reused inode, st_size a truncation.
+    stamp = cache_swap.file_stamp((npy, meta_p))
+    cached = _cache.get("grid")
+    if cached is not None and cached[0] == stamp:
+        return cached[1]
     if not npy.is_file() or not meta_p.is_file():
-        _cache["grid"] = None
+        _cache["grid"] = (stamp, None)
         return None
     meta = json.loads(meta_p.read_text())
     # mmap_mode="r": depth.npy is ~104 MB (3600x7200 float32 — see
@@ -103,19 +123,16 @@ def _load_grid(var: str = "depth_m") -> "_Grid | None":
     # Measured 2026-09-18: loading a comparable 104 MB array normally peaks at
     # ~135 MB RSS vs ~58 MB with mmap_mode="r" under the same scattered-index
     # access pattern sample() uses (throwaway benchmark, not kept in the repo).
-    # Also safe against a concurrent re-bake TODAY: bake_bathymetry_grid() only
-    # ever runs from the one-shot, skip-if-present _bathymetry_grid_bake_task()
-    # startup task in main.py — no admin Force-Sync route is wired to it (checked
-    # _SOURCE_TO_ACTION/_SYNC_SOURCES: only "bathymetry-stats", a different
-    # module/table, is force-capable), so no live reader can have this file
-    # replaced underneath it via any exposed path. NB _write_holding() below still
-    # writes depth.npy in place (plain np.save, no tmp+rename) — if a force-rebake
-    # route is ever wired up for THIS bake, that write must go atomic
-    # (tempfile + os.replace, the pattern acidification.py's _save_png already
-    # uses) before mmap_mode stays safe here.
+    # Safe against a concurrent re-bake as of the web/worker process split: the
+    # precondition the previous version of this comment named — "_write_holding
+    # must go atomic before mmap_mode stays safe here" — is now MET.
+    # _write_holding() writes through cache_swap (temp file beside the target +
+    # os.replace), so a re-bake never truncates the file this mapping covers; it
+    # publishes a new inode and leaves ours intact until we drop it. The stamp
+    # check above is the other half: it is what makes us drop it.
     g = _Grid(np.asarray(meta["lats"]), np.asarray(meta["lons"]),
               np.load(npy, mmap_mode="r"))
-    _cache["grid"] = g
+    _cache["grid"] = (stamp, g)
     return g
 
 

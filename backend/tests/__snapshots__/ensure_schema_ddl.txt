@@ -421,3 +421,9 @@ CREATE TABLE IF NOT EXISTS vme_exposure_cells ( cell_id TEXT PRIMARY KEY, taxon_
 CREATE INDEX IF NOT EXISTS vme_exposure_cells_gix ON vme_exposure_cells USING GIST (geom)
 CREATE INDEX IF NOT EXISTS vme_exposure_cells_state_idx ON vme_exposure_cells (state)
 ALTER TABLE vme_exposure_cells OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS sync_requests ( id BIGSERIAL PRIMARY KEY, source TEXT NOT NULL, requested_at TIMESTAMPTZ NOT NULL DEFAULT now(), requested_by TEXT, claimed_at TIMESTAMPTZ, claimed_by TEXT, finished_at TIMESTAMPTZ, error TEXT )
+CREATE INDEX IF NOT EXISTS sync_requests_unclaimed_idx ON sync_requests (requested_at, id) WHERE claimed_at IS NULL
+ALTER TABLE sync_requests OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS running_syncs ( id BIGSERIAL PRIMARY KEY, source TEXT NOT NULL, started_at TIMESTAMPTZ NOT NULL DEFAULT now(), heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT now(), role TEXT NOT NULL, pid INTEGER NOT NULL, host TEXT NOT NULL )
+CREATE INDEX IF NOT EXISTS running_syncs_source_idx ON running_syncs (source)
+ALTER TABLE running_syncs OWNER TO abyssal_user

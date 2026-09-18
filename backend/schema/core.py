@@ -440,3 +440,64 @@ async def ensure_feedback(conn) -> None:
     )
 
 
+
+
+async def ensure_sync_queue(conn) -> None:
+    """sync_requests, running_syncs — the two tables that survive the web/worker split.
+
+    Both exist because process-local state stopped being enough on 2026-09-18,
+    when the 43 background tasks were split into a `web` and a `worker` process:
+
+    * `sync_requests` is the hand-off. `POST /admin/sync/{source}` is served by
+      the WEB process; the sync itself must run in the WORKER. The row is the
+      durable part of that hand-off — `pg_notify` alone is fire-and-forget, so a
+      request issued while no listener is connected would otherwise vanish with
+      no trace at all. The row is what the listener's startup/periodic sweep
+      finds, and what `/admin/sync/running` reports as "queued" so an operator
+      can tell "queued" from "lost".
+    * `running_syncs` replaces the former process-local `main._running_syncs`
+      dict. `/admin/sync/running` is answered by web, the syncs run in worker;
+      a dict in either process can only ever report half the truth.
+
+    ⛔ `heartbeat_at` is not decoration. A process that dies mid-sync never runs
+    its `finally`, so its row stays forever and `/admin/sync/running` would keep
+    claiming a sync is running that is not — a false "it is running" is worse
+    than no answer. A pure age threshold cannot tell that apart from a genuinely
+    slow bake (the GEBCO grid takes tens of minutes), so liveness is proved by a
+    heartbeat the holder refreshes, not by elapsed time.
+    """
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS sync_requests (
+            id           BIGSERIAL PRIMARY KEY,
+            source       TEXT NOT NULL,
+            requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            requested_by TEXT,
+            claimed_at   TIMESTAMPTZ,
+            claimed_by   TEXT,
+            finished_at  TIMESTAMPTZ,
+            error        TEXT
+        )
+    """)
+    # Partial index: the listener's sweep only ever asks for unclaimed rows, and
+    # this table is append-only, so without the WHERE the index grows forever
+    # while the query it serves never looks at the claimed part.
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS sync_requests_unclaimed_idx
+        ON sync_requests (requested_at, id) WHERE claimed_at IS NULL
+    """)
+    await conn.execute("ALTER TABLE sync_requests OWNER TO abyssal_user")
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS running_syncs (
+            id           BIGSERIAL PRIMARY KEY,
+            source       TEXT NOT NULL,
+            started_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+            heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            role         TEXT NOT NULL,
+            pid          INTEGER NOT NULL,
+            host         TEXT NOT NULL
+        )
+    """)
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS running_syncs_source_idx ON running_syncs (source)
+    """)
+    await conn.execute("ALTER TABLE running_syncs OWNER TO abyssal_user")

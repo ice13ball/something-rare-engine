@@ -19,6 +19,17 @@ from services.ocean_currents import backtrack as _backtrack, CMEMSUnavailableErr
 import services.currents_bake as currents_bake
 from services import woa_climatology
 from sync_log import log_sync as _log_sync, is_sync_paused, _load_paused_syncs, invalidate_paused_cache
+# The background-task registry (43 tasks, each labelled web/worker/both) and
+# its shared helpers now live in scheduling.py — backend/worker.py imports
+# that module directly, never this one, so starting the worker process
+# cannot construct the FastAPI `app` below. See scheduling.py's docstring.
+# _held_sync_lock is NOT imported here any more: nothing in main.py takes the
+# sync lock since /admin/sync/{source} stopped running syncs in this process.
+from scheduling import (
+    _watch, TaskContext, tasks_for_role,
+    _run_argo_history_backfill, _currents_backfill_task, _sync_all_sources,
+)
+import sync_queue
 from response_cache import CACHE_TTL, store as _cache
 from auth import require_admin_token as _require_admin_token
 from services.plume_history import compute_pending_plume_paths as _compute_plume_paths
@@ -199,7 +210,6 @@ _pool: asyncpg.Pool | None = None
 # ── Constants ────────────────────────────────────────────────────────────────
 
 OBIS_API = "https://api.obis.org/v3/occurrence"
-SYNC_INTERVAL_SECONDS = 7 * 24 * 3600  # weekly
 
 _hotspot_grid_lock = asyncio.Lock()  # prevents concurrent rebuilds stacking up
 _layer_config_cache:   str | None = None
@@ -207,747 +217,7 @@ _layer_config_cache_ts: float = 0.0
 _startup_profiles_cache: bytes | None = None
 _startup_profiles_cache_ts: float = 0.0
 
-# Argo sync cadence — used only by _argo_sync_task, which stays in main.py
-# (the sync body it calls now lives in domains/sensors.py).
-ARGO_SYNC_INTERVAL_SECONDS = 12 * 3600   # 12 hours
-# The six-month floor is repair work, not freshness — a settled window returns
-# nothing and the pass is cheap. Six-hourly so a gap closes within a day.
-ARGO_HISTORY_FLOOR_INTERVAL_SECONDS = 6 * 3600
-
-# The full-history walk (1997..today) had no cadence at all until 2026-09-15.
-# Measured on production that day: argo_profiles held 1999..2007 and 2026, and
-# NOTHING in between — eighteen years missing — while
-# argo_backfill_state.done_through sat at 2007-08-01, where a hand-run had left
-# it five days earlier. The walk works; nobody was asking it to run.
-#
-# ⚠️ The budget is only checked at MONTH boundaries (see _argo_backfill_walk),
-# so a pass runs to the end of whichever month it is in: the real hold is this
-# budget plus one month, and a dense 2020s month is not cheap.
-# _run_unless_paused holds _sync_lock for the whole call, so every other sync
-# queues behind it — 15 minutes keeps that worst case bounded. Four-hourly
-# because this is repair work, not freshness, and ~216 months remain.
-ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS = 4 * 3600
-ARGO_HISTORY_BACKFILL_BUDGET_SECONDS = 900
-
-# ── Sync helpers ──────────────────────────────────────────────────────────────
-
 GBIF_SPECIES_URL = "https://api.gbif.org/v1/species/{key}"
-
-
-async def _backfill_woa_anomalies(batch_size: int = 1000) -> int:
-    """One-shot: fill woa_* for argo_profiles rows that don't have them yet."""
-    async with _pool.acquire() as conn:
-        rows = await conn.fetch(
-            """SELECT profile_id, profile_date, deep_pressure_m,
-                      ST_Y(geom) AS lat, ST_X(geom) AS lon
-               FROM argo_profiles
-               WHERE woa_surface_temp_c IS NULL AND woa_deep_temp_c IS NULL
-               LIMIT $1""",
-            batch_size,
-        )
-    if not rows:
-        log.info("woa backfill: all argo rows already enriched")
-        return 0
-    log.info("woa backfill: processing %d profiles", len(rows))
-    updated = 0
-    enriched = 0
-    for r in rows:
-        w = await asyncio.to_thread(
-            woa_climatology.enrich_profile, float(r["lat"]), float(r["lon"]),
-            r["profile_date"].month, 0.0, r["deep_pressure_m"],
-        )
-        async with _pool.acquire() as conn:
-            await conn.execute(
-                """UPDATE argo_profiles SET
-                     woa_surface_temp_c=$1, woa_surface_sal=$2,
-                     woa_deep_temp_c=$3, woa_deep_sal=$4, woa_deep_oxygen_umol_kg=$5,
-                     woa_deep_aou=$6, woa_deep_o2sat=$7,
-                     woa_deep_phosphate=$8, woa_deep_silicate=$9, woa_deep_nitrate=$10
-                   WHERE profile_id=$11""",
-                w["woa_surface_temp_c"], w["woa_surface_sal"],
-                w["woa_deep_temp_c"], w["woa_deep_sal"], w["woa_deep_oxygen_umol_kg"],
-                w["woa_deep_aou"], w["woa_deep_o2sat"],
-                w["woa_deep_phosphate"], w["woa_deep_silicate"], w["woa_deep_nitrate"],
-                r["profile_id"],
-            )
-        updated += 1
-        # A row only drops out of the re-select filter (woa_surface_temp_c IS NULL
-        # AND woa_deep_temp_c IS NULL) if at least one of those becomes non-NULL.
-        # Profiles whose coords fall outside the WOA grid stay all-NULL forever, so
-        # count only genuine progress — otherwise the caller's loop re-selects the
-        # same un-enrichable rows endlessly and starves the worker (outage 2026-06-29).
-        if w["woa_surface_temp_c"] is not None or w["woa_deep_temp_c"] is not None:
-            enriched += 1
-    async with _pool.acquire() as conn:
-        await sensors.populate_argo_cache(conn)
-    log.info("woa backfill: updated %d profiles (%d newly enriched)", updated, enriched)
-    return enriched
-
-
-async def _woa_backfill_task():
-    """One-shot WOA backfill. Waits for the startup bake (grids on disk) + extra.
-    Loops batches until none remain."""
-    await asyncio.sleep(900)
-    while True:
-        try:
-            n = await _backfill_woa_anomalies()
-        except Exception:
-            log.exception("woa backfill batch failed")
-            return
-        if n == 0:
-            return
-        await asyncio.sleep(5)
-
-
-async def _log_noise_risk_count_on_startup():
-    """Log current noise_risk_grid row count to sync_log so the dashboard shows it."""
-    try:
-        async with _pool.acquire() as conn:
-            count = await conn.fetchval("SELECT COUNT(*) FROM noise_risk_grid")
-            if count:
-                await _log_sync("noise_risk", 0, count)
-                log.info("noise_risk: %d grid cells (static — use Force Sync to refresh)", count)
-    except Exception:
-        pass  # table may not exist yet on first deploy
-
-
-async def _run_unless_paused(action: str, fn, label: str | None = None):
-    """Run a sync function unless its action is paused. Serialized via
-    _sync_lock (shared with _run_tracked) so weekly-chain and admin
-    force-sync paths cannot overlap. Returns True if it ran."""
-    if await is_sync_paused(action):
-        log.info("%s: skipped (paused)", label or action)
-        return False
-    async with _sync_lock:
-        await fn()
-    return True
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-
-async def _sync_all_sources():
-    """Weekly sync: pull new records from every external source into DB."""
-    log.info("Weekly sync starting…")
-
-    # ArcGIS layers + mining contracts
-    if not await is_sync_paused("arcgis"):
-        async with _pool.acquire() as conn:
-            await isa.sync_reserved_areas(conn)
-            await isa.sync_apeis(conn)
-            await isa.sync_relinquished_areas(conn)
-            await isa.sync_mining_contracts(conn)
-    else:
-        log.info("arcgis: skipped (paused)")
-
-    # OBIS runs as its own systemd service (obis-sync.service) — not here.
-    # Argo is still managed by the weekly chain.
-    if not await is_sync_paused("argo"):
-        await sensors.sync_argo_profiles()
-    else:
-        log.info("argo: skipped (paused)")
-
-    # Per-source weekly tasks — each isolated so one upstream outage can't
-    # abort the whole chain (e.g. PANGAEA seamounts ZIP returning 503 was
-    # silently blocking gbif/chess/cables/etc for weeks).
-    for action, fn, label in [
-        ("seamounts",        seafloor.sync_seamounts,      "seamounts"),
-        ("vents",            seafloor.sync_hydrothermal_vents, "vents"),
-        ("eez",              geo_context.sync_eez,                    "eez"),
-        ("protected-sites",  geo_context.sync_protected_marine_sites, "protected_sites"),
-        ("claim-enrichment", isa.enrich_claim_boundaries, "claim_enrichment"),
-        ("cables",           cables.sync_submarine_cables, "submarine_cables"),
-        ("onc-cables",       cables.sync_onc_cables,       "onc_cables"),
-        ("ooi-cables",       cables.sync_ooi_cables,       "ooi_cables"),
-        ("noaa-cables",      cables.sync_noaa_cables,      "noaa_cables"),
-        ("nz-cables",        cables.sync_nz_cables,        "nz_cables"),
-        ("au-cables",        cables.sync_au_cables,        "au_cables"),
-        ("onc-instruments",  onc.sync_onc_instruments,        "onc_instruments"),
-        # ("ports", …) — port_locations layer permanently disabled 2026-07-07; removed
-        # from the weekly auto-sync chain so the table no longer changes. Force-sync
-        # wiring left intact but dormant.
-        ("oceansites",       sensors.sync_oceansites,       "oceansites"),
-        ("onc",              onc.sync_onc,                    "onc"),
-        ("chess",            biodiversity.sync_chess,                  "chess"),
-        ("deepdata",         biodiversity.sync_deepdata,               "deepdata"),
-        ("deepdata-stations", biodiversity.sync_deepdata_stations,     "deepdata_stations"),
-        ("mbari-vars",       biodiversity.sync_mbari_vars,             "mbari_vars"),
-        ("noaa-corals",      biodiversity.sync_noaa_corals,            "noaa_corals"),
-        ("worms",            biodiversity.sync_worms_taxa,             "worms"),
-        ("acoustic-stations",   acoustic.sync_acoustic_stations,    "acoustic_stations"),
-        ("acoustic-soundscape", acoustic.sync_acoustic_soundscape,  "acoustic_soundscape"),
-        ("arctic-rivers",       arctic.sync_arctic_rivers_logged, "arctic_river_stations"),
-        ("permafrost-thaw",     arctic.sync_permafrost_thaw_logged, "permafrost_thaw_features"),
-        ("seaflea",             geochem.sync_seaflea,       "seaflea_seeps"),
-        ("sios",                arctic.sync_sios,                 "sios_datasets"),
-        ("arcade",              arctic.sync_arcade,               "arctic_catchments"),
-    ]:
-        try:
-            await _run_unless_paused(action, fn, label)
-        except Exception as e:
-            log.error("%s sync failed: %s", label, e)
-
-    # Enrich species with images from GBIF/iNaturalist (batch of 2000 per weekly run)
-    await biodiversity.enrich_species_images(batch_size=2000)
-
-    # Backfill IUCN categories for species already enriched with images
-    try:
-        iucn_count = await biodiversity.backfill_iucn_categories(batch_size=500)
-        log.info("iucn_backfill: updated %d species", iucn_count)
-    except Exception as exc:
-        log.warning("iucn_backfill: failed — %s", exc)
-
-    # Pre-compute plume paths for any near-mining Argo profiles not yet processed
-    try:
-        plume_count = await _compute_plume_paths(_pool, max_batch=500)
-        log.info("plume_history: sync complete — %d new paths", plume_count)
-    except Exception as exc:
-        log.warning("plume_history: sync failed — %s", exc)
-
-    # hotspot_grid is rebuilt by obis-sync.service after each OBIS run.
-    # The weekly chain no longer calls rebuild_hotspot_grid() here.
-
-    # Rebuild species-per-claim cache after hotspots/contracts may have changed.
-    # Calls services/species_cache.py (NOT routers/reports.py — that file is the
-    # frozen v1 restore path and its rebuild SQL has a UniqueViolationError bug
-    # that left the cache empty on every run). _log_sync so a silent failure
-    # surfaces in the admin dashboard.
-    try:
-        from services.species_cache import refresh_species_cache
-        cnt = await refresh_species_cache()
-        await _log_sync("species-cache", cnt, cnt)
-    except Exception as exc:
-        log.warning("species_cache: refresh failed — %s", exc)
-        try:
-            await _log_sync("species-cache", 0, 0)
-        except Exception:
-            pass
-
-    log.info("Weekly sync complete")
-
-
-async def _run_with_log(fn, label: str):
-    """Run an async function, logging any exception without crashing the service."""
-    try:
-        await fn()
-    except Exception:
-        log.exception("%s failed", label)
-
-
-async def _startup_data_check():
-    """Light check on startup: log table counts, no heavy network calls."""
-    tables = [
-        "mining_contracts", "reserved_areas", "isa_apeis", "relinquished_areas",
-        "biodiversity_hotspots", "seamounts", "argo_profiles",
-        "hydrothermal_vents", "maritime_boundaries", "protected_marine_sites",
-        "submarine_cables", "onc_cables", "ooi_cables", "noaa_cables", "nz_cables", "au_cables", "port_locations", "oceansites_stations", "onc_locations",
-        "chess_occurrences",
-    ]
-    async with _pool.acquire() as conn:
-        for t in tables:
-            try:
-                exists = await conn.fetchval("SELECT to_regclass($1)", t)
-                if exists is None:
-                    log.warning("startup check: %s — table MISSING", t)
-                    continue
-                n = await conn.fetchval(f"SELECT COUNT(*) FROM {t}")  # noqa: S608
-                if n == 0:
-                    log.warning("startup check: %s — table EMPTY (0 rows)", t)
-                else:
-                    log.info("startup check: %s = %d rows", t, n)
-            except Exception as exc:
-                log.warning("startup check: %s — query failed: %s: %s", t, type(exc).__name__, exc)
-
-
-async def _weekly_sync_task():
-    # First sync delayed 1 hour after boot — gives VPS time to settle
-    await asyncio.sleep(3600)
-    while True:
-        try:
-            await _sync_all_sources()
-        except Exception:
-            log.exception("Weekly sync failed")
-        await asyncio.sleep(SYNC_INTERVAL_SECONDS)
-
-
-async def _argo_sync_task():
-    """Sync Argo floats every 12h — independent of the weekly full sync."""
-    await asyncio.sleep(1800)  # 30 min delay after boot
-    while True:
-        try:
-            await _run_unless_paused("argo", sensors.sync_argo_profiles, "argo_12h")
-        except Exception:
-            log.exception("Argo 12h sync failed")
-        await asyncio.sleep(ARGO_SYNC_INTERVAL_SECONDS)
-
-
-async def _argo_history_floor_task():
-    """Keep the last six months dense in our own database.
-
-    ⛔ Without a cadence, ARGO_HISTORY_FLOOR_DAYS is a number in a constant, not
-    a guarantee: the window was filled once by hand on 2026-09-09 and nothing
-    would have kept it filled. sync_argo_profiles only ever refreshes the last
-    30 days, so any month that falls out of that window is never revisited —
-    which is exactly how March..July 2026 ended up at ~4% coverage.
-
-    Each pass resumes from argo_topup_state and walks one month-chunk at a
-    time within its budget, so a settled window costs one cheap pass and a
-    gap gets filled a couple of months per run. Runs on a long delay after
-    boot: it is repair work, not something to fight the cold start over.
-    """
-    await asyncio.sleep(2700)  # 45 min after boot — behind every live sync
-    while True:
-        try:
-            await _run_unless_paused(
-                "argo-recent-history", sensors.sync_argo_recent_history, "argo_history_floor")
-        except Exception:
-            log.exception("Argo history-floor top-up failed")
-        await asyncio.sleep(ARGO_HISTORY_FLOOR_INTERVAL_SECONDS)
-
-
-async def _argo_history_backfill_task():
-    """Walk the full Argo history until it reaches today, then go quiet.
-
-    ⛔ A resumable walk with no caller is a walk that does not happen. Every
-    piece of this machinery already existed on 2026-09-09 — cursor, month
-    chunking, advisory lock, rate-limit backoff — and the only way to advance
-    it was POST /v1/admin/argo-backfill, by hand, roughly forty times. It was
-    pressed twice. Eighteen years stayed missing and no dashboard said so,
-    because this path writes no sync_log row: the gap was invisible until
-    somebody counted profiles per year.
-
-    A completed history makes the pass free — the walk reads its cursor, sees
-    it has reached today, and returns without one request. So this task needs
-    no end condition. It needs only to keep asking.
-    """
-    await asyncio.sleep(3600)  # 60 min after boot — behind the floor top-up
-    while True:
-        try:
-            await _run_unless_paused(
-                "argo-backfill", _run_argo_history_backfill, "argo_history_backfill")
-        except Exception:
-            log.exception("Argo full-history backfill failed")
-        await asyncio.sleep(ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS)
-
-
-async def _run_argo_history_backfill():
-    """One bounded pass, with its outcome said out loud.
-
-    ⛔ Four outcomes return months_done == 0 and only one of them is a problem:
-    the history finished, the single-walk lock refused a second runner, the
-    vocabulary fetch failed, or the walk tried and got nowhere. Collapsing them
-    into one log line is how a stalled backfill hides inside a healthy cadence
-    for weeks — which is exactly what an operator reading "0 months" would
-    have concluded before this existed.
-    """
-    result = await sensors.sync_argo_profiles_backfill(
-        budget_seconds=ARGO_HISTORY_BACKFILL_BUDGET_SECONDS)
-    if result.get("complete"):
-        log.info("argo backfill: history complete through %s — nothing to walk",
-                 result.get("done_through"))
-    elif result.get("skipped_reason"):
-        log.info("argo backfill: %s", result["skipped_reason"])
-    elif result.get("stalled"):
-        log.warning(
-            "argo backfill: STALLED at %s — walked no month this pass (%s)",
-            result.get("done_through"),
-            result.get("failed_chunk") or result.get("error") or "no reason given")
-    else:
-        log.info("argo backfill: %s month(s), %s row(s), now through %s",
-                 result.get("months_done"), result.get("inserted"), result.get("done_through"))
-    return result
-
-
-async def _worms_sync_task():
-    await asyncio.sleep(300)  # 5 min — external-API tier, no heavy DB scan
-    while True:
-        try:
-            await _run_unless_paused("worms", biodiversity.sync_worms_taxa, "worms")
-        except Exception:
-            log.exception("worms sync failed")
-        await asyncio.sleep(SYNC_INTERVAL_SECONDS)  # weekly cadence
-
-
-LAND_SYNC_INTERVAL_SECONDS = 6 * 3600  # 6 hours — fires need frequent updates
-
-MONITORING_DENSITY_REFRESH_INTERVAL_SECONDS = 12 * 3600
-
-SIO_BIC_SYNC_INTERVAL_SECONDS = 7 * 24 * 3600  # weekly
-
-
-async def _sio_bic_sync_task():
-    """Weekly SIO-BIC catalogue refresh. 4h startup delay so OBIS/ChEss syncs
-    settle first; the 12h monitoring-density refresh picks up new rows on its
-    next cycle automatically."""
-    await asyncio.sleep(4 * 3600)
-    while True:
-        try:
-            await _run_with_log(biodiversity.sync_sio_bic, "sio-bic catalogue sync")
-        except Exception:
-            log.exception("SIO-BIC sync failed")
-        await asyncio.sleep(SIO_BIC_SYNC_INTERVAL_SECONDS)
-
-
-async def _slow_sources_sync_task():
-    """Daily tick for sources that had no periodic caller at all.
-
-    `memento` and `ncei_icoads_files` were reachable only from the admin
-    force-sync map. An audit on 2026-09-02 found memento 72 days stale and
-    ncei_icoads_files holding 0 rows — neither was broken, both were simply
-    never called. The cadence registry decides whether each actually runs, so a
-    daily tick is cheap: a Static or Blocked source costs one SELECT.
-
-    90-minute startup delay: this scans large tables and must stay well clear of
-    the cold start and the SAR seed, per the engine rule on heavy background work.
-    """
-    from domains.geochem import sync_memento
-    from domains.land.density import _sync_ncei_icoads
-
-    await asyncio.sleep(90 * 60)
-    while True:
-        for source, fn in (("memento", sync_memento),
-                           ("ncei_icoads_files", _sync_ncei_icoads)):
-            try:
-                async with db.pool.acquire() as conn:
-                    last = await conn.fetchval(
-                        "SELECT last_synced_at FROM sync_log WHERE source = $1", source)
-                run, why = should_sync(source, last, datetime.now(timezone.utc))
-                log.info("%s", why)
-                if run:
-                    await _run_with_log(fn, source)
-            except Exception:
-                log.exception("%s: slow-source sync failed", source)
-        await asyncio.sleep(24 * 3600)
-
-
-async def _monitoring_density_refresh_task():
-    """Rebuild monitoring_density_grid every 12h so new rows from upstream source
-    syncs (GBIF/Argo/ONC/WOD/…) surface on the map automatically.
-    2h startup delay lets the first weekly sync settle before aggregating."""
-    await asyncio.sleep(2 * 3600)
-    while True:
-        try:
-            await _run_with_log(refresh_monitoring_density, "monitoring density refresh")
-        except Exception:
-            log.exception("Monitoring density refresh task failed")
-        await asyncio.sleep(MONITORING_DENSITY_REFRESH_INTERVAL_SECONDS)
-
-
-async def _land_sync_task():
-    """Periodic land layer sync. Fires every 6h, air quality daily,
-    static layers have skip-if-populated guards inside their sync functions."""
-    await asyncio.sleep(1800)  # 30 min delay after boot
-    while True:
-        try:
-            await sync_all_land_sources()
-            log.info("Land layer sync complete")
-        except Exception:
-            log.exception("Land layer sync failed")
-        await asyncio.sleep(LAND_SYNC_INTERVAL_SECONDS)
-
-
-ONC_SENSOR_SYNC_INTERVAL_SECONDS = 24 * 3600  # daily
-
-
-# CURRENTS_BAKE_INTERVAL_SECONDS, _currents_meta_cache, _sync_currents and
-# _bake_all_currents moved to domains/fields/currents.py (Task 5, Phase 3).
-# _currents_bake_task/_currents_backfill_task below stay here (startup
-# orchestration) and call fields.currents.* / services.currents_bake directly.
-
-# ── Staggered startup delays for the heavy field-layer bakes ─────────────────
-# All nine of these used to sit at a flat 300 s, so every restart fired them
-# SIMULTANEOUSLY at T+5 min. Each one is individually guarded (skip-if-present /
-# 30-day sync_log), so in steady state they no-op — but on a cold env, after lost
-# holdings, or a forced run they all do real work at once, via asyncio.to_thread,
-# i.e. real CPU + real RAM concurrently. That is the same shape as the OOM
-# crash-loop this box already suffered once. Spread them ~4 min apart, lightest
-# first, GEBCO (7.5 GB read) last. Keep them distinct when adding a new bake.
-_BAKE_STARTUP_DELAY = {
-    "currents":        300,
-    "seabed":          540,
-    "cascade":         780,
-    "woa":            1020,
-    "oxygen":         1260,
-    "carbon":         1500,
-    "acidification":  1740,
-    "socat":          1980,
-    "bathymetry_grid": 2220,
-    # coral-acid-exposure: deliberately NOT +240 from bathymetry_grid's neighbour slot —
-    # it consumes BOTH the acidification horizons (1740) and the baked GEBCO grid (2220),
-    # so it must run after both. Keep it distinct from every other value in this dict.
-    "coral_exposure": 2460,
-    # CHI has no upstream-bake dependency (reads its own KNB GeoTIFF); slotted last in the
-    # stagger only so its 60 MB download + reproject doesn't fight cold-start traffic.
-    "chi": 2700,
-}
-
-
-async def _currents_bake_task():
-    """Daily CMEMS current-texture bake. Staggered startup delay (external-API tier
-    per the Background task discipline table — no heavy DB scan)."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["currents"])
-    while True:
-        try:
-            await fields.currents.bake_all_currents()
-        except Exception:
-            log.exception("Currents bake task failed")
-        await asyncio.sleep(fields.currents.CURRENTS_BAKE_INTERVAL_SECONDS)
-
-
-async def _currents_backfill_task(force: bool = False):
-    """One-time ~180-day history backfill. External-API tier (10 min delay).
-    Idempotent: skips days already on disk; restart-safe; guarded by sync_log."""
-    if not force:
-        await asyncio.sleep(600)
-        # Inline sync_log idempotence guard — matches the existing pattern used by
-        # the cable syncs (no _recent_sync helper exists in this codebase).
-        async with _pool.acquire() as conn:
-            last = await conn.fetchval(
-                "SELECT last_synced_at FROM sync_log WHERE source = 'currents-backfill'")
-        if last is not None and (datetime.now(timezone.utc) - last) < timedelta(hours=20):
-            log.info("currents backfill: recent run found — skipping")
-            return
-    today = datetime.now(timezone.utc).date()
-    total = 0
-    for slug in ("surface", "1000m"):
-        have = set(currents_bake.available_dates(slug))
-        for n in range(currents_bake.CURRENTS_HISTORY_DAYS, -1, -1):
-            d = today - timedelta(days=n)
-            if d.strftime("%Y-%m-%d") in have:
-                continue
-            try:
-                await asyncio.to_thread(currents_bake.bake_depth, slug,
-                                        datetime(d.year, d.month, d.day, tzinfo=timezone.utc))
-                total += 1
-                # Surface the growing date range to /meta during the long backfill —
-                # otherwise the cache stays frozen until the very end of the run.
-                if total % 20 == 0:
-                    fields.currents.clear_caches()
-            except Exception as exc:
-                log.warning("currents backfill %s %s failed: %s", slug, d, exc)
-            await asyncio.sleep(3)  # CMEMS politeness
-        try:
-            await asyncio.to_thread(currents_bake.prune_old, slug)
-        except Exception as exc:
-            log.warning("currents backfill: prune %s failed (non-fatal): %s", slug, exc)
-        fields.currents.clear_caches()  # depth complete → expose its full range now
-    fields.currents.clear_caches()
-    await _log_sync("currents-backfill", total, total)
-    log.info("currents backfill complete: %d depth-day textures baked", total)
-
-
-# Ten field-family cache globals (_woa_meta_cache, _oxygen_meta_cache,
-# _carbon_meta_cache, _co2_meta_cache, _seabed_meta_cache, _vme_meta_cache,
-# _coral_exposure_cache, _acid_meta_cache, _chi_meta_cache, plus
-# _currents_meta_cache above) and their eleven owning sync/bake functions
-# (_sync_woa, _sync_glodap_carbon, _sync_acidification, _sync_chi_impact,
-# _sync_coral_exposure, _sync_vme, _sync_socat_co2, _sync_seabed,
-# _sync_oxygen_deox, plus _sync_currents/_bake_all_currents above) moved to
-# domains/fields/{climatology,carbon,habitat,currents}.py (Task 5, Phase 3).
-# The startup-bake wrappers below stay here (startup orchestration) and call
-# fields.<module>.sync_*() instead.
-
-async def _woa_startup_bake():
-    """One-shot WOA bake. External-API tier (staggered startup delay). The 30-day
-    sync_log guard inside fields.climatology.sync_woa makes restarts cheap."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["woa"])
-    try:
-        await fields.climatology.sync_woa()
-    except Exception:
-        log.exception("WOA startup bake failed")
-
-
-async def _carbon_startup_bake():
-    """One-shot GLODAP carbon bake. External-API tier (staggered startup delay). The 30-day
-    sync_log guard inside fields.carbon.sync_glodap_carbon makes restarts cheap."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["carbon"])
-    try:
-        await fields.carbon.sync_glodap_carbon()
-    except Exception:
-        log.exception("GLODAP carbon startup bake failed")
-
-
-async def _acidification_startup_bake():
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["acidification"])
-    try: await fields.carbon.sync_acidification()
-    except Exception: log.exception("acidification startup bake failed")
-
-
-async def _chi_startup_bake():
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["chi"])
-    try: await fields.habitat.sync_chi_impact()
-    except Exception: log.exception("chi startup bake failed")
-
-
-async def _coral_exposure_startup_bake():
-    # Deliberately AFTER the acidification bake in the stagger: this consumes its horizon
-    # grids. See _BAKE_STARTUP_DELAY["coral_exposure"] (2460 s) — do not give it a delay
-    # that collides with a sibling.
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["coral_exposure"])
-    try:
-        await fields.carbon.sync_coral_exposure()
-    except Exception:
-        log.exception("coral-acid-exposure startup bake failed")
-
-
-async def _socat_startup_bake():
-    """One-shot SOCAT CO₂ bake. External-API tier (staggered startup delay). The 30-day
-    sync_log guard inside fields.carbon.sync_socat_co2 makes restarts cheap."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["socat"])
-    try:
-        await fields.carbon.sync_socat_co2()
-    except Exception:
-        log.exception("SOCAT CO2 startup bake failed")
-
-
-async def _seabed_startup_bake():
-    """One-shot seabed lithology holdings check. Static dataset: 30-day sync_log
-    guard makes restarts cheap."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["seabed"])
-    try:
-        await fields.habitat.sync_seabed()
-    except Exception:
-        log.exception("seabed startup holdings failed")
-
-
-async def _cascade_startup_bake():
-    """One-shot CASCADE Arctic sediment carbon grid holdings check."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["cascade"])
-    try:
-        await arctic.sync_cascade()
-    except Exception as e:
-        log.warning("cascade startup bake failed: %s", e)
-
-
-async def _bathymetry_grid_bake_task():
-    """One-shot GEBCO_2024 downsample bake for the bathymetry field-export sampler.
-    External-API tier; skip-if-present makes restarts cheap. Runs LAST in the
-    stagger — it reads the 7.5 GB GEBCO grid and is the memory-heaviest bake."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["bathymetry_grid"])
-    try:
-        from services.bathymetry_grid_export import bake_bathymetry_grid
-        n = await asyncio.to_thread(bake_bathymetry_grid)
-        if n:
-            log.info("bathymetry-grid startup bake: %d cells", n)
-    except Exception as exc:               # never block the listener
-        log.warning("bathymetry-grid startup bake failed: %s", exc)
-
-
-async def _oxygen_startup_bake():
-    """One-shot startup bake (external-API tier, staggered delay). sync_log guard inside
-    fields.climatology.sync_oxygen_deox."""
-    await asyncio.sleep(_BAKE_STARTUP_DELAY["oxygen"])
-    try:
-        await fields.climatology.sync_oxygen_deox()
-    except Exception:
-        log.exception("oxygen startup bake failed")
-
-
-async def _onc_sensor_sync_task():
-    """Refresh ONC cached sensor readings daily — keeps map current without
-    per-click API calls."""
-    # Delay first run — no startup sync, so wait for weekly task to populate locations
-    await asyncio.sleep(3600)
-    while True:
-        try:
-            await onc.sync_onc_sensors()
-        except Exception:
-            log.exception("ONC daily sensor sync failed")
-        await asyncio.sleep(ONC_SENSOR_SYNC_INTERVAL_SECONDS)
-
-
-async def _onc_instruments_daily_task():
-    """Run ONC instrument WFS sync + enrichment once per day at ~00:15 Europe/Warsaw.
-
-    Uses zoneinfo so DST transitions (CET↔CEST) are handled automatically.
-    Enrichment is batched to ~300 devices/run so it spreads across ~3 days on
-    a cold DB and then settles into steady refresh.
-    """
-    tz = ZoneInfo("Europe/Warsaw")
-    # Light startup delay so other heavy tasks settle first
-    await asyncio.sleep(600)
-    while True:
-        now_local = datetime.now(tz)
-        target = now_local.replace(hour=0, minute=15, second=0, microsecond=0)
-        if target <= now_local:
-            target = target + timedelta(days=1)
-        wait_s = max(60, int((target - now_local).total_seconds()))
-        log.info("onc_instruments daily: next run at %s (in %ds)", target.isoformat(), wait_s)
-        await asyncio.sleep(wait_s)
-        try:
-            await onc.sync_onc_instruments(skip_guard_hours=20)
-        except Exception:
-            log.exception("onc_instruments daily WFS sync failed")
-        try:
-            await onc.enrich_onc_instruments(batch_limit=300)
-        except Exception:
-            log.exception("onc_instruments daily enrichment failed")
-
-
-async def _onc_sparkline_task():
-    """Refresh ONC 72-hour sparklines every 4 hours."""
-    await asyncio.sleep(300)  # 5 min startup delay
-    while True:
-        try:
-            await onc.sync_onc_sparklines()
-        except Exception:
-            log.exception("ONC sparkline sync failed")
-        await asyncio.sleep(4 * 3600)
-
-
-async def _onc_adcp_task():
-    """Refresh ONC ADCP backscatter strips every 12 hours.
-
-    Each run queues one RADCPTS job per location on ONC's side (17 of them), so a
-    4-hourly cadence would be 102 jobs/day for a product that already covers 24 h.
-    12 h keeps the strip fresh at a quarter of the load. Threshold in the monitor's
-    thresholds.md must stay ≥ 30 h to match.
-    """
-    await asyncio.sleep(900)  # 15 min startup delay
-    while True:
-        try:
-            await onc.sync_onc_adcp_strips()
-        except Exception:
-            log.exception("ONC ADCP strip sync failed")
-        await asyncio.sleep(12 * 3600)
-
-
-async def _onc_ctd_task():
-    """Refresh ONC CTD profiles every 12 hours."""
-    await asyncio.sleep(900)  # 15 min startup delay
-    while True:
-        try:
-            await onc.sync_onc_ctd_profiles()
-        except Exception:
-            log.exception("ONC CTD profile sync failed")
-        await asyncio.sleep(12 * 3600)
-
-
-async def _onc_ctd_series_task():
-    """Grow our archive of ONC's own 10-minute CTD series, every 12 hours.
-
-    ⛔ Deliberately offset from _onc_ctd_task by half an hour: both hit the same
-    ONC endpoint for the same 28 locations, and firing them together doubles the
-    burst for no benefit. The 7-day request window means a missed run costs
-    nothing as long as the next one lands within a week.
-    """
-    await asyncio.sleep(2700)  # 45 min startup delay
-    while True:
-        try:
-            await onc.sync_onc_ctd_series()
-        except Exception:
-            log.exception("ONC CTD series archive sync failed")
-        await asyncio.sleep(12 * 3600)
-
-
-async def _usgs_earthquakes_task():
-    """Refresh USGS earthquake catalog every 6 hours."""
-    await asyncio.sleep(300)  # 5 min startup delay
-    while True:
-        try:
-            await onc.sync_usgs_earthquakes()
-        except Exception:
-            log.exception("USGS earthquake sync failed")
-        await asyncio.sleep(6 * 3600)
 
 
 async def _ais_partition_maintenance_task():
@@ -978,216 +248,7 @@ async def _vessel_events_sync_task():
         await asyncio.sleep(VESSEL_EVENTS_SYNC_INTERVAL_SECONDS)
 
 
-async def _usage_rollup_task():
-    """Roll request_log into usage_rollup every 10 minutes."""
-    from api_access.rollup import rollup_new_rows
-    await asyncio.sleep(120)  # let startup settle
-    while True:
-        try:
-            n = await rollup_new_rows(_pool)
-            if n:
-                log.info("usage rollup: advanced %d request_log rows", n)
-        except Exception:
-            log.exception("usage rollup failed")
-        await asyncio.sleep(600)
-
-
-async def _leak_detection_task():
-    """Scan request_log hourly for key-leak signals; raise debounced flags + Telegram.
-
-    20-min startup delay per background-task discipline (scans request_log with
-    ST_-free aggregations but still a DB-heavy GROUP BY over a 24h/7d window).
-    """
-    from api_access.leak_detect import run_leak_detection
-    await asyncio.sleep(20 * 60)
-    while True:
-        try:
-            n = await run_leak_detection(_pool)
-            if n:
-                log.info("leak detection: raised %d new flag(s)", n)
-        except Exception:
-            log.exception("leak detection failed")
-        await asyncio.sleep(3600)
-
-
-async def _log_retention_task():
-    """Ensure upcoming daily partitions exist and drop partitions older than 90 days. Daily."""
-    from api_access.logstore import drop_expired_log_partitions, ensure_daily_partitions
-    await asyncio.sleep(180)
-    while True:
-        try:
-            async with _pool.acquire() as conn:
-                await ensure_daily_partitions(conn)
-                await conn.execute("DELETE FROM api_access.admin_sessions WHERE expires_at < now()")
-            dropped = await drop_expired_log_partitions(_pool)
-            if dropped:
-                log.info("request_log retention: dropped %d expired partitions", dropped)
-        except Exception:
-            log.exception("request_log retention failed")
-        await asyncio.sleep(24 * 3600)
-
-
-async def _query_watchdog_task():
-    """Periodic check for long-running queries on the abyssal DB.
-
-    Two thresholds:
-    - WARN (15 min): log.warning so Mac-side monitor / journalctl picks it up.
-      Useful visibility into legitimately-slow queries.
-    - KILL (60 min): pg_terminate_backend. Catches zombie backends left over
-      from Python tasks that died (service restart, exception, etc.) but
-      whose postgres queries kept running independently.
-
-    Background context: 2026-05-15 night, the service restart left 3 orphan
-    postgres backends running for 18h / 8h / 3.5h respectively (one
-    claim-enrichment + two pre-refactor SEO concession queries). Total CPU
-    ~254% sustained. Killing the python client doesn't kill the postgres
-    backend; only pg_terminate_backend does. This watchdog is the
-    catch-all so nothing burns CPU for hours unobserved.
-    """
-    WARN_MIN = 15
-    KILL_MIN = 60
-    POLL_SEC = 300  # every 5 min
-    await asyncio.sleep(120)  # 2-min startup delay so service init can complete
-    while True:
-        try:
-            async with _pool.acquire() as conn:
-                rows = await conn.fetch("""
-                    SELECT pid,
-                           EXTRACT(EPOCH FROM (NOW() - query_start))/60 AS dur_min,
-                           LEFT(query, 120) AS q
-                    FROM pg_stat_activity
-                    WHERE datname = 'abyssal'
-                      AND state = 'active'
-                      AND backend_type = 'client backend'
-                      AND pid <> pg_backend_pid()
-                      AND query_start IS NOT NULL
-                      AND NOW() - query_start > INTERVAL '15 minutes'
-                """)
-                for r in rows:
-                    dur = float(r["dur_min"])
-                    if dur > KILL_MIN:
-                        log.warning(
-                            "query_watchdog: KILLING zombie pid=%s dur=%.1fmin q=%r",
-                            r["pid"], dur, r["q"],
-                        )
-                        try:
-                            await conn.execute(
-                                "SELECT pg_terminate_backend($1)", r["pid"]
-                            )
-                        except Exception:
-                            log.exception("query_watchdog: terminate failed for pid=%s", r["pid"])
-                    else:
-                        log.warning(
-                            "query_watchdog: long-running pid=%s dur=%.1fmin q=%r",
-                            r["pid"], dur, r["q"],
-                        )
-        except Exception:
-            log.exception("query_watchdog: poll failed")
-        await asyncio.sleep(POLL_SEC)
-
-
-OCEANSITES_OBS_SYNC_INTERVAL_SECONDS = 24 * 3600  # daily
-
-
-async def _oceansites_obs_sync_task():
-    """Refresh OceanSITES cached NDBC observations daily."""
-    await asyncio.sleep(3600)  # delay — wait for weekly task to populate stations
-    while True:
-        try:
-            await sensors.sync_oceansites_obs()
-        except Exception:
-            log.exception("OceanSITES daily obs sync failed")
-        await asyncio.sleep(OCEANSITES_OBS_SYNC_INTERVAL_SECONDS)
-
-
-AIR_QUALITY_READINGS_INTERVAL_SECONDS = 2 * 3600  # every 2 hours
-
-
-async def _air_quality_readings_task():
-    """Drip-fill air quality readings from OpenAQ v3 — 500 stations per run,
-    sequential 1 req/1.2s to respect rate limits. Runs independently of
-    the 6h land sync to populate all ~24k stations in ~4 days."""
-    await asyncio.sleep(900)  # 15 min after boot
-    while True:
-        try:
-            await _run_unless_paused("air-quality-readings", _sync_air_quality_readings, "air_quality_readings_2h")
-        except Exception:
-            log.exception("Air quality readings sync failed")
-        await asyncio.sleep(AIR_QUALITY_READINGS_INTERVAL_SECONDS)
-
-
-async def _acoustic_stations_task() -> None:
-    """Weekly sync of acoustic_stations with a 30-min startup delay."""
-    await asyncio.sleep(1800)
-    while True:
-        try:
-            await acoustic.sync_acoustic_stations()
-        except Exception as exc:
-            log.exception("acoustic stations task error: %s", exc)
-        await asyncio.sleep(7 * 24 * 3600)
-
-
-async def _acoustic_soundscape_task() -> None:
-    """Weekly sync of acoustic_soundscape with a 60-min startup delay."""
-    await asyncio.sleep(3600)
-    while True:
-        try:
-            await acoustic.sync_acoustic_soundscape()
-        except Exception as exc:
-            log.exception("acoustic soundscape task error: %s", exc)
-        await asyncio.sleep(7 * 24 * 3600)
-
-
-OFFSHORE_ACTIVITIES_INTERVAL = 7 * 24 * 3600  # weekly
-
-
-async def _offshore_activities_sync_task():
-    """Sync all 9 offshore-activity registries weekly. 45-min startup delay
-    ensures the pool is settled and schema migrations are complete."""
-    await asyncio.sleep(45 * 60)
-    while True:
-        for fn, label in [
-            (offshore.sync_emodnet_offshore, "emodnet-offshore"),
-            (offshore.sync_boem_offshore, "boem-offshore"),
-            (offshore.sync_crown_estate_wind, "crown-estate-wind"),
-            (offshore.sync_nopta_petroleum, "nopta-petroleum"),
-            (offshore.sync_nzpam_offshore, "nzpam-offshore"),
-            (offshore.sync_anp_brazil, "anp-brazil"),
-            (offshore.sync_mra_png_dsm, "mra-png-dsm"),
-            (offshore.sync_mme_nam_dsm, "mme-namibia-dsm"),
-            (offshore.sync_sbma_ck, "sbma-cook-islands"),
-            (offshore.sync_cnsopb_petroleum, "cnsopb"),
-            (offshore.sync_cnlopb_petroleum, "cnlopb"),
-            (offshore.sync_dea_dk_petroleum, "dea-dk"),
-            (offshore.sync_sodir_petroleum, "sodir-petroleum"),
-            (offshore.sync_sodir_co2, "sodir-co2"),
-            (offshore.sync_nsta_petroleum, "nsta-petroleum"),
-            (offshore.sync_nsta_co2, "nsta-co2"),
-            (offshore.sync_anh_colombia, "anh-colombia"),
-            (offshore.sync_meei_trinidad, "meei-trinidad"),
-            (offshore.sync_pad_ireland, "pad-ireland"),
-            (offshore.sync_perupetro, "perupetro"),
-            (offshore.sync_petrocom_ghana, "petrocom-ghana"),
-            (offshore.sync_pmp_guyana, "pmp-guyana"),
-            (offshore.sync_pasa_sa, "pasa-sa"),
-            (offshore.sync_esdm_indonesia, "esdm-indonesia"),
-            (offshore.sync_cnh_mexico, "cnh-mexico"),
-            (offshore.sync_crown_estate_scotland, "crown-estate-scotland"),
-        ]:
-            try:
-                await _run_with_log(fn, label)
-            except Exception:
-                log.exception("%s failed", label)
-            await asyncio.sleep(120)
-        await asyncio.sleep(OFFSHORE_ACTIVITIES_INTERVAL)
-
-
 # ── App lifecycle ─────────────────────────────────────────────────────────────
-
-def _watch(task: asyncio.Task) -> None:
-    if not task.cancelled() and (exc := task.exception()) is not None:
-        log.error("Background task '%s' crashed", task.get_name(), exc_info=exc)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -1204,8 +265,6 @@ async def lifespan(app: FastAPI):
     # environment on its own. See db.dsn.
     _db.dsn = os.environ["DATABASE_URL"]
 
-    from api_access.logging_mw import batch_writer
-    from api_access.rollup import rollup_new_rows
     from api_access.geoip import load_geoip
     from api_access.store import seed_internal_key
     from api_access.auth import init_key_cache
@@ -1259,83 +318,26 @@ async def lifespan(app: FastAPI):
     if os.environ.get("ABYSSAL_STANDBY") == "1":
         log.info("ABYSSAL_STANDBY=1 — serving reads only, no background tasks")
     else:
-        # Contractor auto-discovery joins ais_positions × aois — 6+ min, CPU-heavy.
-        # Delay 20 min after boot so cold-start traffic and SAR seeding get the pool first.
-        async def _delayed_auto_discover():
-            # 45 min, not the 20 it used to be. The engine rule asks for >=15 min for
-            # anything scanning ais_positions, and 20 nominally cleared it — but on
-            # 2026-09-02 this call still lost a race with the cold start and the SAR
-            # seed and died on its statement_timeout, while the identical query took
-            # 86 s once the box was quiet. The scan is ~52M rows; give the boot storm
-            # room to finish first. The regular 6h task already waits 2h.
-            await asyncio.sleep(2700)
-            try:
-                await auto_discover_contractors()
-            except Exception:
-                log.exception("contractor auto-discovery failed")
-        asyncio.create_task(_delayed_auto_discover()).add_done_callback(_watch)
-        # Phase 2: request logging writer + periodic rollup + retention.
-        _geoip = load_geoip()
-        asyncio.create_task(batch_writer(_pool, _log_pipe, _geoip)).add_done_callback(_watch)
-        asyncio.create_task(_usage_rollup_task()).add_done_callback(_watch)
-        asyncio.create_task(_leak_detection_task()).add_done_callback(_watch)
-        asyncio.create_task(_log_retention_task()).add_done_callback(_watch)
         # Load paused syncs into memory cache before any sync tasks start
         await _load_paused_syncs()
-        # Verify data exists on startup (fast) — no heavy syncs during dev restarts
-        asyncio.create_task(_run_with_log(_startup_data_check, "Startup data check")).add_done_callback(_watch)
-        # Scheduled syncs — actual data refresh happens here, not on boot
-        asyncio.create_task(_weekly_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_argo_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_argo_history_floor_task()).add_done_callback(_watch)
-        asyncio.create_task(_argo_history_backfill_task()).add_done_callback(_watch)
-        asyncio.create_task(_onc_sensor_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_onc_instruments_daily_task()).add_done_callback(_watch)
-        asyncio.create_task(_onc_sparkline_task()).add_done_callback(_watch)
-        asyncio.create_task(_onc_adcp_task()).add_done_callback(_watch)
-        asyncio.create_task(_onc_ctd_task()).add_done_callback(_watch)
-        asyncio.create_task(_onc_ctd_series_task()).add_done_callback(_watch)
-        asyncio.create_task(_usgs_earthquakes_task()).add_done_callback(_watch)
-        asyncio.create_task(_oceansites_obs_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_land_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_monitoring_density_refresh_task()).add_done_callback(_watch)
-        asyncio.create_task(_sio_bic_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_slow_sources_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_air_quality_readings_task()).add_done_callback(_watch)
-        # ⛔ AIS retired 2026-09-14 on Michal's instruction. The ingest service is
-        # stopped and disabled on the VPS, every ais_positions partition dropped
-        # (39 GB), and ais_vessels with them. Neither task is registered here any
-        # more: partition maintenance would create an empty weekly partition
-        # forever, and SAR×AIS correlation would keep writing rows that can only
-        # say "ambiguous" — in 161,875 correlated detections it produced 0
-        # "matched" and exactly 1 "dark", which is why the feed was retired.
-        # The modules stay on disk; re-registering these two lines is the whole
-        # of bringing it back.
-        asyncio.create_task(_acoustic_stations_task()).add_done_callback(_watch)
-        asyncio.create_task(_acoustic_soundscape_task()).add_done_callback(_watch)
-        asyncio.create_task(_offshore_activities_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_currents_bake_task()).add_done_callback(_watch)
-        asyncio.create_task(_currents_backfill_task()).add_done_callback(_watch)
-        asyncio.create_task(_woa_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_woa_backfill_task()).add_done_callback(_watch)
-        asyncio.create_task(_oxygen_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_carbon_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_acidification_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_chi_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_coral_exposure_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_socat_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_seabed_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_cascade_startup_bake()).add_done_callback(_watch)
-        asyncio.create_task(_bathymetry_grid_bake_task()).add_done_callback(_watch)
-        asyncio.create_task(_worms_sync_task()).add_done_callback(_watch)
-        asyncio.create_task(_log_noise_risk_count_on_startup()).add_done_callback(_watch)
-        # Watchdog: kill orphan postgres backends running > 60 min, warn > 15 min.
-        # Catches zombie queries left behind by service restarts / Python crashes.
-        asyncio.create_task(_query_watchdog_task()).add_done_callback(_watch)
-        # Kick off tile pre-bake on startup so viewers don't hit cold on-demand tiles.
-        # schedule_bake is debounced — safe to call even if syncs trigger it again soon.
-        import offshore_tile_baker as _baker
-        asyncio.create_task(_baker.schedule_bake(_pool)).add_done_callback(_watch)
+        # ── Registry-driven task startup ──────────────────────────────────
+        # ABYSSAL_ROLE ("web" | "worker" | "all", default "all") decides which
+        # of the tasks in scheduling.TASK_REGISTRY actually start. "all" is
+        # today's behaviour (every task below started, unconditionally) —
+        # the default, so local dev and the pre-split test suite are
+        # unaffected by this switch's existence. See scheduling.py's module
+        # docstring for how this relates to ABYSSAL_STANDBY above (a fourth,
+        # orthogonal axis: "run zero tasks", not a fourth role) and for the
+        # per-task web/worker/both rationale — that IS the wiring; this loop
+        # only asks it "for this role, what should start".
+        _geoip = load_geoip()
+        role = os.environ.get("ABYSSAL_ROLE", "all")
+        ctx = TaskContext(log_pipe=_log_pipe, geoip=_geoip)
+        wanted = tasks_for_role(role)
+        for spec in wanted:
+            asyncio.create_task(spec.factory(ctx), name=spec.name).add_done_callback(_watch)
+        log.info("ABYSSAL_ROLE=%s — started %d background task(s): %s",
+                 role, len(wanted), ", ".join(t.name for t in wanted))
     yield
     await _pool.close()
 
@@ -2039,149 +1041,21 @@ _SOURCE_TO_ACTION: dict[str, str] = {
 }
 
 
-_SYNC_SOURCES = {
-    "arcgis":           lambda: isa.sync_arcgis_group(),
-    "obis":             lambda: biodiversity.sync_biodiversity_hotspots(),
-    "argo":             lambda: sensors.sync_argo_profiles(),
-    "vents":            lambda: seafloor.sync_hydrothermal_vents(),
-    "eez":              lambda: geo_context.sync_eez(),
-    "protected-sites":  lambda: geo_context.sync_protected_marine_sites(),
-    "claim-enrichment": lambda: isa.enrich_claim_boundaries(),
-    "species-images":   lambda: biodiversity.enrich_species_images(batch_size=2000),
-    "iucn-backfill":    lambda: biodiversity.backfill_iucn_categories(),
-    "hotspot-grid":     lambda: biodiversity.rebuild_hotspot_grid(),
-    "species-cache":    lambda: biodiversity.refresh_species_cache_logged(),
-    "plumes":           lambda: _compute_plume_paths(_pool, max_batch=500),
-    "oceansites":       lambda: sensors.sync_oceansites(),
-    "oceansites-obs":   lambda: sensors.sync_oceansites_obs(),
-    "argo-recent-history": lambda: sensors.sync_argo_recent_history(),
-    # ⛔ Registered so the action can be un-paused. _argo_history_backfill_task
-    # calls _run_unless_paused("argo-backfill", …); an action absent from this
-    # registry can still be paused, but has no force-sync button — so an
-    # operator who stopped the walk would have no way to start it again.
-    "argo-backfill":    lambda: _run_argo_history_backfill(),
-    "onc":              lambda: onc.sync_onc(),
-    "onc-sensors":      lambda: onc.sync_onc_sensors(),
-    "noise-risk":       lambda: acoustic.sync_noise_risk(),
-    "chess":            lambda: biodiversity.sync_chess(),
-    "seamounts":        lambda: seafloor.sync_seamounts(),
-    "cables":           lambda: cables.sync_submarine_cables(force=True),
-    "onc-cables":       lambda: cables.sync_onc_cables(),
-    "ooi-cables":       lambda: cables.sync_ooi_cables(),
-    "noaa-cables":      lambda: cables.sync_noaa_cables(force=True),
-    "nz-cables":        lambda: cables.sync_nz_cables(force=True),
-    "au-cables":        lambda: cables.sync_au_cables(force=True),
-    "onc-instruments":  lambda: onc.sync_onc_instruments(skip_guard_hours=0),
-    "onc-instruments-enrich": lambda: onc.enrich_onc_instruments(),
-    "ports":            lambda: geo_context.sync_port_locations(force=True),
-    "air-quality-readings": lambda: _sync_air_quality_readings(),
-    # ⛔ force=True on every cadence-gated land sync. Without it these entries
-    # hit the same cadence gate as the scheduler and returned 0, while the
-    # admin panel and the Mac staleness monitor both reported success.
-    # `force` never reaches a Blocked source — should_sync() checks Blocked
-    # first — so land-wdpa still refuses, which is the intended answer.
-    "land-mining":      lambda: _sync_mining_footprints(force=True),
-    "land-kbas":        lambda: _sync_kbas(force=True),
-    "land-wdpa":        lambda: _sync_wdpa(force=True),
-    "land-tailings":    lambda: _sync_tailings(force=True),
-    "land-tailings-enrich": lambda: _enrich_tailings_from_grid(force=True),
-    "land-fires":       lambda: _sync_active_fires(),
-    "land-air-quality": lambda: _sync_air_quality(),
-    "land-landslides":  lambda: _sync_landslides(force=True),
-    "land-dams":        lambda: _sync_dams(force=True),
-    "land-water-risk":  lambda: _sync_water_risk(force=True),
-    "land-all":         lambda: sync_all_land_sources(),
-    "land-overlaps":    lambda: refresh_overlap_views(),
-    "vessel-events":          lambda: sync_vessel_events_stub(),
-    "contractor-vessels":     lambda: auto_discover_contractors(),
-    "ais-aois":               lambda: run_aoi_seed(),
-    "ais-partitions":         lambda: run_partition_maintenance(),
-    "vessel-reclassify":      lambda: __import__("sar_correlator").reclassify_dark_events(),
-    "onc-sparklines":         lambda: onc.sync_onc_sparklines(),
-    "onc-adcp":               lambda: onc.sync_onc_adcp_strips(),
-    "onc-ctd":                lambda: onc.sync_onc_ctd_profiles(),
-    "onc-ctd-series":         lambda: onc.sync_onc_ctd_series(),
-    "usgs-earthquakes":       lambda: onc.sync_usgs_earthquakes(),
-    "monitoring-density-grid": lambda: refresh_monitoring_density(),
-    "wod":              lambda: _sync_wod_profiles(),
-    "pangaea":          lambda: _sync_pangaea_records(),
-    "bco-dmo":          lambda: _sync_bco_dmo(),
-    "noaa":             lambda: _sync_noaa_datasets(),
-    "seamap":           lambda: _sync_obis_seamap(),
-    "ncei":             lambda: _sync_ncei_icoads(),
-    "sio-bic":          lambda: biodiversity.sync_sio_bic(),
-    "deepdata":         lambda: biodiversity.sync_deepdata(),
-    "deepdata-stations": lambda: biodiversity.sync_deepdata_stations(),
-    "mbari-vars":       lambda: biodiversity.sync_mbari_vars(),
-    "noaa-corals":      lambda: biodiversity.sync_noaa_corals(),
-    "worms":            lambda: biodiversity.sync_worms_taxa(force=True),
-    "acoustic-stations":   lambda: acoustic.sync_acoustic_stations(force=True),
-    "acoustic-soundscape": lambda: acoustic.sync_acoustic_soundscape(force=True),
-    "cchdo":            lambda: _sync_cchdo_cruises(),
-    "all":              lambda: _sync_all_sources(),
-    "emodnet-offshore":         lambda: offshore.sync_emodnet_offshore(),
-    "boem-offshore":            lambda: offshore.sync_boem_offshore(),
-    "crown-estate-wind":        lambda: offshore.sync_crown_estate_wind(),
-    "nopta-petroleum":          lambda: offshore.sync_nopta_petroleum(),
-    "nzpam-offshore":           lambda: offshore.sync_nzpam_offshore(),
-    "anp-brazil":               lambda: offshore.sync_anp_brazil(),
-    "sodir-petroleum":          lambda: offshore.sync_sodir_petroleum(),
-    "nsta-petroleum":           lambda: offshore.sync_nsta_petroleum(),
-    "cnh-mexico":               lambda: offshore.sync_cnh_mexico(),
-    "crown-estate-scotland":    lambda: offshore.sync_crown_estate_scotland(),
-    "esdm-indonesia":           lambda: offshore.sync_esdm_indonesia(),
-    "pasa-sa":                  lambda: offshore.sync_pasa_sa(),
-    "mra-png-dsm":              lambda: offshore.sync_mra_png_dsm(),
-    "mme-namibia-dsm":          lambda: offshore.sync_mme_nam_dsm(),
-    "sbma-cook-islands":        lambda: offshore.sync_sbma_ck(),
-    "cnsopb":                   lambda: offshore.sync_cnsopb_petroleum(),
-    "cnlopb":                   lambda: offshore.sync_cnlopb_petroleum(),
-    "dea-dk":                   lambda: offshore.sync_dea_dk_petroleum(),
-    "sodir-co2":               lambda: offshore.sync_sodir_co2(),
-    "nsta-co2":                lambda: offshore.sync_nsta_co2(),
-    "anh-colombia":            lambda: offshore.sync_anh_colombia(),
-    "meei-trinidad":           lambda: offshore.sync_meei_trinidad(),
-    "pad-ireland":             lambda: offshore.sync_pad_ireland(),
-    "perupetro":               lambda: offshore.sync_perupetro(),
-    "petrocom-ghana":          lambda: offshore.sync_petrocom_ghana(),
-    "pmp-guyana":              lambda: offshore.sync_pmp_guyana(),
-    "reset-inat-images":       lambda: biodiversity.reset_inat_images_for_reverification(),
-    "currents-surface": lambda: fields.currents.sync_currents("surface"),
-    "currents-1000m":   lambda: fields.currents.sync_currents("1000m"),
-    "currents-backfill": lambda: _currents_backfill_task(force=True),
-    "woa-climatology": lambda: fields.climatology.sync_woa(force=True),
-    "glodap-carbon": lambda: fields.carbon.sync_glodap_carbon(force=True),
-    "acidification": lambda: fields.carbon.sync_acidification(force=True),
-    "chi": lambda: fields.habitat.sync_chi_impact(force=True),
-    "socat-co2": lambda: fields.carbon.sync_socat_co2(force=True),
-    "seabed": lambda: fields.habitat.sync_seabed(force=True),
-    "oxygen-deox": lambda: fields.climatology.sync_oxygen_deox(force=True),
-    "wod-oxygen": lambda: geochem.sync_wod_oxygen(force=True),
-    "memento": lambda: geochem.sync_memento(force=True),
-    # Derived-only: no credentials, no scrape. Safe to re-run at any time.
-    "memento-flags": lambda: geochem.recompute_memento_atmospheric(),
-    "geotraces": lambda: geochem.sync_geotraces(force=True),
-    "arctic-rivers": lambda: arctic.sync_arctic_rivers_logged(),
-    "permafrost-thaw": lambda: arctic.sync_permafrost_thaw_logged(force=True),
-    "seaflea": lambda: geochem.sync_seaflea(force=True),
-    "sios":    lambda: arctic.sync_sios(force=True),
-    "arcade":  lambda: arctic.sync_arcade(force=True),
-    "bathymetry-stats": lambda: seafloor.sync_bathymetry_stats(force=True),
-    "cascade": lambda: arctic.sync_cascade(force=True),
-    "mosaic": lambda: geochem.sync_mosaic(force=True),
-    "vme-sdm": lambda: fields.habitat.sync_vme(force=True),
-    "coral-acid-exposure": lambda: fields.carbon.sync_coral_exposure(force=True),
-}
+# The force-sync source table moved to sync_sources.py so the WORKER process
+# can reach it without importing main.py (which would construct the FastAPI
+# app). Re-exported under the original private name: routers/admin_layers_api.py
+# and scripts/refactor_gate.py both read `main._SYNC_SOURCES`.
+from sync_sources import SYNC_SOURCES as _SYNC_SOURCES
 
 
-_running_syncs: dict[str, float] = {}  # source → start timestamp (monotonic)
-
-# Serialize ALL sync work — only one sync runs at a time across both the
-# weekly-chain path (_run_unless_paused) and the admin force-sync path
-# (_run_tracked). Prevents the CPU pile-up that happens when concurrent
-# admin Force Syncs (or a manual sync racing the weekly chain) stack
-# expensive spatial joins on top of each other.
-_sync_lock = asyncio.Lock()
+# ⛔ There is no `_running_syncs` dict any more, and reintroducing one would
+# undo this whole change. It was process-local; after the web/worker split the
+# forced sync runs in the worker while this endpoint is served by web, so a dict
+# in either process can only describe half the system. The state lives in the
+# `running_syncs` table, written by scheduling._held_sync_lock.
+#
+# _sync_lock (and the _held_sync_lock helper in scheduling.py) still serializes
+# syncs WITHIN a process — see that module's comment on _sync_lock.
 
 # Cap CPU-heavy read endpoints (e.g. /v1/seo/concession/{isa_id}, which runs
 # 5 spatial subqueries including a 5M-row ST_DWithin against
@@ -2191,35 +1065,48 @@ _sync_lock = asyncio.Lock()
 _heavy_query_sem = asyncio.Semaphore(1)
 
 
-async def _run_tracked(source: str, fn):
-    """Wrap a sync coroutine. Serialized via _sync_lock so only one sync
-    runs at a time across admin force-sync and weekly-chain paths."""
-    async with _sync_lock:
-        _running_syncs[source] = time.monotonic()
-        try:
-            await fn
-        finally:
-            _running_syncs.pop(source, None)
-
-
 @app.get("/admin/sync/running", dependencies=[Depends(_require_admin_token)])
 async def admin_sync_running():
-    import time
-    return {
-        source: round(time.monotonic() - started)
-        for source, started in _running_syncs.items()
-    }
+    """Running, queued and stale syncs — across BOTH processes.
+
+    ⚠️ Shape contract, kept on purpose: the top level is still
+    `{source: seconds}` for syncs that are demonstrably running, because the
+    staleness monitor on Michal's Mac polls this endpoint every 30 s for up to
+    20 minutes and parses exactly that. The two new facts arrive as sibling
+    keys, `_queued` and `_stale` — chosen over a second endpoint precisely
+    because the monitor polls THIS one, and a queued-but-never-claimed request
+    that only showed up somewhere else would still be invisible to it. No sync
+    source name begins with an underscore, so the keys cannot collide.
+
+    See sync_queue.running_snapshot for why a stale row is reported rather than
+    trusted or deleted.
+    """
+    return await sync_queue.running_snapshot()
 
 
 @app.post("/admin/sync/{source}", dependencies=[Depends(_require_admin_token)])
 async def admin_sync_source(source: str):
+    """Queue a force-sync for the worker. ⛔ Does NOT run it here.
+
+    This used to be `asyncio.create_task(_run_tracked(source, fn()))`, which
+    after the web/worker split would run a multi-gigabyte bake inside the
+    process that serves tiles — the exact starvation the split exists to
+    remove. Restoring that line re-breaks it; the guard is
+    tests/test_sync_queue.py.
+
+    ⛔ The answer is `queued`, not `started`. On 2026-09-17 this endpoint
+    replied `{"status":"started"}` for sio-bic, nothing ever appeared in
+    /admin/sync/running, and the data never moved — the operator had no way to
+    tell "queued" from "lost". A web process that has not started anything must
+    not claim it has.
+    """
     fn = _SYNC_SOURCES.get(source)
     if not fn:
         raise HTTPException(status_code=404, detail=f"Unknown source '{source}'. Valid: {list(_SYNC_SOURCES)}")
     if await is_sync_paused(source):
         raise HTTPException(status_code=409, detail=f"Sync '{source}' is paused. Unpause it first.")
-    asyncio.create_task(_run_tracked(source, fn()))
-    return {"status": "started", "source": source}
+    request_id = await sync_queue.enqueue(source)
+    return {"status": "queued", "source": source, "request_id": request_id}
 
 
 @app.post("/admin/sync/{source}/pause", dependencies=[Depends(_require_admin_token)])

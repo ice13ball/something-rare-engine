@@ -454,6 +454,23 @@ async def test_a_dropped_connection_is_retried_not_fatal(pool, monkeypatch):
     assert calls["n"] >= 2, "the failing request was never retried at all"
 
 
+@pytest.mark.skip(
+    reason="Source-shape guard, disabled 2026-09-18 by Michal's call. Every "
+           "assertion below reads SOURCE TEXT, not behaviour: hasattr on a "
+           "module, a substring search in inspect.getsource(lifespan), a "
+           "substring search for 'while True'. The middle one became "
+           "unsatisfiable by construction when the web/worker split replaced "
+           "43 hand-written create_task calls with one loop over TASK_REGISTRY "
+           "— lifespan no longer NAMES any task, so no task name can appear in "
+           "its source. A guard that a behaviour-preserving refactor turns red "
+           "is measuring where the code lives. What it was protecting is now "
+           "checked directly against production instead (see "
+           "docs/ops/2026-09-18-web-worker-split.md): that argo_profiles "
+           "coverage actually spans ARGO_HISTORY_FLOOR_DAYS, which is the "
+           "outcome, not the wiring. ⚠️ The cadence itself is therefore "
+           "UNGUARDED in the suite — if the floor task is ever dropped from "
+           "TASK_REGISTRY, nothing here will say so."
+)
 def test_the_floor_has_a_cadence():
     """⛔ A constant is not a guarantee until something runs on a schedule.
 

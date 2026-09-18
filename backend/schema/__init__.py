@@ -27,7 +27,7 @@ from schema.arctic import ensure_mosaic, ensure_cascade, ensure_sios, ensure_arc
 from schema.biodiversity import ensure_biodiversity_enrichment, ensure_hotspot_grid, ensure_noise_cetacean_grids, ensure_vents_and_chess, ensure_sio_bic, ensure_deepdata, ensure_mbari, ensure_noaa_corals, ensure_worms
 from schema.blog import ensure_blog
 from schema.cables import ensure_cables
-from schema.core import ensure_core, ensure_argo_long_form, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback
+from schema.core import ensure_core, ensure_argo_long_form, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback, ensure_sync_queue
 from schema.fields import ensure_vme
 from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea
 from schema.isa import ensure_mining_contracts_columns, ensure_isa_seed, ISA_CONTRACT_SEED
@@ -83,5 +83,8 @@ async def ensure_schema() -> None:
         await ensure_arctic_catchments(conn)  # arctic_catchments
         await ensure_bathymetry_stats(conn)  # bathymetry_stats, gmrt_area_cache
         await ensure_vme(conn)  # vme_cells, vme_models, vme_bake_control, vme_exposure_cells
+        # Appended last, deliberately: these two tables depend on nothing above
+        # them, so the load-bearing order of every existing step is untouched.
+        await ensure_sync_queue(conn)  # sync_requests, running_syncs (web/worker sync hand-off)
 
     log.info("Schema ready")

@@ -14,10 +14,11 @@ via xarray, a separate question). The real `np.load` call sites, and the verdict
         indexing); its only writer, bake_bathymetry_grid(), runs once from a
         skip-if-present startup task with no admin Force-Sync route wired to it.
 
-    backend/services/chi_impact.py:_load_grid                LEFT AS-IS, reported
-        grid.npy is written in place (np.save, no tmp+rename) by the same bake that the
-        admin "chi" Force-Sync action can trigger while another request holds the
-        previous grid live — a mmap'd reader could see a torn read mid-rewrite.
+    backend/services/chi_impact.py:_load_grid                LEFT EAGER (reason updated)
+        The original reason — grid.npy written in place, no tmp+rename — was FIXED on
+        2026-09-18 (see backend/tests/test_cache_file_swap_race.py); the writer now goes
+        through services/cache_swap. It stays eager on size grounds instead: ~26 MB, with
+        no measured RSS win of the kind the ~104 MB bathymetry grid showed.
 
     backend/services/currents_grid_export.py:_decode_depth    LEFT AS-IS, reported
         latest.npz is a zip archive, not a flat .npy; mmap_mode does not apply the same
@@ -65,17 +66,15 @@ def test_bathymetry_grid_export_load_grid_uses_mmap_mode():
 
 
 def test_chi_impact_load_grid_does_not_use_mmap_mode():
-    """⛔ Do NOT flip this on without first making the writer atomic. grid.npy is
-    rewritten in place (plain np.save, no tmp+rename) by the same bake_all() the
-    admin "chi" Force-Sync action can trigger live — see the comment at the call
-    site. Guards against someone "fixing" this file to match its sibling above
-    without also fixing the write path underneath it."""
+    """Left eager on SIZE grounds, not safety grounds any more: the writer went atomic
+    on 2026-09-18, so a torn read is no longer the objection. grid.npy is ~26 MB and
+    showed none of the RSS win the ~104 MB bathymetry grid did. Flipping it on is a
+    measurable-benefit question now — make the measurement before changing this."""
     src = _code_only(chi_impact._load_grid)
     assert "mmap_mode" not in src, (
-        "chi_impact._load_grid now passes mmap_mode, but its writer (np.save "
-        "directly to grid.npy) was never made atomic — a live Force-Sync rebake "
-        "could hand a memory-mapped reader a torn read. Make the write atomic "
-        "(tempfile + os.replace, as acidification.py's _save_png does) first."
+        "chi_impact._load_grid now passes mmap_mode. The writer IS atomic, so this "
+        "is no longer unsafe — but it was left eager deliberately (~26 MB, no "
+        "measured RSS win). Record the measurement that justifies the flip."
     )
 
 

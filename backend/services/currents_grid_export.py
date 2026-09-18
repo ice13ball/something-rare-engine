@@ -24,11 +24,16 @@ from __future__ import annotations
 import json
 import numpy as np
 from PIL import Image
+from services import cache_swap
 from services.currents_bake import UNSCALE_MIN, UNSCALE_MAX, CACHE_DIR
 
 _SPAN = UNSCALE_MAX - UNSCALE_MIN
 _DEPTH_DIR = {0: "surface", 1000: "1000m"}
-_cache: "dict[str, _Grid | None]" = {}
+#: "grid" -> (stamp-of-every-file-read, grid-or-None). currents_bake writes these
+#: atomically already, but it now runs in the WORKER process while this cache
+#: lives in the WEB one: reset_cache() after a bake never reaches this dict, so
+#: without the stamp the web process serves the first day it ever loaded, forever.
+_cache: "dict[str, tuple[tuple, _Grid | None]]" = {}
 
 
 class _Grid:
@@ -96,12 +101,29 @@ def _decode_depth(depth: int):
     return meta, u, v
 
 
+def _grid_stamp() -> tuple:
+    """Identity of every file _decode_depth may read, across both depths.
+
+    Cheap (6 os.stat calls, no reads) and deliberately covers latest.npz even when
+    the last load fell back to the texture — the npz APPEARING is itself a change
+    the reader must notice, or a float-precision bake would keep being served as
+    "uint8-texture" through GRID_PRECISION.
+    """
+    return cache_swap.file_stamp(
+        CACHE_DIR / d / name
+        for d in _DEPTH_DIR.values()
+        for name in ("latest.json", "latest.npz", "latest.png")
+    )
+
+
 def _load_grid(var: str = "u") -> "_Grid | None":
-    if "grid" in _cache:
-        return _cache["grid"]
+    stamp = _grid_stamp()           # before the reads, so a swap mid-load re-reads next time
+    cached = _cache.get("grid")
+    if cached is not None and cached[0] == stamp:
+        return cached[1]
     surf = _decode_depth(0)
     if surf is None:                # currents bake never ran
-        _cache["grid"] = None
+        _cache["grid"] = (stamp, None)
         return None
     meta, u0, v0 = surf
     lats, lons = _axes_from_meta(meta)
@@ -113,7 +135,7 @@ def _load_grid(var: str = "u") -> "_Grid | None":
         u_by[1000], v_by[1000] = u1, v1
         depths.append(1000)
     g = _Grid(lats, lons, depths, u_by, v_by)
-    _cache["grid"] = g
+    _cache["grid"] = (stamp, g)
     return g
 
 

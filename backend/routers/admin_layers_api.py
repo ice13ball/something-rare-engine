@@ -209,11 +209,16 @@ async def ops_sync(source: str, admin=Depends(require_super_admin)):
         raise HTTPException(404, f"unknown source {source!r}")
     if await is_sync_paused(source):
         raise HTTPException(409, f"sync {source!r} is paused; unpause first")
-    import asyncio
-    asyncio.create_task(main._run_tracked(source, fn()))
+    # ⛔ Same hand-off as POST /admin/sync/{source}: queue it for the worker,
+    # never run it in this (web) process. This is the SECOND force-sync entry
+    # point — the org-admin panel's — and it had the identical
+    # `create_task(_run_tracked(...))` line. Fixing only one of the two would
+    # have left the starvation reachable from the UI most operators use.
+    import sync_queue
+    request_id = await sync_queue.enqueue(source, requested_by=admin["username"])
     async with _db.pool.acquire() as conn:
         await audit.write_audit(conn, admin["username"], "force_sync", source, None)
-    return {"status": "started", "source": source}
+    return {"status": "queued", "source": source, "request_id": request_id}
 
 
 @router.post("/ops/pause/{source}")

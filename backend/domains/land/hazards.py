@@ -80,7 +80,7 @@ def _firms_instant(acq_date, acq_time: "str | None"):
                     tzinfo=timezone.utc)
 _FIRMS_CONFIDENCE = {"l": "Low", "n": "Nominal", "h": "High"}
 
-async def _sync_active_fires() -> int:
+async def _sync_active_fires(force: bool = False) -> int:
     """
     Fetch active fires from NASA FIRMS API (last 24h, global VIIRS).
     Queries three VIIRS sensors for complete global coverage — a single
@@ -95,7 +95,14 @@ async def _sync_active_fires() -> int:
         last = await conn.fetchval(
             "SELECT last_synced_at FROM sync_log WHERE source = 'active_fires'"
         )
-        if last and (datetime.now(tz=timezone.utc) - last).total_seconds() < 3600 * 6:
+        # `force` comes from the admin Force Sync button. Without it the button
+        # hit this same 6h guard as the scheduler, returned 0, and reported
+        # success — the exact silent no-op documented for the other land
+        # entries in sync_sources.py. Found 2026-09-18 by repointing
+        # test_cadence.test_the_admin_force_sync_map_actually_forces_the_land_syncs
+        # at the file that now holds the dict; it had been slicing the wrong
+        # dict out of main.py and passing without checking anything.
+        if not force and last and (datetime.now(tz=timezone.utc) - last).total_seconds() < 3600 * 6:
             log.info("active_fires: synced %s, skipping (6h guard)", last)
             return 0
 
@@ -242,7 +249,7 @@ def _parse_openaq_dt(obj: dict | None) -> "datetime | None":
         return None
 
 
-async def _sync_air_quality() -> int:
+async def _sync_air_quality(force: bool = False) -> int:
     """
     Fetch air quality station locations + latest readings from OpenAQ v3.
     Docs: https://docs.openaq.org/
@@ -251,7 +258,8 @@ async def _sync_air_quality() -> int:
         last = await conn.fetchval(
             "SELECT last_synced_at FROM sync_log WHERE source = 'air_quality'"
         )
-        if last and (datetime.now(tz=timezone.utc) - last).total_seconds() < 3600 * 12:
+        # See _sync_active_fires above — same silently-ignored Force Sync.
+        if not force and last and (datetime.now(tz=timezone.utc) - last).total_seconds() < 3600 * 12:
             log.info("air_quality: synced %s, skipping (12h guard)", last)
             return 0
 

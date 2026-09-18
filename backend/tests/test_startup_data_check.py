@@ -43,17 +43,21 @@ async def pool():
 
 @pytest.mark.asyncio
 async def test_every_startup_check_table_actually_exists(pool, caplog):
-    import main
+    # The task bodies moved from main.py to scheduling.py in the web/worker
+    # split; only the import changed. This test still EXECUTES the check
+    # against a real database and reads the log lines it emits, so it stays.
+    import db
+    import scheduling
 
-    main._pool = pool
+    db.pool = pool
 
-    with caplog.at_level(logging.INFO, logger="main"):
-        await main._startup_data_check()
+    with caplog.at_level(logging.INFO, logger="scheduling"):
+        await scheduling._startup_data_check()
 
     checked = [
         m.group(1)
         for r in caplog.records
-        if r.name == "main" and (m := _LOG_RE.match(r.getMessage()))
+        if r.name == "scheduling" and (m := _LOG_RE.match(r.getMessage()))
     ]
     assert checked, "no 'startup check: ...' log lines were emitted — did the function run at all?"
 

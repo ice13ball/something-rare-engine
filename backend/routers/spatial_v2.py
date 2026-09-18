@@ -20,6 +20,7 @@ import asyncpg
 import db
 import raster_tiles
 from auth import get_api_key
+from services import cache_swap
 from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from PIL import Image
 from pydantic import BaseModel, Field, model_validator
@@ -96,10 +97,11 @@ def _cache_put(key: str, tile: bytes | None) -> None:
     _mem_put(key, tile)
     p = _disk_path(key)
     try:
-        p.parent.mkdir(parents=True, exist_ok=True)
-        tmp = p.with_suffix(".tmp")
-        tmp.write_bytes(tile if tile is not None else b"")
-        tmp.rename(p)
+        # ⛔ NOT a fixed "<name>.tmp": the rename was always atomic, but the temp
+        # file was not private. Two processes (web + worker share these dirs since
+        # the role split) writing the same tile would interleave into one .tmp and
+        # then rename that mixture into place, intact-looking and wrong.
+        cache_swap.atomic_write_bytes(p, tile if tile is not None else b"")
     except OSError as exc:
         log.warning("tile disk cache write failed: %s", exc)
 
@@ -200,10 +202,8 @@ def _raster_put(z: int, x: int, y: int, filter_key: str, png: bytes) -> None:
         _RASTER_MEM.popitem(last=False)
     p = _raster_disk_path(z, x, y, filter_key)
     try:
-        p.parent.mkdir(parents=True, exist_ok=True)
-        tmp = p.with_suffix(".tmp")
-        tmp.write_bytes(png)
-        tmp.rename(p)
+        # Private temp name, same directory, then os.replace — see _cache_put.
+        cache_swap.atomic_write_bytes(p, png)
     except OSError as exc:
         log.warning("raster disk cache write failed: %s", exc)
 

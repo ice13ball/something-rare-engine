@@ -175,14 +175,21 @@ def _load_grid(var):
               or _glob.glob(str(glodap_carbon.RAW_DIR / cfg["nc_file"]))
     if not matches:
         _GRID_CACHE[var] = None; return None
-    ds = xr.open_dataset(matches[0])
-    depth_name = "Depth" if "Depth" in ds.variables else "depth_surface"
-    arr = np.asarray(ds[cfg["nc_var"]].values, dtype="float32")
-    while arr.ndim > 3:
-        arr = arr.squeeze(axis=0)
-    lats = np.asarray(ds["lat"].values, dtype="float64")
-    lons = np.asarray(ds["lon"].values, dtype="float64")
-    depths = np.asarray(ds[depth_name].values, dtype="float64")
+    # `with` releases the Dataset (file handle + its own decoded-array cache) the moment the
+    # needed numpy arrays are copied out, instead of relying on `ds` falling out of scope at
+    # function return. Measured 2026-09-18: this does NOT lower peak RSS for this grid size
+    # (~17 MB/variable at real 33x180x360 resolution) — CPython's refcounting already closes
+    # the file immediately once `ds` is unreferenced, no dask/chunks involved. It is a
+    # correctness hygiene fix only (deterministic close even if an exception fires between
+    # open and read), kept because it is free and was inconsistent with `_aux_grid` below.
+    with xr.open_dataset(matches[0]) as ds:
+        depth_name = "Depth" if "Depth" in ds.variables else "depth_surface"
+        arr = np.asarray(ds[cfg["nc_var"]].values, dtype="float32")
+        while arr.ndim > 3:
+            arr = arr.squeeze(axis=0)
+        lats = np.asarray(ds["lat"].values, dtype="float64")
+        lons = np.asarray(ds["lon"].values, dtype="float64")
+        depths = np.asarray(ds[depth_name].values, dtype="float64")
     arr, lons = glodap_carbon.normalize_lon(arr, lons)
     g = glodap_carbon._Grid(lats, lons, depths, arr)
     _GRID_CACHE[var] = g
@@ -228,12 +235,14 @@ def _aux_grid(fn: str, var: str):
     if not matches:
         return None
     import xarray as xr  # lazy — heavy, only imported once a real file is found
-    ds = xr.open_dataset(matches[0])
-    arr = np.asarray(ds[var].values, dtype="float64")
-    while arr.ndim > 3:
-        arr = arr.squeeze(axis=0)
-    lons = np.asarray(ds["lon"].values, dtype="float64")
-    ds.close()
+    # `with` instead of the previous open()/close() pair: identical effect when the
+    # function runs to completion, but the file is also released if np.asarray/.values
+    # raises partway through — the explicit ds.close() below it would have been skipped.
+    with xr.open_dataset(matches[0]) as ds:
+        arr = np.asarray(ds[var].values, dtype="float64")
+        while arr.ndim > 3:
+            arr = arr.squeeze(axis=0)
+        lons = np.asarray(ds["lon"].values, dtype="float64")
     arr, _ = glodap_carbon.normalize_lon(arr, lons)
     return arr
 

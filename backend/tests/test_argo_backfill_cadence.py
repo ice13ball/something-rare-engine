@@ -38,27 +38,37 @@ def test_the_long_walk_has_a_cadence():
     `sync_argo_profiles_backfill` is resumable, chunked, rate-limit-aware and
     lock-protected — and none of that mattered, because the only caller was a
     human with curl. This asserts something starts it on a schedule.
+
+    2026-09-18: the task moved from `main.py` (43 literal
+    `asyncio.create_task` call sites in `lifespan()`) into
+    `scheduling.TASK_REGISTRY` (one generic loop, driven by data) as part of
+    the web/worker process split. The guarantee this test cares about —
+    something with a `while True` cadence, wired so it actually starts —
+    now lives one level up: in the registry, not in `lifespan()`'s source.
     """
-    import inspect
+    import scheduling
 
-    import main
-
-    assert hasattr(main, "_argo_history_backfill_task"), (
+    names = {t.name for t in scheduling.TASK_REGISTRY}
+    assert "argo-history-backfill" in names, (
         "there is no periodic task for the full-history walk — closing the "
         "1997..today range depends on someone remembering to POST forty times")
 
-    lifespan = inspect.getsource(main.lifespan)
-    assert "_argo_history_backfill_task" in lifespan, (
-        "the backfill task is defined but never started, so the eighteen-year "
-        "hole is closed by nothing at all")
+    # Reachable under role "worker" (and therefore "all", the default) — not
+    # just present in the registry with no role that ever starts it.
+    worker_names = {t.name for t in scheduling.tasks_for_role("worker")}
+    assert "argo-history-backfill" in worker_names, (
+        "the task is registered but not wired to any role that actually "
+        "starts it — present in TASK_REGISTRY is not the same as scheduled")
 
-    body = inspect.getsource(main._argo_history_backfill_task)
-    assert "while True" in body, "the task runs once and exits — that is not a cadence"
-
-    runner = inspect.getsource(main._run_argo_history_backfill)
-    assert "sync_argo_profiles_backfill" in runner, (
-        "the task has a cadence but calls the wrong walk — the six-month "
-        "top-up (sync_argo_recent_history) never touches 2008..2025")
+    # 2026-09-18: two further assertions lived here and read SOURCE TEXT —
+    # "while True" in inspect.getsource(_argo_history_backfill_task) and
+    # "sync_argo_profiles_backfill" in inspect.getsource(
+    # _run_argo_history_backfill). Both were removed under Michal's rule that a
+    # guard polices data, not code shape. The two assertions above survive
+    # because they read the registry as DATA — objects, not text.
+    # ⚠️ What went unguarded with them: that the task body loops rather than
+    # running once, and that it drives the FULL-history walk rather than the
+    # six-month top-up. Nothing in the suite says so now.
 
 
 def test_a_pass_does_not_run_back_to_back_with_the_next_one():
@@ -70,11 +80,11 @@ def test_a_pass_does_not_run_back_to_back_with_the_next_one():
     An interval shorter than the budget would mean the walk is essentially
     always holding the lock.
     """
-    import main
+    import scheduling
 
-    assert main.ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS > main.ARGO_HISTORY_BACKFILL_BUDGET_SECONDS * 2, (
-        f"a {main.ARGO_HISTORY_BACKFILL_BUDGET_SECONDS}s budget every "
-        f"{main.ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS}s leaves no room for the "
+    assert scheduling.ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS > scheduling.ARGO_HISTORY_BACKFILL_BUDGET_SECONDS * 2, (
+        f"a {scheduling.ARGO_HISTORY_BACKFILL_BUDGET_SECONDS}s budget every "
+        f"{scheduling.ARGO_HISTORY_BACKFILL_INTERVAL_SECONDS}s leaves no room for the "
         "month-boundary overrun, and this pass holds _sync_lock against every "
         "other sync while it runs")
 

@@ -172,15 +172,36 @@ def test_the_token_never_reaches_a_log_line():
 
 def test_the_sync_is_reachable_from_the_dashboard_and_from_startup():
     # ⛔ A sync nobody can trigger and nothing schedules is a sync that never
-    # runs. Both registries, plus the lifespan task.
-    main = MAIN.read_text(encoding="utf-8")
-    assert '"onc-ctd-series":         "onc-ctd-series",' in main, (
+    # runs. Both admin registries, plus the scheduled task.
+    #
+    # 2026-09-18: the 43 scheduled tasks (this one included) moved out of
+    # main.py's lifespan() into scheduling.TASK_REGISTRY as part of the
+    # web/worker process split — lifespan() now starts them through one
+    # generic loop over that registry, so "_onc_ctd_series_task()" and
+    # "asyncio.create_task(_onc_ctd_series_task())" no longer appear
+    # literally in main.py's source at all (that's not a regression: see
+    # backend/tests/test_task_registry.py, which asserts lifespan() has
+    # exactly one create_task call site precisely so a task CAN'T be wired
+    # in by hand outside the registry any more). The reachability question
+    # this test cares about — "is it wired to something that starts it" —
+    # is answered by the registry now, not by grepping main.py.
+    main_src = MAIN.read_text(encoding="utf-8")
+    assert '"onc-ctd-series":         "onc-ctd-series",' in main_src, (
         "missing from _SOURCE_TO_ACTION — the Force Sync button silently does nothing"
     )
-    assert "onc.sync_onc_ctd_series()" in main, "missing from _SYNC_SOURCES"
-    assert "_onc_ctd_series_task()" in main, "no background task creates it"
-    assert re.search(r"asyncio\.create_task\(_onc_ctd_series_task\(\)\)", main), (
-        "the task function exists but lifespan never starts it"
+    # _SYNC_SOURCES itself moved to sync_sources.py on 2026-09-18 (the worker
+    # must reach it without importing main); main.py re-exports the name, so
+    # the literal to grep for now lives in the other file.
+    sync_sources_src = (MAIN.parent / "sync_sources.py").read_text(encoding="utf-8")
+    assert "onc.sync_onc_ctd_series()" in sync_sources_src, "missing from SYNC_SOURCES"
+
+    import scheduling
+    names = {t.name for t in scheduling.TASK_REGISTRY}
+    assert "onc-ctd-series-archive" in names, "no registry entry creates it"
+    worker_names = {t.name for t in scheduling.tasks_for_role("worker")}
+    assert "onc-ctd-series-archive" in worker_names, (
+        "the task exists in the registry but is not wired to a role that "
+        "ever starts it"
     )
 
 

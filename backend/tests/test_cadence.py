@@ -96,7 +96,32 @@ GATED_LAND_SYNCS: list[tuple[str, str]] = [
 
 _MODULES = {"extractive": extractive, "hazards": hazards}
 
+# ⛔ 2026-09-18 — Michal's rule: a guard in the suite polices DATA, never CODE.
+# The four parametrised tests below and the drift check after them all read
+# inspect.getsource() of a sync function and search its text. None of them calls
+# a sync. They are disabled rather than repaired.
+#
+# ⚠️ What that leaves UNGUARDED, stated plainly because it is real: nothing in
+# the suite now checks that each of the eight land syncs consults CADENCE under
+# its own key, acts on the answer, passes a timezone-aware `now`, or forwards
+# `force`. The registry's own logic (everything above) is still fully tested —
+# what is gone is the check that the callers use it. The behavioural replacement
+# is to drive each sync with a stubbed fetch and a fake pool and assert it
+# returns without touching the table when the registry says no; that is a real
+# test per sync and is NOT written here.
+_CALL_SITE_SHAPE = (
+    "Source-shape guard, disabled 2026-09-18 under Michal's rule that a test "
+    "polices DATA, not code. The assertion is a substring search in "
+    "inspect.getsource(<sync function>) — it reads the sync's text and never "
+    "calls it, so it goes red on any behaviour-preserving edit to how the gate "
+    "is spelled or where the call sits. ⚠️ UNGUARDED now: "
+)
 
+
+@pytest.mark.skip(reason=_CALL_SITE_SHAPE + (
+    "that each land sync consults CADENCE under its OWN key. Gating `dams` on "
+    "the `tailings` window is a silent multi-month error and nothing here sees "
+    "it any more."))
 @pytest.mark.parametrize("mod_name,fn_name,source_key", GATED_LAND_SYNCS)
 def test_each_land_sync_consults_the_registry_with_its_own_key(
     mod_name, fn_name, source_key
@@ -113,6 +138,9 @@ def test_each_land_sync_consults_the_registry_with_its_own_key(
     )
 
 
+@pytest.mark.skip(reason=_CALL_SITE_SHAPE + (
+    "that a sync ACTS on the registry's answer. A sync that logs `why` and then "
+    "syncs anyway now passes the suite."))
 @pytest.mark.parametrize("mod_name,fn_name,source_key", GATED_LAND_SYNCS)
 def test_each_land_sync_returns_when_the_registry_says_no(
     mod_name, fn_name, source_key
@@ -242,8 +270,12 @@ def test_each_gated_land_sync_accepts_force(mod_name, fn_name, source_key):
 
 def test_the_admin_force_sync_map_actually_forces_the_land_syncs():
     """The bug was here: `lambda: _sync_kbas()` with no argument."""
-    src = (Path(__file__).resolve().parent.parent / "main.py").read_text()
-    block = src[src.index("_SYNC_SOURCES"):]
+    # sync_sources.py, not main.py: the dict moved there on 2026-09-18 and
+    # main.py now only re-exports the NAME. Left pointing at main.py this test
+    # still found the string "_SYNC_SOURCES" (in the import line), sliced an
+    # empty block, and passed without checking a single land entry.
+    src = (Path(__file__).resolve().parent.parent / "sync_sources.py").read_text()
+    block = src[src.index("SYNC_SOURCES: dict"):]
     block = block[:block.index("\n}\n")]
     offenders = []
     for line in block.splitlines():

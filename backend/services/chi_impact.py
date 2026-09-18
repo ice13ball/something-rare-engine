@@ -32,6 +32,8 @@ import zipfile
 
 import numpy as np
 
+from services import cache_swap
+
 log = logging.getLogger("chi_impact")
 
 CACHE_DIR = pathlib.Path(os.getenv("CHI_CACHE_DIR", "/var/cache/abyssal-chi"))
@@ -82,7 +84,10 @@ _RAMPS: dict[str, list[tuple[float, tuple[int, int, int]]]] = {
     ],
 }
 
-_GRID_CACHE: dict[str, "_Grid | None"] = {}
+#: "impact" -> (stamp-at-load-time, grid-or-None). See _load_grid() for why
+#: the stamp is taken before the load, and services/cache_swap.py for why a
+#: cached reader needs a stamp at all now that the baker is another process.
+_GRID_CACHE: dict[str, "tuple[tuple, _Grid | None]"] = {}
 
 
 class _Grid:
@@ -186,37 +191,43 @@ def _reproject_to_4326(tif_path: pathlib.Path):
 
 
 def _load_grid() -> "_Grid | None":
-    if "impact" in _GRID_CACHE:
-        return _GRID_CACHE["impact"]
     npy, metap = _npy_path(), _meta_path()
+    # Since the web/worker process split, the bake that rewrites grid.npy runs in
+    # a DIFFERENT process from the one holding this cache, and the in-process
+    # invalidation (_GRID_CACHE.pop in sync_chi_impact) never reaches it. Without
+    # a stamp check the web process would serve the pre-rebake grid until someone
+    # restarted it, saying nothing. Stamp taken before the load on purpose — a
+    # swap in between makes the stamp stale, so the next request reloads; the
+    # reverse order could pin a NEW stamp onto OLD data permanently.
+    stamp = cache_swap.file_stamp((npy, metap))
+    cached = _GRID_CACHE.get("impact")
+    if cached is not None and cached[0] == stamp:
+        return cached[1]
     if npy.exists() and metap.exists():
-        # NOT mmap_mode, on purpose: grid.npy (~26 MB, 1800x3600 float32) is written
-        # in place by np.save(npy, data) further down in this function — no
-        # tmp+rename — and the admin Force-Sync "chi" action (main.py
-        # _SYNC_SOURCES["chi"] -> sync_chi_impact(force=True) -> bake_all() ->
-        # this same _load_grid()) can run that rewrite while another request is
-        # still holding the previous grid live. A memory-mapped reader could see a
-        # torn/truncated read mid-rewrite. Needs an atomic writer (tempfile +
-        # os.replace, as acidification.py's _save_png already does) before this
-        # read can safely go lazy — reported, not fixed here (out of scope: that's
-        # a writer-side concurrency change, not a read-path optimisation).
+        # NOT mmap_mode. The writer below IS atomic now (cache_swap), so a torn
+        # read is no longer the blocker — but grid.npy is only ~26 MB and every
+        # sample() already walks it by scalar index off a fully-resident array;
+        # there is no measured win here of the kind bathymetry_grid_export's
+        # ~104 MB grid showed (58 MB RSS vs 135 MB). Left eager deliberately.
         data = np.load(npy)
         m = json.loads(metap.read_text())
         g = _Grid(np.asarray(m["lats"], dtype="float64"),
                   np.asarray(m["lons"], dtype="float64"), data)
-        _GRID_CACHE["impact"] = g
+        _GRID_CACHE["impact"] = (stamp, g)
         return g
     tif = RAW_DIR / ZIP_MEMBER
     if not tif.exists():
-        _GRID_CACHE["impact"] = None
+        _GRID_CACHE["impact"] = (stamp, None)
         return None
     data, lats, lons = _reproject_to_4326(tif)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    np.save(npy, data)
-    _meta_path().write_text(json.dumps({"lats": lats.tolist(), "lons": lons.tolist(),
-                                        "res_deg": GRID_RES_DEG}))
+    # ⛔ ATOMIC, not np.save(npy, …)/write_text: the reader above is in another
+    # process and may be mid-read. Temp file beside the target, then os.replace.
+    cache_swap.atomic_np_save(npy, data)
+    cache_swap.atomic_write_text(metap, json.dumps({"lats": lats.tolist(), "lons": lons.tolist(),
+                                                    "res_deg": GRID_RES_DEG}))
     g = _Grid(lats, lons, data)
-    _GRID_CACHE["impact"] = g
+    _GRID_CACHE["impact"] = (cache_swap.file_stamp((npy, metap)), g)
     return g
 
 
@@ -308,7 +319,10 @@ def ensure_holdings(force: bool = False) -> bool:
     finally:
         zip_path.unlink(missing_ok=True)
     tif.parent.mkdir(parents=True, exist_ok=True)
-    tif.write_bytes(data)
+    # Atomic: _load_grid()'s fallback branch opens this GeoTIFF with rasterio on
+    # the request path, and the npy unlink right below makes that branch the one
+    # a concurrent web request takes. A half-written tif there is a hard failure.
+    cache_swap.atomic_write_bytes(tif, data)
     # Invalidate the reprojected cache so a forced re-fetch re-warps from the new source.
     _npy_path().unlink(missing_ok=True)
     _meta_path().unlink(missing_ok=True)
