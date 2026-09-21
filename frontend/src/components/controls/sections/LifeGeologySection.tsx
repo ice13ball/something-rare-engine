@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useMapStore } from "../../../store/mapStore";
 import type { LayerId } from "../../../types/layers";
 import { analytics } from "../../../utils/analytics";
-import { IUCN_FILTER_DEFS, CHESS_HABITAT_DEFS, CHESS_PHYLUM_DEFS } from "../filterDefs";
+import { IUCN_FILTER_DEFS, CHESS_PHYLUM_DEFS, VENT_STATUS_FILTER_DEFS } from "../filterDefs";
 import {
   LayerRow, SubGroup, CheckboxFilter, FilterResetLink,
 } from "../rows";
@@ -22,7 +22,6 @@ export function LifeGeologySection({ expandedFilter, toggleExpand, toggle, flyTo
     activeLayers,
     iucnFilters, toggleIucnFilter,
     ventStatusFilters, toggleVentStatus,
-    chessHabitatFilters, toggleChessHabitatFilter,
     chessPhylumFilters, toggleChessPhylumFilter,
   } = useMapStore();
 
@@ -53,21 +52,32 @@ export function LifeGeologySection({ expandedFilter, toggleExpand, toggle, flyTo
         active={activeLayers.has("hydrothermal-vents")}
         onToggle={() => toggle("hydrothermal-vents")}
         onLocate={() => flyToLayer?.("hydrothermal-vents")}
-        filterActive={ventStatusFilters.size < 3}
+        filterActive={ventStatusFilters.size < VENT_STATUS_FILTER_DEFS.length}
         expanded={expandedFilter === "hydrothermal-vents"}
         onExpandToggle={() => toggleExpand("hydrothermal-vents")}
         filterContent={
           <>
             <div className="flex items-center justify-end pb-0.5 -mt-0.5">
               <FilterResetLink
-                show={ventStatusFilters.size < 3}
-                onReset={() => { for (const s of ["Active", "Inactive", "Extinct"]) if (!ventStatusFilters.has(s)) toggleVentStatus(s); }}
+                show={ventStatusFilters.size < VENT_STATUS_FILTER_DEFS.length}
+                onReset={() => { for (const d of VENT_STATUS_FILTER_DEFS) if (!ventStatusFilters.has(d.key)) toggleVentStatus(d.key); }}
               />
             </div>
-            {(["Active", "Inactive", "Extinct"] as const).map(s => (
-              <label key={s} className="flex items-center gap-2 py-0.5 cursor-pointer">
-                <input type="checkbox" checked={ventStatusFilters.has(s)} onChange={() => toggleVentStatus(s)} className="accent-orange-400 w-3 h-3" />
-                <span className="text-white/75 text-[13px]">{t(`filters.hydrothermalVents.statusOptions.${s}` as any)}</span>
+            {VENT_STATUS_FILTER_DEFS.map(d => (
+              <label key={d.key} className="flex items-center gap-2 py-0.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ventStatusFilters.has(d.key)}
+                  onChange={() => toggleVentStatus(d.key)}
+                  className="w-3 h-3"
+                  style={{ accentColor: d.color }}
+                />
+                {/* The raw InterRidge value stays visible verbatim (mono) — never
+                    translated, only annotated. See ventStatus.ts and enums.json. */}
+                <span className="text-white/75 text-[13px]">
+                  <span className="font-mono text-white/55">{d.key}</span>
+                  {" — "}{t(`filters.hydrothermalVents.statusOptions.${d.i18nKey}` as any)}
+                </span>
               </label>
             ))}
           </>
@@ -80,26 +90,17 @@ export function LifeGeologySection({ expandedFilter, toggleExpand, toggle, flyTo
         active={activeLayers.has("chess")}
         onToggle={() => toggle("chess")}
         onLocate={() => flyToLayer?.("chess")}
-        filterActive={chessHabitatFilters.size > 0 || chessPhylumFilters.size > 0}
+        filterActive={chessPhylumFilters.size > 0}
         expanded={expandedFilter === "chess"}
         onExpandToggle={() => toggleExpand("chess")}
         filterContent={
-          <>
-            <CheckboxFilter
-              header={t("filters.chess.habitatTypeHeading")}
-              defs={CHESS_HABITAT_DEFS.map(d => ({ ...d, label: t(`filters.chess.habitats.${d.key}` as any) }))}
-              activeSet={chessHabitatFilters}
-              onToggle={toggleChessHabitatFilter}
-              clearLabel={t("filters.chess.clearHabitatLabel")}
-            />
-            <CheckboxFilter
-              header={t("filters.chess.phylumHeading")}
-              defs={CHESS_PHYLUM_DEFS}
-              activeSet={chessPhylumFilters}
-              onToggle={toggleChessPhylumFilter}
-              clearLabel={t("filters.chess.clearPhylumLabel")}
-            />
-          </>
+          <CheckboxFilter
+            header={t("filters.chess.phylumHeading")}
+            defs={CHESS_PHYLUM_DEFS}
+            activeSet={chessPhylumFilters}
+            onToggle={toggleChessPhylumFilter}
+            clearLabel={t("filters.chess.clearPhylumLabel")}
+          />
         }
       />
       <LayerRow

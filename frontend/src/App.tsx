@@ -20,12 +20,10 @@ import { ExportPanel } from "./components/ExportPanel";
 
 const LegalPage = lazy(() => import("./components/LegalPage").then(m => ({ default: m.LegalPage })));
 const SeoPage = lazy(() => import("./components/SeoPage").then(m => ({ default: m.SeoPage })));
-const ImpactReport = lazy(() => import("./components/ImpactReport").then(m => ({ default: m.ImpactReport })));
 const ImpactReportV2 = lazy(() => import("./components/ImpactReportV2").then(m => ({ default: m.ImpactReportV2 })));
 const ImpactReportV2Concession = lazy(() => import("./components/ImpactReportV2Concession").then(m => ({ default: m.ImpactReportV2Concession })));
 const ReportRouter = lazy(() => import("./components/ReportRouter").then(m => ({ default: m.ReportRouter })));
 const ClaimReportRedirect = lazy(() => import("./components/ReportRouter").then(m => ({ default: m.ClaimReportRedirect })));
-const ClaimReport = lazy(() => import("./components/ClaimReport").then(m => ({ default: m.ClaimReport })));
 const BlogListPage = lazy(() => import("./components/BlogListPage").then(m => ({ default: m.BlogListPage })));
 const BlogArticlePage = lazy(() => import("./components/BlogArticlePage").then(m => ({ default: m.BlogArticlePage })));
 const VentReport = lazy(() => import("./components/VentReport").then(m => ({ default: m.VentReport })));
@@ -88,11 +86,9 @@ export default function App() {
           <Route path="/vent/:id" element={<Suspense fallback={<PageLoader />}><SeoPage type="vent" /></Suspense>} />
           <Route path="/seamount/:id" element={<Suspense fallback={<PageLoader />}><SeoPage type="seamount" /></Suspense>} />
           <Route path="/report/:platformId" element={<Suspense fallback={<PageLoader />}><ReportRouter /></Suspense>} />
-          <Route path="/report/v1/:platformId" element={<Suspense fallback={<PageLoader />}><ImpactReport /></Suspense>} />
           <Route path="/report/v2/argo/:platformId" element={<Suspense fallback={<PageLoader />}><ImpactReportV2 /></Suspense>} />
           <Route path="/report/v2/concession/:isaId" element={<Suspense fallback={<PageLoader />}><ImpactReportV2Concession /></Suspense>} />
           <Route path="/claim-report/:isaId" element={<Suspense fallback={<PageLoader />}><ClaimReportRedirect /></Suspense>} />
-          <Route path="/claim-report/v1/:isaId" element={<Suspense fallback={<PageLoader />}><ClaimReport /></Suspense>} />
           <Route path="/vent-report/:ventId" element={<Suspense fallback={<PageLoader />}><VentReport /></Suspense>} />
           <Route path="/chess-report/:locality" element={<Suspense fallback={<PageLoader />}><ChessReport /></Suspense>} />
           <Route path="/blog" element={<Suspense fallback={<PageLoader />}><BlogListPage /></Suspense>} />

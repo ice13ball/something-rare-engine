@@ -3,6 +3,7 @@
 
 import { create } from "zustand";
 import type { LayerId } from "../types/layers";
+import { VENT_STATUS_VALUES } from "../types/layers";
 import type { FeatureCollection } from "geojson";
 import type { DatasetStats } from "../utils/argoAlarms";
 import type { AoiSelection } from "../utils/aoiGeometry";
@@ -119,8 +120,6 @@ export interface MapStore {
   toggleIucnFilter: (cat: string) => void;
   noiseRiskFilters: Set<string>;
   toggleNoiseRiskFilter: (level: string) => void;
-  chessHabitatFilters: Set<string>;
-  toggleChessHabitatFilter: (h: string) => void;
   chessPhylumFilters: Set<string>;
   toggleChessPhylumFilter: (p: string) => void;
   oceansitesNetworkFilters: Set<string>;
@@ -485,7 +484,7 @@ export const useMapStore = create<MapStore>((set) => ({
       return { hiddenContractors: next };
     }),
 
-  ventStatusFilters: new Set(["Active", "Inactive", "Extinct"]),
+  ventStatusFilters: new Set(VENT_STATUS_VALUES),
   toggleVentStatus: _makeToggle(set, "ventStatusFilters"),
 
   argoAlarmFilters: new Set<string>(),
@@ -500,8 +499,6 @@ export const useMapStore = create<MapStore>((set) => ({
   noiseRiskFilters: new Set<string>(),
   toggleNoiseRiskFilter: _makeToggle(set, "noiseRiskFilters"),
 
-  chessHabitatFilters: new Set<string>(),
-  toggleChessHabitatFilter: _makeToggle(set, "chessHabitatFilters"),
   chessPhylumFilters: new Set<string>(),
   toggleChessPhylumFilter: _makeToggle(set, "chessPhylumFilters"),
 
@@ -729,7 +726,7 @@ export const useMapStore = create<MapStore>((set) => ({
 
   resetAllFilters: () => set({
     claimRiskFilters:  new Set<string>(),
-    ventStatusFilters: new Set(["Active", "Inactive", "Extinct"]),
+    ventStatusFilters: new Set(VENT_STATUS_VALUES),
     argoAlarmFilters:  new Set<string>(),
     hiddenContractors: new Set<string>(),
     iucnFilters:       new Set<string>(),
@@ -742,7 +739,6 @@ export const useMapStore = create<MapStore>((set) => ({
     thawTypeFilters: new Set<string>(),
     thawCategoryFilters: new Set<string>(),
     permafrostSourceFilters: new Set<string>(),
-    chessHabitatFilters:   new Set<string>(),
     chessPhylumFilters:    new Set<string>(),
     fireConfidenceFilters: new Set<string>(),
     oncEovFilters: new Set<string>(),

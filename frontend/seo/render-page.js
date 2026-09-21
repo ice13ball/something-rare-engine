@@ -9,7 +9,6 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './urls.js';
-import { reportHasStatistics } from './report-shape.js';
 import { fetchUpstream, BackendUnavailable } from './upstream-fetch.js';
 
 // Fallback repointed 2026-08-24 — see the note in server.js. The old default
@@ -163,7 +162,11 @@ function renderConcession(data) {
         <tr><td>Issued</td><td>${escapeHtml(d.act_date || '—')}</td></tr>
         <tr><td>Expires</td><td>${escapeHtml(d.expiry_date || '—')}</td></tr>
         <tr><td>Jurisdiction</td><td>${escapeHtml(d.jurisdiction_text || '—')}</td></tr>
-        <tr><td>Risk Level</td><td>${d.is_high_risk ? 'High Risk' : 'Active'}</td></tr>
+        <!-- This row names what the is_high_risk column measures: an
+             ST_Intersects between the concession polygon and an OBIS
+             biodiversity hotspot, set in domains/isa.py. It used to carry a
+             verdict word instead, which was ours, not the source's. -->
+        <tr><td>Biodiversity hotspot overlap</td><td>${d.is_high_risk ? 'Yes (OBIS)' : 'No'}</td></tr>
       </table>
 
       <h2>Environmental Impact</h2>
@@ -214,77 +217,68 @@ function renderVent(data) {
   `;
 }
 
+// v2 shape has no successor for a page that resolves but has nothing to show:
+// old `reportHasStatistics` (report-shape.js) tested `narrative` / `key_stats`,
+// neither of which exist any more. `summary` is a FIXED three-key struct the
+// backend always sends, so "does it have keys" would always be true and the
+// soft-404 gate would never fire again. Test the values instead: a headline,
+// or at least one nonzero count, means the page has something to say.
+function reportHasContent(data) {
+  if (!data) return false;
+  const headline = typeof data.headline === 'string' ? data.headline.trim() : '';
+  if (headline.length > 0) return true;
+  const summary = data.summary && typeof data.summary === 'object' ? data.summary : {};
+  if (Object.values(summary).some(v => typeof v === 'number' && v > 0)) return true;
+  if (typeof data.measurement_count === 'number' && data.measurement_count > 0) return true;
+  if (typeof data.concession_count === 'number' && data.concession_count > 0) return true;
+  if (Array.isArray(data.claim_summaries) && data.claim_summaries.length > 0) return true;
+  return false;
+}
+
 function renderReport(data) {
   const d = data;
-  const riskColors = { Critical: '#ef4444', High: '#f97316', Moderate: '#eab308', Low: '#22c55e' };
-  const riskColor = riskColors[d.risk_rating] || '#888';
-
-  const findingsHtml = (d.top_findings || []).map((f, i) => `
-    <tr>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${f.number || i + 1}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222;color:${riskColors[f.severity] || '#888'}">${escapeHtml(f.severity)}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(f.type || '')}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(f.observation || '')}</td>
-    </tr>
-  `).join('');
+  const summary = d.summary || {};
 
   const claimsHtml = (d.claim_summaries || []).map(c => `
     <tr>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(c.isa_id || '')}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(c.concession_id || '')}</td>
       <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(c.contractor_name || '')}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.risk_total?.toFixed(2) ?? '—'}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.vent_count}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.species_count}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #222">${typeof c.min_distance_km === 'number' ? c.min_distance_km.toFixed(1) + ' km' : '—'}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.attributed_measurement_count ?? '—'}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.profiles_within_50km ?? '—'}</td>
     </tr>
   `).join('');
 
-  const stats = d.key_stats || {};
-
   return `
     <main style="max-width:800px;margin:0 auto;padding:2rem;color:#ccc;font-family:system-ui,sans-serif">
-      <h1>Environmental Impact Evidence Report — Argo Float ${escapeHtml(d.platform_id)}</h1>
-      <p style="color:${riskColor};font-weight:bold;font-size:1.2em">Risk Rating: ${escapeHtml(d.risk_rating)}</p>
-      <p>${escapeHtml(d.narrative)}</p>
+      <h1>Environmental Data Report — Argo Float ${escapeHtml(String(d.platform_id))}</h1>
+      ${d.headline ? `<p>${escapeHtml(d.headline)}</p>` : ''}
 
-      <h2>Key Statistics</h2>
+      <h2>Summary</h2>
       <table>
-        <tr><td>Profiles Analyzed</td><td>${stats.profile_count ?? '—'}</td></tr>
-        <tr><td>Alarm Events</td><td>${stats.alarm_count ?? '—'}</td></tr>
-        <tr><td>Claims Implicated</td><td>${stats.claims_implicated ?? '—'}</td></tr>
-        <tr><td>Endangered Species</td><td>${stats.endangered_species_count ?? '—'}</td></tr>
-        <tr><td>Total Distance</td><td>${stats.total_distance_km ? stats.total_distance_km.toFixed(0) + ' km' : '—'}</td></tr>
-        <tr><td>Date Range</td><td>${stats.date_range ?? '—'}</td></tr>
+        ${typeof summary.concessions_within_50km === 'number' ? `<tr><td>Concessions within 50 km</td><td>${summary.concessions_within_50km}</td></tr>` : ''}
+        ${typeof summary.measurements_below_baseline_p5 === 'number' ? `<tr><td>Measurements below baseline p5</td><td>${summary.measurements_below_baseline_p5}</td></tr>` : ''}
+        ${typeof summary.plume_backtracks_intersecting_concession === 'number' ? `<tr><td>Plume backtracks intersecting a concession</td><td>${summary.plume_backtracks_intersecting_concession}</td></tr>` : ''}
+        ${typeof d.measurement_count === 'number' ? `<tr><td>Measurements Analyzed</td><td>${d.measurement_count}</td></tr>` : ''}
+        ${typeof d.concession_count === 'number' ? `<tr><td>Concessions Referenced</td><td>${d.concession_count}</td></tr>` : ''}
       </table>
 
-      ${d.claim_count > 0 ? `
-        <h2>Implicated Mining Concessions (${d.claim_count})</h2>
+      ${d.claim_summaries && d.claim_summaries.length > 0 ? `
+        <h2>Nearby Mining Concessions (${d.claim_summaries.length})</h2>
         <table style="width:100%;border-collapse:collapse">
           <tr style="color:#888">
-            <th style="text-align:left;padding:4px 8px">ISA ID</th>
+            <th style="text-align:left;padding:4px 8px">Concession ID</th>
             <th style="text-align:left;padding:4px 8px">Contractor</th>
-            <th style="text-align:left;padding:4px 8px">Risk Score</th>
-            <th style="text-align:left;padding:4px 8px">Vents</th>
-            <th style="text-align:left;padding:4px 8px">Species</th>
+            <th style="text-align:left;padding:4px 8px">Min Distance</th>
+            <th style="text-align:left;padding:4px 8px">Attributed Measurements</th>
+            <th style="text-align:left;padding:4px 8px">Profiles within 50 km</th>
           </tr>
           ${claimsHtml}
         </table>
       ` : ''}
 
-      ${d.finding_count > 0 ? `
-        <h2>Top Findings (${d.finding_count} total)</h2>
-        <table style="width:100%;border-collapse:collapse">
-          <tr style="color:#888">
-            <th style="text-align:left;padding:4px 8px">#</th>
-            <th style="text-align:left;padding:4px 8px">Severity</th>
-            <th style="text-align:left;padding:4px 8px">Type</th>
-            <th style="text-align:left;padding:4px 8px">Observation</th>
-          </tr>
-          ${findingsHtml}
-        </table>
-      ` : ''}
-
       <p style="margin-top:2rem"><a href="${escapeHtml(canonicalUrl('/report', d.platform_id))}">View full interactive report →</a></p>
-      <p style="color:#666;font-size:0.8em">Generated: ${escapeHtml(d.generated_at || '')} | Data: Argo Programme, CMEMS, ISA, InterRidge v3.4, OBIS</p>
+      ${d.generated_at ? `<p style="color:#666;font-size:0.8em">Generated: ${escapeHtml(String(d.generated_at))} | Data: Argo Programme, CMEMS, ISA, InterRidge v3.4, OBIS</p>` : ''}
     </main>
   `;
 }
@@ -509,68 +503,37 @@ ${clientAssets}
 }
 
 async function fetchClaimReportSeoData(isaId) {
-  return fetchJsonOrThrow(`${BASE_URL}/v1/reports/seo/claim/${isaId}`);
+  return fetchJsonOrThrow(`${BASE_URL}/v2/reports/seo/concession/${isaId}`);
 }
 
 function renderClaimReport(data) {
   const d = data;
-  const riskColors = { Critical: '#ef4444', High: '#f97316', Moderate: '#eab308', Low: '#22c55e' };
-  const riskColor = riskColors[d.risk_rating] || '#888';
-
-  const findingsHtml = (d.top_findings || []).map((f, i) => `
-    <tr>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${f.number || i + 1}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222;color:${riskColors[f.severity] || '#888'}">${escapeHtml(f.severity || '')}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(f.type || '')}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(f.observation || '')}</td>
-    </tr>
-  `).join('');
-
-  const stats = d.key_stats || {};
 
   return `
     <main style="max-width:800px;margin:0 auto;padding:2rem;color:#ccc;font-family:system-ui,sans-serif">
-      <h1>Environmental Impact Report — ${escapeHtml(d.contractor_name || d.isa_id)} (${escapeHtml(d.isa_id)})</h1>
-      <p style="color:${riskColor};font-weight:bold;font-size:1.2em">Risk Rating: ${escapeHtml(d.risk_rating)}</p>
-      <p>${escapeHtml(d.narrative)}</p>
+      <h1>Environmental Data Report — ${escapeHtml(d.contractor_name || d.isa_id)} (${escapeHtml(d.isa_id)})</h1>
+      ${d.headline ? `<p>${escapeHtml(d.headline)}</p>` : ''}
 
-      <h2>Key Statistics</h2>
+      <h2>Summary</h2>
       <table>
-        <tr><td>Resource Type</td><td>${escapeHtml(d.resource_type || '—')}</td></tr>
-        <tr><td>Findings</td><td>${d.finding_count ?? '—'}</td></tr>
-        <tr><td>Hydrothermal Vents</td><td>${d.vent_count ?? '—'}</td></tr>
-        <tr><td>Species Documented</td><td>${d.species_count ?? '—'}</td></tr>
-        ${stats.area_km2 ? `<tr><td>Concession Area</td><td>${stats.area_km2.toLocaleString()} km²</td></tr>` : ''}
-        ${stats.depth_range ? `<tr><td>Depth Range</td><td>${escapeHtml(stats.depth_range)}</td></tr>` : ''}
+        ${d.resource_type ? `<tr><td>Resource Type</td><td>${escapeHtml(d.resource_type)}</td></tr>` : ''}
+        ${typeof d.area_km2 === 'number' ? `<tr><td>Concession Area</td><td>${d.area_km2.toLocaleString()} km²</td></tr>` : ''}
+        ${typeof d.species_count === 'number' ? `<tr><td>Species Documented</td><td>${d.species_count}</td></tr>` : ''}
+        ${typeof d.species_inside_count === 'number' ? `<tr><td>Species Documented Inside Concession</td><td>${d.species_inside_count}</td></tr>` : ''}
+        ${typeof d.species_search_radius_km === 'number' ? `<tr><td>Species Search Radius</td><td>${d.species_search_radius_km} km</td></tr>` : ''}
+        ${typeof d.vent_count === 'number' ? `<tr><td>Hydrothermal Vents</td><td>${d.vent_count}</td></tr>` : ''}
+        ${typeof d.seamount_count === 'number' ? `<tr><td>Seamounts</td><td>${d.seamount_count}</td></tr>` : ''}
+        ${typeof d.monitoring_float_count === 'number' ? `<tr><td>Monitoring Floats Nearby</td><td>${d.monitoring_float_count}</td></tr>` : ''}
       </table>
 
-      ${d.finding_count > 0 ? `
-        <h2>Top Findings (${d.finding_count} total)</h2>
-        <table style="width:100%;border-collapse:collapse">
-          <tr style="color:#888">
-            <th style="text-align:left;padding:4px 8px">#</th>
-            <th style="text-align:left;padding:4px 8px">Severity</th>
-            <th style="text-align:left;padding:4px 8px">Type</th>
-            <th style="text-align:left;padding:4px 8px">Observation</th>
-          </tr>
-          ${findingsHtml}
-        </table>
-      ` : ''}
-
-      <h2>Environmental Context</h2>
-      <ul>
-        <li>${d.vent_count} hydrothermal vent(s) within concession area</li>
-        <li>${d.species_count} deep-sea species documented nearby (OBIS)</li>
-      </ul>
-
       <p style="margin-top:2rem"><a href="https://something-rare.com/claim-report/${escapeHtml(d.isa_id)}">View full interactive report →</a></p>
-      <p style="color:#666;font-size:0.8em">Generated: ${escapeHtml(d.generated_at || '')} | Data: ISA, InterRidge v3.4, OBIS, Argo Programme</p>
+      ${d.generated_at ? `<p style="color:#666;font-size:0.8em">Generated: ${escapeHtml(String(d.generated_at))} | Data: ISA, InterRidge v3.4, OBIS, Argo Programme</p>` : ''}
     </main>
   `;
 }
 
 async function fetchReportSeoData(platformId) {
-  return fetchJsonOrThrow(`${BASE_URL}/v1/reports/seo/${platformId}`);
+  return fetchJsonOrThrow(`${BASE_URL}/v2/reports/seo/${platformId}`);
 }
 
 // ── Simple markdown → HTML converter (handles article subset only) ────────
@@ -669,8 +632,8 @@ export async function renderSeoPage(type, id, opts) {
       case 'report':
         data = await fetchReportSeoData(id);
         if (!data) return null;
-        if (!reportHasStatistics(data)) {
-          throw new EntityGone(`report ${id} has no narrative and no key_stats`);
+        if (!reportHasContent(data)) {
+          throw new EntityGone(`report ${id} has no headline and no nonzero counts`);
         }
         head = renderHead(data.meta);
         body = renderReport(data);
@@ -701,7 +664,7 @@ function renderResource(d) {
       <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(c.contractor_name || '—')}</td>
       <td style="padding:4px 8px;border-bottom:1px solid #222">${c.area_km2 ? c.area_km2.toLocaleString() + ' km²' : '—'}</td>
       <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(c.act_date || '—')}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.is_high_risk ? '<span style="color:#f87171">High Risk</span>' : 'Active'}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.is_high_risk ? '<span style="color:#f59e0b">Overlaps hotspot</span>' : '—'}</td>
     </tr>`).join('');
 
   const contractorsHtml = (d.contractors || []).map(name => {
@@ -720,7 +683,7 @@ function renderResource(d) {
         <tr><td style="padding:4px 12px 4px 0;color:#888">Total Concessions</td><td>${d.claim_count}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#888">Total Licensed Area</td><td>${d.total_area_km2 ? d.total_area_km2.toLocaleString() + ' km²' : '—'}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#888">Contractors</td><td>${d.contractor_count}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#888">High-Risk Concessions</td><td>${d.high_risk_count}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#888">Concessions overlapping a biodiversity hotspot</td><td>${d.high_risk_count}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#888">Earliest Contract</td><td>${escapeHtml(d.earliest_contract || '—')}</td></tr>
       </table>
 
@@ -753,7 +716,7 @@ function renderResource(d) {
 
 function renderContractor(d) {
   const riskBadge = d.high_risk_count > 0
-    ? `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:0.8em;margin-left:8px">${d.high_risk_count} High-Risk</span>`
+    ? `<span style="background:#78350f;color:#fcd34d;padding:2px 8px;border-radius:4px;font-size:0.8em;margin-left:8px">${d.high_risk_count} overlapping a hotspot</span>`
     : '';
   const claimsHtml = (d.claims || []).map(c => `
     <tr>
@@ -764,7 +727,7 @@ function renderContractor(d) {
       <td style="padding:4px 8px;border-bottom:1px solid #222">${c.area_km2 ? c.area_km2.toLocaleString() + ' km²' : '—'}</td>
       <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(c.region || '—')}</td>
       <td style="padding:4px 8px;border-bottom:1px solid #222">${escapeHtml(c.act_date || '—')}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.is_high_risk ? '<span style="color:#f87171">High Risk</span>' : 'Active'}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #222">${c.is_high_risk ? '<span style="color:#f59e0b">Overlaps hotspot</span>' : '—'}</td>
     </tr>`).join('');
 
   return `
@@ -788,7 +751,7 @@ function renderContractor(d) {
         <tr><td style="padding:4px 12px 4px 0;color:#888">Deep-Sea Species Within 10 km</td><td>${d.species_count.toLocaleString()}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#888">Threatened Species (CR/EN/VU)</td><td>${d.threatened_count.toLocaleString()}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#888">Hydrothermal Vents Within 50 km</td><td>${d.vent_count.toLocaleString()}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#888">High-Risk Concessions</td><td>${d.high_risk_count}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#888">Concessions overlapping a biodiversity hotspot</td><td>${d.high_risk_count}</td></tr>
       </table>
 
       <h2>All Concessions (${d.claim_count})</h2>
@@ -820,9 +783,18 @@ function renderVentReport(vent) {
 
   return `
     <h1>${vent.name}</h1>
-    <p>${vent.status} Hydrothermal Vent</p>
+    <p>${escapeHtml(vent.status || 'activity not stated')} Hydrothermal Vent</p>
+    ${vent.name_aliases ? `<p>Also known as: ${escapeHtml(vent.name_aliases)}</p>` : ''}
+    ${vent.vent_sites ? `<p>Named sites: ${escapeHtml(vent.vent_sites)}</p>` : ''}
     <h2>Physical</h2>
-    <p>Depth: ${vent.depth_m != null ? vent.depth_m.toFixed(0) + ' m' : '—'} · Lat: ${vent.latitude.toFixed(5)}° · Lon: ${vent.longitude.toFixed(5)}°</p>
+    <p>Depth: ${vent.depth_m != null ? vent.depth_m.toFixed(0) + ' m' : '—'} · Lat: ${vent.latitude.toFixed(5)}° · Lon: ${vent.longitude.toFixed(5)}°${vent.full_spreading_rate_mm_a != null ? ` · Full spreading rate: ${vent.full_spreading_rate_mm_a} mm/a` : ''}</p>
+    ${vent.description_notes ? `<h2>Field description (source notes)</h2><p>${escapeHtml(vent.description_notes)}</p>` : ''}
+    ${vent.biology_notes ? `<h2>Biology notes (source)</h2><p>${escapeHtml(vent.biology_notes)}</p>` : ''}
+    ${vent.discovery_references || vent.other_references ? `<h2>References</h2>${
+        vent.discovery_references ? `<p>Discovery: ${escapeHtml(vent.discovery_references)}</p>` : ''
+      }${
+        vent.other_references ? `<p>Other: ${escapeHtml(vent.other_references)}</p>` : ''
+      }` : ''}
     <h2>ChEssBase Species (${vent.chess_count})</h2>
     ${speciesRows ? `<table><tr><th>Species</th><th>Phylum</th><th>Depth</th><th>Institution</th></tr>${speciesRows}</table>` : '<p>No ChEssBase species within 5 km.</p>'}
     <h2>Nearby Mining Claims</h2>

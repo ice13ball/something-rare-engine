@@ -112,32 +112,43 @@ async def sync_chess() -> int:
 
     async with db.pool.acquire() as conn:
         await conn.executemany(
+            # ⛔ `habitat_type` is deliberately absent — see the note in
+            # `ingestion/chess_ingest.py`. The column still exists and still holds
+            # the old regex output for rows written before 2026-09-21; nothing
+            # reads it any more. Dropping it is a separate, destructive decision.
             """INSERT INTO chess_occurrences
                (occurrence_id, species, phylum, class_name, family,
-                depth_m, lat, lon, locality, institution_code, habitat_type,
+                depth_m, lat, lon, locality, institution_code,
                 geom)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                        ST_SetSRID(ST_MakePoint($8, $7), 4326))
                ON CONFLICT (occurrence_id) DO UPDATE
                SET species=EXCLUDED.species, phylum=EXCLUDED.phylum,
-                   depth_m=EXCLUDED.depth_m, habitat_type=EXCLUDED.habitat_type,
+                   depth_m=EXCLUDED.depth_m,
                    locality=EXCLUDED.locality,
                    geom=EXCLUDED.geom""",
             [(r["occurrence_id"], r["species"], r["phylum"], r["class_name"],
               r["family"], r["depth_m"], r["lat"], r["lon"],
-              r["locality"], r["institution_code"], r["habitat_type"])
+              r["locality"], r["institution_code"])
              for r in records],
         )
         count = await conn.fetchval("SELECT COUNT(*) FROM chess_occurrences")
 
-        # Enrich hydrothermal_vents: aggregate chess records within 5 km
+        # Enrich hydrothermal_vents: aggregate chess records within 5 km.
+        #
+        # ⭐ Proximity alone decides this, and that is the whole point: the vent
+        # positions come from InterRidge and the occurrence coordinates from GBIF,
+        # so "recorded within 5 km of a catalogued vent" is a fact built from two
+        # sources. Until 2026-09-21 this also required `c.habitat_type = 'vent'`,
+        # our own regex over the locality string, which kept 19 of the 1,205
+        # records that actually qualify — leaving 1 vent of 721 with any species.
+        # ⛔ Do not reintroduce a label filter here.
         await conn.execute("""
             UPDATE hydrothermal_vents v
             SET
                 chess_count = (
                     SELECT COUNT(*) FROM chess_occurrences c
-                    WHERE c.habitat_type = 'vent'
-                    AND ST_DWithin(v.geom,
+                    WHERE ST_DWithin(v.geom,
                                   c.geom::geography, 5000)
                 ),
                 chess_species = (
@@ -151,8 +162,7 @@ async def sync_chess() -> int:
                         '[]'::json
                     )
                     FROM chess_occurrences c
-                    WHERE c.habitat_type = 'vent'
-                    AND ST_DWithin(v.geom,
+                    WHERE ST_DWithin(v.geom,
                                   c.geom::geography, 5000)
                 )
         """)
@@ -1096,7 +1106,6 @@ async def get_chess():
         rows = await conn.fetch("""
             SELECT
                 locality,
-                habitat_type,
                 AVG(lat)      AS lat,
                 AVG(lon)      AS lon,
                 AVG(depth_m)  AS depth_m,
@@ -1109,8 +1118,12 @@ async def get_chess():
                     'institution', institution_code
                 )) AS species_list
             FROM chess_occurrences
-            WHERE habitat_type != 'vent' AND locality IS NOT NULL AND locality != ''
-            GROUP BY locality, habitat_type
+            -- ⛔ No `habitat_type != 'vent'` here any more. That exclusion hid five
+            -- localities, including `Blake Ridge` — a gas-hydrate seep province the
+            -- regex had mislabelled `vent`, so our own bug was suppressing a real
+            -- site from the map. Every locality the source ships is now shown.
+            WHERE locality IS NOT NULL AND locality != ''
+            GROUP BY locality
             ORDER BY locality
         """)
 
@@ -1120,7 +1133,6 @@ async def get_chess():
             "geometry": {"type": "Point", "coordinates": [float(r["lon"]), float(r["lat"])]},
             "properties": {
                 "locality":      r["locality"],
-                "habitat_type":  r["habitat_type"],
                 "lat":           float(r["lat"]),
                 "lon":           float(r["lon"]),
                 "depth_m":       float(r["depth_m"]) if r["depth_m"] is not None else None,

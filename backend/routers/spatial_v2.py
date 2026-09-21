@@ -672,7 +672,11 @@ class MiningContractDetail(BaseModel):
 class HydrothermalVentDetail(BaseModel):
     id: int
     name: str
-    status: str
+    #: InterRidge's own `Activity` string, verbatim: 'active, confirmed',
+    #: 'active, inferred' or 'inactive'. ⚠️ Optional because a record whose
+    #: Activity the source leaves blank is still a vent the source ships — NULL
+    #: means "not stated", and the UI must render it as that, not guess.
+    status: Optional[str] = None
     depth_m: Optional[float]
     min_depth_m: Optional[float] = None
     max_temp_c: Optional[float] = None
@@ -685,12 +689,24 @@ class HydrothermalVentDetail(BaseModel):
     discovery_year_num: Optional[int] = None
     date_precision: Optional[str] = None
     biology_notes: Optional[str] = None
+    #: InterRidge's free-text field description. Stored since 2026-04, served
+    #: to nobody until 2026-09-21 — and it is where the source's own
+    #: contradictions are visible, so it belongs in front of a reader.
+    description_notes: Optional[str] = None
     latitude: float
     longitude: float
     source_url: Optional[str]
     created_at: Optional[datetime]
     chess_count: int = 0
     chess_species: list[dict] = []
+    # Added 2026-09-21 alongside the ingest that finally reads them. The panel
+    # needs `discovery_references` in particular: it is the per-vent citation
+    # InterRidge publishes for all 721 records.
+    name_aliases: Optional[str] = None
+    vent_sites: Optional[str] = None
+    full_spreading_rate_mm_a: Optional[float] = None
+    discovery_references: Optional[str] = None
+    other_references: Optional[str] = None
 
 
 def _tolerance(z: int, layer: "SpatialLayer | None" = None) -> float:
@@ -1089,7 +1105,10 @@ async def get_hydrothermal_vent(vent_id: int) -> HydrothermalVentDetail:
             SELECT id, name, status, depth_m, min_depth_m, max_temp_c, temp_category,
                    ocean, region, jurisdiction, tectonic_setting, discovery_year,
                    discovery_year_num, date_precision,
-                   biology_notes, latitude, longitude, source_url, created_at,
+                   biology_notes, description_notes,
+                   latitude, longitude, source_url, created_at,
+                   name_aliases, vent_sites, full_spreading_rate_mm_a,
+                   discovery_references, other_references,
                    COALESCE(chess_count, 0) AS chess_count,
                    COALESCE(chess_species::text, '[]') AS chess_species_raw
             FROM hydrothermal_vents

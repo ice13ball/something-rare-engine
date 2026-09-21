@@ -8,6 +8,7 @@ import type { FeatureCollection, Feature } from "geojson";
 import type { LayerId } from "../types/layers";
 import { useMapStore } from "../store/mapStore";
 import type { AssertComplete, AssertDisjoint } from "../types/layerRegistry";
+import { isActiveVentStatus } from "../utils/ventStatus";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -97,7 +98,7 @@ const SEARCH_CONFIGS = [
   },
   {
     key: "vents", layerId: "hydrothermal-vents", label: "Hydrothermal Vents",
-    fields: ["name", "status", "region", "ocean"],
+    fields: ["name", "name_aliases", "status", "region", "ocean"],
     display: p => ({
       primary: String(p.name ?? ""),
       secondary: [p.status, p.region, p.ocean ? `${p.ocean} Ocean` : ""].filter(Boolean).join(" · "),
@@ -158,10 +159,10 @@ const SEARCH_CONFIGS = [
   },
   {
     key: "chess", layerId: "chess", label: "Chemosynthetic Sites",
-    fields: ["locality", "habitat_type"],
+    fields: ["locality"],
     display: p => ({
       primary: String(p.locality ?? ""),
-      secondary: String(p.habitat_type === "seep" ? "Cold Seep" : p.habitat_type === "whale_fall" ? "Whale Fall" : p.habitat_type === "omz" || p.habitat_type === "unclassified" ? "Unclassified" : ""),
+      secondary: "",
     }),
     color: "#00c896",
   },
@@ -356,7 +357,7 @@ export const _searchIsDisjoint: AssertDisjoint<
 // Only entries where they differ are needed.
 const DECK_LAYER_ID: Partial<Record<string, (p: Record<string, unknown>) => string>> = {
   "contracts":           () => "mining-contracts-mvt",
-  "hydrothermal-vents":  (p) => p.status === "Active" ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive",
+  "hydrothermal-vents":  (p) => isActiveVentStatus(p.status) ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive",
   "argo":                () => "argo-floats-3d",
   "tectonic-plates":     () => "tectonic-plates-boundaries",
   "offshore-activities": () => "offshore-activities-mvt",

@@ -4,6 +4,7 @@
 import type { MapStore, FilterSetKey } from "../store/mapStore";
 import { useMapStore } from "../store/mapStore";
 import { AssertComplete, AssertDisjoint } from "./layerRegistry";
+import { VENT_STATUS_VALUES, CLAIM_RISK_VALUES } from "./layers";
 
 /**
  * Every `Set<string>` store field a share link is allowed to carry.
@@ -20,7 +21,6 @@ export const SHAREABLE_FILTER_FIELDS = [
   "claimRiskFilters",
   "iucnFilters",
   "noiseRiskFilters",
-  "chessHabitatFilters",
   "chessPhylumFilters",
   "oceansitesNetworkFilters",
   "oceansitesStatusFilters",
@@ -71,6 +71,26 @@ const _filterRegistryDisjoint: AssertDisjoint<ShareableFilterField, OptOutFilter
 void _filterRegistryComplete;
 void _filterRegistryDisjoint;
 
+
+/**
+ * Filter fields whose values are a CLOSED vocabulary this codebase owns and
+ * has changed at least once. Everything else on the shareable list draws its
+ * values from the data (contractor names, flag states, phyla) — there is no
+ * list to check those against, and a value missing from today's data is a
+ * legitimate "matches nothing right now", not a stale link.
+ *
+ * ⛔ Why this exists: on 2026-09-21 the vent vocabulary changed from the
+ * invented "Active"/"Inactive"/"Extinct" to InterRidge's own strings. A link
+ * shared before that date still carries the old words, and `has()` against the
+ * new ones matches nothing — the layer reads as toggled on and empty, which is
+ * indistinguishable from an outage. A retired value must drop out of the link,
+ * never blank a layer.
+ */
+const CLOSED_VOCABULARIES: Partial<Record<ShareableFilterField, readonly string[]>> = {
+  ventStatusFilters: VENT_STATUS_VALUES,
+  claimRiskFilters: CLAIM_RISK_VALUES,
+};
+
 const SHAREABLE_SET: ReadonlySet<string> = new Set(SHAREABLE_FILTER_FIELDS);
 
 export function isShareableFilterField(key: string): key is ShareableFilterField {
@@ -97,13 +117,26 @@ export function collectShareableFilters(state: MapStore): Record<string, string[
  * unlike the layer list, a stray filter field can't turn "no filter" into
  * "wrong filter"; the worst case is one ignored key. A malformed VALUE
  * (anything but an array of strings) drops that one field the same way.
+ *
+ * Values are checked too, for the fields in `CLOSED_VOCABULARIES`: a value the
+ * vocabulary no longer contains is dropped, and a field left with no surviving
+ * value is skipped entirely so the store default stands.
  */
 export function applyShareableFilters(payload: Record<string, unknown>): void {
   const patch: Partial<MapStore> = {};
   for (const [key, value] of Object.entries(payload)) {
     if (!isShareableFilterField(key)) continue;
     if (!Array.isArray(value) || !value.every((v) => typeof v === "string")) continue;
-    (patch as Record<string, unknown>)[key] = new Set(value as string[]);
+    let values = value as string[];
+    const vocabulary = CLOSED_VOCABULARIES[key];
+    if (vocabulary) {
+      values = values.filter((v) => vocabulary.includes(v));
+      // Every value the link carried is retired. Leaving the field out of the
+      // patch keeps the store's own default, which is the visible state — the
+      // link loses its filter, and the reader still sees the layer.
+      if (values.length === 0) continue;
+    }
+    (patch as Record<string, unknown>)[key] = new Set(values);
   }
   if (Object.keys(patch).length > 0) useMapStore.setState(patch);
 }

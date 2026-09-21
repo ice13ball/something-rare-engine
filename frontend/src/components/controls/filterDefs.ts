@@ -3,6 +3,20 @@
 
 import { CONTRACTOR_CODES, CONTRACTOR_COLORS, FALLBACK_CONTRACTOR_COLOR, UNPARSED_CONTRACTOR_KEY } from "../../utils/contractorColors";
 import { AIS_SHIP_CLASSES, colorForShipClass } from "../../utils/aisFilters";
+import { VENT_STATUS_VALUES } from "../../types/layers";
+
+// `key` is the raw InterRidge value (goes straight into ventStatusFilters —
+// the Set the filter predicate checks with .has()). `i18nKey` is a locale-safe
+// identifier for panels.json (the raw value itself has a comma/space and
+// stays visible verbatim in the UI — see ventStatus.ts — it is not used as a
+// translation key). Colors reuse the map's existing active/inactive palette:
+// same orange for both active sub-states, dimmer for "inferred" (opacity is
+// the distinguishing channel, not a new hue); blue-grey for inactive.
+export const VENT_STATUS_FILTER_DEFS = [
+  { key: VENT_STATUS_VALUES[0], i18nKey: "activeConfirmed", color: "#fb923c" },
+  { key: VENT_STATUS_VALUES[1], i18nKey: "activeInferred",  color: "#fdba7480" },
+  { key: VENT_STATUS_VALUES[2], i18nKey: "inactive",        color: "#93c5fd" },
+] as const;
 
 // Decades present in cascade_stations on production (counted 2026-09-04):
 // 1930:31 1940:33 1970:21 1980:328 1990:1524 2000:1489 2010:878, plus 192 with
@@ -49,12 +63,6 @@ export const DEEPDATA_CONTRACTOR_DEFS = [
     dot: true,
   } as const,
 ];
-
-export const CHESS_HABITAT_DEFS = [
-  { key: "seep",       label: "Cold Seep",   color: "#00c896", dot: true },
-  { key: "whale_fall", label: "Whale Fall",  color: "#dc3282", dot: true },
-  { key: "omz",        label: "OMZ / Other", color: "#6464ff", dot: true },
-] as const;
 
 export const CHESS_PHYLUM_DEFS = [
   { key: "Annelida",      label: "Annelida",      color: "#00c896" },

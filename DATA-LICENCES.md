@@ -75,7 +75,7 @@ These are carried verbatim in the platform and must be preserved in any derivati
 | ISA DeepData (`services5.arcgis.com/VcAAb5oBhdAAnFj2`) | `contracts`, `reserved-areas`, `relinquished-areas`, `apeis` — four layers off ONE FeatureServer | Open (isa.org.jm/deepdata) |
 | **ISA DeepData (OBIS-hosted Darwin Core datasets)** — Environmental and biological sampling archives from ISA contractor surveys (`datasets.obis.org/hosted/isa/`) | `deepdata-stations` | **CC-BY 4.0**, per `<intellectualRights>` in each dataset's `eml.xml` metadata. Attribution is mandatory. Verified in 8 of ~140 archival datasets. |
 | OBIS Open Data (AWS parquet mirror, `s3://obis-open-data/occurrence/*.parquet`) | `obisSpecies`; also aggregated into `biodiversity-hotspots` | Open (obis.org) |
-| GBIF (`api.gbif.org/v1/occurrence/search`) | `chess` — the ChEssBase chemosynthetic dataset. ⚠️ `chess.habitat_type` is NOT a GBIF field: it is this platform's keyword classification, disclosed in `docs/methods/data-passthrough.md` | Open, CC-BY / CC0 per dataset (gbif.org) |
+| GBIF (`api.gbif.org/v1/occurrence/search`) | `chess` — the ChEssBase chemosynthetic dataset. ⭐ Pure pass-through since 2026-09-21: the one field that was ours, `chess.habitat_type`, was **removed** rather than improved, because the source publishes no habitat field to pass through. → `docs/methods/data-passthrough.md` | Open, CC-BY / CC0 per dataset (gbif.org) |
 | NOAA DSCRTP, MBARI VARS | deep-sea coral/sponge density | Open (NOAA / MBARI) |
 | IUCN Red List | biodiversity status | Terms of use (non-redistribution of bulk) |
 | WoRMS | taxonomic backbone | Open (marinespecies.org) |

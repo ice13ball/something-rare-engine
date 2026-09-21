@@ -629,7 +629,13 @@ app.get('/vent-report/:ventId', entityRoute('This vent report', async (req, res,
     if (!vent) return sendNotFound(res, `No vent report for “${req.params.ventId}”.`, '/vent', 'All hydrothermal vents');
     const body = renderVentReport(vent);
     const title = `${vent.name} — Hydrothermal Vent Report`;
-    const description = `${vent.status} hydrothermal vent at ${vent.depth_m ? vent.depth_m.toFixed(0) + ' m' : 'unknown depth'}. ${vent.chess_count} ChEssBase species. ${vent.nearby_claims.length} nearby mining claims.`;
+    // ⚠️ `status` is InterRidge's own Activity string since 2026-09-21 — "active,
+    // confirmed" / "active, inferred" / "inactive" — and it can be null when the
+    // source leaves it blank. Interpolating it bare printed the word "null" into
+    // the meta description Google indexes. It is quoted rather than folded into
+    // the sentence because it is the source's wording, not ours.
+    const activity = vent.status ? `recorded by InterRidge as “${vent.status}”` : 'with no activity value recorded by InterRidge';
+    const description = `Hydrothermal vent ${activity}, at ${vent.depth_m ? vent.depth_m.toFixed(0) + ' m' : 'unknown depth'}. ${vent.chess_count} ChEssBase species. ${vent.nearby_claims.length} nearby mining claims.`;
     const head = `
       <title>${escapeHtml(title)}</title>
       <meta name="description" content="${escapeHtml(description)}" />
@@ -1224,8 +1230,17 @@ app.get('/embed/concession/:id', async (req, res) => {
     if (!apiRes.ok) return res.status(apiRes.status).send('Not found');
     const data = await apiRes.json();
 
-    const riskColor = data.risk_score > 0.6 ? '#ef4444' : data.risk_score > 0.3 ? '#f59e0b' : '#22c55e';
-    const riskLabel = data.risk_score > 0.6 ? 'High Risk' : data.risk_score > 0.3 ? 'Moderate' : 'Low Risk';
+    // ⛔ This card showed "High Risk (72%)" until 2026-09-21. The percentage came
+    // from a backend formula — vent count × 0.3 + species × 0.005 + a flag × 0.3 —
+    // whose weights nobody derived, and the card is EMBEDDABLE: that number went
+    // onto other people's pages carrying our name. Backend no longer computes it.
+    //
+    // What replaces it is the one thing the flag actually means: whether the
+    // concession polygon intersects an OBIS biodiversity hotspot. A fact, stated
+    // as a fact, with the counts underneath it unchanged.
+    const overlaps = data.data.overlaps_biodiversity_hotspot === true;
+    const badgeColor = overlaps ? '#f59e0b' : 'rgba(255,255,255,0.18)';
+    const badgeLabel = overlaps ? 'Overlaps a biodiversity hotspot' : 'No biodiversity-hotspot overlap';
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1236,7 +1251,7 @@ app.get('/embed/concession/:id', async (req, res) => {
     body { font-family:system-ui,sans-serif; background:#0a0e14; color:#ccc; padding:16px; }
     .card { border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px; background:rgba(0,0,0,0.5); max-width:380px; }
     .name { font-size:14px; font-weight:600; color:#fff; margin-bottom:4px; }
-    .risk { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; color:#fff; background:${riskColor}; margin-bottom:12px; }
+    .risk { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; color:#fff; background:${badgeColor}; margin-bottom:12px; }
     .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:12px; }
     .row:last-child { border:none; }
     .label { color:rgba(255,255,255,0.4); }
@@ -1248,7 +1263,7 @@ app.get('/embed/concession/:id', async (req, res) => {
 <body>
   <div class="card">
     <div class="name">${escapeHtml(data.name)}</div>
-    <span class="risk">${riskLabel} (${(data.risk_score * 100).toFixed(0)}%)</span>
+    <span class="risk">${badgeLabel}</span>
     <div class="row"><span class="label">ISA ID</span><span class="value">${escapeHtml(data.data.isa_id)}</span></div>
     <div class="row"><span class="label">Resource</span><span class="value">${escapeHtml(data.data.resource_type || '—')}</span></div>
     <div class="row"><span class="label">Area</span><span class="value">${data.data.area_km2 ? escapeHtml(data.data.area_km2.toLocaleString()) + ' km²' : '—'}</span></div>

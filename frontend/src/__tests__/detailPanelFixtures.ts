@@ -215,7 +215,7 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     layer: "chess",
     id: "TEST",
     properties: {
-      depth_m: 1234, habitat_type: "TEST habitat", locality: "TEST Locality",
+      depth_m: 1234, locality: "TEST Locality",
       phyla: ["TEST phylum"], species_count: 7, species_list: ["Testus testicus"],
     },
   },

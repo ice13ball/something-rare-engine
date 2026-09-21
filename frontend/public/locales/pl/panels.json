@@ -332,21 +332,14 @@
     },
     "hydrothermalVents": {
       "statusOptions": {
-        "Active": "Aktywne",
-        "Inactive": "Nieaktywne",
-        "Extinct": "Wymarłe"
+        "activeConfirmed": "Potwierdzony — zaobserwowany bezpośrednio",
+        "activeInferred": "Wywnioskowany — na podstawie pióropusza lub anomalii, nie zaobserwowany bezpośrednio",
+        "inactive": "Nieaktywny"
       }
     },
     "chess": {
-      "habitatTypeHeading": "Typ siedliska",
       "phylumHeading": "Gromada",
-      "clearHabitatLabel": "Wyczyść filtry siedlisk",
-      "clearPhylumLabel": "Wyczyść filtry gromad",
-      "habitats": {
-        "seep": "Zimny wysięk",
-        "whale_fall": "Padłe wieloryby",
-        "omz": "OMZ / Inne"
-      }
+      "clearPhylumLabel": "Wyczyść filtry gromad"
     },
     "argo": {
       "showOnlyFloatsWith": "Pokazuj tylko boje z:",
@@ -636,7 +629,7 @@
     "operatorLabel": "Operator",
     "panelTitle": "Koncesja górnicza ISA",
     "resourceTypeLabel": "Typ zasobu",
-    "riskContributionLabel": "Waga wrażliwości siedliska",
+    "riskContributionLabel": "Waga bliskości siedlisk chemosyntetycznych",
     "sponsoringStateLabel": "Państwo sponsorujące",
     "statusLabel": "Status",
     "chemosynthetProximitySectionTitle": "Bliskość ekosystemów chemosyntety",
@@ -1016,21 +1009,29 @@
     "panelTitle": "Pozycja historyczna"
   },
   "vent": {
+    "aliasesLabel": "Inne nazwy",
     "biologySectionTitle": "Biologia",
     "contextSectionTitle": "Kontekst",
     "depthLabel": "Głębokość",
+    "descriptionNotesSectionTitle": "Opis komina (notatki źródła)",
     "discoveredLabel": "Odkryty",
+    "discoveryReferenceLabel": "Publikacja odkrycia",
     "generateReportButton": "Generuj raport o kominie",
     "jurisdictionLabel": "Jurysdykcja",
     "latLabel": "Szerokość",
     "lonLabel": "Długość",
     "maxTempLabel": "Maks. temp.",
+    "namingSectionTitle": "Nazewnictwo",
+    "otherReferencesLabel": "Inne publikacje",
     "pangaeaLinkTitle": "Otwórz DOI zbioru InterRidge / PANGAEA",
     "panelTitle": "Komin hydrotermalny",
     "physicalSectionTitle": "Fizyczne",
+    "referencesSectionTitle": "Źródła bibliograficzne",
     "sourceSectionTitle": "Źródło",
     "sourceLabel": "Źródło",
+    "spreadingRateLabel": "Pełna prędkość spreadingu",
     "statusLabel": "Status",
+    "subSitesLabel": "Nazwane podlokalizacje",
     "tectonicLabel": "Tektonika"
   },
   "waterRisk": {

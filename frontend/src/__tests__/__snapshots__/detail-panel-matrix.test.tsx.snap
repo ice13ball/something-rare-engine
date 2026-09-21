@@ -2974,11 +2974,6 @@ exports[`DetailPanel dispatch matrix > renders chess without throwing and matche
         >
           TEST Locality
         </h2>
-        <p
-          class="text-[14px] font-sans mb-4 font-mono text-[13px] text-white/70"
-        >
-          CHEMOSYNTHETIC SITE
-        </p>
         <div
           class="mb-4"
         >
@@ -5783,9 +5778,13 @@ exports[`DetailPanel dispatch matrix > renders hydrothermal-vents-active after d
         <p
           class="text-[14px] font-sans mb-1 text-orange-400"
         >
-          Active
-           hydrothermal vent
+          active, confirmed hydrothermal vent
         </p>
+        <span
+          class="inline-block text-[14px] font-mono border rounded px-1.5 py-0.5 mb-2 text-orange-400 border-orange-500/40"
+        >
+          Confirmed — directly observed
+        </span>
         <p
           class="text-[13px] text-white/60 mb-4"
         >
@@ -6053,8 +6052,7 @@ exports[`DetailPanel dispatch matrix > renders hydrothermal-vents-inactive after
         <p
           class="text-[14px] font-sans mb-1 text-blue-300"
         >
-          Inactive
-           hydrothermal vent
+          inactive hydrothermal vent
         </p>
         <p
           class="text-[13px] text-white/60 mb-4"

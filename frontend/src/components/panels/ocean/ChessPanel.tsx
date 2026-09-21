@@ -8,42 +8,22 @@ import { sourceLinkFor } from "../../../utils/sourceUrl";
 
 import { API } from "../shared/tokens";
 import { latLonFromProps } from "../shared/format";
-import { Row, Section, PanelHeader, Subtitle, SourceAttribution } from "../shared/primitives";
+import { Row, Section, PanelHeader, SourceAttribution } from "../shared/primitives";
 import { SeafloorDepthRow } from "../shared/chips";
 
 export function ChessPanel({ properties: p }: { properties: Record<string, unknown> }) {
   const { t } = useTranslation("panels");
   const [expanded, setExpanded] = useState(false);
 
-  const HABITAT_LABELS: Record<string, string> = {
-    seep:       "COLD SEEP",
-    whale_fall: "WHALE FALL",
-    omz:          "UNCLASSIFIED",   // legacy value, pre-2026-09-11 rows
-    unclassified: "UNCLASSIFIED",
-  };
-  const HABITAT_COLORS: Record<string, string> = {
-    seep:       "text-teal-400",
-    whale_fall: "text-pink-400",
-    omz:          "text-indigo-400",
-    unclassified: "text-indigo-400",
-  };
-
-  const habitat      = String(p.habitat_type ?? "unclassified");
   const locality     = String(p.locality ?? "Unknown site");
   const speciesCount = Number(p.species_count ?? 0);
   const depthM       = p.depth_m != null ? `${Number(p.depth_m).toFixed(0)} m` : "—";
   const phyla        = (p.phyla as string[] | null) ?? [];
   const speciesList  = (p.species_list as Array<{ species: string; phylum: string; depth_m: number | null; institution: string }> | null) ?? [];
 
-  const habitatLabel = HABITAT_LABELS[habitat] ?? "CHEMOSYNTHETIC SITE";
-  const habitatColor = HABITAT_COLORS[habitat] ?? "text-white/70";
-
   return (
     <>
       <PanelHeader>{locality}</PanelHeader>
-      <Subtitle className={`mb-4 font-mono text-[13px] ${habitatColor}`}>
-        {habitatLabel}
-      </Subtitle>
 
       <Section title={t("chess.siteSectionTitle")}>
         <Row label={t("chess.depthLabel")}   value={depthM} />

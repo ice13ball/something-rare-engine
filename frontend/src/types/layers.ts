@@ -28,6 +28,24 @@ export const SEA_LAYER_IDS = [
 
 export type SeaLayerId = (typeof SEA_LAYER_IDS)[number];
 
+/**
+ * Hydrothermal vent `status` — InterRidge's own Activity value, verbatim
+ * (served since 2026-09-21). ⛔ Not platform vocabulary any more — the old
+ * invented words "Active"/"Inactive"/"Extinct" don't exist in the source.
+ * Single source of truth for the filter Set default and option count —
+ * derive `.size < N`, never hardcode the option count.
+ */
+export const VENT_STATUS_VALUES = ["active, confirmed", "active, inferred", "inactive"] as const;
+
+/**
+ * The four overlap tests a concession can be filtered by. Closed vocabulary:
+ * `claimPassesFilter` looks each selected value up in a fixed record, so a
+ * value that is not one of these has no test to fail and is ignored rather
+ * than treated as "failed" — see the comment at that call site.
+ */
+export const CLAIM_RISK_VALUES = ["biodiversity", "argo", "vents", "unesco"] as const;
+export type ClaimRiskValue = (typeof CLAIM_RISK_VALUES)[number];
+
 export type LayerId = SeaLayerId | LandLayerId;
 
 export interface LayerConfig {
@@ -104,7 +122,7 @@ export const LAYER_CONFIGS = [
     color: "#ff4400",
     fillRgba: [255, 68, 0, 200],
     lineRgba: [255, 68, 0, 255],
-    description: "Vent fields from InterRidge Database v3.4 — red triangle + plume = Active, grey outline = Inactive/Extinct",
+    description: "Vent fields from InterRidge Database v3.4 — bright red + glow = active, confirmed by direct observation; dim red, no glow = active, inferred from a plume or anomaly; grey = inactive",
   },
   {
     id: "eez",

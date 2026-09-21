@@ -161,13 +161,30 @@ async def sync_hydrothermal_vents() -> int:
         undated = await conn.fetchval(
             "SELECT COUNT(*) FROM hydrothermal_vents WHERE date_precision IS NULL"
         )
-    if row and row["last_synced_at"] and not undated:
+        # ⛔ Second one-time escape hatch, same shape as `undated` above, added
+        # 2026-09-21 with the change that stores InterRidge's `Activity` verbatim.
+        # Rows written before it carry our old invented words — `Active`,
+        # `Inactive`, `Extinct` — and the frontend now routes and filters on the
+        # source strings. Without this, the 14-day guard would skip the very sync
+        # that rewrites them, and every vent would vanish from the map until the
+        # guard expired. It cannot be recovered from what we stored (`Active`
+        # collapsed confirmed and inferred into one word), so it has to come from
+        # the source again. Self-disabling: after one pass the count is zero.
+        legacy_status = await conn.fetchval(
+            "SELECT COUNT(*) FROM hydrothermal_vents "
+            "WHERE status IS NOT NULL AND status NOT LIKE 'active%' AND status <> 'inactive'"
+        )
+    stale = undated or legacy_status
+    if row and row["last_synced_at"] and not stale:
         age_days = (datetime.now(timezone.utc) - row["last_synced_at"]).days
         if age_days < VENT_SYNC_INTERVAL_DAYS:
             log.info("hydrothermal_vents: skipping sync (last ran %d days ago)", age_days)
             return 0
     if undated:
         log.info("hydrothermal_vents: %d rows without date_precision — re-ingesting", undated)
+    if legacy_status:
+        log.info("hydrothermal_vents: %d rows still carry a platform-invented status "
+                 "— re-ingesting to restore the source's own Activity value", legacy_status)
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -204,13 +221,21 @@ async def sync_hydrothermal_vents() -> int:
     async with db.pool.acquire() as conn:
         for row in reader:
             name = _clean(row.get("Name.ID"))
-            raw_activity = (_clean(row.get("Activity")) or "").lower()
-            if "active" in raw_activity and "inactive" not in raw_activity:
-                status = "Active"
-            elif "inactive" in raw_activity:
-                status = "Inactive"
-            else:
-                status = "Extinct"
+            # ⛔ Store InterRidge's `Activity` verbatim. It publishes three values —
+            # `active, confirmed`, `active, inferred`, `inactive` — and until
+            # 2026-09-21 this mapped them onto our own `Active`/`Inactive`/`Extinct`,
+            # which did two harmful things. It merged CONFIRMED with INFERRED, so
+            # 362 vents inferred from a plume or chemical anomaly were presented
+            # exactly like 304 that someone has actually seen. And the `else` branch
+            # labelled anything unparseable `Extinct` — a positive-sounding finding
+            # produced by a failure to match, the same defect as the old chess `omz`.
+            # Three source values replace three invented ones: same cardinality for
+            # the filter UI, but true. ⛔ Do not re-map this.
+            # ⚠️ A blank Activity becomes NULL, never a skip and never a label.
+            # Dropping the row would break the 721 = 721 match with the source, and
+            # inventing a label is exactly what this change removes. "The source did
+            # not say" is a fourth, honest state that the UI must render as such.
+            status = _clean(row.get("Activity"))
 
             try:
                 lat = float(row.get("Latitude") or 0)
@@ -232,6 +257,15 @@ async def sync_hydrothermal_vents() -> int:
             discovery_year_num, date_precision = parse_discovery_year(discovery_raw)
             biology_notes = _clean(row.get("Notes.Relevant.to.Biology"))
             description_notes = _clean(row.get("Notes.on.Vent.Field.Description"))
+            # Five columns InterRidge publishes that this ingest never read
+            # (added 2026-09-21). Counted in the 2020-03-25 CSV, of 721 rows:
+            # discovery references 721, other references 435, spreading rate 547,
+            # aliases 315, named sub-sites 171.
+            name_aliases = _clean(row.get("Name.Alias.es."))
+            vent_sites = _clean(row.get("Vent.Sites"))
+            full_spreading_rate_mm_a = _float(row.get("Full.Spreading.Rate..mm.a."))
+            discovery_references = _clean(row.get("Discovery.References..text."))
+            other_references = _clean(row.get("Other.References..text."))
 
             result = await conn.execute(
                 """INSERT INTO hydrothermal_vents
@@ -239,10 +273,13 @@ async def sync_hydrothermal_vents() -> int:
                         max_temp_c, temp_category, min_depth_m, ocean, region,
                         jurisdiction, tectonic_setting, discovery_year,
                         discovery_year_num, date_precision,
-                        biology_notes, description_notes)
+                        biology_notes, description_notes,
+                        name_aliases, vent_sites, full_spreading_rate_mm_a,
+                        discovery_references, other_references)
                    VALUES ($1, $2, $3, $4, $5,
                            ST_SetSRID(ST_MakePoint($5, $4), 4326)::geography,
-                           $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+                           $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
+                           $19, $20, $21, $22, $23)
                    ON CONFLICT (name, latitude, longitude) DO UPDATE SET
                        status = EXCLUDED.status,
                        depth_m = EXCLUDED.depth_m,
@@ -257,12 +294,19 @@ async def sync_hydrothermal_vents() -> int:
                        discovery_year_num = EXCLUDED.discovery_year_num,
                        date_precision = EXCLUDED.date_precision,
                        biology_notes = EXCLUDED.biology_notes,
-                       description_notes = EXCLUDED.description_notes""",
+                       description_notes = EXCLUDED.description_notes,
+                       name_aliases = EXCLUDED.name_aliases,
+                       vent_sites = EXCLUDED.vent_sites,
+                       full_spreading_rate_mm_a = EXCLUDED.full_spreading_rate_mm_a,
+                       discovery_references = EXCLUDED.discovery_references,
+                       other_references = EXCLUDED.other_references""",
                 name, status, depth_m, lat, lon, PANGAEA_VENTS_URL,
                 max_temp_c, temp_category, min_depth_m, ocean, region,
                 jurisdiction, tectonic_setting, discovery_raw,
                 discovery_year_num, date_precision,
                 biology_notes, description_notes,
+                name_aliases, vent_sites, full_spreading_rate_mm_a,
+                discovery_references, other_references,
             )
             if "INSERT" in result:
                 inserted += 1
@@ -612,7 +656,24 @@ async def get_vents():
                         'discovery_year',    discovery_year,
                         'discovery_year_num', discovery_year_num,
                         'date_precision',    date_precision,
-                        'biology_notes',     biology_notes
+                        'biology_notes',     biology_notes,
+                        -- ⛔ `description_notes` was ingested from 2026-04 and served
+                        -- to nobody until 2026-09-21: 664 of 721 records carried it
+                        -- and no SELECT anywhere returned it. It is also where the
+                        -- source's own contradictions live — InterRidge lists
+                        -- `Rose Garden` as "active, confirmed" while this column says
+                        -- "Rose Garden (1979, not active in 2002)". Holding a field
+                        -- and not showing it is the same defect as not fetching it.
+                        'description_notes', description_notes,
+                        -- Served since 2026-09-21. `discovery_references` is the
+                        -- per-vent citation InterRidge publishes for all 721
+                        -- records; the platform was holding a verifiability
+                        -- promise while dropping the reference that keeps it.
+                        'name_aliases',            name_aliases,
+                        'vent_sites',              vent_sites,
+                        'full_spreading_rate_mm_a', full_spreading_rate_mm_a,
+                        'discovery_references',    discovery_references,
+                        'other_references',        other_references
                     )
                 )
             ), '[]'::json)

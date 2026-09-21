@@ -30,14 +30,42 @@ These carry an explicit banner and are never presented as observations:
 - `noise-risk` — a derived index combining two independent noise datasets
 
 A whole layer is not the only thing that can be derived. A single **field** on an
-otherwise pass-through layer can be ours too, and then it says so:
+otherwise pass-through layer can be ours too. One such field existed here, and on
+**2026-09-21 it was removed** rather than improved:
 
-- `chess.habitat_type` — a keyword classification this platform runs over
-  ChEssBase's free-text ecosystem description. It resolves to `whale_fall`,
-  `seep` or `vent`, and to `unclassified` when no keyword matches. ⛔ The
-  fallback must never carry the name of a real habitat: labelling it `omz`
-  once put an oxygen-minimum-zone claim on 3,605 of 3,715 records (97.0%)
-  that the classifier has no pattern to detect at all.
+- `chess.habitat_type` — **removed.** It was a keyword classification this platform
+  ran over ChEssBase's free-text `locality`, resolving to `whale_fall`, `seep`,
+  `vent`, or `unclassified`. It no longer exists in the database rows we write, the
+  API response, the map, or the Area Export.
+
+  It was removed because **ChEssBase publishes no habitat field at all.** Sampled
+  from the GBIF API on 2026-09-21, the Darwin Core terms that could carry one —
+  `habitat`, `waterBody`, `occurrenceRemarks`, `samplingProtocol`,
+  `dynamicProperties` — are empty in 100 of 100 records. There was no source value
+  to pass through, so every value in that column was a claim of ours wearing the
+  source's clothes.
+
+  It was also wrong, in both directions and measurably:
+
+  | | |
+  |---|---|
+  | rows that fell through to `unclassified` | 3,605 of 3,715 (97.0%) |
+  | `Blake Ridge`, a gas-hydrate seep province | labelled `vent`, because "ridge" |
+  | `Mariana fields` | never matched `\bfield\b`, losing 225 rows to a plural |
+  | chess records within 5 km of a catalogued vent | 1,205 |
+  | …of those, kept by the `habitat_type = 'vent'` filter | 19 |
+  | …so hydrothermal vents carrying any species at all | 1 of 721 |
+
+  A further group could not be labelled correctly under any fix: at least 13
+  localities are **sunken-wood falls** — the Oregon-coast station series carries
+  *Xylophaga*, the wood-boring bivalve — and the four-value vocabulary had no slot
+  for them. This dataset's own export description already named wood falls.
+
+  ⛔ **Nothing replaces it.** The species list is better evidence than any label
+  this platform could compute: *Bathymodiolus azoricus* on a record identifies a
+  hydrothermal vent community more precisely than a word in a place name ever did.
+  Re-introducing a derived habitat label is a decision for the maintainer, not a
+  refactor.
 
 ## Underwater noise: the 80 dB reference and span
 

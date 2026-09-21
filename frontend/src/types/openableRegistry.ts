@@ -16,6 +16,7 @@
  * admission, because it stops anyone re-checking.
  */
 import type { AssertComplete, AssertDisjoint } from "./layerRegistry";
+import { isActiveVentStatus } from "../utils/ventStatus";
 
 /** How the client gets at a feature of this layer. */
 export type OpenableSource =
@@ -179,7 +180,7 @@ export const OPENABLE = {
     // the numeric `id` — but `?focus=vent:<name>` and the "View on map" button
     // on every vent's SEO page carry a NAME. Both must find the same vent.
     source: "client", idProps: ["id", "name"],
-    routingKeys: ["hydrothermal-vents-active", "hydrothermal-vents-inactive"], routingKey: (p) => (p.status === "Active" ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive"),
+    routingKeys: ["hydrothermal-vents-active", "hydrothermal-vents-inactive"], routingKey: (p) => (isActiveVentStatus(p.status) ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive"),
     zoom: 8, idStability: "nieustalone",
     dataKey: "vents",
   },

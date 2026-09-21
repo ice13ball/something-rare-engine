@@ -654,3 +654,149 @@ async def concession_cached(isa_id: str):
     if not data:
         raise HTTPException(404, detail="No cached neutral concession report; POST /v2/reports/concession first")
     return data
+
+
+# ── SEO data for the server-rendered pages ──────────────────────────────────
+#
+# `frontend/seo/render-page.js` builds the HTML that Google indexes for
+# /report/:platformId and /claim-report/:isaId. Until 2026-09-21 it fetched
+# that data from v1, so every one of those ~40 indexed pages carried a meta
+# description reading "Risk rating: High." — a verdict this platform computed
+# from its own weights and published as if it were a finding about the sea.
+#
+# ⛔ Nothing below may emit a verdict word. `backend/scripts/check_neutral_report.py`
+# rejects `critical`, `severe`, `significant`, `risk_score`, `risk_rating`,
+# `severity`, `recommended`. What a reader gets instead is counts and distances,
+# each traceable to a measurement or a concession boundary.
+
+
+def _seo_meta(title: str, description: str, url: str, name: str, published: str) -> dict:
+    return {
+        "title": title,
+        # 160 is Google's practical truncation point; cutting here rather than
+        # letting the crawler do it keeps the sentence from ending mid-number.
+        "description": description[:160],
+        "canonical_url": url,
+        "json_ld": {
+            "@context": "https://schema.org",
+            "@type": "Dataset",
+            "name": name,
+            "description": description,
+            "url": url,
+            "datePublished": published,
+            "publisher": {
+                "@type": "Organization",
+                "name": "Abyssal Claims",
+                "url": "https://something-rare.com",
+            },
+        },
+    }
+
+
+@router.get("/seo/{platform_id}", dependencies=[Depends(get_api_key)])
+async def seo_platform_report(platform_id: str):
+    """Neutral SSR payload for /report/{platform_id}."""
+    if db.pool is None:
+        raise HTTPException(503, detail="Database unavailable")
+    async with db.pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT report_json, headline, measurement_count, concession_count, generated_at "
+            "FROM report_cache_v2 WHERE platform_id = $1",
+            platform_id,
+        )
+    if not row:
+        raise HTTPException(404, detail="No cached neutral report for this float")
+
+    report = json.loads(row["report_json"]) if isinstance(row["report_json"], str) else row["report_json"]
+    summary = report.get("summary", {}) or {}
+    url = f"https://something-rare.com/report/{platform_id}"
+    description = (
+        f"Argo float {platform_id}: {row['measurement_count']} attributed measurement(s) "
+        f"near {row['concession_count']} mining concession(s). "
+        f"{summary.get('measurements_below_baseline_p5', 0)} below the local baseline."
+    )
+
+    # The dossier list is trimmed, not summarised: each entry keeps the counts
+    # and the distance the report computed, and nothing is folded into a score.
+    dossiers = []
+    for cd in (report.get("claim_dossiers") or [])[:5]:
+        claim = cd.get("claim", {}) or {}
+        dossiers.append({
+            "concession_id": claim.get("concession_id"),
+            "contractor_name": claim.get("contractor_name"),
+            "min_distance_km": cd.get("min_distance_km"),
+            "attributed_measurement_count": cd.get("attributed_measurement_count"),
+            "profiles_within_50km": cd.get("profiles_within_50km"),
+        })
+
+    return {
+        "meta": _seo_meta(
+            f"Argo Float {platform_id} — Measurement Report | Abyssal Claims",
+            description, url,
+            f"Measurements attributed to Argo float {platform_id}",
+            str(row["generated_at"].date()),
+        ),
+        "platform_id": platform_id,
+        "headline": row["headline"],
+        "summary": summary,
+        "measurement_count": row["measurement_count"],
+        "concession_count": row["concession_count"],
+        "claim_summaries": dossiers,
+        "generated_at": str(row["generated_at"]),
+    }
+
+
+@router.get("/seo/concession/{isa_id}", dependencies=[Depends(get_api_key)])
+async def seo_concession_report(isa_id: str):
+    """Neutral SSR payload for /claim-report/{isa_id}."""
+    if db.pool is None:
+        raise HTTPException(503, detail="Database unavailable")
+    async with db.pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT report_json, headline, seamount_count, species_count, vent_count, generated_at "
+            "FROM report_cache_v2_concession WHERE isa_id = $1",
+            isa_id,
+        )
+    if not row:
+        raise HTTPException(404, detail="No cached neutral concession report for this id")
+
+    report = json.loads(row["report_json"]) if isinstance(row["report_json"], str) else row["report_json"]
+    concession = report.get("concession", {}) or {}
+    url = f"https://something-rare.com/claim-report/{isa_id}"
+    radius = report.get("species_search_radius_km")
+    # ⛔ The key is `contractor`, not `contractor_name`. Read from a real row
+    # before writing the accessor: the sibling platform report uses the longer
+    # name and assuming both matched produced a description with no contractor
+    # in it — silently, because the guard was `if ... else ""`.
+    contractor = concession.get("contractor") or concession.get("contractor_name")
+    description = (
+        f"ISA concession {isa_id}"
+        + (f" ({contractor})" if contractor else "")
+        + f": {row['species_count']} species record(s)"
+        + (f" within {radius} km" if radius else "")
+        + f", {row['vent_count']} hydrothermal vent(s), {row['seamount_count']} seamount(s)."
+    )
+
+    return {
+        "meta": _seo_meta(
+            f"ISA Concession {isa_id} — Environmental Context | Abyssal Claims",
+            description, url,
+            f"Environmental context for ISA concession {isa_id}",
+            str(row["generated_at"].date()),
+        ),
+        "isa_id": isa_id,
+        "headline": row["headline"],
+        "contractor_name": contractor,
+        "resource_type": concession.get("resource_type"),
+        "area_km2": concession.get("area_km2"),
+        "species_count": row["species_count"],
+        "species_inside_count": report.get("species_inside_count"),
+        "species_search_radius_km": radius,
+        "vent_count": row["vent_count"],
+        "seamount_count": row["seamount_count"],
+        # ⚠️ `monitoring_floats` is an INTEGER here (a count), not the list its
+        # plural name suggests. `len()` on it raised TypeError and the endpoint
+        # answered 500 — caught on production before this reached a crawler.
+        "monitoring_float_count": report.get("monitoring_floats"),
+        "generated_at": str(row["generated_at"]),
+    }

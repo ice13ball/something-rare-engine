@@ -332,21 +332,14 @@
     },
     "hydrothermalVents": {
       "statusOptions": {
-        "Active": "Aktiv",
-        "Inactive": "Inaktiv",
-        "Extinct": "Erloschen"
+        "activeConfirmed": "Bestätigt — direkt beobachtet",
+        "activeInferred": "Abgeleitet — aus einer Plume oder Anomalie geschlossen, nicht beobachtet",
+        "inactive": "Inaktiv"
       }
     },
     "chess": {
-      "habitatTypeHeading": "Habitattyp",
       "phylumHeading": "Stamm",
-      "clearHabitatLabel": "Habitatfilter löschen",
-      "clearPhylumLabel": "Stammfilter löschen",
-      "habitats": {
-        "seep": "Kaltseep",
-        "whale_fall": "Walfall",
-        "omz": "OMZ / Sonstiges"
-      }
+      "clearPhylumLabel": "Stammfilter löschen"
     },
     "argo": {
       "showOnlyFloatsWith": "Nur Floats anzeigen mit:",
@@ -636,7 +629,7 @@
     "operatorLabel": "Betreiber",
     "panelTitle": "ISA-Bergbaukonzession",
     "resourceTypeLabel": "Ressourcentyp",
-    "riskContributionLabel": "Gewichtung der Lebensraumempfindlichkeit",
+    "riskContributionLabel": "Gewichtung der Nähe chemosynthetischer Lebensräume",
     "sponsoringStateLabel": "Sponsorstaat",
     "statusLabel": "Status",
     "chemosynthetProximitySectionTitle": "Nähe zu chemosynthetischen Ökosystemen",
@@ -1014,21 +1007,29 @@
     "panelTitle": "Historische Position"
   },
   "vent": {
+    "aliasesLabel": "Andere Namen",
     "biologySectionTitle": "Biologie",
     "contextSectionTitle": "Kontext",
     "depthLabel": "Tiefe",
+    "descriptionNotesSectionTitle": "Feldbeschreibung (Angaben der Datenquelle)",
     "discoveredLabel": "Entdeckt",
+    "discoveryReferenceLabel": "Entdeckungsreferenz",
     "generateReportButton": "Quellenbericht erstellen",
     "jurisdictionLabel": "Gerichtsbarkeit",
     "latLabel": "Breitengrad",
     "lonLabel": "Längengrad",
     "maxTempLabel": "Höchsttemperatur",
+    "namingSectionTitle": "Benennung",
+    "otherReferencesLabel": "Weitere Referenzen",
     "pangaeaLinkTitle": "InterRidge / PANGAEA-Datensatz-DOI öffnen",
     "panelTitle": "Hydrothermale Quelle",
     "physicalSectionTitle": "Physikalisch",
+    "referencesSectionTitle": "Referenzen",
     "sourceSectionTitle": "Quelle",
     "sourceLabel": "Quelle",
+    "spreadingRateLabel": "Spreizungsrate (gesamt)",
     "statusLabel": "Status",
+    "subSitesLabel": "Benannte Teilstandorte",
     "tectonicLabel": "Tektonik"
   },
   "waterRisk": {

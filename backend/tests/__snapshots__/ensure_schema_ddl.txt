@@ -31,8 +31,10 @@ ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_phosphate DOUBLE PRE
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_silicate DOUBLE PRECISION
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS woa_deep_nitrate DOUBLE PRECISION
 ALTER TABLE argo_profiles ADD COLUMN IF NOT EXISTS date_updated_argovis TIMESTAMPTZ
-CREATE TABLE IF NOT EXISTS hydrothermal_vents ( id SERIAL PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL CHECK (status IN ('Active', 'Inactive', 'Extinct')), depth_m FLOAT, latitude FLOAT NOT NULL, longitude FLOAT NOT NULL, geom GEOGRAPHY(POINT, 4326) NOT NULL, source_url TEXT, created_at TIMESTAMPTZ DEFAULT now(), UNIQUE (name, latitude, longitude) )
+CREATE TABLE IF NOT EXISTS hydrothermal_vents ( id SERIAL PRIMARY KEY, name TEXT NOT NULL, status TEXT, depth_m FLOAT, latitude FLOAT NOT NULL, longitude FLOAT NOT NULL, geom GEOGRAPHY(POINT, 4326) NOT NULL, source_url TEXT, created_at TIMESTAMPTZ DEFAULT now(), UNIQUE (name, latitude, longitude) )
 COMMENT ON COLUMN hydrothermal_vents.depth_m IS 'Pass-through of the InterRidge Vents Database v3.4 "Maximum or Single Reported ' 'Depth" column (Beaulieu & Szafranski 2020, doi:10.1594/PANGAEA.917894). That ' 'source''s own column-header definitions file was not checked for a stated sign ' 'convention, and production values have not been range-checked here - treat ' '"positive down" as unverified, not a claim.'
+ALTER TABLE hydrothermal_vents DROP CONSTRAINT IF EXISTS hydrothermal_vents_status_check
+ALTER TABLE hydrothermal_vents ALTER COLUMN status DROP NOT NULL
 CREATE INDEX IF NOT EXISTS hydrothermal_vents_geom_idx ON hydrothermal_vents USING GIST(geom)
 CREATE INDEX IF NOT EXISTS hydrothermal_vents_status_idx ON hydrothermal_vents (status)
 CREATE TABLE IF NOT EXISTS relinquished_areas ( arcgis_id INTEGER PRIMARY KEY, contract_id TEXT, area_type TEXT, area_km2 DOUBLE PRECISION, act_date TIMESTAMPTZ, status TEXT, geom GEOMETRY(GEOMETRY, 4326), synced_at TIMESTAMPTZ DEFAULT NOW() )
@@ -286,8 +288,9 @@ ALTER TABLE onc_adcp_strips OWNER TO abyssal_user
 ALTER TABLE onc_ctd_profiles OWNER TO abyssal_user
 ALTER TABLE usgs_earthquakes OWNER TO abyssal_user
 DROP TABLE IF EXISTS gbif_occurrences CASCADE
-CREATE TABLE IF NOT EXISTS chess_occurrences ( id SERIAL PRIMARY KEY, occurrence_id TEXT UNIQUE NOT NULL, species TEXT, phylum TEXT, class_name TEXT, family TEXT, depth_m DOUBLE PRECISION, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, locality TEXT, institution_code TEXT, habitat_type TEXT NOT NULL, geom GEOMETRY(Point, 4326) )
-CREATE INDEX IF NOT EXISTS chess_habitat_idx ON chess_occurrences (habitat_type)
+CREATE TABLE IF NOT EXISTS chess_occurrences ( id SERIAL PRIMARY KEY, occurrence_id TEXT UNIQUE NOT NULL, species TEXT, phylum TEXT, class_name TEXT, family TEXT, depth_m DOUBLE PRECISION, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, locality TEXT, institution_code TEXT, habitat_type TEXT, geom GEOMETRY(Point, 4326) )
+ALTER TABLE chess_occurrences ALTER COLUMN habitat_type DROP NOT NULL
+DROP INDEX IF EXISTS chess_habitat_idx
 CREATE INDEX IF NOT EXISTS chess_occurrences_geom_idx ON chess_occurrences USING GIST(geom)
 ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS max_temp_c FLOAT
 ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS temp_category TEXT
@@ -301,6 +304,11 @@ ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS discovery_year_num INTEG
 ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS date_precision TEXT
 ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS biology_notes TEXT
 ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS description_notes TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS name_aliases TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS vent_sites TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS full_spreading_rate_mm_a FLOAT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS discovery_references TEXT
+ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS other_references TEXT
 ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS chess_count INTEGER DEFAULT 0
 ALTER TABLE hydrothermal_vents ADD COLUMN IF NOT EXISTS chess_species JSONB DEFAULT '[]'
 ALTER TABLE chess_occurrences OWNER TO abyssal_user

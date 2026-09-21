@@ -164,7 +164,21 @@ async def ensure_core(conn) -> None:
         CREATE TABLE IF NOT EXISTS hydrothermal_vents (
             id          SERIAL PRIMARY KEY,
             name        TEXT NOT NULL,
-            status      TEXT NOT NULL CHECK (status IN ('Active', 'Inactive', 'Extinct')),
+            -- ⛔ No CHECK vocabulary here. Until 2026-09-21 this read
+            -- `CHECK (status IN ('Active','Inactive','Extinct'))` and the ingest
+            -- mapped InterRidge's `Activity` onto it. InterRidge publishes three
+            -- values — `active, confirmed` (304), `active, inferred` (362) and
+            -- `inactive` (55) — and the mapping collapsed the first two into one
+            -- word, erasing the difference between a vent someone has SEEN and one
+            -- inferred from a plume or a chemical anomaly. 54% of what we called
+            -- "Active" was inferred. `Extinct` was never a source value at all: it
+            -- was the `else` branch, so an unparseable or blank Activity would have
+            -- been published as a positive finding. Same defect as the old chess
+            -- `omz` fallback. The column now holds the source string verbatim.
+            -- ⚠️ Nullable on purpose: a record whose Activity the source leaves
+            -- blank is still a vent the source ships, so it stays, with NULL
+            -- meaning "not stated". Dropping it would break the 721 = 721 match.
+            status      TEXT,
             depth_m     FLOAT,
             latitude    FLOAT NOT NULL,
             longitude   FLOAT NOT NULL,
@@ -179,6 +193,12 @@ async def ensure_core(conn) -> None:
           'source''s own column-header definitions file was not checked for a stated sign '
           'convention, and production values have not been range-checked here - treat '
           '"positive down" as unverified, not a claim.';
+        -- Existing databases keep the old CHECK until it is dropped explicitly:
+        -- CREATE TABLE IF NOT EXISTS does nothing to a table that already exists,
+        -- so without this the first verbatim `active, inferred` would be rejected
+        -- by the constraint and the whole vent sync would fail on production.
+        ALTER TABLE hydrothermal_vents DROP CONSTRAINT IF EXISTS hydrothermal_vents_status_check;
+        ALTER TABLE hydrothermal_vents ALTER COLUMN status DROP NOT NULL;
         CREATE INDEX IF NOT EXISTS hydrothermal_vents_geom_idx
             ON hydrothermal_vents USING GIST(geom);
         CREATE INDEX IF NOT EXISTS hydrothermal_vents_status_idx

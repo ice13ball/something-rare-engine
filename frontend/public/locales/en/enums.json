@@ -2,7 +2,9 @@
   "status": {
     "Active": "Active",
     "Inactive": "Inactive",
-    "Extinct": "Extinct",
+    "active, confirmed": "Confirmed — directly observed",
+    "active, inferred": "Inferred — deduced from a plume or anomaly, not observed",
+    "inactive": "Inactive",
     "Pending": "Pending",
     "Suspended": "Suspended",
     "Expired": "Expired",

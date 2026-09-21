@@ -2,12 +2,13 @@
 # Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
 # backend/ingestion/chess_ingest.py
-"""Fetch ChEssBase occurrences from GBIF and classify habitat type.
+"""Fetch ChEssBase occurrences from GBIF and pass them through unchanged.
 
 Source: ChEssBase dataset on GBIF (dc5abc9f-84d5-4046-a3ef-9ab24ae53756)
-~3,700 records of chemosynthetic ecosystem species (vents, seeps, whale falls, OMZs).
+3,715 records of chemosynthetic-ecosystem species. ⭐ We take what the source
+publishes — taxonomy, coordinates, depth, locality, institution — and add nothing.
+See the note below for the habitat label that used to live here and why it does not.
 """
-import re
 from typing import Any
 import httpx
 
@@ -15,9 +16,27 @@ CHESS_GBIF_DATASET_KEY = "dc5abc9f-84d5-4046-a3ef-9ab24ae53756"
 CHESS_GBIF_URL = "https://api.gbif.org/v1/occurrence/search"
 CHESS_PAGE_SIZE = 300
 
-_WHALE_FALL = re.compile(r"\b(whale.?fall|carcass)\b", re.IGNORECASE)
-_SEEP       = re.compile(r"\b(seep|hydrate|mud.?volcano|brine|cold.?seep)\b", re.IGNORECASE)
-_VENT       = re.compile(r"\b(ridge|rise|vent|hydrothermal|smoker|mound|field)\b", re.IGNORECASE)
+#: ⛔ There was a `habitat_type` here until 2026-09-21: three regexes over the
+#: free-text `locality`, whose output we stored, served, coloured, filtered and fed
+#: into Impact Report severity. It is gone, and nothing replaces it, because
+#: **the source publishes no habitat field at all**. Sampled from the GBIF API on
+#: 2026-09-21: `habitat`, `waterBody`, `occurrenceRemarks`, `samplingProtocol` and
+#: `dynamicProperties` are empty in 100/100 records. ChEssBase gives taxonomy,
+#: coordinates, depth and a locality string — and deliberately makes no such claim.
+#:
+#: Measured before removal, on production:
+#:   · 3,605 of 3,715 rows (97.0%) came out `unclassified`
+#:   · `Blake Ridge` (a gas-hydrate seep province) was labelled `vent` because the
+#:     word "ridge" appears in it, and `Mediterranean Ridge` likewise
+#:   · `\bfield\b` never matched `Mariana fields`, losing 225 rows to a plural
+#:   · the `habitat_type = 'vent'` filter on the hydrothermal-vent enrichment kept
+#:     19 of the 1,205 chess records that actually lie within 5 km of a catalogued
+#:     vent, so 1 vent of 721 carried any species at all
+#:
+#: ⛔ Do not reintroduce a derived habitat label without Michal's decision. The
+#: species list is better evidence than any label we could compute: Bathymodiolus
+#: azoricus says "vent" more precisely than a word in a place name ever did.
+#: → `docs/methods/data-passthrough.md`
 
 # Known bad coordinates in ChEssBase/GBIF source data.
 # Key: locality prefix (case-insensitive match). Value: corrected (lat, lon).
@@ -27,45 +46,8 @@ _COORD_OVERRIDES: dict[str, tuple[float, float]] = {
 }
 
 
-#: What `classify_habitat` can return. ⛔ Read by the guard that checks every
-#: label, colour and weight map handles all of them.
-HABITAT_TYPES = ("whale_fall", "seep", "vent", "unclassified")
-
-
-def classify_habitat(locality: str) -> str:
-    """Keyword-match the locality string → habitat_type.
-
-    ⛔ This is OUR derivation, not a ChEssBase or GBIF field. The source ships a
-    free-text locality; the three patterns above are ours, and so is anything
-    this returns.
-
-    Priority: whale_fall > seep > vent > unclassified.
-
-    ⛔ The fallback used to be "omz", which read as a positive finding — an
-    oxygen-minimum-zone community. It never was one: there is no OMZ pattern
-    here at all, so "omz" only ever meant "none of my three keywords matched".
-    Measured on production 2026-09-10: 3,605 of 3,715 records (97.0%) carried
-    it, and NONE of them had an empty locality — every one was the fallback.
-    Labelling 97% of a layer with a habitat we never detected is the same
-    defect as letting "missing" and "broken" share a code path, and the value
-    reached the API and Area Export, not just the panel.
-
-    'vent' records are used only for hydrothermal_vents enrichment — they never
-    appear as standalone map dots.
-    """
-    if not locality:
-        return "unclassified"
-    if _WHALE_FALL.search(locality):
-        return "whale_fall"
-    if _SEEP.search(locality):
-        return "seep"
-    if _VENT.search(locality):
-        return "vent"
-    return "unclassified"
-
-
 async def fetch_chess_occurrences() -> list[dict[str, Any]]:
-    """Fetch all ChEssBase GBIF occurrences and return classified records."""
+    """Fetch every ChEssBase GBIF occurrence, as the source ships it."""
     records: list[dict[str, Any]] = []
     offset = 0
 
@@ -109,7 +91,6 @@ async def fetch_chess_occurrences() -> list[dict[str, Any]]:
                     "lon":              float(lon),
                     "locality":         locality,
                     "institution_code": occ.get("institutionCode") or "",
-                    "habitat_type":     classify_habitat(locality),
                 })
 
             offset += CHESS_PAGE_SIZE

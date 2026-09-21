@@ -527,6 +527,17 @@ async def get_vent_mining_conflicts():
         if time.monotonic() - fetched_at < CACHE_TTL:
             return Response(content=data, media_type="application/json")
 
+    # ⛔ This used to compute a `risk_level` — 'High Risk' / 'Active Conflict' /
+    # 'Dormant Overlap' / 'Historical Overlap' — from our own CASE over vent
+    # status plus a nearby-Argo-or-hotspot test, and to sort by it. Removed
+    # 2026-09-21 with the rest of the platform's invented verdicts: none of
+    # those four phrases came from a source, and "Active Conflict" reads as a
+    # finding about the sea rather than what it was, a row in our own rubric.
+    #
+    # What is left is the fact the query actually establishes: this catalogued
+    # vent lies inside this polymetallic-sulphide concession. InterRidge gives
+    # the vent and its activity value, ISA gives the concession. The reader can
+    # see both and judge; we no longer judge for them.
     sql = """
         SELECT
           v.name            AS vent_name,
@@ -534,43 +545,12 @@ async def get_vent_mining_conflicts():
           v.depth_m,
           mc.contractor_name,
           mc.isa_id,
-          mc.resource_type,
-          CASE
-            WHEN v.status = 'Active' AND (
-              EXISTS (
-                SELECT 1 FROM argo_profiles ap
-                WHERE ap.near_mining = TRUE
-                  AND ST_DWithin(ap.geom::geography, mc.geom::geography, 200000)
-              ) OR EXISTS (
-                SELECT 1 FROM biodiversity_hotspots bh
-                WHERE ST_Intersects(bh.geom::geometry, mc.geom::geometry)
-              )
-            ) THEN 'High Risk'
-            WHEN v.status = 'Active'   THEN 'Active Conflict'
-            WHEN v.status = 'Inactive' THEN 'Dormant Overlap'
-            ELSE                            'Historical Overlap'
-          END AS risk_level
+          mc.resource_type
         FROM hydrothermal_vents v
         JOIN mining_contracts mc
           ON ST_Intersects(v.geom::geometry, mc.geom::geometry)
         WHERE mc.resource_type = 'Polymetallic Sulphides'
-        ORDER BY
-          CASE
-            WHEN v.status = 'Active' AND (
-              EXISTS (
-                SELECT 1 FROM argo_profiles ap
-                WHERE ap.near_mining = TRUE
-                  AND ST_DWithin(ap.geom::geography, mc.geom::geography, 200000)
-              ) OR EXISTS (
-                SELECT 1 FROM biodiversity_hotspots bh
-                WHERE ST_Intersects(bh.geom::geometry, mc.geom::geometry)
-              )
-            ) THEN 1
-            WHEN v.status = 'Active'   THEN 2
-            WHEN v.status = 'Inactive' THEN 3
-            ELSE 4
-          END,
-          mc.contractor_name
+        ORDER BY mc.contractor_name, v.name
     """
 
     try:
@@ -587,7 +567,6 @@ async def get_vent_mining_conflicts():
             "contractor_name": r["contractor_name"],
             "isa_id":          r["isa_id"],
             "resource_type":   r["resource_type"],
-            "risk_level":      r["risk_level"],
         }
         for r in rows
     ]

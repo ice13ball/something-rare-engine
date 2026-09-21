@@ -332,21 +332,14 @@
     },
     "hydrothermalVents": {
       "statusOptions": {
-        "Active": "Actif",
-        "Inactive": "Inactif",
-        "Extinct": "Éteint"
+        "activeConfirmed": "Confirmée — observée directement",
+        "activeInferred": "Déduite — à partir d'un panache ou d'une anomalie, non observée",
+        "inactive": "Inactive"
       }
     },
     "chess": {
-      "habitatTypeHeading": "Type d'habitat",
       "phylumHeading": "Embranchement",
-      "clearHabitatLabel": "Effacer les filtres habitat",
-      "clearPhylumLabel": "Effacer les filtres embranchement",
-      "habitats": {
-        "seep": "Suintement froid",
-        "whale_fall": "Chute de baleine",
-        "omz": "ZMO / Autre"
-      }
+      "clearPhylumLabel": "Effacer les filtres embranchement"
     },
     "argo": {
       "showOnlyFloatsWith": "Afficher uniquement les flotteurs avec :",
@@ -636,7 +629,7 @@
     "operatorLabel": "Opérateur",
     "panelTitle": "Concession minière ISA",
     "resourceTypeLabel": "Type de ressource",
-    "riskContributionLabel": "Pondération de sensibilité de l'habitat",
+    "riskContributionLabel": "Pondération de proximité chimiosynthétique",
     "sponsoringStateLabel": "État sponsor",
     "statusLabel": "Statut",
     "chemosynthetProximitySectionTitle": "Proximité des écosystèmes chémosynthétiques",
@@ -1014,21 +1007,29 @@
     "panelTitle": "Position historique"
   },
   "vent": {
+    "aliasesLabel": "Autres noms",
     "biologySectionTitle": "Biologie",
     "contextSectionTitle": "Contexte",
     "depthLabel": "Profondeur",
+    "descriptionNotesSectionTitle": "Description de la cheminée (notes de la source)",
     "discoveredLabel": "Découvert",
+    "discoveryReferenceLabel": "Référence de découverte",
     "generateReportButton": "Générer un rapport sur la cheminée",
     "jurisdictionLabel": "Juridiction",
     "latLabel": "Latitude",
     "lonLabel": "Longitude",
     "maxTempLabel": "Température maximale",
+    "namingSectionTitle": "Dénomination",
+    "otherReferencesLabel": "Autres références",
     "pangaeaLinkTitle": "Ouvrir le DOI du jeu de données InterRidge / PANGAEA",
     "panelTitle": "Cheminée hydrothermale",
     "physicalSectionTitle": "Physique",
+    "referencesSectionTitle": "Références",
     "sourceSectionTitle": "Source",
     "sourceLabel": "Source",
+    "spreadingRateLabel": "Vitesse d'expansion totale",
     "statusLabel": "Statut",
+    "subSitesLabel": "Sites nommés",
     "tectonicLabel": "Tectonique"
   },
   "waterRisk": {

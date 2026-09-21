@@ -549,12 +549,22 @@ _VECTORS: dict[str, VectorExport] = {
                 "max_temp_c", "temp_category", "min_depth_m", "ocean", "region",
                 "jurisdiction", "tectonic_setting", "discovery_year",
                 "discovery_year_num", "date_precision",
-                "biology_notes", "description_notes"),
+                "biology_notes", "description_notes",
+                "name_aliases", "vent_sites", "full_spreading_rate_mm_a",
+                "discovery_references", "other_references"),
         prov=Provenance(
             source="InterRidge Vents Database v3.4",
             source_url="https://vents-data.interridge.org/",
-            note="Coordinates are the best-available published position; "
-                 "status Active/Inactive/Extinct per InterRidge registry.",
+            # ⛔ This note used to say "status Active/Inactive/Extinct per InterRidge
+            # registry" — attributing OUR three words to the source. InterRidge's
+            # own `Activity` vocabulary is the three below, and `status` now carries
+            # it verbatim. `date_precision` is the one derived field here and says so.
+            note="Coordinates are the best-available published position. `status` is "
+                 "InterRidge's own `Activity` value, verbatim: 'active, confirmed', "
+                 "'active, inferred' or 'inactive' — note that inferred means the vent "
+                 "is deduced from indirect evidence, not observed. `date_precision` is "
+                 "this platform's parse of the source's free-text discovery column; "
+                 "`discovery_year` keeps that text unchanged.",
         ),
     ),
     "biodiversity-hotspots": VectorExport(
@@ -573,8 +583,13 @@ _VECTORS: dict[str, VectorExport] = {
     "chess": VectorExport(
         id="chess", label="Chemosynthetic life (ChEssBase)", table="chess_occurrences",
         geom_col="t.geom", id_col="occurrence_id", geom_kind="point", cap=10_000,
+        # ⛔ `habitat_type` was removed from this export on 2026-09-21: it was our own
+        # regex over the locality string, not a ChEssBase field, and it shipped to
+        # users as though it were data. The note below is right that this dataset
+        # spans vents, seeps, whale falls AND wood falls — which is exactly why no
+        # four-way label we computed could ever be honest.
         fields=("id", "occurrence_id", "species", "phylum", "class_name", "family",
-                "depth_m", "lat", "lon", "locality", "institution_code", "habitat_type"),
+                "depth_m", "lat", "lon", "locality", "institution_code"),
         prov=Provenance(
             source="ChEssBase (OBIS)",
             source_url="https://obis.org/dataset/471a8de8-80f8-43f9-9443-88a45712feba",

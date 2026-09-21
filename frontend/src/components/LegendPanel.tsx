@@ -618,11 +618,6 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
               <section>
                 <h3 className="text-white text-base font-semibold mb-2 mt-4">{t("howto.chessTitle")}</h3>
                 <p className="mb-1.5">{t("howto.chess_intro")}</p>
-                <div className="flex gap-4 mb-1.5">
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#00c896]" /> {t("howto.chess_seep")}</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#dc3282]" /> {t("howto.chess_whaleFall")}</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#6464ff]" /> {t("howto.chess_omz")}</span>
-                </div>
                 <p className="mb-1">{t("howto.chess_filter")}</p>
                 <p>{t("howto.chess_vents")}</p>
               </section>

@@ -269,14 +269,19 @@ async def ensure_vents_and_chess(conn) -> None:
             lon              DOUBLE PRECISION NOT NULL,
             locality         TEXT,
             institution_code TEXT,
-            habitat_type     TEXT NOT NULL,
+            habitat_type     TEXT,
             geom             GEOMETRY(Point, 4326)
         )
     """)
+    # ⛔ `habitat_type` is RETIRED (2026-09-21). Nothing writes it and nothing reads
+    # it — see the note in `ingestion/chess_ingest.py`. The column and its old values
+    # are kept deliberately: dropping a column destroys data, and that is Michal's
+    # decision, not this migration's. Dropping NOT NULL is what lets the ingest stop
+    # supplying it on a database that already exists.
     await conn.execute("""
-        CREATE INDEX IF NOT EXISTS chess_habitat_idx
-        ON chess_occurrences (habitat_type)
+        ALTER TABLE chess_occurrences ALTER COLUMN habitat_type DROP NOT NULL
     """)
+    await conn.execute("DROP INDEX IF EXISTS chess_habitat_idx")
     await conn.execute("""
         CREATE INDEX IF NOT EXISTS chess_occurrences_geom_idx
         ON chess_occurrences USING GIST(geom)
@@ -295,6 +300,19 @@ async def ensure_vents_and_chess(conn) -> None:
         ("date_precision",     "TEXT"),
         ("biology_notes",      "TEXT"),
         ("description_notes",  "TEXT"),
+        # Added 2026-09-21. These five columns exist in the InterRidge CSV and were
+        # simply never read. ⭐ `discovery_references` is populated for all 721
+        # records — a per-vent citation this platform was dropping while promising
+        # verifiability. `name_aliases` matters for search: without it a reader
+        # looking up a vent field by its other published name finds nothing.
+        # ⚠️ `full_spreading_rate_mm_a` carries the unit the SOURCE declares in its
+        # own column header ("Full.Spreading.Rate..mm.a." = mm/a). We are not
+        # supplying a unit of our own — see rules/subsystems/units-and-passthrough.
+        ("name_aliases",             "TEXT"),
+        ("vent_sites",               "TEXT"),
+        ("full_spreading_rate_mm_a", "FLOAT"),
+        ("discovery_references",     "TEXT"),
+        ("other_references",         "TEXT"),
     ]:
         try:
             await conn.execute(

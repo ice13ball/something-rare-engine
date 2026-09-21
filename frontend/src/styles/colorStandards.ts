@@ -260,15 +260,12 @@ export const TAILINGS_HAZARD: Record<string, RGB> = {
 export const TAILINGS_UNCLASSIFIED: RGB = [148, 148, 148];
 
 /**
- * Chemosynthetic habitat colors — qualitative (no rank), so use ColorBrewer
- * Set2 for adjacent-distinguishable rather than continuous semantics.
+ * Chemosynthetic site color. Sites used to be colored by `habitat_type`, a
+ * regex we ran ourselves over a locality string — the source publishes no
+ * such field, and it's gone from the API (2026-09). All chess dots now share
+ * the one color that was already this layer's fallback ("unclassified").
  */
-export const CHESS_HABITAT: Record<string, RGB> = {
-  "seep":       CB_SET2[0],  // teal
-  "whale_fall": CB_SET2[3],  // pink
-  "omz":          CB_SET2[2],  // periwinkle — legacy value
-  "unclassified": CB_SET2[2],
-};
+export const CHESS_COLOR: RGB = CB_SET2[2]; // periwinkle
 
 /** Noise risk grid (MSFD D11). Diverging YlOrRd-style with neutral data-gap. */
 export const NOISE_RISK: Record<string, RGB> = {

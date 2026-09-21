@@ -332,21 +332,14 @@
     },
     "hydrothermalVents": {
       "statusOptions": {
-        "Active": "Active",
-        "Inactive": "Inactive",
-        "Extinct": "Extinct"
+        "activeConfirmed": "Confirmed — directly observed",
+        "activeInferred": "Inferred — deduced from a plume or anomaly, not observed",
+        "inactive": "Inactive"
       }
     },
     "chess": {
-      "habitatTypeHeading": "Habitat Type",
       "phylumHeading": "Phylum",
-      "clearHabitatLabel": "Clear habitat filters",
-      "clearPhylumLabel": "Clear phylum filters",
-      "habitats": {
-        "seep": "Cold Seep",
-        "whale_fall": "Whale Fall",
-        "omz": "OMZ / Other"
-      }
+      "clearPhylumLabel": "Clear phylum filters"
     },
     "argo": {
       "showOnlyFloatsWith": "Show only floats with:",
@@ -663,7 +656,7 @@
     "plumeHistoryWarning_one": "{{count}} plume origin in history",
     "plumeHistoryWarning_other": "{{count}} plume origins in history",
     "resourceTypeLabel": "Resource Type",
-    "riskContributionLabel": "Habitat sensitivity weight",
+    "riskContributionLabel": "Chemosynthetic proximity weight",
     "sponsoringStateLabel": "Sponsoring State",
     "statusLabel": "Status",
     "chemosynthetProximitySectionTitle": "Chemosynthetic Ecosystem Proximity",
@@ -1014,21 +1007,29 @@
     "panelTitle": "Historical Position"
   },
   "vent": {
+    "aliasesLabel": "Other names",
     "biologySectionTitle": "Biology",
     "contextSectionTitle": "Context",
     "depthLabel": "Depth",
+    "descriptionNotesSectionTitle": "Field description (source notes)",
     "discoveredLabel": "Discovered",
+    "discoveryReferenceLabel": "Discovery reference",
     "generateReportButton": "Generate Vent Report",
     "jurisdictionLabel": "Jurisdiction",
     "latLabel": "Latitude",
     "lonLabel": "Longitude",
     "maxTempLabel": "Max Temp",
+    "namingSectionTitle": "Naming",
+    "otherReferencesLabel": "Other references",
     "pangaeaLinkTitle": "Open the InterRidge / PANGAEA dataset DOI",
     "panelTitle": "Hydrothermal Vent",
     "physicalSectionTitle": "Physical",
+    "referencesSectionTitle": "References",
     "sourceSectionTitle": "Source",
     "sourceLabel": "Source",
+    "spreadingRateLabel": "Full Spreading Rate",
     "statusLabel": "Status",
+    "subSitesLabel": "Named sub-sites",
     "tectonicLabel": "Tectonic"
   },
   "waterRisk": {

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { FeatureCollection } from "geojson";
 import { useMapStore } from "../store/mapStore";
 import type { LayerId } from "../types/layers";
+import { VENT_STATUS_VALUES } from "../types/layers";
 import { analytics } from "../utils/analytics";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { ViewsSwitcher } from "./ViewsSwitcher";
@@ -70,7 +71,6 @@ export function Map3DControls({
     arcticRiverSourceFilters,
     offshoreActivityFilters,
     offshoreActivityCountryFilters,
-    chessHabitatFilters,
     chessPhylumFilters,
     fireConfidenceFilters,
     oncEovFilters,
@@ -169,7 +169,6 @@ export function Map3DControls({
       noiseRiskFilters: new Set(noiseRiskFilters),
       oceansitesNetworkFilters: new Set(oceansitesNetworkFilters),
       oceansitesStatusFilters: new Set(oceansitesStatusFilters),
-      chessHabitatFilters: new Set(chessHabitatFilters),
       chessPhylumFilters: new Set(chessPhylumFilters),
       fireConfidenceFilters: new Set(fireConfidenceFilters),
       oncEovFilters: new Set(oncEovFilters),
@@ -184,7 +183,7 @@ export function Map3DControls({
     resetAllFilters();
     clearTimeout(undoTimerRef.current);
     undoTimerRef.current = setTimeout(() => setUndoSnapshot(null), 6000);
-  }, [claimRiskFilters, ventStatusFilters, argoAlarmFilters, hiddenContractors, iucnFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, chessHabitatFilters, chessPhylumFilters, fireConfidenceFilters, oncEovFilters, firesNearMiningOnly, tailingsRiskFilters, tailingsStatusFilters, aisShipTypeFilters, aisFlagFilters, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, resetAllFilters]);
+  }, [claimRiskFilters, ventStatusFilters, argoAlarmFilters, hiddenContractors, iucnFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, chessPhylumFilters, fireConfidenceFilters, oncEovFilters, firesNearMiningOnly, tailingsRiskFilters, tailingsStatusFilters, aisShipTypeFilters, aisFlagFilters, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, resetAllFilters]);
 
   const handleUndo = useCallback(() => {
     if (!undoSnapshot) return;
@@ -195,14 +194,13 @@ export function Map3DControls({
 
   const hasActiveFilters =
     claimRiskFilters.size > 0 ||
-    ventStatusFilters.size < 3 ||
+    ventStatusFilters.size < VENT_STATUS_VALUES.length ||
     argoAlarmFilters.size > 0 ||
     hiddenContractors.size > 0 ||
     iucnFilters.size > 0 ||
     noiseRiskFilters.size > 0 ||
     oceansitesNetworkFilters.size > 0 ||
     oceansitesStatusFilters.size > 0 ||
-    chessHabitatFilters.size > 0 ||
     chessPhylumFilters.size > 0 ||
     fireConfidenceFilters.size > 0 ||
     oncEovFilters.size > 0 ||

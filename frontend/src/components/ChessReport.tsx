@@ -4,25 +4,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { isActiveVentStatus } from "../utils/ventStatus";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "";
 
-const HABITAT_LABELS: Record<string, string> = {
-  seep:       "Cold Seep",
-  whale_fall: "Whale Fall",
-  omz:          "Unclassified",   // legacy value
-  unclassified: "Unclassified",
-};
-const HABITAT_COLORS: Record<string, string> = {
-  seep:       "#00c896",
-  whale_fall: "#dc3282",
-  omz:          "#6464ff",
-  unclassified: "#6464ff",
-};
-
 interface ChessReportData {
   locality: string;
-  habitat_type: string;
   lat: number;
   lon: number;
   depth_m: number | null;
@@ -49,9 +36,6 @@ export function ChessReport() {
       .catch(() => setLoading(false));
   }, [locality]);
 
-  const habitatColor = report ? (HABITAT_COLORS[report.habitat_type] ?? "#888") : "#888";
-  const habitatLabel = report ? (HABITAT_LABELS[report.habitat_type] ?? "Chemosynthetic Site") : "";
-
   if (loading) return (
     <div className="min-h-screen bg-[#0a0e14] flex items-center justify-center">
       <p className="text-white/60 animate-pulse text-sm">Loading site report…</p>
@@ -69,7 +53,7 @@ export function ChessReport() {
     <>
       <Helmet>
         <title>{report.locality} — Chemosynthetic Site Report · Abyssal Claims</title>
-        <meta name="description" content={`${habitatLabel} at ${report.locality}. ${report.species_count} species from ${report.phyla.length} phyla. ${report.nearby_claims.length} nearby mining claims.`} />
+        <meta name="description" content={`Chemosynthetic site at ${report.locality}. ${report.species_count} species from ${report.phyla.length} phyla. ${report.nearby_claims.length} nearby mining claims.`} />
         {/*
           Canonical is /report/chess:<locality> — the address the report hub and
           sitemap-core.xml carry, and the one with a server-rendered page behind
@@ -89,9 +73,6 @@ export function ChessReport() {
 
           {/* Header */}
           <div className="mb-8">
-            <div className="text-[13px] font-mono uppercase tracking-widest mb-1" style={{ color: habitatColor }}>
-              {habitatLabel}
-            </div>
             <h1 className="text-2xl font-semibold text-white mb-1">{report.locality}</h1>
             <p className="text-white/60 text-sm">
               {report.lat.toFixed(3)}°, {report.lon.toFixed(3)}°
@@ -119,8 +100,7 @@ export function ChessReport() {
               <h2 className="text-[13px] uppercase tracking-widest text-white/65 mb-3">Phyla Present</h2>
               <div className="flex flex-wrap gap-2">
                 {report.phyla.map(p => (
-                  <span key={p} className="px-2 py-1 rounded-md text-[14px] border border-white/10 text-white/80"
-                    style={{ backgroundColor: `${habitatColor}15` }}>
+                  <span key={p} className="px-2 py-1 rounded-md text-[14px] border border-white/10 text-white/80 bg-white/[0.05]">
                     {p}
                   </span>
                 ))}
@@ -208,7 +188,7 @@ export function ChessReport() {
                     <tr key={i} className="border-t border-white/[0.04] hover:bg-white/[0.03]">
                       <td className="px-4 py-1.5 text-white/85">{v.name}</td>
                       <td className="px-4 py-1.5">
-                        <span className={`text-[13px] ${v.status === "Active" ? "text-orange-400" : "text-white/60"}`}>
+                        <span className={`text-[13px] ${isActiveVentStatus(v.status) ? "text-orange-400" : "text-white/60"}`}>
                           {v.status}
                         </span>
                       </td>

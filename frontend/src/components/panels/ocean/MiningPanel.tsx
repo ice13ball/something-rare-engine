@@ -8,6 +8,7 @@ import type { VentConflict } from "../../../store/mapStore";
 import { getResourceImpact } from "../../../utils/resourceImpact";
 import { tEnum } from "../../../utils/translateEnum";
 import { sourceLinkFor } from "../../../utils/sourceUrl";
+import { isActiveVentStatus } from "../../../utils/ventStatus";
 
 import { API, T } from "../shared/tokens";
 import { fmt, fmtDate } from "../shared/format";
@@ -195,7 +196,7 @@ export function MiningPanel({ id }: { id: string }) {
               const coords = getVentCoords(v.vent_name);
               return (
                 <li key={i} className="text-[14px] flex items-start gap-1.5">
-                  <span className={`mt-0.5 flex-shrink-0 w-1.5 h-1.5 rounded-full ${v.vent_status === "Active" ? "bg-red-400" : "bg-white/30"}`} />
+                  <span className={`mt-0.5 flex-shrink-0 w-1.5 h-1.5 rounded-full ${isActiveVentStatus(v.vent_status) ? "bg-red-400" : "bg-white/30"}`} />
                   <span>
                     {flyTo && coords ? (
                       <button onClick={() => flyTo(coords[0], coords[1])} className="text-white/90 hover:text-white underline decoration-dotted">
@@ -371,24 +372,12 @@ export function MiningPanel({ id }: { id: string }) {
 
       {chessSites.length > 0 && (
         <Section title={t("concession.chemosynthetProximitySectionTitle")}>
-          <div className="mb-1.5 flex items-start gap-1.5">
-            {chessSites.some((s: any) => s.properties?.habitat_type === "whale_fall") && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 border border-pink-500/30 flex-shrink-0">WHALE FALL</span>
-            )}
-            {chessSites.some((s: any) => s.properties?.habitat_type === "seep") && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 border border-teal-500/30 flex-shrink-0">COLD SEEP</span>
-            )}
-          </div>
           <Row
             label={t("concession.riskContributionLabel")}
-            value={`+${Math.min(
-              chessSites.reduce((acc: number, s: any) => {
-                // `unclassified` keeps the weight the fallback had — a rename must not reweight.
-                const w: Record<string, number> = { whale_fall: 0.15, seep: 0.10, omz: 0.05, unclassified: 0.05 };
-                return acc + (w[s.properties?.habitat_type] ?? 0.05);
-              }, 0),
-              0.30
-            ).toFixed(2)}`}
+            // habitat_type is gone (it was our own regex over locality, not a
+            // source field) — every site now contributes the old fallback
+            // weight, same cap as before.
+            value={`+${Math.min(chessSites.length * 0.05, 0.30).toFixed(2)}`}
           />
           <button
             onClick={() => setChessExpanded((e: boolean) => !e)}
@@ -400,11 +389,9 @@ export function MiningPanel({ id }: { id: string }) {
             <ul className="mt-1 space-y-1">
               {chessSites.map((s: any, i: number) => {
                 const props = s.properties ?? {};
-                const HABITAT: Record<string, string> = { seep: "Cold Seep", whale_fall: "Whale Fall", omz: "Unclassified", unclassified: "Unclassified" };
                 return (
-                  <li key={i} className="text-[13px] text-white/80 flex justify-between">
+                  <li key={i} className="text-[13px] text-white/80">
                     <span>{props.locality ?? "Unknown site"}</span>
-                    <span className="text-white/60 ml-2">{HABITAT[props.habitat_type] ?? props.habitat_type}</span>
                   </li>
                 );
               })}

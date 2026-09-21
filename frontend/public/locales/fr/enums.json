@@ -2,7 +2,9 @@
   "status": {
     "Active": "Actif",
     "Inactive": "Inactif",
-    "Extinct": "Éteint",
+    "active, confirmed": "Confirmée — observée directement",
+    "active, inferred": "Déduite — à partir d'un panache ou d'une anomalie, non observée",
+    "inactive": "Inactive",
     "Pending": "En attente",
     "Suspended": "Suspendu",
     "Expired": "Expiré",

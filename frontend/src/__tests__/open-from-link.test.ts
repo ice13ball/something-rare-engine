@@ -39,8 +39,11 @@ describe("finding the feature a link names", () => {
   it("picks the panel from the feature's own properties, not from the layer id", () => {
     // ⛔ The whole reason a link can carry the public id: the routing key is
     // chosen AFTER the lookup, so the value-dependent split is decidable.
-    const active = fc([{ name: "Lucky Strike", status: "Active" }]);
-    const dead = fc([{ name: "Lucky Strike", status: "Extinct" }]);
+    // Raw InterRidge values since 2026-09-21 — see ventStatus.ts. "Extinct"
+    // never existed in the source and "Active" is gone; a vent's own status
+    // is now "active, confirmed" | "active, inferred" | "inactive".
+    const active = fc([{ name: "Lucky Strike", status: "active, confirmed" }]);
+    const dead = fc([{ name: "Lucky Strike", status: "inactive" }]);
     expect(resolveOpenTarget("hydrothermal-vents", "Lucky Strike", active)!.routingKey)
       .toBe("hydrothermal-vents-active");
     expect(resolveOpenTarget("hydrothermal-vents", "Lucky Strike", dead)!.routingKey)

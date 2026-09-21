@@ -36,10 +36,12 @@ export const MINING_DETAIL = {
 };
 
 // ---- VentPanel — VentDetail (DetailPanel.tsx:47) ----------------------------
+// Raw InterRidge status values since 2026-09-21 (see ventStatus.ts) — not the
+// platform-invented "Active"/"Inactive"/"Extinct" these fixtures used before.
 export const VENT_DETAIL_ACTIVE = {
   id: 1,
   name: "TEST Active Vent",
-  status: "Active",
+  status: "active, confirmed",
   depth_m: 2500,
   min_depth_m: 2400,
   max_temp_c: 350,
@@ -65,7 +67,7 @@ export const VENT_DETAIL_INACTIVE = {
   ...VENT_DETAIL_ACTIVE,
   id: 2,
   name: "TEST Inactive Vent",
-  status: "Inactive",
+  status: "inactive",
   max_temp_c: null,
   temp_category: null,
   chess_count: 0,

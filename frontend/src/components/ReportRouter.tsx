@@ -9,9 +9,10 @@ import { Navigate, useParams } from "react-router-dom";
  *   - all-digits  → Argo platform report  (/report/v2/argo/:platformId)
  *   - otherwise   → ISA concession report (/report/v2/concession/:isaId)
  *
- * v1 (risk-scored) reports stay reachable at /report/v1/:platformId as the
- * frozen restore path. To roll back to v1 as the default, point /report/:id
- * back at <ImpactReport/> in App.tsx — one-line swap, v1 cache stays warm.
+ * ⛔ There is no v1 any more. The risk-scored stack — its severities, its
+ * weighted scores and the "Risk rating: High" that reached Google's index —
+ * was deleted on 2026-09-21. This component stays because the ID-shape
+ * dispatch it performs is still needed; it simply has one destination now.
  */
 export function ReportRouter() {
   const { platformId } = useParams<{ platformId: string }>();
@@ -41,7 +42,7 @@ export function ReportRouter() {
  * Default /claim-report/:isaId entry point. The map's "View report" action
  * (ReportToast, job.type === "claim") navigates here, so this is the live
  * concession-report path. Always a concession → redirect to the neutral v2
- * concession report. v1 ClaimReport stays reachable at /claim-report/v1/:isaId.
+ * concession report.
  */
 export function ClaimReportRedirect() {
   const { isaId } = useParams<{ isaId: string }>();

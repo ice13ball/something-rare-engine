@@ -37,11 +37,12 @@ import { applyShareableDisplay } from "../types/displayRegistry";
 import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam, linkCarriesView } from "./map3d/shareBootstrap";
 import { nextActiveForLink, NO_CLIENT_COPY } from "./map3d/linkLayerActivation";
 import { applyMenuExpansion } from "../utils/startupProfiles";
+import { isActiveVentStatus, isConfirmedVentStatus } from "../utils/ventStatus";
 import { SearchBar } from "./SearchBar";
 import { analytics } from "../utils/analytics";
 import type { ClaimFeatureCollection } from "../types/claims";
 import { LAYER_CONFIGS } from "../types/layers";
-import type { LayerId } from "../types/layers";
+import type { LayerId, ClaimRiskValue } from "../types/layers";
 import type { AssertComplete, AssertDisjoint } from "../types/layerRegistry";
 import { LayerUnavailableNotice } from "./LayerUnavailableNotice";
 import { fetchWithProgress } from "../utils/fetchWithProgress";
@@ -52,7 +53,7 @@ import {
   WRI_AQUEDUCT, WRI_AQUEDUCT_NO_DATA,
   TAILINGS_HAZARD, TAILINGS_UNCLASSIFIED,
   FIRMS_CONFIDENCE, FIRMS_FALLBACK,
-  CHESS_HABITAT,
+  CHESS_COLOR,
   withAlpha,
 } from "../styles/colorStandards";
 import { stationAqi, AQI_NO_DATA_COLOR } from "../styles/aqi";
@@ -208,10 +209,8 @@ async function prefetchDepth(lat: number, lon: number, apiBase: string): Promise
 
 
 
-function chessColor(habitat: string): [number, number, number, number] {
-  // ColorBrewer Set2 — qualitative, no rank implied.
-  return withAlpha(CHESS_HABITAT[habitat] ?? CHESS_HABITAT.unclassified, 200);
-}
+// Chemosynthetic sites all share one color now — see CHESS_COLOR for why.
+const CHESS_FILL_COLOR = withAlpha(CHESS_COLOR, 200);
 
 
 /**
@@ -351,7 +350,6 @@ export function Map3D() {
   const sharePanelFailures = useMapStore(s => s.sharePanelFailures);
   const clearSharePanelFailures = useMapStore(s => s.clearSharePanelFailures);
   const arcticRiverSourceFilters = useMapStore(s => s.arcticRiverSourceFilters);
-  const chessHabitatFilters = useMapStore(s => s.chessHabitatFilters);
   const chessPhylumFilters  = useMapStore(s => s.chessPhylumFilters);
   const fireConfidenceFilters   = useMapStore(s => s.fireConfidenceFilters);
   const firesNearMiningOnly     = useMapStore(s => s.firesNearMiningOnly);
@@ -1675,14 +1673,12 @@ export function Map3D() {
 
   const filteredChessFeatures = useMemo(() => {
     if (!chessData) return [];
+    if (chessPhylumFilters.size === 0) return chessData.features;
     return chessData.features.filter((f: any) => {
-      const habitat: string = f.properties?.habitat_type ?? "";
       const phyla: string[] = f.properties?.phyla ?? [];
-      if (chessHabitatFilters.size > 0 && !chessHabitatFilters.has(habitat)) return false;
-      if (chessPhylumFilters.size > 0 && !phyla.some((p: string) => chessPhylumFilters.has(p))) return false;
-      return true;
+      return phyla.some((p: string) => chessPhylumFilters.has(p));
     });
-  }, [chessData, chessHabitatFilters, chessPhylumFilters]);
+  }, [chessData, chessPhylumFilters]);
 
   const filteredDeepdataStations = useMemo(() => {
     if (!deepdataStationsData) return [];
@@ -2198,14 +2194,22 @@ export function Map3D() {
       if (hiddenContractors.has(key)) return false;
     }
     if (claimRiskFilters.size > 0) {
-      const checks: Record<string, boolean> = {
+      const checks: Record<ClaimRiskValue, boolean> = {
         biodiversity: props.is_high_risk === true,
         argo:         (riskAreaMap.get(String(props.isa_id ?? ""))?.argoFloats.length ?? 0) > 0,
         vents:        props.isa_id != null && String(props.isa_id) in ventConflicts,
         unesco:       props.nearest_unesco_dist_km != null && props.nearest_unesco_dist_km < 200,
       };
       for (const risk of claimRiskFilters) {
-        if (!checks[risk]) return false;
+        const check = (checks as Record<string, boolean | undefined>)[risk];
+        // ⛔ A value with no test behind it is a retired filter, not a failed
+        // one. `!undefined` is true, so the plain `if (!checks[risk])` this
+        // replaced made every concession fail and blanked the whole layer —
+        // the same way a pre-2026-09-21 link blanked the vents. An unknown
+        // value is ignored: showing more than the link asked for is survivable,
+        // showing nothing is indistinguishable from an outage.
+        if (check === undefined) continue;
+        if (!check) return false;
       }
     }
     return true;
@@ -2273,8 +2277,8 @@ export function Map3D() {
                                filter: argoAlarmFilters.size > 0
                                  ? (f: any) => [...argoAlarmFilters].some(a => floatHasAlarm(f.properties as any, a, datasetStats))
                                  : undefined },
-    "hydrothermal-vents":    { deckLayerId: (f: any) => f.properties?.status === "Inactive" || f.properties?.status === "Extinct"
-                                 ? "hydrothermal-vents-inactive" : "hydrothermal-vents-active",
+    "hydrothermal-vents":    { deckLayerId: (f: any) => isActiveVentStatus(f.properties?.status)
+                                 ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive",
                                filter: (f: any) => ventStatusFilters.has(f.properties?.status) },
     "eez":                   { deckLayerId: "eez" },
     "protected-marine-sites":{ deckLayerId: "protected-marine-sites" },
@@ -2293,7 +2297,7 @@ export function Map3D() {
     "chess": {
       deckLayerId: "chess",
       idProp: "locality",
-      filter: (chessHabitatFilters.size > 0 || chessPhylumFilters.size > 0)
+      filter: chessPhylumFilters.size > 0
         ? (f: any) => filteredChessFeatures.some((ff: any) => ff.properties?.locality === f.properties?.locality)
         : undefined,
     },
@@ -2454,7 +2458,7 @@ export function Map3D() {
         return cascadeDecadeFilters.has(String(d));
       },
     },
-  }) as const satisfies Record<string, FlyConfig>, [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses, datasetStats, chessHabitatFilters, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
+  }) as const satisfies Record<string, FlyConfig>, [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses, datasetStats, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
 
   // Completeness guard. Cheap at runtime (one boolean); the work is at compile
   // time. `void` rather than `export` because this sits inside a component.
@@ -2680,7 +2684,7 @@ export function Map3D() {
       const props = vent.properties as any;
       const { longitude, latitude } = getBBoxCenter([vent]);
       setViewState({ ...viewStateRef.current, longitude, latitude, zoom: 8, pitch: 45, bearing: 0, transitionDuration: 1200, transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }) });
-      const deckId = props.status === "Active" ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive";
+      const deckId = isActiveVentStatus(props.status) ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive";
       setTimeout(() => setSelectedFeature({ id: props.id ?? props.name, layer: deckId, properties: props }), 1300);
       return true;
     }
@@ -2767,7 +2771,7 @@ export function Map3D() {
       if (v) {
         flyTo(v, 8);
         const props = (v as any).properties;
-        const deckId = props.status === "Active" ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive";
+        const deckId = isActiveVentStatus(props.status) ? "hydrothermal-vents-active" : "hydrothermal-vents-inactive";
         setTimeout(() => setSelectedFeature({ id: props.id ?? props.name, layer: deckId, properties: props }), 1300);
       } else {
         // Same silence, same fix — see the seamount branch above.
@@ -2916,15 +2920,11 @@ export function Map3D() {
     if (!chessData) return;
     setRiskAreas(prev => prev.map(risk => {
       const c = centroid(risk.containerFeature as any).geometry.coordinates as [number, number];
+      // No longer sorted by habitat weight — habitat_type is gone (it was our
+      // own regex over locality, not a source field). Natural filter order.
       const chessSites = chessData.features.filter((f: any) => {
         const coords = f.geometry?.coordinates as [number, number] | undefined;
         return coords && turfDistance(coords, c, { units: "kilometers" }) <= 10;
-      }).sort((a: any, b: any) => {
-        // ⛔ `unclassified` carries the SAME weight `omz` did. Renaming the value
-        // without adding the key would make the lookup undefined and change
-        // the ranking silently.
-        const weight: Record<string, number> = { whale_fall: 3, seep: 2, omz: 1, unclassified: 1 };
-        return (weight[b.properties?.habitat_type] ?? 0) - (weight[a.properties?.habitat_type] ?? 0);
       });
       return { ...risk, chessSites };
     }));
@@ -3003,12 +3003,12 @@ export function Map3D() {
   }, [ventsData, ventStatusFilters]);
 
   const activeVents = useMemo(
-    () => ({ type: "FeatureCollection" as const, features: (filteredVentsData?.features ?? []).filter(f => f.properties?.status === "Active") }),
+    () => ({ type: "FeatureCollection" as const, features: (filteredVentsData?.features ?? []).filter(f => isActiveVentStatus(f.properties?.status)) }),
     [filteredVentsData]
   );
 
   const inactiveVents = useMemo(
-    () => ({ type: "FeatureCollection" as const, features: (filteredVentsData?.features ?? []).filter(f => f.properties?.status !== "Active") }),
+    () => ({ type: "FeatureCollection" as const, features: (filteredVentsData?.features ?? []).filter(f => !isActiveVentStatus(f.properties?.status)) }),
     [filteredVentsData]
   );
 
@@ -4047,13 +4047,19 @@ export function Map3D() {
       onClick: handleClick,
     }),
 
-    // Active vents — narrow bright chimney upward + warm glow halo
+    // Active vents — narrow bright chimney upward + warm glow halo.
+    // ⭐ Confirmed (directly observed) vs inferred (deduced from a plume or
+    // chemical anomaly) must stay visually distinct — 54% of what the map
+    // used to lump into one word "Active" was inferred. Same red hue for
+    // both (no new palette entry); only opacity carries the distinction:
+    // confirmed gets the full glow halo, inferred gets none — an inferred
+    // vent's "glow" was never observed, so it doesn't get to look observed.
     activeLayers.has("hydrothermal-vents") && activeVents.features.length > 0 && new ScatterplotLayer({
       id: "hydrothermal-vents-active-glow",
       data: activeVents.features,
       getPosition: (f: any) => f.geometry.coordinates,
       getRadius: 28000,
-      getFillColor: [255, 35, 35, 22],
+      getFillColor: (f: any) => isConfirmedVentStatus(f.properties?.status) ? [255, 35, 35, 22] : [255, 35, 35, 0],
       radiusMinPixels: 3, radiusMaxPixels: 10,
       pickable: false,
       parameters: { depthTest: false },
@@ -4064,7 +4070,9 @@ export function Map3D() {
       data: activeVents.features,
       getPosition: (f: any) => f.geometry.coordinates,
       getElevation: 1800,
-      getFillColor: [255, 35, 35, 235],
+      // Confirmed: full opacity. Inferred: same colour, dimmed — the
+      // opacity difference this project's style vocabulary uses elsewhere.
+      getFillColor: (f: any) => isConfirmedVentStatus(f.properties?.status) ? [255, 35, 35, 235] : [255, 35, 35, 120],
       radius: ventRadius,
       diskResolution: 6,
       extruded: true,
@@ -4073,7 +4081,7 @@ export function Map3D() {
       onClick: handleClick,
     }),
 
-    // Inactive/extinct vents — shorter cooler chimney, no glow
+    // Inactive vents — shorter cooler chimney, no glow
     activeLayers.has("hydrothermal-vents") && inactiveVents.features.length > 0 && new ColumnLayer({
       id: "hydrothermal-vents-inactive",
       data: inactiveVents.features,
@@ -4137,7 +4145,7 @@ export function Map3D() {
       parameters: { depthTest: false },
     }),
 
-    // Chess — core dots (habitat-colored, zoom-adaptive sizing)
+    // Chess — core dots (zoom-adaptive sizing)
     activeLayers.has("chess") && chessData && new ScatterplotLayer({
       id: "chess",
       data: filteredChessFeatures,
@@ -4145,13 +4153,12 @@ export function Map3D() {
       getRadius: snappedZoom < 4 ? 30000 : snappedZoom < 6 ? 18000 : 10000,
       radiusMinPixels: snappedZoom < 4 ? 5 : 3,
       radiusMaxPixels: snappedZoom < 6 ? 14 : 18,
-      getFillColor: (f: any) => chessColor(f.properties?.habitat_type ?? "unclassified"),
+      getFillColor: CHESS_FILL_COLOR,
       pickable: true,
       autoHighlight: true,
       highlightColor: [255, 255, 255, 60],
       onClick: handleClick,
       updateTriggers: {
-        getFillColor: [Array.from(chessHabitatFilters)],
         getRadius: [snappedZoom],
       },
     }),

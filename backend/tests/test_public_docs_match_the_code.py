@@ -96,15 +96,24 @@ def test_every_derivation_the_methods_note_discloses_is_real():
         assert layer in passthrough, f"{layer} dropped out of the derived-products list"
         assert layer in layer_ids, f"{layer} is disclosed as derived but is not a served layer"
 
-    # The field-level disclosure: chess.habitat_type and its fallback.
+    # The field-level disclosure: chess.habitat_type was REMOVED on 2026-09-21,
+    # and the public note has to keep saying so. A reader who cited that field
+    # needs to find out where it went, not find silence.
     assert "chess.habitat_type" in passthrough, \
-        "the chess habitat classification is ours and the methods note must say so"
+        "the methods note must keep recording that chess.habitat_type existed and was removed"
+    assert "removed" in passthrough.lower(), \
+        "the methods note mentions chess.habitat_type but no longer says it was removed"
+
+    # ⛔ And the field must not come back by accident. ChEssBase publishes no
+    # habitat field at all (GBIF API, sampled 2026-09-21: `habitat`, `waterBody`,
+    # `occurrenceRemarks`, `samplingProtocol` empty in 100/100 records), so any
+    # habitat value in the ingest would once again be ours presented as theirs.
     chess = _strip_py((ROOT / "backend" / "ingestion" / "chess_ingest.py").read_text())
-    assert "unclassified" in chess, \
-        "the note promises an `unclassified` fallback the ingest no longer produces"
-    assert '"omz"' not in chess and "'omz'" not in chess, \
-        "the omz fallback is back: it labelled 97.0% of the layer with a habitat " \
-        "the classifier cannot detect"
+    for revenant in ('"omz"', "'omz'", '"whale_fall"', "'whale_fall'",
+                     '"unclassified"', "'unclassified'"):
+        assert revenant not in chess, \
+            f"{revenant} is back in the chess ingest: a habitat label we derive " \
+            "must not be stored and served as if the source had published it"
 
 
 # ── 2. GEBCO: every vintage we serve is on the licence map ──────────────────

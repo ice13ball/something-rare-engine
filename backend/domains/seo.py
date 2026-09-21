@@ -199,7 +199,8 @@ class ConcessionSeo(BaseModel):
 class VentSeo(BaseModel):
     meta: SeoMeta
     name: str
-    status: str
+    #: InterRidge's `Activity` verbatim. Optional: NULL = the source did not say.
+    status: Optional[str] = None
     depth_m: Optional[float]
     latitude: float
     longitude: float
@@ -255,7 +256,6 @@ class WidgetData(BaseModel):
     entity_type: str
     entity_id: str
     name: str
-    risk_score: Optional[float]
     summary: str
     canonical_url: str
     data: dict
@@ -271,13 +271,37 @@ class WidgetData(BaseModel):
 # `chess:Snake Pit` has claim_count = 16 with an empty executive summary, so
 # filtering on the counters would keep exactly the URLs this is meant to drop.
 REPORT_SITEMAP_SQL = """
+    -- ⛔ Reads the NEUTRAL caches since 2026-09-21. It used to select from
+    -- `report_cache` (v1) and gate inclusion on `executive_summary.narrative` /
+    -- `key_stats` — fields the v2 reports do not have. The pages at these URLs
+    -- are now rendered from v2, so a sitemap still driven by v1 would have
+    -- advertised whatever v1 happened to hold and gone empty the moment that
+    -- table was cleared.
+    --
+    -- The shape is deliberately unchanged: `platform_id` keeps the `claim:`
+    -- prefix for concessions, because the two loops that consume this split on
+    -- exactly that prefix. `has_statistics` keeps its name and its job — a page
+    -- whose every figure would render as an em dash is a soft 404 and must not
+    -- be advertised (Google filed one on 2026-08-23).
     SELECT platform_id,
            generated_at,
-           (
-               COALESCE(report_json -> 'executive_summary' ->> 'narrative', '') <> ''
-               OR COALESCE(report_json -> 'executive_summary' -> 'key_stats', '{}'::jsonb) <> '{}'::jsonb
-           ) AS has_statistics
-      FROM report_cache
+           has_statistics
+      FROM (
+        SELECT platform_id,
+               generated_at,
+               (COALESCE(headline, '') <> ''
+                OR COALESCE(measurement_count, 0) > 0
+                OR COALESCE(concession_count, 0) > 0) AS has_statistics
+          FROM report_cache_v2
+        UNION ALL
+        SELECT 'claim:' || isa_id AS platform_id,
+               generated_at,
+               (COALESCE(headline, '') <> ''
+                OR COALESCE(species_count, 0) > 0
+                OR COALESCE(vent_count, 0) > 0
+                OR COALESCE(seamount_count, 0) > 0) AS has_statistics
+          FROM report_cache_v2_concession
+      ) both_stacks
      ORDER BY generated_at DESC
 """
 
@@ -313,9 +337,13 @@ async def seo_concession(isa_id: str):
     contractor = row["contractor_name"]
     resource = row["resource_type"] or "Deep-Sea Minerals"
     area = row["area_km2"]
-    risk = "High-Risk" if row["is_high_risk"] else "Active"
-
-    title = f"{contractor} — {risk} ISA Mining Concession | Abyssal Claims"
+    # ⛔ The title used to read "{contractor} — High-Risk ISA Mining Concession",
+    # where "High-Risk" came from `is_high_risk`. That column is a spatial FACT —
+    # `domains/isa.py` sets it where the concession intersects an OBIS
+    # biodiversity hotspot — but "High-Risk" is our word for it, and it went into
+    # the <title> of an indexed page as though ISA had said it. The fact stays and
+    # is stated plainly below; the verdict is gone.
+    title = f"{contractor} — ISA Mining Concession {isa_id} | Abyssal Claims"
     description = (
         f"{contractor} holds ISA concession {isa_id} for {resource} exploration"
         f"{f', covering {area:,.0f} km²' if area else ''}. "
@@ -392,11 +420,18 @@ async def seo_vent(vent_id: int):
     depth = row["depth_m"]
     concessions = row["nearby_concessions"] or []
 
-    title = f"{name} — {status} Hydrothermal Vent | Abyssal Claims"
+    # ⛔ `status` is InterRidge's own `Activity` string ('active, confirmed',
+    # 'active, inferred', 'inactive'), not a word of ours — so it goes in
+    # parentheses rather than into English grammar we would have to invent an
+    # article for. NULL means the source left it blank; say that, don't guess.
+    # ⛔ "Threatened by" was a verdict. The count is a fact; the threat is not.
+    status_label = status or "activity not stated"
+    title = f"{name} — Hydrothermal Vent ({status_label}) | Abyssal Claims"
     description = (
-        f"{name} is {'an' if status == 'Active' else 'a'} {status.lower()} hydrothermal vent"
+        f"{name} is a hydrothermal vent field recorded by InterRidge as "
+        f"“{status_label}”"
         f"{f' at {depth:,.0f}m depth' if depth else ''}. "
-        f"{'Threatened by ' + str(len(concessions)) + ' nearby mining concession(s).' if concessions else 'No nearby mining concessions.'} "
+        f"{str(len(concessions)) + ' mining concession(s) within 50 km.' if concessions else 'No mining concessions within 50 km.'} "
         f"InterRidge Database v3.4."
     )
 
@@ -439,7 +474,14 @@ async def get_vent_report(vent_id: int):
                    COALESCE(chess_species::text, '[]') AS chess_species,
                    max_temp_c, temp_category, min_depth_m, ocean, region,
                    jurisdiction, tectonic_setting, discovery_year,
-                   discovery_year_num, date_precision, biology_notes
+                   discovery_year_num, date_precision, biology_notes,
+                   description_notes,
+                   -- Added 2026-09-21. `/vent-report/:id` is a server-rendered
+                   -- public page, so it may load without the map ever mounting:
+                   -- it cannot borrow these from the bulk GeoJSON and needs them
+                   -- selected here, or the citation simply never reaches a reader.
+                   name_aliases, vent_sites, full_spreading_rate_mm_a,
+                   discovery_references, other_references
             FROM hydrothermal_vents
             WHERE id = $1
         """, vent_id)
@@ -476,6 +518,12 @@ async def get_vent_report(vent_id: int):
         "discovery_year_num": vent["discovery_year_num"],
         "date_precision": vent["date_precision"],
         "biology_notes":  vent["biology_notes"],
+        "description_notes": vent["description_notes"],
+        "name_aliases":   vent["name_aliases"],
+        "vent_sites":     vent["vent_sites"],
+        "full_spreading_rate_mm_a": vent["full_spreading_rate_mm_a"],
+        "discovery_references":     vent["discovery_references"],
+        "other_references":         vent["other_references"],
         "latitude":       vent["latitude"],
         "longitude":      vent["longitude"],
         "source_url":     vent["source_url"],
@@ -1494,16 +1542,16 @@ async def seo_contractor(slug: str):
 async def seo_widget(entity_type: str, entity_id: str):
     if entity_type == "concession":
         data = await seo_concession(entity_id)
-        risk_score = min(1.0, (
-            data.vent_conflicts * 0.3
-            + data.nearby_species * 0.005
-            + (1 if data.is_high_risk else 0) * 0.3
-        ))
+        # ⛔ Removed 2026-09-21: `risk_score = vent_conflicts*0.3 +
+        # nearby_species*0.005 + is_high_risk*0.3`, clamped to 1.0. Three weights
+        # nobody derived, combining three unlike quantities into one number that
+        # an embeddable widget then rendered as "High Risk (72%)" — on other
+        # people's pages. The counts it was built from are all still below, each
+        # meaning exactly one thing.
         return WidgetData(
             entity_type="concession",
             entity_id=entity_id,
             name=data.contractor_name,
-            risk_score=round(risk_score, 2),
             summary=data.meta.description,
             canonical_url=data.meta.canonical_url,
             data={
@@ -1512,7 +1560,9 @@ async def seo_widget(entity_type: str, entity_id: str):
                 "area_km2": data.area_km2,
                 "vent_conflicts": data.vent_conflicts,
                 "nearby_species": data.nearby_species,
-                "is_high_risk": data.is_high_risk,
+                # Same column, named for what it measures: a spatial overlap
+                # with an OBIS biodiversity hotspot, not a level of risk.
+                "overlaps_biodiversity_hotspot": data.is_high_risk,
                 "nearby_argo_floats": data.nearby_argo_floats,
                 "nearby_onc_stations": data.nearby_onc_stations,
                 "nearby_oceansites_moorings": data.nearby_oceansites_moorings,
