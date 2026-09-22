@@ -39,10 +39,16 @@ export function makeSetFilter(filterSet: Set<string>, propKey: string): ((f: { p
  * the six most common (`knownValues`) plus an "other" bucket for every other
  * non-null value.
  *
- * A row with NO rating (`hazard_raw` null) is always visible, filter active
- * or not — a missing rating is not a statement that the dam is safe, and
- * there is no invented "Unclassified" bucket to opt into any more (that
- * concept belonged to the deleted `risk_class` scoring).
+ * A row with NO rating gets its own chip, `unrated`. ⛔ It is NOT permanently
+ * visible, and that was tried first: 10,179 of 11,821 dams publish no rating,
+ * so forcing them through made "show me only Extreme" return 10,269 features
+ * of which 90 were Extreme. A filter that cannot filter is not caution, it is
+ * a broken control — measured on the live dev payload 2026-09-22.
+ *
+ * `unrated` is a fact about the source ("this operator published no rating"),
+ * not the invented "Unclassified" tier that the deleted `risk_class` scoring
+ * used to assign. With no filter active every row is visible, so the default
+ * still hides nothing.
  */
 export function tailingsHazardVisible(
   hazardRaw: string | null | undefined,
@@ -50,9 +56,10 @@ export function tailingsHazardVisible(
   knownValues: readonly string[],
 ): boolean {
   if (filterSet.size === 0) return true;
-  if (hazardRaw == null) return true;
-  if (filterSet.has(hazardRaw)) return true;
-  if (filterSet.has("other") && !knownValues.includes(hazardRaw)) return true;
+  const raw = hazardRaw?.trim();
+  if (!raw) return filterSet.has("unrated");
+  if (filterSet.has(raw)) return true;
+  if (filterSet.has("other") && !knownValues.includes(raw)) return true;
   return false;
 }
 

@@ -5,7 +5,7 @@ import { CONTRACTOR_CODES, CONTRACTOR_COLORS, FALLBACK_CONTRACTOR_COLOR, UNPARSE
 import { AIS_SHIP_CLASSES, colorForShipClass } from "../../utils/aisFilters";
 import { VENT_STATUS_VALUES } from "../../types/layers";
 import { TAILINGS_HAZARD_VALUES } from "../../types/landLayers";
-import { TAILINGS_HAZARD, TAILINGS_HAZARD_OTHER } from "../../styles/colorStandards";
+import { TAILINGS_HAZARD, TAILINGS_HAZARD_OTHER, TAILINGS_UNRATED } from "../../styles/colorStandards";
 
 // `key` is the raw InterRidge value (goes straight into ventStatusFilters —
 // the Set the filter predicate checks with .has()). `i18nKey` is a locale-safe
@@ -160,9 +160,11 @@ export const AIS_SHIP_CLASS_DEFS = AIS_SHIP_CLASSES.map(c => {
 // a severity ramp, because a red→green gradient here would just re-introduce
 // by colour the same ordinal scoring the deleted `risk_class` field did by
 // tier. Order is the source's own frequency, not a ranking — see
-// TAILINGS_HAZARD_VALUES. The "other" chip (114 of 120 distinct source
-// strings) and a null rating (always visible, no chip needed) are handled by
-// tailingsHazardVisible(), not here.
+// TAILINGS_HAZARD_VALUES. Two chips are not source strings: "other" (the 107
+// distinct ratings outside the six) and "unrated" (10,179 of 11,821 dams
+// publish no rating at all). ⛔ `unrated` must be a chip, not a permanent
+// override: making those rows unconditionally visible meant selecting
+// "Extreme" returned 10,269 features of which 90 were Extreme.
 export const TAILINGS_RISK_FILTER_DEFS = [
   ...TAILINGS_HAZARD_VALUES.map(key => ({
     key,
@@ -171,4 +173,5 @@ export const TAILINGS_RISK_FILTER_DEFS = [
     dot: true,
   })),
   { key: "other", i18nKey: "other", color: `rgb(${TAILINGS_HAZARD_OTHER.join(", ")})`, dot: true },
+  { key: "unrated", i18nKey: "unrated", color: `rgb(${TAILINGS_UNRATED.join(", ")})`, dot: true },
 ] as const;

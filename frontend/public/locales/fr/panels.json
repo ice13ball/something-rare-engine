@@ -382,7 +382,8 @@
         "Significant": "Significatif",
         "Medium": "Moyen",
         "Low": "Faible",
-        "other": "Autre"
+        "other": "Autre",
+        "unrated": "Aucune évaluation publiée"
       },
       "statusOptions": {
         "Active": "Actif",

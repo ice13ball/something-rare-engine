@@ -98,7 +98,7 @@ const CLOSED_VOCABULARIES: Partial<Record<ShareableFilterField, readonly string[
   // 2026-09-22; a link still carrying one of those words must drop it, not
   // blank the layer. A null hazard_raw is never a filter *value* — a row with
   // no rating stays visible regardless, so it needs no vocabulary entry.
-  tailingsRiskFilters: [...TAILINGS_HAZARD_VALUES, "other"],
+  tailingsRiskFilters: [...TAILINGS_HAZARD_VALUES, "other", "unrated"],
 };
 
 const SHAREABLE_SET: ReadonlySet<string> = new Set(SHAREABLE_FILTER_FIELDS);

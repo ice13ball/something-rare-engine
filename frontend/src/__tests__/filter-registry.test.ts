@@ -122,3 +122,26 @@ describe("a link carrying a retired filter value never blanks a layer", () => {
     expect([...useMapStore.getState().tailingsRiskFilters]).toEqual(["Low", "other"]);
   });
 });
+
+// ⛔ `unrated` is a filter chip, not a permanent override. 10,179 of 11,821
+// dams publish no hazard rating, so an earlier draft that kept them
+// unconditionally visible made "show me only Extreme" return 10,269 features
+// of which 90 were Extreme (measured on the live dev payload 2026-09-22).
+// A filter that cannot filter is a broken control, not caution.
+describe("the tailings 'unrated' chip", () => {
+  afterEach(() => {
+    useMapStore.getState().resetAllFilters();
+  });
+
+  it("survives a share link, so an unrated selection is reproducible", () => {
+    applyShareableFilters({ tailingsRiskFilters: ["unrated"] });
+    expect([...useMapStore.getState().tailingsRiskFilters]).toEqual(["unrated"]);
+  });
+
+  it("hides unrated dams when the link selects only a rated value", () => {
+    applyShareableFilters({ tailingsRiskFilters: ["Extreme"] });
+    const live = useMapStore.getState().tailingsRiskFilters;
+    expect(live.has("Extreme")).toBe(true);
+    expect(live.has("unrated")).toBe(false);
+  });
+});
