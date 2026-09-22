@@ -33,6 +33,29 @@ export function makeSetFilter(filterSet: Set<string>, propKey: string): ((f: { p
  * hidden. A location with zero categories is treated as unclassified
  * (visible) rather than excluded, for the same reason.
  */
+/**
+ * Tailings hazard-rating filter. `hazard_raw` is the operator's own rating
+ * string (120 distinct values on production); the filter chips only cover
+ * the six most common (`knownValues`) plus an "other" bucket for every other
+ * non-null value.
+ *
+ * A row with NO rating (`hazard_raw` null) is always visible, filter active
+ * or not — a missing rating is not a statement that the dam is safe, and
+ * there is no invented "Unclassified" bucket to opt into any more (that
+ * concept belonged to the deleted `risk_class` scoring).
+ */
+export function tailingsHazardVisible(
+  hazardRaw: string | null | undefined,
+  filterSet: Set<string>,
+  knownValues: readonly string[],
+): boolean {
+  if (filterSet.size === 0) return true;
+  if (hazardRaw == null) return true;
+  if (filterSet.has(hazardRaw)) return true;
+  if (filterSet.has("other") && !knownValues.includes(hazardRaw)) return true;
+  return false;
+}
+
 export function oncEovVisible(
   deviceCategories: readonly string[] | null | undefined,
   allowed: Set<string> | null,

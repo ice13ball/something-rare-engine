@@ -5,6 +5,7 @@ import type { MapStore, FilterSetKey } from "../store/mapStore";
 import { useMapStore } from "../store/mapStore";
 import { AssertComplete, AssertDisjoint } from "./layerRegistry";
 import { VENT_STATUS_VALUES, CLAIM_RISK_VALUES } from "./layers";
+import { TAILINGS_HAZARD_VALUES } from "./landLayers";
 
 /**
  * Every `Set<string>` store field a share link is allowed to carry.
@@ -89,6 +90,15 @@ void _filterRegistryDisjoint;
 const CLOSED_VOCABULARIES: Partial<Record<ShareableFilterField, readonly string[]>> = {
   ventStatusFilters: VENT_STATUS_VALUES,
   claimRiskFilters: CLAIM_RISK_VALUES,
+  // The six hazard_raw values the filter UI exposes (TAILINGS_HAZARD_VALUES),
+  // plus the synthetic "other" bucket (tailingsHazardVisible /
+  // TAILINGS_RISK_FILTER_DEFS) — both are values a share link can legitimately
+  // carry today. The former `risk_class` vocabulary (Extreme/Very
+  // High/High/Significant/Medium/Low/Unclassified) is gone from the API
+  // 2026-09-22; a link still carrying one of those words must drop it, not
+  // blank the layer. A null hazard_raw is never a filter *value* — a row with
+  // no rating stays visible regardless, so it needs no vocabulary entry.
+  tailingsRiskFilters: [...TAILINGS_HAZARD_VALUES, "other"],
 };
 
 const SHAREABLE_SET: ReadonlySet<string> = new Set(SHAREABLE_FILTER_FIELDS);

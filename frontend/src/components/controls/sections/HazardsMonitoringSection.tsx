@@ -4,6 +4,7 @@
 import { useTranslation } from "react-i18next";
 import { useMapStore } from "../../../store/mapStore";
 import type { LayerId } from "../../../types/layers";
+import { TAILINGS_RISK_FILTER_DEFS } from "../filterDefs";
 import {
   LayerRow, SubGroup, FilterResetLink,
 } from "../rows";
@@ -49,10 +50,23 @@ export function HazardsMonitoringSection({
               onReset={() => { tailingsRiskFilters.forEach(toggleTailingsRiskFilter); tailingsStatusFilters.forEach(toggleTailingsStatusFilter); }}
             />
           </div>
-          {(["Extreme", "Very High", "High", "Significant", "Medium", "Low", "Unclassified"] as const).map(r => (
-            <label key={r} className="flex items-center gap-2 py-0.5 cursor-pointer">
-              <input type="checkbox" checked={tailingsRiskFilters.has(r)} onChange={() => toggleTailingsRiskFilter(r)} className="accent-red-400 w-3 h-3" />
-              <span className="text-white/75 text-[13px]">{t(`filters.tailings.riskLevels.${r}` as any)}</span>
+          {/* hazard_raw, verbatim from the source — the six most common values
+              plus an "other" bucket. Colors are DISTINCT HUES (TAILINGS_RISK_FILTER_DEFS
+              / colorStandards.TAILINGS_HAZARD), never a severity ramp — a
+              red→green gradient would re-introduce by colour exactly the
+              ordinal scoring the deleted risk_class field did by tier. A row
+              with no rating is always shown and has no checkbox of its own. */}
+          {TAILINGS_RISK_FILTER_DEFS.map(d => (
+            <label key={d.key} className="flex items-center gap-2 py-0.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={tailingsRiskFilters.has(d.key)}
+                onChange={() => toggleTailingsRiskFilter(d.key)}
+                className="w-3 h-3"
+                style={{ accentColor: d.color }}
+              />
+              <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
+              <span className="text-white/75 text-[13px]">{t(`filters.tailings.riskLevels.${d.i18nKey}` as any)}</span>
             </label>
           ))}
           <p className="text-white/70 text-[10px] uppercase tracking-wider mt-2 mb-1">{t("filters.tailings.statusHeading")}</p>

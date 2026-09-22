@@ -43,6 +43,7 @@ import { analytics } from "../utils/analytics";
 import type { ClaimFeatureCollection } from "../types/claims";
 import { LAYER_CONFIGS } from "../types/layers";
 import type { LayerId, ClaimRiskValue } from "../types/layers";
+import { TAILINGS_HAZARD_VALUES } from "../types/landLayers";
 import type { AssertComplete, AssertDisjoint } from "../types/layerRegistry";
 import { LayerUnavailableNotice } from "./LayerUnavailableNotice";
 import { fetchWithProgress } from "../utils/fetchWithProgress";
@@ -51,7 +52,7 @@ import { matchesAisFilters, classifyShipType, colorForShipClass } from "../utils
 import { colorForContractor } from "../utils/contractorColors";
 import {
   WRI_AQUEDUCT, WRI_AQUEDUCT_NO_DATA,
-  TAILINGS_HAZARD, TAILINGS_UNCLASSIFIED,
+  TAILINGS_HAZARD, TAILINGS_HAZARD_OTHER, TAILINGS_UNRATED,
   FIRMS_CONFIDENCE, FIRMS_FALLBACK,
   CHESS_COLOR,
   withAlpha,
@@ -80,7 +81,7 @@ import {
   type Box, expandBox, walkCoords, bboxToView, getBBoxCenter,
   approxViewBbox, bboxContains, expandBoxBuffer,
 } from "./map3d/geometry";
-import { makeSetFilter, oncEovVisible } from "./map3d/filters";
+import { makeSetFilter, oncEovVisible, tailingsHazardVisible } from "./map3d/filters";
 import { hexPassesDecadeFilter, hexFilteredCount } from "./map3d/hexDecadeFilter";
 import { decodeCurrentArrows, _currentsFieldLRU, lruPut } from "./map3d/currents";
 import {
@@ -1727,7 +1728,7 @@ export function Map3D() {
     let features = tailingsData.features;
     if (tailingsRiskFilters.size > 0) {
       features = features.filter((f: any) =>
-        tailingsRiskFilters.has(f.properties?.risk_class ?? "Unclassified")
+        tailingsHazardVisible(f.properties?.hazard_raw, tailingsRiskFilters, TAILINGS_HAZARD_VALUES)
       );
     }
     if (tailingsStatusFilters.size > 0) {
@@ -2350,7 +2351,13 @@ export function Map3D() {
     // Land layers
     "mining-footprints": { deckLayerId: "mining-footprints" },
     "water-risk":        { deckLayerId: "water-risk-mvt" },
-    "tailings":          { deckLayerId: "tailings", filter: makeSetFilter(tailingsRiskFilters, "risk_class") },
+    "tailings": {
+      deckLayerId: "tailings",
+      filter: tailingsRiskFilters.size > 0
+        ? (f: { properties?: Record<string, unknown> | null }) =>
+            tailingsHazardVisible(f.properties?.hazard_raw as string | null | undefined, tailingsRiskFilters, TAILINGS_HAZARD_VALUES)
+        : undefined,
+    },
     "fires": {
       deckLayerId: "fires",
       filter: (f: { properties?: Record<string, unknown> | null }) => {
@@ -4702,21 +4709,19 @@ export function Map3D() {
       getPosition: (f: any) => f.geometry.coordinates,
       getRadius: 5000,
       getFillColor: (f: any) => {
-        // Tailings hazard mapped to WRI Aqueduct progression (yellow→dark red).
-        // Unclassified gets neutral grey to avoid implying low risk.
-        const risk = f.properties?.risk_class as string | undefined;
-        if (risk && TAILINGS_HAZARD[risk]) {
-          const alpha = risk === "Extreme" ? 240 : risk === "Very High" ? 220
-                      : risk === "High"    ? 200 : risk === "Significant" ? 200
-                      : risk === "Medium"  ? 180 : 180;
-          return withAlpha(TAILINGS_HAZARD[risk], alpha);
-        }
-        return withAlpha(TAILINGS_UNCLASSIFIED, 160);
+        // hazard_raw is the operator's own rating string, verbatim. Colors are
+        // DISTINCT HUES (TAILINGS_HAZARD, colorStandards.ts) — no risk ramp,
+        // and no alpha ramp by severity either: every rated dam gets the same
+        // opacity so darker/brighter never reads as "more dangerous".
+        const risk = f.properties?.hazard_raw as string | undefined;
+        if (risk && TAILINGS_HAZARD[risk]) return withAlpha(TAILINGS_HAZARD[risk], 200);
+        if (risk) return withAlpha(TAILINGS_HAZARD_OTHER, 200); // rated, but outside the 6 known values
+        return withAlpha(TAILINGS_UNRATED, 160); // hazard_raw is null — no rating disclosed
       },
       getLineColor: (f: any) => {
-        const risk = f.properties?.risk_class;
-        if (risk && risk !== "Unclassified" && TAILINGS_HAZARD[risk]) return [255, 255, 255, 200];
-        return withAlpha(TAILINGS_UNCLASSIFIED, 200);
+        const risk = f.properties?.hazard_raw;
+        if (risk) return [255, 255, 255, 200];
+        return withAlpha(TAILINGS_UNRATED, 200);
       },
       getLineWidth: 1,
       lineWidthMinPixels: 1,

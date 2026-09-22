@@ -4,6 +4,8 @@
 import { CONTRACTOR_CODES, CONTRACTOR_COLORS, FALLBACK_CONTRACTOR_COLOR, UNPARSED_CONTRACTOR_KEY } from "../../utils/contractorColors";
 import { AIS_SHIP_CLASSES, colorForShipClass } from "../../utils/aisFilters";
 import { VENT_STATUS_VALUES } from "../../types/layers";
+import { TAILINGS_HAZARD_VALUES } from "../../types/landLayers";
+import { TAILINGS_HAZARD, TAILINGS_HAZARD_OTHER } from "../../styles/colorStandards";
 
 // `key` is the raw InterRidge value (goes straight into ventStatusFilters —
 // the Set the filter predicate checks with .has()). `i18nKey` is a locale-safe
@@ -151,3 +153,22 @@ export const AIS_SHIP_CLASS_DEFS = AIS_SHIP_CLASSES.map(c => {
   const [r, g, b] = colorForShipClass(c);
   return { key: c, label: c.charAt(0).toUpperCase() + c.slice(1), color: `rgb(${r}, ${g}, ${b})`, dot: true };
 });
+
+// Tailings dam hazard-rating filter chips. `key` is the operator's own
+// hazard_raw string, verbatim — i18nKey resolves through filters.tailings.riskLevels.*.
+// Colors come from TAILINGS_HAZARD (colorStandards.ts) — DISTINCT HUES, never
+// a severity ramp, because a red→green gradient here would just re-introduce
+// by colour the same ordinal scoring the deleted `risk_class` field did by
+// tier. Order is the source's own frequency, not a ranking — see
+// TAILINGS_HAZARD_VALUES. The "other" chip (114 of 120 distinct source
+// strings) and a null rating (always visible, no chip needed) are handled by
+// tailingsHazardVisible(), not here.
+export const TAILINGS_RISK_FILTER_DEFS = [
+  ...TAILINGS_HAZARD_VALUES.map(key => ({
+    key,
+    i18nKey: key,
+    color: `rgb(${TAILINGS_HAZARD[key].join(", ")})`,
+    dot: true,
+  })),
+  { key: "other", i18nKey: "other", color: `rgb(${TAILINGS_HAZARD_OTHER.join(", ")})`, dot: true },
+] as const;

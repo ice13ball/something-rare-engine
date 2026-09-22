@@ -48,7 +48,7 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
     color: "#dc2626",
     fillRgba: [220, 38, 38, 200],
     lineRgba: [220, 38, 38, 255],
-    description: "1,800+ mine tailings dams with risk classification — WAPHA (Hudson-Edwards et al. 2023) + Global Tailings Portal",
+    description: "1,800+ mine tailings dams, with the operator's own hazard rating where disclosed — WAPHA (Hudson-Edwards et al. 2023) + Global Tailings Portal",
     phase: 2,
   },
   {
@@ -147,3 +147,18 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
 export const LAND_LAYERS_OFF_BY_DEFAULT = new Set<LandLayerId>(
   LAND_LAYER_CONFIGS.map(l => l.id)
 );
+
+/**
+ * Tailings dam hazard rating — `hazard_raw` is the operator's own rating
+ * string, verbatim, from the Global Tailings Portal (120 distinct values
+ * live on production). This platform runs no scoring of its own (the former
+ * `risk_class` six-tier collapse was deleted 2026-09-22) — these are the six
+ * values the filter UI and the map's categorical colors key off of, plus an
+ * "other" bucket (added at the call site) for the other 114 distinct values.
+ *
+ * ⛔ Order is the source's own frequency (Low 507, High 419, Significant 296,
+ * Medium 124, Very High 112, Extreme 102), NOT a severity ranking — do not
+ * re-sort this into Low..Extreme or Extreme..Low.
+ */
+export const TAILINGS_HAZARD_VALUES = ["Low", "High", "Significant", "Medium", "Very High", "Extreme"] as const;
+export type TailingsHazardValue = (typeof TAILINGS_HAZARD_VALUES)[number];

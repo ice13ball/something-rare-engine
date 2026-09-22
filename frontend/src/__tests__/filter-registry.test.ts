@@ -103,4 +103,22 @@ describe("a link carrying a retired filter value never blanks a layer", () => {
       "Nobody Ltd::polymetallic nodules",
     ]);
   });
+
+  // ⛔ The failure this stops: on 2026-09-22 `risk_class` (Extreme/Very
+  // High/High/Significant/Medium/Low/Unclassified — this platform's own
+  // six-tier collapse of the source's rating) was deleted from the API. A
+  // link shared before that date still carries those words against
+  // tailingsRiskFilters, which now holds hazard_raw values instead.
+  it("keeps the default when the link's only tailings hazard value is retired risk_class vocabulary", () => {
+    // "Unclassified" is the one risk_class word with no hazard_raw equivalent —
+    // every other risk_class tier (Extreme/Very High/High/Significant/Medium/Low)
+    // happens to already be a literal hazard_raw string, so it stays valid.
+    applyShareableFilters({ tailingsRiskFilters: ["Unclassified"] });
+    expect(useMapStore.getState().tailingsRiskFilters.size).toBe(0);
+  });
+
+  it("keeps only the current hazard_raw values, including the current 'other' bucket, when a link mixes old and new", () => {
+    applyShareableFilters({ tailingsRiskFilters: ["Unclassified", "Low", "other"] });
+    expect([...useMapStore.getState().tailingsRiskFilters]).toEqual(["Low", "other"]);
+  });
 });

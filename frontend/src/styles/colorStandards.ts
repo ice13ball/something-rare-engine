@@ -244,20 +244,36 @@ export function iucnRedlistColor(cat: string | null | undefined): RGB {
 }
 
 /**
- * Tailings dam normalised hazard rating (Extreme..Low + Unclassified).
- * Aligned with WRI Aqueduct progression so the two layers read the same:
- * yellow = low, dark red = extreme. Unclassified gets neutral grey
- * (not a risk color) to avoid implying low risk by accident.
+ * Tailings dam hazard rating — the operator's own string, verbatim, from the
+ * Global Tailings Portal (`hazard_raw`; 120 distinct values live on
+ * production). Michal ruled 2026-09-22 that this platform runs no scoring of
+ * its own — the former six-tier `risk_class` collapse of the source's rating
+ * is deleted, backend and frontend both.
+ *
+ * ⛔ These are DISTINCT HUES, not a severity ramp. The whole point of the
+ * 2026-09-22 change was to stop implying an ordinal ranking the source never
+ * asserted — a yellow→dark-red gradient here would just re-introduce that
+ * same ranking by colour instead of by tier. Palette: ColorBrewer Dark2
+ * (qualitative, colorbrewer2.org).
+ *
+ * Order matches the filter UI, which is the source's own frequency count
+ * (Low 507, High 419, Significant 296, Medium 124, Very High 112, Extreme
+ * 102) — NOT a severity ranking.
  */
 export const TAILINGS_HAZARD: Record<string, RGB> = {
-  "Low":         WRI_AQUEDUCT[0],
-  "Medium":      WRI_AQUEDUCT[1],
-  "Significant": WRI_AQUEDUCT[2],
-  "High":        WRI_AQUEDUCT[3],
-  "Very High":   [206,  20,  41],
-  "Extreme":     WRI_AQUEDUCT[4],
+  "Low":         CB_DARK2[0],
+  "High":        CB_DARK2[1],
+  "Significant": CB_DARK2[2],
+  "Medium":      CB_DARK2[3],
+  "Very High":   CB_DARK2[4],
+  "Extreme":     CB_DARK2[5],
 };
-export const TAILINGS_UNCLASSIFIED: RGB = [148, 148, 148];
+// Any hazard_raw value outside the six above — 114 of the 120 distinct source
+// strings. One more distinct hue of its own; never blended from the six.
+export const TAILINGS_HAZARD_OTHER: RGB = CB_DARK2[6];
+// hazard_raw is null (no rating disclosed) — neutral grey, not a risk color.
+// A missing rating is not a statement about how safe the dam is.
+export const TAILINGS_UNRATED: RGB = [148, 148, 148];
 
 /**
  * Chemosynthetic site color. Sites used to be colored by `habitat_type`, a
