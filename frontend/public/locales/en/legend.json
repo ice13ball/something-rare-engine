@@ -319,7 +319,7 @@
       "description": "Recent dissolved oxygen from ISAS BGC-Argo floats (2014–2018), plus a change (Δ) view comparing it to the WOA23 1971–2000 “Climate Normal” baseline.",
       "reading": "Recent view: blue = high O₂, red = low (oxygen minimum zones). Δ view: red = oxygen loss since 1971–2000, blue = gain.",
       "limitations": "Indicative regional pattern of oxygen change, not a calibrated trend. The recent field (Argo optodes, 2014–2018) and the 1971–2000 baseline (ship Winkler/CTD) differ in instrument and method, so some apparent change reflects that difference. Clicking the map returns the recent value, the baseline and their difference for the nearest grid cell; the coloured field behind them is a pre-baked image, so a click samples that cell, not the exact pixel.",
-      "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk et al. 2024, SEANOE 10.17882/52367 (CC-BY 4.0); baseline WOA23, NOAA NCEI.",
+      "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk, Prigent-Mazella & Gaillard 2023, SEANOE 10.17882/52367 (CC-BY 4.0); method: Kolodziejczyk et al. 2024, ESSD 16:5191; baseline WOA23, NOAA NCEI.",
       "updateFreq": "Static (ISAS20 release)",
       "colorRamp": [
         {

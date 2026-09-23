@@ -285,4 +285,4 @@ def build_meta() -> dict:
                       "vmin": -CHANGE_VLIM, "vmax": CHANGE_VLIM, "cmap": "diverging",
                       "ramp": diverging_ramp_hex(), "depths": chg_depths, "diverging": True})
     return {"views": views, "depths": DISPLAY_DEPTHS,
-            "attribution": "ISAS20 BGC-Argo O₂ (Kolodziejczyk et al. 2024; SEANOE 10.17882/52367, CC-BY 4.0); baseline WOA23 (NOAA NCEI)."}
+            "attribution": "ISAS20 BGC-Argo O₂ (Kolodziejczyk, Prigent-Mazella & Gaillard 2023; SEANOE 10.17882/52367, CC-BY 4.0; method: Kolodziejczyk et al. 2024, ESSD 16:5191); baseline WOA23 (NOAA NCEI)."}

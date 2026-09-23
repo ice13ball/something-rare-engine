@@ -319,7 +319,7 @@
       "description": "Oxygène dissous récent issu des flotteurs BGC-Argo ISAS (2014–2018), avec une vue du changement (Δ) le comparant à la référence WOA23 1971–2000 (« Climate Normal »).",
       "reading": "Vue récente : bleu = O₂ élevé, rouge = faible (zones de minimum d'oxygène). Vue Δ : rouge = perte d'oxygène par rapport à 1971–2000, bleu = gain.",
       "limitations": "Schéma régional indicatif du changement d'oxygène, et non une tendance calibrée. Le champ récent (optodes Argo, 2014–2018) et la référence 1971–2000 (Winkler/CTD sur navire) diffèrent par l'instrument et la méthode, de sorte qu'une partie du changement apparent reflète cette différence. Un clic sur la carte renvoie la valeur récente, la référence et leur différence pour la cellule de grille la plus proche ; le champ coloré en arrière-plan est une image pré-générée, le clic échantillonne donc cette cellule et non le pixel exact.",
-      "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk et al. 2024, SEANOE 10.17882/52367 (CC-BY 4.0) ; référence WOA23, NOAA NCEI.",
+      "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk, Prigent-Mazella & Gaillard 2023, SEANOE 10.17882/52367 (CC-BY 4.0) ; méthode : Kolodziejczyk et al. 2024, ESSD 16:5191 ; référence WOA23, NOAA NCEI.",
       "updateFreq": "Statique (édition ISAS20)",
       "colorRamp": [
         {

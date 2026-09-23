@@ -319,7 +319,7 @@
       "description": "Najnowszy rozpuszczony tlen z pływaków BGC-Argo ISAS (2014–2018) oraz widok zmiany (Δ) porównujący go z bazą World Ocean Atlas WOA23 z lat 1971–2000 („Climate Normal”).",
       "reading": "Widok bieżący: niebieski = wysoki O₂, czerwony = niski (strefy minimum tlenowego). Widok Δ: czerwony = utrata tlenu względem lat 1971–2000, niebieski = przyrost.",
       "limitations": "Orientacyjny regionalny wzorzec zmiany tlenu, a nie skalibrowany trend. Pole bieżące (optody Argo, 2014–2018) i baza z lat 1971–2000 (statkowe Winkler/CTD) różnią się przyrządem i metodą, więc część pozornej zmiany wynika z tej różnicy. Kliknięcie mapy zwraca wartość bieżącą, bazową i ich różnicę dla najbliższej komórki siatki; kolorowe pole pod spodem jest wstępnie wygenerowanym obrazem, więc kliknięcie próbkuje tę komórkę, a nie dokładny piksel.",
-      "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk i in. 2024, SEANOE 10.17882/52367 (CC-BY 4.0); baza WOA23, NOAA NCEI.",
+      "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk, Prigent-Mazella i Gaillard 2023, SEANOE 10.17882/52367 (CC-BY 4.0); metoda: Kolodziejczyk i in. 2024, ESSD 16:5191; baza WOA23, NOAA NCEI.",
       "updateFreq": "Statyczne (wydanie ISAS20)",
       "colorRamp": [
         {
