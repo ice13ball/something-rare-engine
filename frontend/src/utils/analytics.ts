@@ -29,10 +29,8 @@ export function updateConsent(granted: boolean): void {
   try { localStorage.setItem(CONSENT_KEY, value); } catch {}
   if (typeof window !== "undefined" && window.gtag) {
     window.gtag("consent", "update", {
+      // Analytics only — no ads run on the site, so ad_* stay denied (index.html).
       analytics_storage: value,
-      ad_storage: value,
-      ad_user_data: value,
-      ad_personalization: value,
     });
     // Re-trigger config so GA4 creates a proper session with cookies
     // (the initial config fired with consent denied, so no session was started)

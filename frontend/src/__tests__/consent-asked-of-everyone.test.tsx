@@ -70,7 +70,8 @@ describe('index.html bootstrap: no automatic grant', () => {
     runBootstrap();
     const upd = calls.filter((c) => c[0] === 'consent' && c[1] === 'update');
     expect(upd).toHaveLength(1);
-    expect((upd[0][2] as Record<string, string>).analytics_storage).toBe('granted');
+    // Analytics only: no ads run on the site, so ad_* are never granted.
+    expect(upd[0][2]).toEqual({ analytics_storage: 'granted' });
   });
 });
 
@@ -104,7 +105,7 @@ describe('server-rendered banner (seo/render-page.js)', () => {
     const { el, gtag } = await mountBanner();
     (el.querySelector('[data-consent="granted"]') as HTMLButtonElement).click();
     expect(localStorage.getItem(KEY)).toBe('granted');
-    expect(gtag).toHaveBeenCalledWith('consent', 'update', expect.objectContaining({ analytics_storage: 'granted' }));
+    expect(gtag).toHaveBeenCalledWith('consent', 'update', { analytics_storage: 'granted' });
     expect(gtag).toHaveBeenCalledWith('config', 'G-S5HR4WT0ZG', { send_page_view: true });
     expect(el.hidden).toBe(true);
   });
@@ -130,5 +131,22 @@ describe('React CookieBanner on /', () => {
     expect(document.body.textContent).not.toMatch(/advertis/i);
     expect(localStorage.getItem(KEY)).toBeNull();
     expect(gtag).not.toHaveBeenCalled();
+  });
+});
+
+describe('no advertising anywhere: the site runs no ads', () => {
+  it('React updateConsent(true) grants analytics only', async () => {
+    const gtag = vi.fn();
+    (window as unknown as { gtag: unknown }).gtag = gtag;
+    const { updateConsent } = await import('../utils/analytics');
+    updateConsent(true);
+    expect(gtag).toHaveBeenCalledWith('consent', 'update', { analytics_storage: 'granted' });
+    expect(localStorage.getItem(KEY)).toBe('granted');
+  });
+
+  it('the privacy policy, terms and about pages never mention advertising', async () => {
+    const legal = await import('../content/legalContent');
+    const text = JSON.stringify([legal.PRIVACY_POLICY, legal.TERMS_OF_USE, legal.ABOUT]);
+    expect(text).not.toMatch(/advertis/i);
   });
 });

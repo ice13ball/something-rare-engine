@@ -76,12 +76,9 @@
       try {
         localStorage.removeItem('abyssal_consent');
         if (localStorage.getItem('abyssal_consent_v2') === 'granted') {
-          gtag('consent', 'update', {
-            analytics_storage: 'granted',
-            ad_storage: 'granted',
-            ad_user_data: 'granted',
-            ad_personalization: 'granted'
-          });
+          // Analytics only. The site runs no ads, so the ad_* signals stay at
+          // their 'denied' default above and nothing ever grants them.
+          gtag('consent', 'update', { analytics_storage: 'granted' });
         }
       } catch(e) {}
     </script>

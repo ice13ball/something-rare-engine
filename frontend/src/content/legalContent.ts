@@ -115,7 +115,7 @@ export const PRIVACY_POLICY: LegalDoc = {
         "If you are in the EEA or UK, we process data based on:",
         {
           list: [
-            "Consent (Article 6(1)(a) GDPR) — for analytics and advertising cookies, activated only after you accept; and for any email address you voluntarily provide in the feedback form.",
+            "Consent (Article 6(1)(a) GDPR) — for analytics cookies, activated only after you accept; and for any email address you voluntarily provide in the feedback form.",
             "Legitimate interests (Article 6(1)(f) GDPR) — for basic site functionality, security, and processing feedback messages that do not contain an email address.",
             "Statistical purposes (Recital 162 GDPR) — for the cookieless aggregate page-view counter.",
           ],

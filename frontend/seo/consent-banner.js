@@ -41,7 +41,7 @@ export const CONSENT_BANNER_HTML = `  <div id="consent-banner" hidden role="dial
         var value = btn.getAttribute('data-consent');
         try { localStorage.setItem(KEY, value); } catch (e) {}
         if (typeof window.gtag === 'function') {
-          window.gtag('consent', 'update', { analytics_storage: value, ad_storage: value, ad_user_data: value, ad_personalization: value });
+          window.gtag('consent', 'update', { analytics_storage: value });
           if (value === 'granted') window.gtag('config', 'G-S5HR4WT0ZG', { send_page_view: true });
           window.gtag('event', 'consent_decision', { granted: value === 'granted' ? 1 : 0, send_to: 'G-S5HR4WT0ZG' });
         }
