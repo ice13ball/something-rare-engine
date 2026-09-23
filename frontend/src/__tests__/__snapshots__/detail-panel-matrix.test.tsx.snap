@@ -14898,22 +14898,14 @@ exports[`DetailPanel dispatch matrix > renders tailings without throwing and mat
           TEST Dam
         </h2>
         <div
-          class="mb-1"
+          class="mb-3 px-2 py-1.5 rounded-lg bg-orange-500/10 border-orange-500/20 border"
         >
-          <span
-            class="inline-block px-2 py-0.5 rounded text-xs font-semibold border"
-            style="color: rgb(230, 171, 2); border-color: rgba(230, 171, 2, 0.5); background: rgba(230, 171, 2, 0.12);"
+          <p
+            class="text-orange-400 text-[14px] font-sans"
           >
-            Extreme
-          </span>
+            Global Tailings Portal fields (hazard rating, ownership, dam specifications, safety-review answers) are withdrawn pending written permission from GRID-Arendal and are not shown, on any tailings facility. This record carries only its WAPHA-sourced name, location and country.
+          </p>
         </div>
-        <p
-          class="text-white/50 text-[11px] mb-3"
-        >
-          Classification system
-          : 
-          ANCOLD 2012
-        </p>
         <div
           class="mb-4"
         >
@@ -14928,48 +14920,6 @@ exports[`DetailPanel dispatch matrix > renders tailings without throwing and mat
             <span
               class="text-white/70 text-[14px] shrink-0"
             >
-              Owner
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              TEST Owner
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Operator
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              TEST Operator
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Mine
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              TEST Mine
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
               Country
             </span>
             <span
@@ -14978,294 +14928,6 @@ exports[`DetailPanel dispatch matrix > renders tailings without throwing and mat
               Testland
             </span>
           </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Status
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              active
-            </span>
-          </div>
-        </div>
-        <div
-          class="mb-4"
-        >
-          <p
-            class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
-          >
-            Dam Specifications
-          </p>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Construction
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              upstream
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Height
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              45 m
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Storage
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              1,234,567 m³
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Planned storage (5-year)
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              2,000,000 m³
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Built
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              1990
-            </span>
-          </div>
-        </div>
-        <div
-          class="mb-4"
-        >
-          <p
-            class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
-          >
-            Safety & Engineering Review
-          </p>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              History of stability concerns
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              No
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Downstream impact
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Yes
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Recent independent expert review
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              2018
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Secure under extreme weather
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Yes
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Currently approved design
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Yes
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Engineering support
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Both
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Relevant engineering records
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Yes
-            </span>
-          </div>
-        </div>
-        <div
-          class="mb-4"
-        >
-          <p
-            class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
-          >
-            Closure Planning
-          </p>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Closure plan — dam
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Yes
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Closure plan — long-term monitoring
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Yes
-            </span>
-          </div>
-        </div>
-        <div
-          class="mb-4"
-        >
-          <p
-            class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
-          >
-            Governance & Disclosure
-          </p>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Disclosure origin
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              Global Tailings Portal
-            </span>
-          </div>
-          <div
-            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
-          >
-            <span
-              class="text-white/70 text-[14px] shrink-0"
-            >
-              Partners
-            </span>
-            <span
-              class="text-white/90 text-[14px] text-right font-mono"
-            >
-              TEST Partner Org
-            </span>
-          </div>
-        </div>
-        <div
-          class="mb-4"
-        >
-          <p
-            class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
-          >
-            Disclosure Notes
-          </p>
-          <p
-            class="text-white/70 text-[14px] leading-relaxed text-white/70 whitespace-pre-line"
-          >
-            TEST disclosure notes, verbatim from the operator.
-          </p>
         </div>
         <div
           class="mb-4"
@@ -15297,12 +14959,12 @@ exports[`DetailPanel dispatch matrix > renders tailings without throwing and mat
            
           <a
             class="underline decoration-white/20 hover:decoration-white/60 hover:text-white/85 transition-colors"
-            href="https://tailing.grida.no/?search=TEST%20Dam"
+            href="https://doi.org/10.5061/dryad.j3tx95xmg"
             rel="noopener noreferrer"
             target="_blank"
-            title="Open this record on the source site"
+            title="Open the source organisation's homepage"
           >
-            Hudson-Edwards, K. et al. (2023) WAPHA — Dryad, with Global Tailings Portal (GRID-Arendal) disclosures
+            Hudson-Edwards, K. et al. (2023) WAPHA global metal mines database — Dryad (CC0)
              
             <span
               aria-hidden="true"
@@ -15335,50 +14997,6 @@ exports[`DetailPanel dispatch matrix > renders tailings without throwing and mat
               />
             </svg>
             Satellite view
-          </a>
-          <a
-            class="inline-flex items-center gap-1 text-white/70 hover:text-white/90 text-xs transition-colors"
-            href="https://tailing.grida.no/disclosures/TEST"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <svg
-              aria-hidden="true"
-              class="w-3 h-3 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            Operator's own disclosure
-          </a>
-          <a
-            class="inline-flex items-center gap-1 text-white/70 hover:text-white/90 text-xs transition-colors"
-            href="https://tailing.grida.no/disclosures"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <svg
-              aria-hidden="true"
-              class="w-3 h-3 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            Global Tailings Portal
           </a>
           <a
             class="inline-flex items-center gap-1 text-white/70 hover:text-white/90 text-xs transition-colors"

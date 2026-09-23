@@ -257,7 +257,10 @@ async def _fetch_station(
         if val is None:
             continue
         key = var_to_key[(suffix, internal)]
-        obs[key] = round(val, 2) if key != "wdir" else round(val, 0)
+        # Measured values pass through exactly as the source published them —
+        # rounding belongs in the display layer, never in storage
+        # (docs/methods/data-passthrough.md).
+        obs[key] = val
         if ts and (obs_time_max is None or ts > obs_time_max):
             obs_time_max = ts
 

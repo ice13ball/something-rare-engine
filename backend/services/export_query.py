@@ -65,6 +65,8 @@ def build_vector_sql(layer: VectorExport, aoi: Aoi, *, count_only: bool) -> tupl
     geom = layer.geom_col  # already qualified (t.geom / c.geom)
     join = layer.join_sql or ""
     extra_from, params, where = _where(aoi, geom)
+    if layer.extra_where:
+        where = f"({where}) AND ({layer.extra_where})"
     from_clause = f"{layer.table} t {join} {extra_from}".strip()
     if count_only:
         return f"SELECT COUNT(*) FROM {from_clause} WHERE {where}", params

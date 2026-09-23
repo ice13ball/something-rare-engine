@@ -250,6 +250,12 @@ export function OncPanel({ properties: p }: { properties: Record<string, unknown
         {(() => { const c = latLonFromProps(p); return c && <SeafloorDepthRow lat={c[0]} lon={c[1]} />; })()}
       </Section>
 
+      {p.description != null && String(p.description).trim() !== "" && (
+        <Section title={t("onc.descriptionSectionTitle")}>
+          <p className="text-[13px] text-white/70 leading-relaxed">{String(p.description)}</p>
+        </Section>
+      )}
+
       <Section title={t("onc.latestReadingsSectionTitle")}>
         {sensorKeys.length === 0 ? (
           <p className="text-xs text-white/65 italic">

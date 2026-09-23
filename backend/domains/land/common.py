@@ -34,6 +34,51 @@ import db
 log = logging.getLogger("land_layers")
 
 
+# ── Global Tailings Portal (GRID-Arendal) withdrawal — decided 2026-09-23 ──
+#
+# tailing.grida.no/about asks users to "contact GRID-Arendal to obtain
+# permission to download the TSF dataset"; we never obtained it. Michal's
+# decision 2026-09-23, same principle as the WDPA/KBA withdrawals
+# (`test_wdpa_withdrawn.py`, `test_kba_withdrawn.py`) — but NOT their shape.
+# `tailings` is not a withdrawn layer: it stays live at 11,587 facilities.
+# This is a field-level + row-level cut inside one layer that keeps serving.
+#
+# Rows: `data_source = 'grid'` (Portal-only facilities, no WAPHA counterpart)
+# must never be served. `wapha` and `grid-enriched` rows stay served.
+#
+# Columns: `_enrich_tailings_from_grid` (domains/land/extractive.py) writes
+# every column below on a `grid-enriched` row too — the WAPHA source
+# shapefile publishes exactly one attribute (`Name`), so none of these held a
+# genuine WAPHA value before enrichment touched them; they are Portal data,
+# full stop, regardless of the row's `data_source`. `dam_name`, `country`,
+# `id`, `geom`/`geog`, `data_source`, `created_at` are NOT in this list —
+# those are WAPHA's own or platform-derived and stay served.
+#
+# ⛔ DELETE NOTHING. This is a serving-layer decision, not a data migration —
+# every one of these columns and every `grid` row stays in the database.
+# Every backend surface that reads `tailings_dams` must apply BOTH of the
+# constants below, at the SQL layer, not as a Python post-filter.
+TAILINGS_SERVED_WHERE = "data_source IS DISTINCT FROM 'grid'"
+
+TAILINGS_PORTAL_COLUMNS: tuple[str, ...] = (
+    "mine_name", "dam_type", "height_m", "volume_m3", "status",
+    "owner_company", "operator", "construction_year", "raise_type",
+    "hazard_raw", "grid_facility_id", "classification_system",
+    "disclosure_link", "disclosure_origin", "history_stability_concerns",
+    "downstream_impact", "recent_independent_expert_review",
+    "extreme_weather_secure", "currently_approved_design",
+    "closure_plan_dam", "closure_plan_long_term_monitoring",
+    "internal_external_eng_support", "relevant_engineering_records",
+    "disclosure_notes", "partners", "planned_storage_5_years",
+)
+
+# What every surface MAY serve for a wapha/grid-enriched row. `risk_class` is
+# not here either — retired 2026-09-22, platform-derived, unwritten since.
+TAILINGS_PUBLIC_COLUMNS: tuple[str, ...] = (
+    "id", "dam_name", "country", "data_source", "created_at",
+)
+
+
 async def _log_land_sync(source: str, added: int, total: int):
     """Log sync results to sync_log table (same table as sea layers)."""
     async with db.pool.acquire() as conn:

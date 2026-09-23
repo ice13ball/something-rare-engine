@@ -128,6 +128,11 @@ def build_arts_rows(geojson: dict) -> list[dict]:
     seen: set[tuple[str, str]] = set()
     for f in geojson.get("features", []):
         p = f.get("properties") or {}
+        # ARTS README (github.com/whrc/ARTS, "Instructions for Use" field table):
+        # "TrainClass | String | TRUE | 'Positive' for genuine RTS and 'Negative'
+        # for background". Negative rows are non-slump training samples, not
+        # slumps; counted 2026-09-23 in the v6.0.0 file: 40,102 Positive /
+        # 21,269 Negative of 61,371 features.
         if (p.get("TrainClass") or "").strip().lower() != "positive":
             continue
         uid = _clean(p.get("UID"))

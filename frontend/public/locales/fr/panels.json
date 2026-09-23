@@ -476,7 +476,7 @@
       "mining-footprints": "74 548 polygones de mines (puits, résidus, décharges, traitement) cartographiés à 10 m depuis Sentinel-2. La véritable étendue spatiale de l'exploitation minière que les rapports d'entreprise montrent rarement.",
       "kbas": "Plus de 16 000 sites identifiés comme les lieux les plus importants de la Terre pour les espèces et les écosystèmes. Le chevauchement avec les empreintes minières révèle un conflit direct avec la biodiversité.",
       "forest-loss": "Déforestation annuelle à 30 m depuis Global Forest Watch (umd_tree_cover_loss v1.13). Les routes issues des mines rayonnent vers l'extérieur et la déforestation suit — l'empreinte de la mine s'étend bien au-delà de la fosse.",
-      "tailings": "Plus de 11 900 installations de résidus miniers dans le monde, dont plus de 1 900 portent l'évaluation du danger publiée par l'exploitant lui-même (hazard_raw) via le Global Tailings Portal, accompagnée du système de classification qui l'a émise — il en existe 255, sans quoi une évaluation ne peut être comparée d'une ligne à l'autre. Chaque valeur reçoit sa propre couleur distincte ; cette plateforme n'applique aucune notation de gravité. Les digues rehaussées vers l'amont sont historiquement les plus sujettes aux ruptures.",
+      "tailings": "11 587 installations de résidus dans le monde (WAPHA, Hudson-Edwards et al. 2023). Les champs de cote de danger, de propriété et de spécification du Global Tailings Portal sont retirés en attendant une autorisation écrite de GRID-Arendal et ne sont pas affichés.",
       "fires": "Détections d'incendies en quasi-temps réel depuis les trois satellites VIIRS de la NASA, mises à jour sous 3 heures. Filtrez par niveau de confiance. La saison des feux recoupe souvent le défrichement pour l'exploitation minière.",
       "air-quality": "Relevés en temps réel de PM2.5, SO₂, NO₂, O₃, CO depuis des stations de surveillance gouvernementales dans le monde entier. L'exploitation minière et la fumée des incendies créent des points chauds de pollution.",
       "landslides": "Glissements de terrain déclenchés par les pluies depuis 2007. Les digues de résidus en terrain sujet aux glissements constituent un signal d'alarme pour le risque de défaillance structurelle.",
@@ -760,7 +760,12 @@
     "panelBadge": "Incendie actif",
     "panelTitle": "Détection d'incendie",
     "observedLabel": "Détecté (UTC)",
-    "satelliteLabel": "Satellite"
+    "satelliteLabel": "Satellite",
+    "dayNightLabel": "Jour / nuit",
+    "versionLabel": "Version",
+    "pixelSizeLabel": "Taille du pixel",
+    "dayValue": "Jour",
+    "nightValue": "Nuit"
   },
   "kba": {
     "areaLabel": "Superficie",
@@ -887,6 +892,7 @@
     "qcDoubtfulTooltip": "Ocean Networks Canada a signalé cette mesure comme douteuse (indicateur qualité {{flag}}). La valeur est affichée telle que publiée ; à interpréter avec prudence.",
     "panelBadge": "Observatoire ONC",
     "stationSectionTitle": "Station",
+    "descriptionSectionTitle": "Description",
     "body": "Une station du réseau d'observation d'Ocean Networks Canada — nœuds câblés au fond marin, bouées dérivantes et instruments d'expédition. Les lectures affichées sont les plus récentes dont dispose ONC ; pour une station retirée, elles peuvent être historiques (CC BY 4.0).",
     "earthquakesNone": "Aucun séisme enregistré dans un rayon de 200 km au cours des 30 derniers jours.",
     "earthquakesUnavailable": "Les séismes proches n'ont pas pu être chargés — c'est notre récupération qui a échoué, pas un plancher océanique calme.",
@@ -1044,7 +1050,7 @@
     "safetyReviewSectionTitle": "Sécurité et revue technique",
     "statusLabel": "Statut",
     "storageLabel": "Stockage",
-    "waphaCaveat": "Enregistrement de base WAPHA. La source ne publie qu'un nom et une coordonnée pour cette installation — ni propriétaire, ni volume, ni hauteur, ni cote de danger n'existent en amont. Le libellé du pays est dérivé de la plateforme. WAPHA étant une compilation de littérature et de registres, un petit nombre de barrages non miniers y figurent."
+    "waphaCaveat": "Les champs du Global Tailings Portal (cote de danger, propriété, spécifications de la digue, réponses de la revue de sécurité) sont retirés en attendant une autorisation écrite de GRID-Arendal et ne sont affichés pour aucune installation de résidus. Cet enregistrement ne porte que son nom, son emplacement et son pays issus de WAPHA."
   },
   "tectonic": {
     "boundaryTypeLabel": "Type de frontière",
@@ -1189,7 +1195,7 @@
         "title": "Danger des bassins de résidus",
         "story": "L'État brésilien de Minas Gerais compte des centaines de bassins de résidus stockant des milliards de tonnes de déchets miniers. Après la catastrophe de Brumadinho en 2019, qui a tué 270 personnes, beaucoup restent classés à risque élevé. Certains se trouvent à une distance inquiétante des zones protégées et des villes.",
         "nextSteps": [
-          "Cliquez sur une digue pour voir l'évaluation du danger publiée par l'exploitant",
+          "Zoomez sur le Minas Gerais pour voir la proximité des digues avec les villes",
           "Activez les Zones Clés de Biodiversité pour voir les chevauchements écologiques",
           "Dézoomez et activez le Catalogue de Glissements de Terrain pour voir l'instabilité du terrain"
         ],

@@ -80,8 +80,13 @@ async def ensure_overlap_views():
         # production silently keeps the old shape. `risk_class` is the second
         # such clause: the column is no longer written and would read NULL for
         # every row while the view still advertised it.
+        # 2026-09-23: hazard_raw/classification_system/mine_name are Global
+        # Tailings Portal-derived (withdrawn, see domains/land/common.py) and
+        # must not survive in an existing view's definition either.
         needs_rebuild_tl = await conn.fetchval("""
             SELECT definition !~ '\\.geog\\b' OR definition ~ 'risk_class'
+                OR definition ~ 'hazard_raw' OR definition ~ 'classification_system'
+                OR definition ~ 'mine_name'
             FROM pg_matviews WHERE matviewname = 'overlap_tailings_landslides'
         """)
         if needs_rebuild_tl:
@@ -127,18 +132,17 @@ async def ensure_overlap_views():
         # Uses stored ``tailings_dams.geog`` and ``landslides.geog`` GIST
         # indexes — see migration above. Without them this matview took ~3 min
         # CPU-bound; with them, refresh drops to seconds.
+        # ⛔ 2026-09-23: `mine_name`, `hazard_raw`, `classification_system` are
+        # Global Tailings Portal-derived (withdrawn pending permission — see
+        # `domains/land/common.py` TAILINGS_SERVED_WHERE /
+        # TAILINGS_PORTAL_COLUMNS) and dropped from this view. `data_source =
+        # 'grid'` (Portal-only) rows are excluded from the join entirely.
         await conn.execute("""
             CREATE MATERIALIZED VIEW IF NOT EXISTS overlap_tailings_landslides AS
             SELECT
                 t.id          AS tailings_id,
                 t.dam_name,
-                t.mine_name,
                 t.country     AS tailings_country,
-                -- The operator's own rating, verbatim, plus the system that
-                -- produced it. Was `t.risk_class`, this platform's six-tier
-                -- collapse of the same string; that column is no longer written.
-                t.hazard_raw,
-                t.classification_system,
                 l.id          AS landslide_id,
                 l.event_date,
                 l.event_type,
@@ -147,6 +151,7 @@ async def ensure_overlap_views():
                     AS distance_km
             FROM tailings_dams t
             JOIN landslides l ON ST_DWithin(t.geog, l.geog, 10000)
+            WHERE t.data_source IS DISTINCT FROM 'grid'
         """)
 
         # Active fires near mining footprints (25 km proximity).

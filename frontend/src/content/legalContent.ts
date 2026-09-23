@@ -293,7 +293,7 @@ export const ABOUT: LegalDoc = {
         {
           list: [
             "Global Mining Footprints — 74,500+ mine polygons (pits, tailings, waste dumps, processing sites) mapped from Sentinel-2 at 10 m resolution (Maus et al. 2022/2023).",
-            "Tailings Dams — 11,900+ mine waste storage facilities; 1,900+ carry the operator's own disclosed hazard rating and the classification system it was issued under (WAPHA, Hudson-Edwards et al. 2023, plus Global Tailings Portal disclosures).",
+            "Tailings Dams — 11,587 mine waste storage facility locations (Hudson-Edwards et al. 2023, WAPHA, Dryad, CC0). Global Tailings Portal hazard-rating, ownership and specification fields are withdrawn pending written permission from GRID-Arendal.",
             "Tree Cover Loss — annual deforestation at 30 m resolution, umd_tree_cover_loss v1.13 (University of Maryland / WRI).",
             "Active Fires — near-real-time fire detection from VIIRS aboard Suomi-NPP, NOAA-20 and NOAA-21 (NASA LANCE, updated within 3 hours).",
             "Air Quality Stations — real-time PM2.5, SO₂, NO₂, O₃, and CO from government stations worldwide (OpenAQ).",
@@ -320,7 +320,7 @@ export const ABOUT: LegalDoc = {
     {
       heading: "Data Sources",
       paragraphs: [
-        "All data is sourced from open public APIs, scientific databases, and international organisations. Key sources include: ISA, OBIS Occurrence Data (DOI: 10.25607/obis.occurrence.b89117cd), ChEssBase (Ramirez-Llodra 2025) via GBIF, ArgoVis, OceanSITES, Ocean Networks Canada (ONC), USGS, NASA LANCE / FIRMS, OpenAQ, NASA COOLR, WRI Global Forest Watch, WRI Aqueduct, JRC Global Surface Water, Global Dam Watch, Hudson-Edwards et al. 2023 (WAPHA tailings, via Dryad), GRID-Arendal, ISRIC SoilGrids, Maus et al. 2022/2023 (Global Mining Footprints via PANGAEA), and Marine Regions (VLIZ).",
+        "All data is sourced from open public APIs, scientific databases, and international organisations. Key sources include: ISA, OBIS Occurrence Data (DOI: 10.25607/obis.occurrence.b89117cd), ChEssBase (Ramirez-Llodra 2025) via GBIF, ArgoVis, OceanSITES, Ocean Networks Canada (ONC), USGS, NASA LANCE / FIRMS, OpenAQ, NASA COOLR, WRI Global Forest Watch, WRI Aqueduct, JRC Global Surface Water, Global Dam Watch, Hudson-Edwards et al. 2023 (WAPHA tailings, via Dryad, CC0), ISRIC SoilGrids, Maus et al. 2022/2023 (Global Mining Footprints via PANGAEA), and Marine Regions (VLIZ). Global Tailings Portal (GRID-Arendal) fields are withdrawn pending written permission and are not served.",
         "Spatial overlap indicators in Ocean Mode are derived by intersecting ISA contract geometries with biodiversity occurrences and Argo float proximity (within 200 km). They are mechanical geometric overlaps, not assessments of impact, risk, or compliance.",
       ],
     },

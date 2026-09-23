@@ -109,7 +109,7 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
             {obs.wtmp != null && <Row label={t("oceansites.seaTempLabel")}  value={`${Number(obs.wtmp).toFixed(1)} °C`} />}
             {obs.atmp != null && <Row label={t("oceansites.airTempLabel")}  value={`${Number(obs.atmp).toFixed(1)} °C`} />}
             {obs.wspd != null && obs.wdir != null && (
-              <Row label={t("oceansites.windLabel")} value={`${Number(obs.wspd).toFixed(1)} m/s from ${obs.wdir}°`} />
+              <Row label={t("oceansites.windLabel")} value={`${Number(obs.wspd).toFixed(1)} m/s from ${Number(obs.wdir).toFixed(0)}°`} />
             )}
             {obs.wvht != null && <Row label={t("oceansites.waveHeightLabel")} value={`${Number(obs.wvht).toFixed(1)} m`} />}
             {obs.pres != null && <Row label={t("oceansites.pressureLabel")}   value={`${Number(obs.pres).toFixed(1)} hPa`} />}

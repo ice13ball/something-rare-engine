@@ -4,7 +4,6 @@
 import { useTranslation } from "react-i18next";
 import { useMapStore } from "../../../store/mapStore";
 import type { LayerId } from "../../../types/layers";
-import { TAILINGS_RISK_FILTER_DEFS } from "../filterDefs";
 import {
   LayerRow, SubGroup, FilterResetLink,
 } from "../rows";
@@ -21,8 +20,6 @@ export function HazardsMonitoringSection({
 }: Props) {
   const {
     activeLayers,
-    tailingsRiskFilters, toggleTailingsRiskFilter,
-    tailingsStatusFilters, toggleTailingsStatusFilter,
     fireConfidenceFilters, toggleFireConfidenceFilter,
     firesNearMiningOnly, toggleFiresNearMiningOnly,
   } = useMapStore();
@@ -31,6 +28,13 @@ export function HazardsMonitoringSection({
 
   return (
     <SubGroup label={t("controls.subgroups.hazardsMonitoring")} storageKey="land_hazards" defaultExpanded>
+    {/* ⛔ WITHDRAWN 2026-09-23: the hazard-rating and status filter chips that
+        used to live here were built on `hazard_raw`/`status`, both Global
+        Tailings Portal-derived fields. The backend no longer sends either
+        field on any row (domains/land/common.py TAILINGS_SERVED_WHERE /
+        TAILINGS_PORTAL_COLUMNS), so a facet built on them would filter every
+        dam to nothing. No filterContent for tailings until/unless GRID-Arendal
+        grants permission. */}
     <LayerRow
       id="tailings"
       label={t("layers.tailings.toggle")}
@@ -38,46 +42,6 @@ export function HazardsMonitoringSection({
       active={activeLayers.has("tailings")}
       onToggle={() => toggle("tailings")}
       onLocate={() => flyToLayer?.("tailings")}
-      filterActive={tailingsRiskFilters.size > 0 || tailingsStatusFilters.size > 0}
-      expanded={expandedFilter === "tailings"}
-      onExpandToggle={() => toggleExpand("tailings")}
-      filterContent={
-        <>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-white/70 text-[10px] uppercase tracking-wider">{t("filters.tailings.riskLevelHeading")}</p>
-            <FilterResetLink
-              show={tailingsRiskFilters.size > 0 || tailingsStatusFilters.size > 0}
-              onReset={() => { tailingsRiskFilters.forEach(toggleTailingsRiskFilter); tailingsStatusFilters.forEach(toggleTailingsStatusFilter); }}
-            />
-          </div>
-          {/* hazard_raw, verbatim from the source — the six most common values
-              plus an "other" bucket. Colors are DISTINCT HUES (TAILINGS_RISK_FILTER_DEFS
-              / colorStandards.TAILINGS_HAZARD), never a severity ramp — a
-              red→green gradient would re-introduce by colour exactly the
-              ordinal scoring the deleted risk_class field did by tier. A row
-              with no rating is always shown and has no checkbox of its own. */}
-          {TAILINGS_RISK_FILTER_DEFS.map(d => (
-            <label key={d.key} className="flex items-center gap-2 py-0.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={tailingsRiskFilters.has(d.key)}
-                onChange={() => toggleTailingsRiskFilter(d.key)}
-                className="w-3 h-3"
-                style={{ accentColor: d.color }}
-              />
-              <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
-              <span className="text-white/75 text-[13px]">{t(`filters.tailings.riskLevels.${d.i18nKey}` as any)}</span>
-            </label>
-          ))}
-          <p className="text-white/70 text-[10px] uppercase tracking-wider mt-2 mb-1">{t("filters.tailings.statusHeading")}</p>
-          {(["Active", "Inactive", "Closed"] as const).map(s => (
-            <label key={s} className="flex items-center gap-2 py-0.5 cursor-pointer">
-              <input type="checkbox" checked={tailingsStatusFilters.has(s)} onChange={() => toggleTailingsStatusFilter(s)} className="accent-red-400 w-3 h-3" />
-              <span className="text-white/75 text-[13px]">{t(`filters.tailings.statusOptions.${s}` as any)}</span>
-            </label>
-          ))}
-        </>
-      }
     />
     <LayerRow
       id="fires"

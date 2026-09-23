@@ -226,7 +226,7 @@ export const LAYER_TOOLTIPS_META = {
     pairsWith: ["mining-footprints", "carbon-flux"],
   },
   "tailings": {
-    source: "WAPHA (Hudson-Edwards et al. 2023, Dryad) + Global Tailings Portal — GRID-Arendal / Earthworks / UN Environment",
+    source: "WAPHA (Hudson-Edwards et al. 2023, Dryad, CC0). Global Tailings Portal (GRID-Arendal) fields withdrawn pending permission.",
     sourceUrl: "https://doi.org/10.5061/dryad.j3tx95xmg",
     pairsWith: ["mining-footprints", "landslides"],
   },

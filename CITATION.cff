@@ -17,8 +17,8 @@ type: software
 # `version` is the SOFTWARE release, deliberately independent of the documentation
 # deposit's version (which is at 1.6). Do not sync the two — they have different
 # cadences; that separation is the whole reason the code gets its own Zenodo record.
-version: "1.0.0"
-date-released: "2026-09-12"
+version: "1.1.0"
+date-released: "2026-09-24"
 license: AGPL-3.0-or-later
 # Concept DOI of the SOFTWARE record, minted by the Zenodo-GitHub integration from
 # release v1.0.0 on 2026-09-12. A concept DOI always resolves to the newest version,
@@ -99,7 +99,7 @@ authors:
     orcid: "https://orcid.org/0009-0007-3786-0310"
     affiliation: "Independent Researcher"
 identifiers:
-  - description: "This release — Zenodo version DOI for v1.0.0 (pins the exact archived snapshot)"
+  - description: "Earlier release — Zenodo version DOI for v1.0.0 (the concept DOI above resolves to the newest version)"
     type: doi
     value: "10.5281/zenodo.22728477"
   - description: "Methods and data documentation — Zenodo concept DOI, CC-BY-4.0 (always resolves to the latest version)"

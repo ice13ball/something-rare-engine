@@ -274,11 +274,14 @@ describe("Map3DControls rendering", () => {
 
 // ── Representative filter chips ─────────────────────────────────────────
 //
-// 10 layers spanning 4 different subgroups (sea_claims, sea_life,
+// 9 layers spanning 4 different subgroups (sea_claims, sea_life,
 // sea_sensors, land_hazards), each driven by a different per-layer const
 // def (RISK_FILTERS, IUCN_FILTER_DEFS, CHESS_PHYLUM_DEFS/CHESS_HABITAT_DEFS,
-// ALARM_DEFS, WOD_DECADES, SEEP_TYPES) or an inline literal array (tailings,
-// fires). This is the coupling most likely to break in a split, because
+// ALARM_DEFS, WOD_DECADES, SEEP_TYPES) or an inline literal array (fires).
+// ⛔ `tailings` was dropped from this list 2026-09-23: its filter chips were
+// built on hazard_raw/status, both Global Tailings Portal fields withdrawn
+// pending permission — the layer no longer has a filterContent to expand.
+// This is the coupling most likely to break in a split, because
 // every one of these blocks closes over the parent's `expandedFilter`,
 // `toggle`/`toggleExpand`, and one or more filter Sets from the store.
 // Labels are the real translated strings from public/locales/en/panels.json
@@ -293,7 +296,6 @@ const FILTER_LAYERS: Array<{ id: string; label: string }> = [
   { id: "methane-seeps", label: "Methane Seeps (SEAFLEA)" },
   { id: "ais-live", label: "Live Vessels (AIS)" },
   { id: "submarine-cables", label: "Submarine Cables" },
-  { id: "tailings", label: "Tailings Dams" },
   { id: "fires", label: "Active Fires (FIRMS)" },
 ];
 

@@ -314,23 +314,15 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     properties: { area_km2: 12.3, country: "Testland", ftype: "open-pit", source: "TEST source" },
   },
   {
+    // ⛔ Global Tailings Portal fields withdrawn 2026-09-23 — the backend
+    // never sends them (any data_source). This fixture is the real served
+    // shape: id/dam_name/country/data_source/latitude/longitude only. See
+    // backend/domains/land/common.py TAILINGS_SERVED_WHERE / TAILINGS_PORTAL_COLUMNS.
     layer: "tailings",
     id: "TEST",
     properties: {
-      construction_year: 1990, country: "Testland", dam_name: "TEST Dam", data_source: "grid",
-      hazard_raw: "Extreme", classification_system: "ANCOLD 2012",
-      height_m: 45, latitude: 1.23, longitude: 4.56, mine_name: "TEST Mine",
-      operator: "TEST Operator", owner_company: "TEST Owner", raise_type: "upstream",
-      status: "active", volume_m3: 1234567,
-      disclosure_link: "https://tailing.grida.no/disclosures/TEST",
-      disclosure_origin: "Global Tailings Portal",
-      history_stability_concerns: "No", downstream_impact: "Yes",
-      recent_independent_expert_review: "2018", extreme_weather_secure: "Yes",
-      currently_approved_design: "Yes", closure_plan_dam: "Yes",
-      closure_plan_long_term_monitoring: "Yes",
-      internal_external_eng_support: "Both", relevant_engineering_records: "Yes",
-      disclosure_notes: "TEST disclosure notes, verbatim from the operator.",
-      partners: "TEST Partner Org", planned_storage_5_years: 2000000,
+      country: "Testland", dam_name: "TEST Dam", data_source: "wapha",
+      latitude: 1.23, longitude: 4.56,
     },
   },
   {

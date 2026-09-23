@@ -64,7 +64,8 @@ OceanSITES, Ocean Networks Canada, OOI, IMOS); submarine cables and offshore act
 (ARCADE, CASCADE, ArcticGRO, SIOS).
 
 Land, 11 layers. Mining footprints (Maus et al. via PANGAEA); tailings facilities
-(GRID-Arendal / UNEP); active fires (NASA FIRMS); forest loss and carbon flux (University of
+(Hudson-Edwards et al. 2023, WAPHA, Dryad CC0 — Global Tailings Portal/GRID-Arendal hazard
+and ownership fields withdrawn pending permission); active fires (NASA FIRMS); forest loss and carbon flux (University of
 Maryland / WRI Global Forest Watch); water risk (WRI Aqueduct); surface water (JRC); soil
 carbon (ISRIC SoilGrids); dams (Global Dam Watch); landslides (NASA COOLR); air quality (OpenAQ).
 

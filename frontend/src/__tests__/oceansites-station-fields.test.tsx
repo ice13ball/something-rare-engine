@@ -87,4 +87,15 @@ describe("OceanSITES station fields", () => {
     renderWith({ deployment_count: 0 });
     expect(screen.queryAllByText(/Deployments/i).length).toBe(0);
   });
+
+  // The backend stores readings exactly as the source published them (GDAC
+  // gives WDIR 98.59); rounding for display happens here, like its siblings.
+  it("shows wind direction in whole degrees while the stored reading keeps its decimals", () => {
+    renderWith({
+      obs_source: "GDAC",
+      obs_fetched_at: new Date().toISOString(),
+      latest_obs: { wspd: 5.49152, wdir: 98.59, obs_time: new Date().toISOString() },
+    });
+    expect(screen.getAllByText("5.5 m/s from 99°").length).toBeGreaterThan(0);
+  });
 });

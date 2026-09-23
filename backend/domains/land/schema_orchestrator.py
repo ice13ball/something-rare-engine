@@ -197,6 +197,35 @@ async def ensure_land_schema():
         ):
             await conn.execute(ddl)
 
+        # ADDITIVE (2026-09-23): FIRMS area CSV also publishes scan, track,
+        # version, bright_ti5 and daynight per row (confirmed against the
+        # live header). Nullable, additive only — never DROP/TRUNCATE here.
+        # ⛔ DOUBLE PRECISION, like every other numeric column in this table.
+        # The first cut used REAL: 0.35 came back from the export as
+        # 0.3499999940395355, a value NASA never published.
+        for ddl in (
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS scan       DOUBLE PRECISION",
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS track      DOUBLE PRECISION",
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS version    TEXT",
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS bright_ti5 DOUBLE PRECISION",
+            "ALTER TABLE active_fires ADD COLUMN IF NOT EXISTS daynight   TEXT",
+        ):
+            await conn.execute(ddl)
+        # Columns created as REAL by that first cut: convert once, through
+        # text, so a stored 0.35 becomes 0.35 and not its float4 expansion.
+        # Only runs while a column is still REAL, so later deploys skip it.
+        for col in ("scan", "track", "bright_ti5"):
+            is_real = await conn.fetchval(
+                """SELECT data_type = 'real' FROM information_schema.columns
+                   WHERE table_name = 'active_fires' AND column_name = $1""",
+                col,
+            )
+            if is_real:
+                await conn.execute(
+                    f"ALTER TABLE active_fires ALTER COLUMN {col} "
+                    f"TYPE DOUBLE PRECISION USING {col}::text::double precision"
+                )
+
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS air_quality_stations (
                 id          SERIAL PRIMARY KEY,

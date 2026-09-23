@@ -35,7 +35,9 @@ from domains.land.common import (
     _log_land_sync,
     _log_land_sync_failure,
     _pg_conn_string,
+    TAILINGS_SERVED_WHERE,
 )
+from sync_log import log_sync_skipped
 
 log = logging.getLogger("land_layers")
 OGR2OGR = shutil.which("ogr2ogr") or "/usr/bin/ogr2ogr"
@@ -598,23 +600,56 @@ async def _sync_tailings(force: bool = False) -> int:
 # source as TEXT and never imports it, so a missing global is invisible to it.
 GRID_TAILINGS_API = "https://tailing.grida.no/api/tailings_all?format=json"
 
+# ⛔ WITHDRAWN 2026-09-23 (Michal's decision). tailing.grida.no/about asks for
+# permission to download the TSF dataset; we never obtained it. This sync IS
+# that download — a scheduled bulk GET of the Portal's full facility list.
+# Guarded here, not by deleting the function or the CADENCE entry, so the fix
+# is one flag when permission is granted, and every other `tailings_enrich`
+# test (cadence window, force-bypass, "not Static") keeps describing the real
+# shape of this sync. Existing `grid`/`grid-enriched` rows are left exactly as
+# they are — DELETE NOTHING — they are simply never fetched again, and never
+# served (see `domains/land/common.py` TAILINGS_SERVED_WHERE /
+# TAILINGS_PORTAL_COLUMNS, applied by every surface that reads tailings_dams).
+TAILINGS_GTP_WITHDRAWN = True
+
 
 async def _enrich_tailings_from_grid(force: bool = False) -> int:
     """
     Fetch ~2,100 tailings facilities from GRID-Arendal Global Tailings Portal
     and enrich our WAPHA dams with risk, height, volume, ownership data.
     Matches by spatial proximity (< 5 km). Unmatched GRID dams are inserted.
+
+    ⛔ WITHDRAWN 2026-09-23 — see TAILINGS_GTP_WITHDRAWN above. This function
+    stops before the network fetch and writes nothing.
     """
     async with db.pool.acquire() as conn:
         last = await conn.fetchval(
             "SELECT last_synced_at FROM sync_log WHERE source = $1", "tailings_enrich")
         run, why = should_sync("tailings_enrich", last, datetime.now(timezone.utc), force=force)
         log.info("%s", why)
-        if not run:
+        if not run or TAILINGS_GTP_WITHDRAWN:
             # ⛔ An early return without a log leaves the monitor unable to tell
             # "ran, found nothing" from "never ran" — the engine rule in
             # CLAUDE.md. This one was silent, and the silence is exactly what
             # hid a sync that had not run since April.
+            #
+            # `log_sync_skipped`, not `_log_land_sync`: the latter stamps
+            # `last_synced_at = NOW()`, which would make a withdrawn sync read
+            # as freshly synced forever — exactly the "worse than silence"
+            # failure mode `sync_log.log_sync_skipped`'s own docstring warns
+            # against. The skip marker also records WHY, which a bare (0, 0)
+            # sync_log row cannot.
+            if TAILINGS_GTP_WITHDRAWN:
+                log.info(
+                    "tailings-enrich: withdrawn 2026-09-23, pending written "
+                    "permission from GRID-Arendal — not fetching %s",
+                    GRID_TAILINGS_API,
+                )
+                await log_sync_skipped(
+                    "tailings_enrich",
+                    "withdrawn 2026-09-23: pending permission from GRID-Arendal",
+                )
+                return 0
             await _log_land_sync("tailings_enrich", 0, 0)
             return 0
         # Add new columns if they don't exist (idempotent migration)
@@ -886,12 +921,24 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
 
 @router.get("/tailings")
 async def get_tailings():
+    """11,587 facilities: WAPHA base (`wapha`) + WAPHA dams matched to a
+    Global Tailings Portal disclosure (`grid-enriched`).
+
+    ⛔ Global Tailings Portal (GRID-Arendal) withdrawal, 2026-09-23 — see
+    `domains/land/common.py` TAILINGS_SERVED_WHERE / TAILINGS_PORTAL_COLUMNS.
+    `data_source = 'grid'` rows (Portal-only, 361 of them) are excluded here
+    at the SQL layer, and no Portal-derived column is selected for ANY row —
+    `grid-enriched` rows carry Portal data in `mine_name`, `dam_type`,
+    `hazard_raw` etc too, even though their `data_source` looks WAPHA-adjacent.
+    Every served row therefore carries only its WAPHA-origin/platform-derived
+    fields: id, dam_name, country, geometry, data_source, created_at.
+    """
     global _tailings_cache
     if _tailings_cache:
         return Response(content=_tailings_cache, media_type="application/json")
 
     async with db.pool.acquire() as conn:
-        row = await conn.fetchval("""
+        row = await conn.fetchval(f"""
             SELECT json_build_object(
                 'type', 'FeatureCollection',
                 'features', COALESCE(json_agg(
@@ -901,42 +948,8 @@ async def get_tailings():
                         'properties', json_build_object(
                             'id', id,
                             'dam_name', dam_name,
-                            'mine_name', mine_name,
                             'country', country,
-                            'dam_type', dam_type,
-                            'height_m', height_m,
-                            'volume_m3', volume_m3,
-                            'status', status,
-                            'owner_company', owner_company,
-                            'operator', operator,
-                            'construction_year', construction_year,
-                            -- ⛔ `risk_class` is gone from this response. It was
-                            -- this platform's own collapse of the line below
-                            -- into six tiers; the source's own rating is
-                            -- `hazard_raw`, and `classification_system` names
-                            -- the system that produced it. Sending both and
-                            -- letting the reader see them is the whole point.
-                            'hazard_raw', hazard_raw,
-                            'classification_system', classification_system,
-                            'raise_type', raise_type,
                             'data_source', data_source,
-                            -- The operator's own answers, as published by the
-                            -- Global Tailings Portal. Ragged on purpose: some
-                            -- hold "Yes"/"No", some a bare year. Not cleaned.
-                            'history_stability_concerns', history_stability_concerns,
-                            'downstream_impact', downstream_impact,
-                            'recent_independent_expert_review', recent_independent_expert_review,
-                            'extreme_weather_secure', extreme_weather_secure,
-                            'currently_approved_design', currently_approved_design,
-                            'closure_plan_dam', closure_plan_dam,
-                            'closure_plan_long_term_monitoring', closure_plan_long_term_monitoring,
-                            'internal_external_eng_support', internal_external_eng_support,
-                            'relevant_engineering_records', relevant_engineering_records,
-                            'disclosure_origin', disclosure_origin,
-                            'disclosure_link', disclosure_link,
-                            'disclosure_notes', disclosure_notes,
-                            'partners', partners,
-                            'planned_storage_5_years', planned_storage_5_years,
                             'latitude', ROUND(ST_Y(geom)::numeric, 4),
                             'longitude', ROUND(ST_X(geom)::numeric, 4)
                         )
@@ -944,6 +957,7 @@ async def get_tailings():
                 ), '[]'::json)
             )::text
             FROM tailings_dams
+            WHERE {TAILINGS_SERVED_WHERE}
         """)
     _tailings_cache = row
     return Response(content=row, media_type="application/json")

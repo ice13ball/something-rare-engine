@@ -239,6 +239,7 @@ async def sync_emodnet_offshore() -> int:
 
     if not rows:
         log.warning("emodnet-offshore: no features returned")
+        await _log_sync_skipped("offshore_activities", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -351,6 +352,7 @@ async def sync_boem_offshore() -> int:
 
     if not rows:
         log.warning("boem-offshore: no features returned from any region")
+        await _log_sync_skipped("boem-offshore", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -383,6 +385,7 @@ async def sync_crown_estate_wind() -> int:
         features = await fetch_arcgis_features_url(CE_URL, out_fields="*")
     except Exception as exc:
         log.warning("crown-estate-wind: fetch failed — %s", exc)
+        await _log_sync_skipped("crown_estate", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -408,6 +411,7 @@ async def sync_crown_estate_wind() -> int:
 
     if not rows:
         log.warning("crown-estate-wind: no features returned")
+        await _log_sync_skipped("crown_estate", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -578,8 +582,12 @@ async def sync_anp_brazil() -> int:
         "Mapa_OeG_WFL1/FeatureServer"
     )
     rows: list[dict] = []
+    _layers_total = 0
+    _layers_failed = 0
+    _last_exc_name = ""
 
     # Layer 7 — exploration blocks
+    _layers_total += 1
     try:
         features_l7 = await fetch_arcgis_features_url(
             f"{ANP_BASE}/7/query", out_fields="*", extra_params={"where": "AMBIENTE='M'"}
@@ -587,6 +595,8 @@ async def sync_anp_brazil() -> int:
     except Exception as exc:
         log.warning("anp-brazil: layer 7 fetch failed — %s", exc)
         features_l7 = []
+        _layers_failed += 1
+        _last_exc_name = type(exc).__name__
 
     for f in features_l7:
         props = f.get("properties") or {}
@@ -611,6 +621,7 @@ async def sync_anp_brazil() -> int:
         })
 
     # Layer 6 — production fields
+    _layers_total += 1
     try:
         features_l6 = await fetch_arcgis_features_url(
             f"{ANP_BASE}/6/query", out_fields="*", extra_params={"where": "AMBIENTE='M'"}
@@ -618,6 +629,8 @@ async def sync_anp_brazil() -> int:
     except Exception as exc:
         log.warning("anp-brazil: layer 6 fetch failed — %s", exc)
         features_l6 = []
+        _layers_failed += 1
+        _last_exc_name = type(exc).__name__
 
     for f in features_l6:
         props = f.get("properties") or {}
@@ -648,6 +661,10 @@ async def sync_anp_brazil() -> int:
 
     if not rows:
         log.warning("anp-brazil: no features returned from either layer")
+        if _layers_total and _layers_failed == _layers_total:
+            await _log_sync_skipped("anp", f"fetch failed: every layer failed ({_last_exc_name})")
+        else:
+            await _log_sync_skipped("anp", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -683,6 +700,7 @@ async def sync_sodir_petroleum() -> int:
         )
     except Exception as exc:
         log.warning("sodir-petroleum: fetch failed — %s", exc)
+        await _log_sync_skipped("sodir", f"fetch failed: {type(exc).__name__}")
         return 0
 
     seen_ids: set[str] = set()
@@ -714,6 +732,7 @@ async def sync_sodir_petroleum() -> int:
 
     if not rows:
         log.warning("sodir-petroleum: no features returned")
+        await _log_sync_skipped("sodir", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -749,6 +768,7 @@ async def sync_nsta_petroleum() -> int:
         )
     except Exception as exc:
         log.warning("nsta-petroleum: fetch failed — %s", exc)
+        await _log_sync_skipped("nsta", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -782,6 +802,7 @@ async def sync_nsta_petroleum() -> int:
 
     if not rows:
         log.warning("nsta-petroleum: no features returned")
+        await _log_sync_skipped("nsta", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -862,6 +883,7 @@ async def sync_cnh_mexico() -> int:
         )
     except Exception as exc:
         log.warning("cnh-mexico: fetch failed — %s", exc)
+        await _log_sync_skipped("cnh", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -886,6 +908,7 @@ async def sync_cnh_mexico() -> int:
 
     if not rows:
         log.warning("cnh-mexico: no features returned")
+        await _log_sync_skipped("cnh", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -913,8 +936,12 @@ async def sync_crown_estate_scotland() -> int:
     """
     CES_BASE = "https://services3.arcgis.com/nGV4jiurzcahJ9LV/arcgis/rest/services"
     rows: list[dict] = []
+    _layers_total = 0
+    _layers_failed = 0
+    _last_exc_name = ""
 
     # Dataset 1: existing offshore wind leases
+    _layers_total += 1
     try:
         features_ow = await fetch_arcgis_features_url(
             f"{CES_BASE}/Offshore_Wind_Crown_Estate_Scotland/FeatureServer/0/query",
@@ -923,6 +950,8 @@ async def sync_crown_estate_scotland() -> int:
     except Exception as exc:
         log.warning("crown-estate-scotland: Offshore Wind fetch failed — %s", exc)
         features_ow = []
+        _layers_failed += 1
+        _last_exc_name = type(exc).__name__
 
     for f in features_ow:
         props = f.get("properties") or {}
@@ -945,6 +974,7 @@ async def sync_crown_estate_scotland() -> int:
         })
 
     # Dataset 2: ScotWind option agreements
+    _layers_total += 1
     try:
         features_sw = await fetch_arcgis_features_url(
             f"{CES_BASE}/ScotWind_Offers_Crown_Estate_Scotland/FeatureServer/0/query",
@@ -953,6 +983,8 @@ async def sync_crown_estate_scotland() -> int:
     except Exception as exc:
         log.warning("crown-estate-scotland: ScotWind Offers fetch failed — %s", exc)
         features_sw = []
+        _layers_failed += 1
+        _last_exc_name = type(exc).__name__
 
     for f in features_sw:
         props = f.get("properties") or {}
@@ -976,6 +1008,10 @@ async def sync_crown_estate_scotland() -> int:
 
     if not rows:
         log.warning("crown-estate-scotland: no features returned from either dataset")
+        if _layers_total and _layers_failed == _layers_total:
+            await _log_sync_skipped("crown_estate_scotland", f"fetch failed: every layer failed ({_last_exc_name})")
+        else:
+            await _log_sync_skipped("crown_estate_scotland", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1009,6 +1045,7 @@ async def sync_esdm_indonesia() -> int:
         features = await fetch_arcgis_features_url(ESDM_URL, out_fields="*")
     except Exception as exc:
         log.warning("esdm-indonesia: fetch failed — %s", exc)
+        await _log_sync_skipped("esdm", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -1044,6 +1081,7 @@ async def sync_esdm_indonesia() -> int:
 
     if not rows:
         log.warning("esdm-indonesia: no features returned")
+        await _log_sync_skipped("esdm", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1081,11 +1119,17 @@ async def sync_pasa_sa() -> int:
         (16, "tcp_",     "oil_gas", "technical_cooperation",  "TCP #{oid}"),
     ]
     rows: list[dict] = []
+    _layers_total = 0
+    _layers_failed = 0
+    _last_exc_name = ""
     for lid, prefix, act_type, status, tmpl in layer_specs:
+        _layers_total += 1
         try:
             features = await fetch_arcgis_features_url(f"{BASE}/{lid}/query", out_fields="*")
         except Exception as exc:
             log.warning("pasa-sa: layer %d fetch failed — %s", lid, exc)
+            _layers_failed += 1
+            _last_exc_name = type(exc).__name__
             continue
         for f in features:
             props = f.get("properties") or {}
@@ -1111,6 +1155,10 @@ async def sync_pasa_sa() -> int:
 
     if not rows:
         log.warning("pasa-sa: no features returned from any layer")
+        if _layers_total and _layers_failed == _layers_total:
+            await _log_sync_skipped("pasa", f"fetch failed: every layer failed ({_last_exc_name})")
+        else:
+            await _log_sync_skipped("pasa", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1338,6 +1386,7 @@ async def sync_sbma_ck() -> int:
 
     if not rows:
         log.warning("sbma-cook-islands: no active tenements after status filter")
+        await _log_sync_skipped("sbma-cook-islands", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1381,12 +1430,18 @@ async def sync_cnsopb_petroleum() -> int:
             return None
 
     rows: list[dict] = []
+    _layers_total = 0
+    _layers_failed = 0
+    _last_exc_name = ""
     for layer_id, id_field, type_field, op_field, awarded_field, expires_field, prefix in LAYERS:
         url = f"{BASE}/{layer_id}/query"
+        _layers_total += 1
         try:
             features = await fetch_arcgis_features_url(url, out_fields="*")
         except Exception as exc:
             log.warning("cnsopb: layer %d fetch failed — %s", layer_id, exc)
+            _layers_failed += 1
+            _last_exc_name = type(exc).__name__
             continue
         for f in features:
             props = f.get("properties") or {}
@@ -1410,6 +1465,10 @@ async def sync_cnsopb_petroleum() -> int:
 
     if not rows:
         log.warning("cnsopb: no features returned")
+        if _layers_total and _layers_failed == _layers_total:
+            await _log_sync_skipped("cnsopb", f"fetch failed: every layer failed ({_last_exc_name})")
+        else:
+            await _log_sync_skipped("cnsopb", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1459,11 +1518,17 @@ async def sync_cnlopb_petroleum() -> int:
             return None
 
     rows: list[dict] = []
+    _layers_total = 0
+    _layers_failed = 0
+    _last_exc_name = ""
     for url, name_f, op_f, op_fb, awarded_f, expires_f, status_const, prefix in LAYERS:
+        _layers_total += 1
         try:
             features = await fetch_arcgis_features_url(url, out_fields="*")
         except Exception as exc:
             log.warning("cnlopb: %s fetch failed — %s", prefix, exc)
+            _layers_failed += 1
+            _last_exc_name = type(exc).__name__
             continue
         for f in features:
             props = f.get("properties") or {}
@@ -1497,6 +1562,10 @@ async def sync_cnlopb_petroleum() -> int:
 
     if not rows:
         log.warning("cnlopb: no features returned")
+        if _layers_total and _layers_failed == _layers_total:
+            await _log_sync_skipped("cnlopb", f"fetch failed: every layer failed ({_last_exc_name})")
+        else:
+            await _log_sync_skipped("cnlopb", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1536,6 +1605,7 @@ async def sync_dea_dk_petroleum() -> int:
             data = r.json()
     except Exception as exc:
         log.warning("dea-dk: fetch failed — %s", exc)
+        await _log_sync_skipped("dea-dk", f"fetch failed: {type(exc).__name__}")
         return 0
 
     features = data.get("features") or []
@@ -1562,6 +1632,7 @@ async def sync_dea_dk_petroleum() -> int:
 
     if not rows:
         log.warning("dea-dk: no features returned")
+        await _log_sync_skipped("dea-dk", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1597,6 +1668,7 @@ async def sync_sodir_co2() -> int:
         )
     except Exception as exc:
         log.warning("sodir-co2: fetch failed — %s", exc)
+        await _log_sync_skipped("sodir_co2", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -1623,6 +1695,7 @@ async def sync_sodir_co2() -> int:
 
     if not rows:
         log.warning("sodir-co2: no features returned")
+        await _log_sync_skipped("sodir_co2", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1658,6 +1731,7 @@ async def sync_nsta_co2() -> int:
         features = await fetch_arcgis_features_url(NSTA_CO2_URL, out_fields="*")
     except Exception as exc:
         log.warning("nsta-co2: fetch failed — %s", exc)
+        await _log_sync_skipped("nsta_co2", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -1683,6 +1757,7 @@ async def sync_nsta_co2() -> int:
 
     if not rows:
         log.warning("nsta-co2: no features returned")
+        await _log_sync_skipped("nsta_co2", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1718,6 +1793,7 @@ async def sync_anh_colombia() -> int:
         )
     except Exception as exc:
         log.warning("anh-colombia: fetch failed — %s", exc)
+        await _log_sync_skipped("anh_co", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -1743,6 +1819,7 @@ async def sync_anh_colombia() -> int:
 
     if not rows:
         log.warning("anh-colombia: no features returned")
+        await _log_sync_skipped("anh_co", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1779,6 +1856,7 @@ async def sync_meei_trinidad() -> int:
         )
     except Exception as exc:
         log.warning("meei-trinidad: fetch failed — %s", exc)
+        await _log_sync_skipped("meei_tt", f"fetch failed: {type(exc).__name__}")
         return 0
 
     def _ms_to_date(ms):
@@ -1811,6 +1889,7 @@ async def sync_meei_trinidad() -> int:
 
     if not rows:
         log.warning("meei-trinidad: no features returned")
+        await _log_sync_skipped("meei_tt", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1841,6 +1920,7 @@ async def sync_pad_ireland() -> int:
         features = await fetch_arcgis_features_url(IE_URL, out_fields="*")
     except Exception as exc:
         log.warning("pad-ireland: fetch failed — %s", exc)
+        await _log_sync_skipped("pad_ie", f"fetch failed: {type(exc).__name__}")
         return 0
 
     def _ms_to_date(ms):
@@ -1874,6 +1954,7 @@ async def sync_pad_ireland() -> int:
 
     if not rows:
         log.warning("pad-ireland: no features returned")
+        await _log_sync_skipped("pad_ie", "source returned no features with geometry")
         return 0
 
     if not rows:
@@ -1912,6 +1993,7 @@ async def sync_perupetro() -> int:
         )
     except Exception as exc:
         log.warning("perupetro: fetch failed — %s", exc)
+        await _log_sync_skipped("perupetro_pe", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -1943,6 +2025,7 @@ async def sync_perupetro() -> int:
 
     if not rows:
         log.warning("perupetro: no features returned")
+        await _log_sync_skipped("perupetro_pe", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1974,6 +2057,7 @@ async def sync_petrocom_ghana() -> int:
         features = await fetch_arcgis_features_url(GH_URL, out_fields="*")
     except Exception as exc:
         log.warning("petrocom-ghana: fetch failed — %s", exc)
+        await _log_sync_skipped("petrocom_gh", f"fetch failed: {type(exc).__name__}")
         return 0
 
     def _ms_to_date(ms):
@@ -2006,6 +2090,7 @@ async def sync_petrocom_ghana() -> int:
 
     if not rows:
         log.warning("petrocom-ghana: no features returned")
+        await _log_sync_skipped("petrocom_gh", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -2038,6 +2123,7 @@ async def sync_pmp_guyana() -> int:
             shp_name = next((n for n in names if n.lower().endswith(".shp")), None)
             if not shp_name:
                 log.warning("pmp-guyana: no .shp in zip")
+                await _log_sync_skipped("pmp_gy", "no .shp file found in downloaded zip")
                 return 0
             base = shp_name[:-4]
             shp_bytes = io.BytesIO(z.read(shp_name))
@@ -2070,10 +2156,12 @@ async def sync_pmp_guyana() -> int:
                 })
     except Exception as exc:
         log.warning("pmp-guyana: failed — %s", exc)
+        await _log_sync_skipped("pmp_gy", f"fetch failed: {type(exc).__name__}")
         return 0
 
     if not rows:
         log.warning("pmp-guyana: no features returned")
+        await _log_sync_skipped("pmp_gy", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:

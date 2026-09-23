@@ -80,6 +80,53 @@ def _firms_instant(acq_date, acq_time: "str | None"):
                     tzinfo=timezone.utc)
 _FIRMS_CONFIDENCE = {"l": "Low", "n": "Nominal", "h": "High"}
 
+
+def _firms_row_to_fields(r: dict) -> dict:
+    """Pure per-row mapping from one FIRMS CSV dict to the columns we store.
+
+    Values are stored exactly as NASA publishes them: no rounding, empty
+    string -> None (NULL), daynight and version kept as raw text. Split out
+    of the sync loop so it can be unit-tested without a DB or network call.
+    """
+    lat = float(r.get("latitude", 0))
+    lon = float(r.get("longitude", 0))
+    acq_str = r.get("acq_date", "")
+    acq_date = datetime.strptime(acq_str, "%Y-%m-%d").date() if acq_str else None
+    acq_time = (r.get("acq_time") or "").strip() or None
+    observed_at = _firms_instant(acq_date, acq_time)
+
+    def _num(key: str) -> "float | None":
+        raw = (r.get(key) or "").strip() if isinstance(r.get(key), str) else r.get(key)
+        if raw is None or raw == "":
+            return None
+        return float(raw)
+
+    def _txt(key: str) -> "str | None":
+        raw = r.get(key)
+        if raw is None:
+            return None
+        raw = raw.strip() if isinstance(raw, str) else raw
+        return raw or None
+
+    return {
+        "lat": lat,
+        "lon": lon,
+        "brightness": float(r.get("bright_ti4", 0) or 0),
+        "confidence": _FIRMS_CONFIDENCE.get(r.get("confidence", ""), r.get("confidence", "")),
+        "frp": float(r.get("frp", 0) or 0),
+        "instrument": _txt("instrument"),
+        "satellite": _txt("satellite"),
+        "acq_date": acq_date,
+        "acq_time": acq_time,
+        "observed_at": observed_at,
+        "scan": _num("scan"),
+        "track": _num("track"),
+        "version": _txt("version"),
+        "bright_ti5": _num("bright_ti5"),
+        "daynight": _txt("daynight"),
+    }
+
+
 async def _sync_active_fires(force: bool = False) -> int:
     """
     Fetch active fires from NASA FIRMS API (last 24h, global VIIRS).
@@ -160,33 +207,24 @@ async def _sync_active_fires(force: bool = False) -> int:
         inserted = 0
         for r in rows:
             try:
-                lat = float(r.get("latitude", 0))
-                lon = float(r.get("longitude", 0))
-                acq_str = r.get("acq_date", "")
-                acq_date = datetime.strptime(acq_str, "%Y-%m-%d").date() if acq_str else None
-                # FIRMS gives acq_time as HHMM (or HMM), UTC. Keep the raw string
-                # exactly as published AND the instant it denotes, so a reader
-                # gets the time the legend has always promised.
-                acq_time = (r.get("acq_time") or "").strip() or None
-                observed_at = _firms_instant(acq_date, acq_time)
+                f = _firms_row_to_fields(r)
                 await conn.execute("""
                     INSERT INTO active_fires
                         (latitude, longitude, brightness, confidence, frp,
-                         instrument, satellite, acq_date, acq_time, observed_at, geom)
+                         instrument, satellite, acq_date, acq_time, observed_at,
+                         scan, track, version, bright_ti5, daynight, geom)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                            ST_SetSRID(ST_MakePoint($11, $12), 4326))
+                            $11, $12, $13, $14, $15,
+                            ST_SetSRID(ST_MakePoint($16, $17), 4326))
                 """,
-                    lat, lon,
-                    float(r.get("bright_ti4", 0) or 0),
-                    _FIRMS_CONFIDENCE.get(r.get("confidence", ""), r.get("confidence", "")),
-                    float(r.get("frp", 0) or 0),
+                    f["lat"], f["lon"], f["brightness"], f["confidence"], f["frp"],
                     # ⛔ NASA's own two fields, not our fused "VIIRS_SNPP" label.
                     # `_sensor` is the request we made; instrument and satellite
                     # are what FIRMS answered with.
-                    (r.get("instrument") or "").strip() or None,
-                    (r.get("satellite") or "").strip() or None,
-                    acq_date, acq_time, observed_at,
-                    lon, lat,
+                    f["instrument"], f["satellite"],
+                    f["acq_date"], f["acq_time"], f["observed_at"],
+                    f["scan"], f["track"], f["version"], f["bright_ti5"], f["daynight"],
+                    f["lon"], f["lat"],
                 )
                 inserted += 1
             except Exception as e:
@@ -223,7 +261,12 @@ async def get_fires():
                             'satellite', satellite,
                             'acq_date', acq_date::text,
                             'acq_time', acq_time,
-                            'observed_at', observed_at
+                            'observed_at', observed_at,
+                            'daynight', daynight,
+                            'version', version,
+                            'scan', scan,
+                            'track', track,
+                            'bright_ti5', bright_ti5
                         )
                     )
                 ), '[]'::json)

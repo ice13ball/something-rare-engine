@@ -92,6 +92,7 @@ from typing import Optional
 import db
 import ocean_basin
 from auth import get_api_key
+from domains.land.common import TAILINGS_SERVED_WHERE
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -1113,10 +1114,16 @@ async def seo_sitemap_core():
         contractors = await conn.fetch("SELECT DISTINCT contractor_name FROM mining_contracts WHERE contractor_name IS NOT NULL ORDER BY contractor_name")
         rivers = await conn.fetch("SELECT station_id FROM arctic_river_stations WHERE source='arcticgro' ORDER BY station_id")
         # Feature counts for layer pages
+        # `tailings`: exclude the 361 Global Tailings Portal-only rows we no
+        # longer serve (withdrawn 2026-09-23 — domains/land/common.py
+        # TAILINGS_SERVED_WHERE is the single source of truth).
+        _LAYER_PAGE_EXTRA_WHERE = {"tailings": TAILINGS_SERVED_WHERE}
         layer_counts = {}
         for tbl, key in _LAYER_PAGE_TABLES:
             try:
-                cnt = await conn.fetchval(f"SELECT COUNT(*) FROM {tbl}")  # noqa: S608
+                where = _LAYER_PAGE_EXTRA_WHERE.get(key)
+                sql = f"SELECT COUNT(*) FROM {tbl}" + (f" WHERE {where}" if where else "")  # noqa: S608
+                cnt = await conn.fetchval(sql)
                 layer_counts[key] = cnt
             except Exception:
                 layer_counts[key] = 0

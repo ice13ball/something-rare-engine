@@ -476,7 +476,7 @@
       "mining-footprints": "74,548 mine polygons (pits, tailings, dumps, processing) mapped at 10m from Sentinel-2. The true spatial extent of mining that corporate reporting rarely shows.",
       "kbas": "16,000+ sites identified as the most important places on Earth for species and ecosystems. Overlap with mining footprints reveals direct biodiversity conflict.",
       "forest-loss": "Annual deforestation at 30 m from Global Forest Watch (umd_tree_cover_loss v1.13). Roads from mines radiate outward and deforestation follows — the mine's footprint extends far beyond the pit.",
-      "tailings": "11,900+ tailings facilities globally, 1,900+ carrying the operator's own hazard rating (hazard_raw) disclosed via the Global Tailings Portal, beside the classification system that issued it — there are 255 of them, so a rating cannot be compared across rows without it. Each value gets its own distinct colour; this platform runs no severity scoring of its own. Upstream-raised dams are historically most failure-prone.",
+      "tailings": "11,587 tailings facilities globally (WAPHA, Hudson-Edwards et al. 2023). Global Tailings Portal hazard-rating, ownership and specification fields are withdrawn pending written permission from GRID-Arendal and are not shown.",
       "fires": "Near-real-time fire detections from NASA's three VIIRS satellites, updated within 3 hours. Filter by confidence level. Fire season often overlaps with land clearing for mining.",
       "air-quality": "Real-time PM2.5, SO₂, NO₂, O₃, CO readings from government monitoring stations worldwide. Mining and fire smoke create pollution hotspots.",
       "landslides": "Rainfall-triggered landslides since 2007. Tailings dams in landslide-prone terrain are a red flag for structural failure risk.",
@@ -760,7 +760,12 @@
     "panelBadge": "Active Fire",
     "panelTitle": "Fire Detection",
     "observedLabel": "Detected (UTC)",
-    "satelliteLabel": "Satellite"
+    "satelliteLabel": "Satellite",
+    "dayNightLabel": "Day / Night",
+    "versionLabel": "Version",
+    "pixelSizeLabel": "Pixel size",
+    "dayValue": "Day",
+    "nightValue": "Night"
   },
   "kba": {
     "areaLabel": "Area",
@@ -888,6 +893,7 @@
     "qcDoubtfulTooltip": "Ocean Networks Canada flagged this measurement as doubtful (quality flag {{flag}}). The value is shown as published; treat it with caution.",
     "panelBadge": "ONC Observatory",
     "stationSectionTitle": "Station",
+    "descriptionSectionTitle": "Description",
     "earthquakesNone": "No earthquakes recorded within 200 km in the last 30 days.",
     "earthquakesUnavailable": "Nearby earthquakes could not be loaded — this is our fetch failing, not a quiet seafloor.",
     "earthquakesTotal_one": "{{count}} event total",
@@ -1044,7 +1050,7 @@
     "safetyReviewSectionTitle": "Safety & Engineering Review",
     "statusLabel": "Status",
     "storageLabel": "Storage",
-    "waphaCaveat": "WAPHA base record. The source publishes only a name and a coordinate for this facility — no owner, volume, height or hazard rating exists upstream. The country label is platform-derived. WAPHA is a literature and registry compilation, so a small number of non-mining dams are present."
+    "waphaCaveat": "Global Tailings Portal fields (hazard rating, ownership, dam specifications, safety-review answers) are withdrawn pending written permission from GRID-Arendal and are not shown, on any tailings facility. This record carries only its WAPHA-sourced name, location and country."
   },
   "tectonic": {
     "boundaryTypeLabel": "Boundary Type",
@@ -1189,7 +1195,7 @@
         "title": "Tailings Dam Danger",
         "story": "Brazil's Minas Gerais state has hundreds of tailings dams storing billions of tonnes of mine waste. After the Brumadinho disaster in 2019, which killed 270 people, many remain classified as high risk. Some sit disturbingly close to protected areas and towns.",
         "nextSteps": [
-          "Click a tailings dam to see the operator's own hazard rating",
+          "Zoom into Minas Gerais to see how close dams sit to towns",
           "Enable Key Biodiversity Areas to see ecological overlap",
           "Zoom out and enable Landslide Catalog to see terrain instability"
         ],

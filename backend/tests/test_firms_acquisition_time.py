@@ -75,12 +75,17 @@ def test_the_sync_actually_stores_what_firms_sent():
     for col in ("acq_time", "observed_at", "satellite"):
         assert col in ins, f"the fires INSERT does not write {col}"
     assert "_firms_instant(" in _SRC, "nothing calls the helper"
-    assert 'r.get("instrument")' in _SRC, (
+    # The per-row field mapping (including instrument/satellite) now lives
+    # in _firms_row_to_fields, extracted so it can be unit-tested directly —
+    # see test_firms_extended_fields.py.
+    mapping = _SRC[_SRC.index("def _firms_row_to_fields"):_SRC.index("async def _sync_active_fires")]
+    assert '_txt("instrument")' in mapping, (
         "the instrument column no longer holds NASA's own instrument field"
     )
-    assert 'r.get("satellite")' in _SRC, (
+    assert '_txt("satellite")' in mapping, (
         "the satellite column no longer holds NASA's own satellite field"
     )
+    assert "_firms_row_to_fields(" in _SRC, "the sync no longer calls the row mapper"
 
 
 def test_the_endpoint_hands_those_fields_on():

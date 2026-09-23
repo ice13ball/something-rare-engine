@@ -32,6 +32,15 @@ export function FirePanel({ properties: p }: { properties: Record<string, unknow
             column used to hold OUR fused label ("VIIRS_SNPP") — a name we
             invented, not one NASA gave. Both are now stored as published. */}
         {p.satellite != null && <Row label={t("fire.satelliteLabel")} value={String(p.satellite)} />}
+        {p.daynight != null && (
+          <Row label={t("fire.dayNightLabel")}
+               value={p.daynight === "N" ? t("fire.nightValue") : p.daynight === "D" ? t("fire.dayValue") : String(p.daynight)} />
+        )}
+        {p.version != null && <Row label={t("fire.versionLabel")} value={String(p.version)} />}
+        {p.scan != null && p.track != null && (
+          <Row label={t("fire.pixelSizeLabel")}
+               value={`${Number(p.scan).toFixed(2)} × ${Number(p.track).toFixed(2)} km`} />
+        )}
       </Section>
       <SourceAttribution link={sourceLinkFor("firms", p)} />
       <ExternalLinks>

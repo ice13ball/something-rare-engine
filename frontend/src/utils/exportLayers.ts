@@ -372,7 +372,7 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     kind: "vector",
     geomKind: "point",
     family: "Land",
-    source: "Hudson-Edwards et al. 2023 WAPHA (CC0, Dryad) + GRID-Arendal / UNEP Global Tailings Portal",
+    source: "Hudson-Edwards et al. 2023 WAPHA (CC0, Dryad). Global Tailings Portal (GRID-Arendal) fields withdrawn pending permission.",
     sourceUrl: "https://doi.org/10.5061/dryad.j3tx95xmg",
   },
   {

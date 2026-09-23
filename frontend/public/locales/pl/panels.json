@@ -476,7 +476,7 @@
       "mining-footprints": "74 548 wielokątów kopalni (wyrobiska, odpady, hałdy, przetwarzanie) zmapowanych w rozdzielczości 10 m z Sentinel-2. Rzeczywisty zasięg przestrzenny górnictwa rzadko ujawniany w sprawozdaniach korporacyjnych.",
       "kbas": "Ponad 16 000 obszarów uznanych za najważniejsze miejsca na Ziemi dla gatunków i ekosystemów. Nakładanie się z obszarami górniczymi ujawnia bezpośredni konflikt z bioróżnorodnością.",
       "forest-loss": "Roczna wycinka lasów w rozdzielczości 30 m z Global Forest Watch (umd_tree_cover_loss v1.13). Drogi z kopalni rozchodzą się na zewnątrz, a wycinka podąża za nimi — ślad kopalni sięga daleko poza wyrobisko.",
-      "tailings": "Ponad 11 900 obiektów składowania odpadów przeróbczych na świecie, z czego ponad 1 900 niesie ocenę zagrożenia podaną przez samego operatora (hazard_raw) w Global Tailings Portal, wraz z systemem klasyfikacji, w którym ją wydano — systemów jest 255, więc bez tej informacji ocen nie da się porównywać między wierszami. Każda wartość ma własny odrębny kolor; ta platforma nie prowadzi żadnego własnego stopniowania. Zapory nadbudowywane metodą odsypową (upstream) historycznie najczęściej ulegają awariom.",
+      "tailings": "11 587 obiektów tailings na świecie (WAPHA, Hudson-Edwards et al. 2023). Pola oceny zagrożenia, własności i specyfikacji z Global Tailings Portal są wycofane do czasu uzyskania pisemnej zgody GRID-Arendal i nie są pokazywane.",
       "fires": "Wykrycia pożarów w czasie zbliżonym do rzeczywistego z trzech satelitów VIIRS należących do NASA, aktualizowane w ciągu 3 godzin. Filtruj po poziomie pewności. Sezon pożarowy często pokrywa się z wypalaniem terenu pod górnictwo.",
       "air-quality": "Odczyty PM2.5, SO₂, NO₂, O₃, CO w czasie rzeczywistym ze stacji monitoringu rządowego na całym świecie. Górnictwo i dym z pożarów tworzą obszary podwyższonego zanieczyszczenia.",
       "landslides": "Osuwiska wywołane opadami deszczu od 2007 r. Zapory piętrze w terenie podatnym na osuwiska to sygnał ostrzegawczy ryzyka awarii konstrukcyjnej.",
@@ -760,7 +760,12 @@
     "panelBadge": "Aktywny pożar",
     "panelTitle": "Wykrycie pożaru",
     "observedLabel": "Wykryto (UTC)",
-    "satelliteLabel": "Satelita"
+    "satelliteLabel": "Satelita",
+    "dayNightLabel": "Dzień / noc",
+    "versionLabel": "Wersja",
+    "pixelSizeLabel": "Rozmiar piksela",
+    "dayValue": "Dzień",
+    "nightValue": "Noc"
   },
   "kba": {
     "areaLabel": "Obszar",
@@ -887,6 +892,7 @@
     "qcDoubtfulTooltip": "Ocean Networks Canada oznaczyło ten pomiar jako wątpliwy (flaga jakości {{flag}}). Wartość pokazujemy tak, jak ją opublikowano — traktuj ją ostrożnie.",
     "panelBadge": "Obserwatorium ONC",
     "stationSectionTitle": "Stacja",
+    "descriptionSectionTitle": "Opis",
     "body": "Stacja w sieci obserwacyjnej Ocean Networks Canada — węzły kablowe na dnie morskim oraz boje dryfujące i przyrządy z rejsów badawczych. Pokazane odczyty to najnowsze, jakimi dysponuje ONC; dla stacji wycofanej mogą być historyczne (CC BY 4.0).",
     "earthquakesNone": "Brak trzęsień ziemi w promieniu 200 km w ciągu ostatnich 30 dni.",
     "earthquakesUnavailable": "Nie udało się pobrać pobliskich trzęsień ziemi — to nasze pobranie zawiodło, a nie cisza na dnie.",
@@ -1046,7 +1052,7 @@
     "safetyReviewSectionTitle": "Przegląd bezpieczeństwa i inżynierii",
     "statusLabel": "Status",
     "storageLabel": "Pojemność",
-    "waphaCaveat": "Rekord bazowy WAPHA. Źródło publikuje dla tego obiektu wyłącznie nazwę i współrzędne — właściciela, objętości, wysokości ani oceny zagrożenia po stronie źródła nie ma. Nazwa kraju pochodzi od platformy. WAPHA jest kompilacją literatury i rejestrów, więc zawiera niewielką liczbę zapór niegórniczych."
+    "waphaCaveat": "Pola z Global Tailings Portal (ocena zagrożenia, własność, specyfikacje zapory, odpowiedzi z przeglądu bezpieczeństwa) są wycofane do czasu uzyskania pisemnej zgody GRID-Arendal i nie są pokazywane dla żadnego obiektu tailings. Ten rekord niesie wyłącznie nazwę, lokalizację i kraj pochodzące z WAPHA."
   },
   "tectonic": {
     "boundaryTypeLabel": "Typ granicy",
@@ -1193,7 +1199,7 @@
         "title": "Zagrożenie wałami osadowymi",
         "story": "W brazylijskim stanie Minas Gerais setki wałów osadowych gromadzą miliardy ton odpadów górniczych. Po katastrofie w Brumadinho w 2019 roku, która zabiła 270 osób, wiele z nich nadal jest sklasyfikowanych jako wysokiego ryzyka. Niektóre leżą niepokojąco blisko obszarów chronionych i miast.",
         "nextSteps": [
-          "Kliknij zaporę, aby zobaczyć ocenę zagrożenia podaną przez operatora",
+          "Przybliż widok na Minas Gerais, aby zobaczyć bliskość tam wobec miast",
           "Włącz warstwę Kluczowych Obszarów Bioróżnorodności, aby sprawdzić nakładanie się ekologiczne",
           "Oddal i włącz warstwę Katalog Osuwisk, aby sprawdzić niestabilność terenu"
         ],

@@ -254,28 +254,17 @@ const LAYER_SOURCES: Record<string, SourceEntry> = {
   },
   // "kba" removed 2026-09-03 alongside the layer withdrawal (KbaPanel.tsx,
   // its only caller, is gone too).
-  // Two sources in one layer, and they are not interchangeable. The base
-  // compilation is WAPHA (Hudson-Edwards et al. 2023, CC0 via Dryad); the
-  // Global Tailings Portal rows are company disclosures under GRID-Arendal's
-  // own terms. Rows carry `data_source` — 'wapha', 'grid' or 'grid-enriched' —
-  // so send each row to the source that actually holds it. A WAPHA row searched
-  // on the portal finds nothing: WAPHA publishes one attribute, and it is not
-  // the portal's facility_name.
+  // ⛔ WITHDRAWN 2026-09-23 (Michal's decision): tailing.grida.no/about asks
+  // for permission to download the TSF dataset; we never obtained it. The
+  // backend no longer sends any Global Tailings Portal field or row (see
+  // backend/domains/land/common.py TAILINGS_SERVED_WHERE /
+  // TAILINGS_PORTAL_COLUMNS), so every served row — 'wapha' or
+  // 'grid-enriched' alike — links to WAPHA, its only remaining source. No
+  // per-feature link to tailing.grida.no: linking a live per-feature search
+  // there reads as an ongoing integration this platform no longer has.
   "tailings": {
-    org: "Hudson-Edwards, K. et al. (2023) WAPHA — Dryad, with Global Tailings Portal (GRID-Arendal) disclosures",
+    org: "Hudson-Edwards, K. et al. (2023) WAPHA global metal mines database — Dryad (CC0)",
     homepage: "https://doi.org/10.5061/dryad.j3tx95xmg",
-    perFeature: (p) => {
-      const src = typeof p.data_source === "string" ? p.data_source : "";
-      if (src === "wapha") return "https://doi.org/10.5061/dryad.j3tx95xmg";
-      // `dam_name` is what the endpoint actually returns. It asked for
-      // `facility_name ?? name` before, and the tailings properties carry
-      // neither — so every row fell through to null and the layer had no
-      // per-feature link at all, silently.
-      const name = p.dam_name ?? p.mine_name;
-      return typeof name === "string" && name.length > 0
-        ? `https://tailing.grida.no/?search=${encodeURIComponent(name)}`
-        : "https://tailing.grida.no/";
-    },
   },
   "firms": {
     org: "NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)",

@@ -32,6 +32,7 @@ class VectorExport:
     cap: int
     prov: Provenance
     join_sql: str | None = None  # e.g. "JOIN memento_casts c ON c.cast_id = t.cast_id"
+    extra_where: str | None = None  # additional SQL condition, ANDed onto the AOI filter
 
 
 @dataclass(frozen=True)
@@ -874,39 +875,40 @@ _VECTORS: dict[str, VectorExport] = {
     # "through interactive web maps ... that grant users download access"
     # without prior written permission from UNEP-WCMC. This registry IS the
     # download access; the map was the interactive web map. Both had to go.
+    # ⛔ WITHDRAWN 2026-09-23 (Michal's decision): tailing.grida.no/about asks
+    # for permission to download the TSF dataset; we never obtained it. Every
+    # Global Tailings Portal-derived column and every `data_source='grid'`
+    # (Portal-only) row is excluded below — see `domains/land/common.py`
+    # TAILINGS_SERVED_WHERE / TAILINGS_PORTAL_COLUMNS, the single source of
+    # truth every tailings-serving surface applies. `grid-enriched` rows still
+    # export (their WAPHA identity), just without the Portal fields the
+    # enrichment wrote onto them. Rows/columns stay in the database — this is
+    # a serving-layer decision, not a data migration.
     "tailings": VectorExport(
         id="tailings", label="Tailings dams",
         table="tailings_dams",
         geom_col="t.geom", id_col="id", geom_kind="point", cap=10_000,
-        # ⛔ `risk_class` left this export 2026-09-22 with the derived scale it
-        # named. `hazard_raw` is the operator's own rating and
-        # `classification_system` names which of 255 national systems produced
-        # it — without the second, the first cannot be compared across rows.
-        fields=("id", "dam_name", "mine_name", "country", "dam_type", "height_m",
-                "volume_m3", "status", "owner_company", "operator",
-                "construction_year", "hazard_raw", "classification_system",
-                "raise_type", "data_source",
-                "history_stability_concerns", "downstream_impact",
-                "recent_independent_expert_review", "extreme_weather_secure",
-                "currently_approved_design", "closure_plan_dam",
-                "closure_plan_long_term_monitoring", "internal_external_eng_support",
-                "relevant_engineering_records", "disclosure_origin",
-                "disclosure_link", "disclosure_notes", "partners",
-                "planned_storage_5_years", "created_at"),
+        fields=("id", "dam_name", "country", "data_source", "created_at"),
+        extra_where="t.data_source IS DISTINCT FROM 'grid'",
         prov=Provenance(
             source="Hudson-Edwards, K. et al. (2023) WAPHA global metal mines database "
-                   "(doi:10.5061/dryad.j3tx95xmg) + GRID-Arendal / UNEP (Global Tailings Portal)",
+                   "(doi:10.5061/dryad.j3tx95xmg, CC0)",
             source_url="https://doi.org/10.5061/dryad.j3tx95xmg",
-            license="WAPHA: CC0 (Dryad). GRID-Arendal: company-disclosed, see tailing.grida.no.",
+            license="CC0 (Dryad).",
             citation="Macklin, M.G. et al. (2023) Impacts of metal mining on river systems. "
                      "Science 381:1345. doi:10.1126/science.adg6704",
-            note="Rows carry data_source: 'wapha' (base compilation, name + point only), "
-                 "'grid' (Global Tailings Portal, unmatched) or 'grid-enriched' (WAPHA dam "
-                 "matched to a GTP disclosure within 5 km). The WAPHA source shapefile "
-                 "publishes ONE attribute (Name) — every other column on a 'wapha' row is "
-                 "NULL or platform-derived; `country` in particular is platform-derived. "
-                 "WAPHA is a literature/registry compilation and inherits a handful of "
-                 "non-mining dams from national registers. Values are otherwise verbatim. "
+            note="11,587 facilities served: data_source 'wapha' (base compilation) or "
+                 "'grid-enriched' (a WAPHA dam previously matched to a Global Tailings "
+                 "Portal disclosure). Global Tailings Portal (GRID-Arendal) fields — "
+                 "hazard rating, ownership, dam specifications, safety-review answers — "
+                 "are withdrawn pending written permission from GRID-Arendal (decided "
+                 "2026-09-23) and are not exported, even on 'grid-enriched' rows. "
+                 "Portal-only facilities (data_source='grid') are not exported at all. "
+                 "The WAPHA source shapefile publishes ONE attribute (Name) — every "
+                 "exported column beyond id/dam_name/country/data_source/created_at "
+                 "would have been NULL or platform-derived anyway; `country` is "
+                 "platform-derived. WAPHA is a literature/registry compilation and "
+                 "inherits a handful of non-mining dams from national registers. "
                  "geog (generated geography column) excluded.",
         ),
     ),
@@ -915,7 +917,9 @@ _VECTORS: dict[str, VectorExport] = {
         table="active_fires",
         geom_col="t.geom", id_col="id", geom_kind="point", cap=10_000,
         fields=("id", "latitude", "longitude", "brightness", "confidence",
-                "frp", "instrument", "acq_date", "created_at"),
+                "frp", "instrument", "acq_date", "created_at",
+                "acq_time", "satellite", "daynight", "version", "scan",
+                "track", "bright_ti5"),
         prov=Provenance(
             source="NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)",
             source_url="https://firms.modaps.eosdis.nasa.gov/",

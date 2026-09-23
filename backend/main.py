@@ -59,6 +59,7 @@ from domains import seafloor
 from domains import sensors
 from domains import seo
 from domains import seo_hubs
+from domains.land.common import TAILINGS_SERVED_WHERE
 from land_layers import (
     router as land_layers_router, sync_all_land_sources,
     _sync_air_quality_readings, _sync_mining_footprints, _sync_kbas, _sync_wdpa,
@@ -996,6 +997,17 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "perupetro_pe":           "perupetro",
     "petrocom_gh":            "petrocom-ghana",
     "pmp_gy":                 "pmp-guyana",
+    "boem-offshore":          "boem-offshore",
+    "crown_estate":           "crown-estate-wind",
+    "anp":                    "anp-brazil",
+    "sodir":                  "sodir-petroleum",
+    "nsta":                   "nsta-petroleum",
+    "cnh":                    "cnh-mexico",
+    "crown_estate_scotland":  "crown-estate-scotland",
+    "cnsopb":                 "cnsopb",
+    "cnlopb":                 "cnlopb",
+    "dea-dk":                 "dea-dk",
+    "sbma-cook-islands":      "sbma-cook-islands",
     "biodiversity_hotspots_inat_reset": "reset-inat-images",
     "currents-surface":       "currents-surface",
     "currents-1000m":         "currents-1000m",
@@ -1336,7 +1348,7 @@ _INVENTORY: list[tuple[str, str, str, str, str | None, str, str]] = [
 
     # ── Land ────────────────────────────────────────────────────────────────
     ("mining-foot",    "Global mining footprints",      "land",      "mining_footprints",      "mining_footprints",     "Maus et al. 2022/2023 — PANGAEA",         "https://doi.org/10.1594/PANGAEA.942325"),
-    ("tailings",       "Tailings dams",                 "land",      "tailings_dams",          "tailings",              "GRID-Arendal / UNEP",                     "https://tailing.grida.no/"),
+    ("tailings",       "Tailings dams",                 "land",      "tailings_dams",          "tailings",              "Hudson-Edwards et al. 2023 (WAPHA, Dryad)","https://doi.org/10.5061/dryad.j3tx95xmg"),
     ("fires",          "Active fires (rolling 24h)",    "land",      "active_fires",           "active_fires",          "NASA FIRMS (VIIRS: Suomi-NPP, NOAA-20, NOAA-21)",              "https://firms.modaps.eosdis.nasa.gov/"),
     ("landslides",     "Landslides",                    "land",      "landslides",             "landslides",            "NASA COOLR / GSFC",                       "https://gpm.nasa.gov/landslides/"),
     ("openaq",         "Air quality stations",          "land",      "air_quality_stations",   "air_quality",           "OpenAQ v3",                               "https://openaq.org/"),
@@ -1382,8 +1394,13 @@ async def get_dataset_counts():
     if _dataset_counts_cache and (now - _dataset_counts_cache_at) < _DATASET_COUNTS_TTL:
         return _dataset_counts_cache
 
+    # `tailings` gets its own WHERE: the public inventory must not count the
+    # 361 Global Tailings Portal-only rows we no longer serve (withdrawn
+    # 2026-09-23 — see domains/land/common.py TAILINGS_SERVED_WHERE).
+    _INVENTORY_EXTRA_WHERE = {"tailings": TAILINGS_SERVED_WHERE}
     union_sql = " UNION ALL ".join(
         f"SELECT '{key}' AS k, count(*)::bigint AS c FROM {table}"
+        + (f" WHERE {_INVENTORY_EXTRA_WHERE[key]}" if key in _INVENTORY_EXTRA_WHERE else "")
         for (key, _, _, table, *_rest) in _INVENTORY
     )
     async with _pool.acquire() as conn:
