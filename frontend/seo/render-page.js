@@ -10,6 +10,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './urls.js';
 import { fetchUpstream, BackendUnavailable } from './upstream-fetch.js';
+import { CONSENT_BANNER_HTML } from './consent-banner.js';
 
 // Fallback repointed 2026-08-24 — see the note in server.js. The old default
 // named a host that no longer exists.
@@ -526,6 +527,7 @@ function wrapHtml(headContent, bodyContent, opts) {
 <body style="background:#0a0e14;margin:0">
   <div id="root">${bodyContent}</div>
 ${licenceNotice}
+${CONSENT_BANNER_HTML}
 ${clientAssets}
 </body>
 </html>`;

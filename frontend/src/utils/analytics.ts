@@ -9,7 +9,10 @@ declare global {
 }
 
 const MEASUREMENT_ID = "G-S5HR4WT0ZG";
-const CONSENT_KEY = "abyssal_consent";
+// v2 since 2026-09-23: v1 values include automatic grants made without asking
+// (see the ga4-bootstrap block in index.html), so none of them is carried over.
+// seo/render-page.js (server-rendered banner) uses the same key.
+const CONSENT_KEY = "abyssal_consent_v2";
 
 // ── Consent helpers ────────────────────────────────────────────────────────
 
@@ -37,21 +40,6 @@ export function updateConsent(granted: boolean): void {
       window.gtag("config", MEASUREMENT_ID, { send_page_view: true });
     }
   }
-}
-
-// ── EU locale detection ──────────────────────────────────────────────────
-// Lightweight browser-language heuristic (no IP geolocation needed).
-// Covers EU member states + EEA (Iceland, Norway) language codes.
-
-const EU_LANGS = new Set([
-  "bg","cs","da","de","et","el","es","fr","ga","hr","it","lv","lt",
-  "hu","mt","nl","pl","pt","ro","sk","sl","fi","sv","is","no",
-]);
-
-export function isEuLocale(): boolean {
-  const lang = (navigator.languages?.[0] ?? navigator.language ?? "")
-    .split("-")[0].toLowerCase();
-  return EU_LANGS.has(lang);
 }
 
 export function clearStoredConsent(): void {

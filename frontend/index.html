@@ -68,29 +68,20 @@
         ad_personalization: 'denied',
         wait_for_update: 500
       });
-      // Restore prior consent decision or auto-grant non-EU first-visit
+      // Restore the visitor's OWN earlier decision. There is no automatic grant:
+      // everyone without a stored choice starts denied and is shown the banner.
+      // `abyssal_consent` (v1) is discarded — until 2026-09-23 it was set to
+      // 'granted' without asking whenever the browser language looked non-EU,
+      // which is not consent, and those entries cannot be told apart.
       try {
-        var stored = localStorage.getItem('abyssal_consent');
-        if (stored === 'granted') {
+        localStorage.removeItem('abyssal_consent');
+        if (localStorage.getItem('abyssal_consent_v2') === 'granted') {
           gtag('consent', 'update', {
             analytics_storage: 'granted',
             ad_storage: 'granted',
             ad_user_data: 'granted',
             ad_personalization: 'granted'
           });
-        } else if (stored === null) {
-          // First visit: auto-grant if non-EU locale (GDPR does not apply)
-          var euLangs = ['bg','cs','da','de','et','el','es','fr','ga','hr','it','lv','lt','hu','mt','nl','pl','pt','ro','sk','sl','fi','sv','is','no'];
-          var lang = ((navigator.languages && navigator.languages[0]) || navigator.language || '').split('-')[0].toLowerCase();
-          if (!euLangs.includes(lang)) {
-            localStorage.setItem('abyssal_consent', 'granted');
-            gtag('consent', 'update', {
-              analytics_storage: 'granted',
-              ad_storage: 'granted',
-              ad_user_data: 'granted',
-              ad_personalization: 'granted'
-            });
-          }
         }
       } catch(e) {}
     </script>

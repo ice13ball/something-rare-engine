@@ -113,6 +113,11 @@ describe.skipIf(!haveFixture)('GA4 bootstrap on every server-rendered page', () 
     expect(consent).toBeGreaterThan(-1);
     expect(consent).toBeLessThan(body.indexOf(LOADER));
     expect(body.indexOf(LOADER)).toBeLessThan(body.indexOf(CONFIG));
+    // The consent banner: the SPA shell (dist/index.html, still carrying the
+    // ga4-bootstrap markers) gets React's CookieBanner; every page the server
+    // builds must carry the plain-HTML one, exactly once.
+    const isShell = body.includes('ga4-bootstrap:start');
+    expect(count(body, 'id="consent-banner"')).toBe(isShell ? 0 : 1);
   });
 
   it.each(cases.filter((c) => c.kind === 'fragment'))('$who $path: an error fragment, not a page', ({ key }) => {

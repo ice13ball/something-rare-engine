@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getStoredConsent, updateConsent, analytics, isEuLocale } from "../utils/analytics";
+import { getStoredConsent, updateConsent, analytics } from "../utils/analytics";
 
 export function CookieBanner({ forceOpen }: { forceOpen?: boolean }) {
   const [visible, setVisible] = useState(false);
@@ -12,12 +12,9 @@ export function CookieBanner({ forceOpen }: { forceOpen?: boolean }) {
     if (forceOpen) { setVisible(true); return; }
     const stored = getStoredConsent();
     if (stored !== null) return;  // prior decision exists — respect it
-    // First visit: show banner only for EU users; auto-grant non-EU
-    if (isEuLocale()) {
-      setVisible(true);
-    } else {
-      updateConsent(true);
-    }
+    // No decision yet: ask. Every visitor, wherever they are — there is no
+    // automatic grant (until 2026-09-23 one was given by browser language).
+    setVisible(true);
   }, [forceOpen]);
 
   if (!visible) return null;
