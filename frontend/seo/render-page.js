@@ -430,6 +430,34 @@ export const BUILT_ASSETS = (() => {
   return parseBuiltAssets(html);
 })();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// The GA4 + Consent Mode v2 bootstrap, copied ONCE from dist/index.html.
+//
+// Until 2026-09-23 only `/` carried it: every page built here — entity pages,
+// hubs, /blog, /about — sent nothing to GA4, so search traffic landing on them
+// was invisible (/seamount/4873694: 18 Search Console clicks, 0 GA4 views).
+//
+// ⛔ Copied, never re-typed. The block's order IS the compliance: consent
+// default → stored-choice restore → loader → config. A second hand-written copy
+// is a second place where that order can drift. index.html marks the block with
+// `ga4-bootstrap:start` / `:end`, and `/` keeps serving it unchanged.
+//
+// ⛔ A missing block does not throw, unlike BUILT_ASSETS above: without it the
+// pages still render correctly and only measurement is lost, which is not worth
+// taking the site down for. It is logged loudly, and the render guard in
+// src/__tests__/ga4-bootstrap-on-every-page.test.ts fails on it before deploy.
+export function parseGa4Bootstrap(html) {
+  const m = html.match(/<!-- ga4-bootstrap:start[\s\S]*?-->([\s\S]*?)<!-- ga4-bootstrap:end -->/);
+  return m ? m[1].trim() : '';
+}
+
+export const GA4_BOOTSTRAP = (() => {
+  const path = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'index.html');
+  const block = parseGa4Bootstrap(readFileSync(path, 'utf8'));
+  if (!block) console.error(`render-page: no ga4-bootstrap block in ${path}; server-rendered pages will not be measured`);
+  return block;
+})();
+
 /**
  * @param {string} headContent
  * @param {string} bodyContent
@@ -491,6 +519,7 @@ function wrapHtml(headContent, bodyContent, opts) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  ${GA4_BOOTSTRAP}
   ${headContent}
   <script type="application/ld+json">${SITE_GRAPH_JSON}</script>
 </head>
