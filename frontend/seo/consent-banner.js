@@ -20,7 +20,7 @@ export const CONSENT_STORAGE_KEY = 'abyssal_consent_v2';
 
 export const CONSENT_BANNER_HTML = `  <div id="consent-banner" hidden role="dialog" aria-label="Cookie consent" style="position:fixed;left:0;right:0;bottom:0;z-index:2147483000;padding:12px;display:flex;justify-content:center;pointer-events:none">
     <div style="pointer-events:auto;background:#111827;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 16px;max-width:42rem;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,.5);display:flex;flex-wrap:wrap;align-items:center;gap:12px;font:12px/1.6 system-ui,sans-serif">
-      <p style="margin:0;flex:1;min-width:14rem;color:rgba(255,255,255,.8)">We use cookies for analytics and advertising. <a href="/privacy" style="color:rgba(255,255,255,.85)">Privacy Policy</a> · <a href="/terms" style="color:rgba(255,255,255,.85)">Terms of Use</a></p>
+      <p style="margin:0;flex:1;min-width:14rem;color:rgba(255,255,255,.8)">We use cookies for analytics. <a href="/privacy" style="color:rgba(255,255,255,.85)">Privacy Policy</a> · <a href="/terms" style="color:rgba(255,255,255,.85)">Terms of Use</a></p>
       <div style="display:flex;gap:8px">
         <button type="button" data-consent="denied" style="padding:6px 12px;font-size:12px;color:rgba(255,255,255,.7);background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;cursor:pointer">Decline</button>
         <button type="button" data-consent="granted" style="padding:6px 12px;font-size:12px;font-weight:500;color:#000;background:rgba(255,255,255,.9);border:0;border-radius:8px;cursor:pointer">Accept</button>

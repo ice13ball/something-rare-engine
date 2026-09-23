@@ -89,6 +89,9 @@ describe('server-rendered banner (seo/render-page.js)', () => {
     setLanguage('en-US');
     const { el } = await mountBanner();
     expect(el.hidden).toBe(false);
+    // No ads run on the site (AdSense removed 2026-04-11), so the banner names analytics only.
+    expect(el.textContent).toContain('We use cookies for analytics.');
+    expect(el.textContent).not.toMatch(/advertis/i);
   });
 
   it('stays hidden once the visitor has decided', async () => {
@@ -123,6 +126,8 @@ describe('React CookieBanner on /', () => {
     const { CookieBanner } = await import('../components/CookieBanner');
     render(<MemoryRouter><CookieBanner /></MemoryRouter>);
     expect(await screen.findByRole('button', { name: 'Accept' })).toBeTruthy();
+    expect(screen.getByText(/We use cookies for analytics\./)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/advertis/i);
     expect(localStorage.getItem(KEY)).toBeNull();
     expect(gtag).not.toHaveBeenCalled();
   });

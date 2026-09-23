@@ -29,7 +29,7 @@ export function CookieBanner({ forceOpen }: { forceOpen?: boolean }) {
     <div className="fixed bottom-0 left-0 right-0 z-overlay p-3 flex justify-center pointer-events-none">
       <div className="pointer-events-auto bg-surface-primary border border-white/15 rounded-xl px-4 py-3 max-w-2xl w-full shadow-2xl flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <p className="text-white/80 text-xs leading-relaxed flex-1">
-          We use cookies for analytics and advertising.{" "}
+          We use cookies for analytics.{" "}
           <Link to="/privacy" className="text-white/85 hover:text-white underline">
             Privacy Policy
           </Link>
