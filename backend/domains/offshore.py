@@ -441,6 +441,7 @@ async def sync_nopta_petroleum() -> int:
         features = await fetch_arcgis_features_url(NOPTA_URL, out_fields="*")
     except Exception as exc:
         log.warning("nopta-petroleum: fetch failed — %s", exc)
+        await _log_sync_skipped("nopta", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -474,6 +475,7 @@ async def sync_nopta_petroleum() -> int:
 
     if not rows:
         log.warning("nopta-petroleum: no features returned")
+        await _log_sync_skipped("nopta", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -483,6 +485,7 @@ async def sync_nopta_petroleum() -> int:
 
     clear_offshore_tile_cache()
     log.info("nopta-petroleum: %d new / %d total", inserted, total)
+    await _log_sync("nopta", inserted, len(rows))
     return inserted
 
 
@@ -509,6 +512,7 @@ async def sync_nzpam_offshore() -> int:
         )
     except Exception as exc:
         log.warning("nzpam-offshore: fetch failed — %s", exc)
+        await _log_sync_skipped("nzpam", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -542,6 +546,7 @@ async def sync_nzpam_offshore() -> int:
 
     if not rows:
         log.warning("nzpam-offshore: no features returned")
+        await _log_sync_skipped("nzpam", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -551,6 +556,7 @@ async def sync_nzpam_offshore() -> int:
 
     clear_offshore_tile_cache()
     log.info("nzpam-offshore: %d new / %d total", inserted, total)
+    await _log_sync("nzpam", inserted, len(rows))
     return inserted
 
 
@@ -1130,6 +1136,7 @@ async def sync_mra_png_dsm() -> int:
         features = await fetch_arcgis_features_url(MRA_URL, out_fields="*")
     except Exception as exc:
         log.warning("mra-png-dsm: fetch failed — %s", exc)
+        await _log_sync_skipped("mra_png", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -1155,6 +1162,7 @@ async def sync_mra_png_dsm() -> int:
 
     if not rows:
         log.warning("mra-png-dsm: no features returned")
+        await _log_sync_skipped("mra_png", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1164,6 +1172,7 @@ async def sync_mra_png_dsm() -> int:
 
     clear_offshore_tile_cache()
     log.info("mra-png-dsm: %d new / %d total", inserted, total)
+    await _log_sync("mra_png", inserted, len(rows))
     return inserted
 
 
@@ -1180,6 +1189,7 @@ async def sync_mme_nam_dsm() -> int:
         features = await fetch_arcgis_features_url(MME_URL, out_fields="*")
     except Exception as exc:
         log.warning("mme-namibia-dsm: fetch failed — %s", exc)
+        await _log_sync_skipped("mme_nam", f"fetch failed: {type(exc).__name__}")
         return 0
 
     for f in features:
@@ -1204,6 +1214,7 @@ async def sync_mme_nam_dsm() -> int:
 
     if not rows:
         log.warning("mme-namibia-dsm: no features returned")
+        await _log_sync_skipped("mme_nam", "source returned no features with geometry")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -1213,6 +1224,7 @@ async def sync_mme_nam_dsm() -> int:
 
     clear_offshore_tile_cache()
     log.info("mme-namibia-dsm: %d new / %d total", inserted, total)
+    await _log_sync("mme_nam", inserted, len(rows))
     return inserted
 
 

@@ -165,6 +165,13 @@ LAYER_OPS: dict[str, LayerOps] = {
     "memento":             {"sync_source": "memento", "log_source": "memento",
                              "tables": ("memento_casts", "memento_samples"),
                              "count_sql": "SELECT count(*) FROM memento_casts"},
+    "marhys":              {"sync_source": "marhys", "log_source": "marhys",
+                             "tables": ("marhys_samples", "marhys_meta"),
+                             # ⛔ Counts ALL samples, not just the placeable ones.
+                             # 883 of 6,788 carry no usable position; a count of
+                             # 5,905 here would quietly report the layer as
+                             # smaller than the data it holds.
+                             "count_sql": "SELECT count(*) FROM marhys_samples"},
     "methane-seeps":       {"sync_source": "seaflea", "log_source": "seaflea",
                              "tables": ("seaflea_seeps",),
                              "count_sql": "SELECT count(*) FROM seaflea_seeps"},

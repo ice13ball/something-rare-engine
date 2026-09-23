@@ -114,6 +114,7 @@ const LAYER_STRUCT = [
   { id: "waterRisk",           layerId: "water-risk",           color: "#0ea5e9", symbol: "polygon", syncKey: "water_risk" },
   { id: "offshoreActivities",  layerId: "offshore-activities",  color: "#dc2626", symbol: "polygon", syncKey: "offshore_activities" },
   { id: "hydrophone-stations",  layerId: "hydrophone-stations", color: "#22d3ee", symbol: "dot",     syncKey: "acoustic-stations" },
+  { id: "marhys",               layerId: "marhys",              color: "#fb923c", symbol: "dot",     syncKey: "marhys" },
   { id: "woa-climatology",      layerId: "woa-climatology",     color: "#50aac8", symbol: "polygon" },
   { id: "wod-oxygen",           layerId: "wod-oxygen",           color: "#0891b2", symbol: "dot",     syncKey: "wod-oxygen",
     colorRampHex: WOD_DECADE_HEX,
@@ -831,6 +832,7 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li><span className="text-white/90">Arctic River Inputs</span> — Static (ArcticGRO + PANGAEA datasets){syncDates["arctic-rivers"] && <span className="text-white/75 font-mono ml-1">({syncDates["arctic-rivers"]})</span>}</li>
                   <li><span className="text-white/90">Arctic Catchments (ARCADE)</span> — Static (ARCADE v1 release){syncDates["arcade"] && <span className="text-white/75 font-mono ml-1">({syncDates["arcade"]})</span>}</li>
                   <li><span className="text-white/90">MEMENTO (Marine CH₄/N₂O)</span> — Static (frozen archive, last update ~2020){syncDates["memento"] && <span className="text-white/75 font-mono ml-1">({syncDates["memento"]})</span>}</li>
+                  <li><span className="text-white/90">Vent Fluid Chemistry (MARHYS)</span> — Static (MARHYS 4.0, published 2024-10-14; frozen behind its DOI and not updated). Samples collected 1977–2023{syncDates["marhys"] && <span className="text-white/75 font-mono ml-1">({syncDates["marhys"]})</span>}</li>
                   <li><span className="text-white/90">GEOTRACES Trace Metals</span> — Static (GEOTRACES IDP2025 release){syncDates["geotraces"] && <span className="text-white/75 font-mono ml-1">({syncDates["geotraces"]})</span>}</li>
                   <li><span className="text-white/90">Marine Sediment Carbon</span> — Static (MOSAIC v1 release; cores 1900–2022), synced from ETH Zürich{syncDates["mosaic"] && <span className="text-white/75 font-mono ml-1">({syncDates["mosaic"]})</span>}</li>
                   <li><span className="text-white/90">Methane Seeps (SEAFLEA)</span> — Static (SEAFLEA observed database, Feb 2019){syncDates["seaflea"] && <span className="text-white/75 font-mono ml-1">({syncDates["seaflea"]})</span>}</li>
@@ -1067,6 +1069,10 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li>
                     <span className="text-white/90 font-medium">MEMENTO (Marine CH₄/N₂O)</span>
                     <p className="mt-0.5">Cross-check cruises by name at <span className="text-cyan-400">portal.geomar.de/memento</span> (search by cruise name shown in the click panel). For any unpublished data, contact the contributing scientist before use. Database citation (per MEMENTO's terms of use): Kock &amp; Bange (2015) Eos 96(3), 10–13, doi:10.1029/2015EO023665. Project paper: Bange et al. (2009) Environ. Chem., doi:10.1071/en09033.</p>
+                  </li>
+                  <li>
+                    <span className="text-white/90 font-medium">Vent Fluid Chemistry (MARHYS)</span>
+                    <p className="mt-0.5">Download the source workbook yourself at <span className="text-cyan-400">doi.org/10.1594/PANGAEA.972999</span> and find a sample by the Sample-ID shown in the click panel — note that MARHYS reuses some Sample-IDs, so match on the vent site and date as well. Values are served verbatim: nothing is unit-converted, averaged or corrected. A magnesium reading of 0 is a real value, not a gap. ⚠️ Two source errors are reproduced rather than repaired: 39 Guaymas Basin samples carry a latitude of 111.4°, which no latitude can be, and are held without a position; and the Saldanha Hydrothermal Field is published at 36.567 / +33.6, which is dry land in Turkey, where InterRidge has 36.567 / −33.433. Citation, required in full by the dataset's own terms: Diehl &amp; Bach (2024), doi:10.1594/PANGAEA.972999, <em>together with</em> Diehl &amp; Bach (2020), doi:10.1029/2020GC009385.</p>
                   </li>
                   <li>
                     <span className="text-white/90 font-medium">GEOTRACES Trace Metals</span>

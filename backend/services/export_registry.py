@@ -396,6 +396,46 @@ _VECTORS: dict[str, VectorExport] = {
                  "unpublished data — contact the contributing scientist before publishing.",
         ),
     ),
+    "marhys": VectorExport(
+        id="marhys", label="MARHYS vent fluid chemistry", table="marhys_samples",
+        geom_col="t.geom", id_col="source_row", geom_kind="point", cap=10_000,
+        # Every named measurement plus the sparse tail. `coord_status` travels so
+        # a downloader can tell a placed sample from one this platform could not
+        # place; `params` carries the ~149 rarer source columns verbatim.
+        fields=("source_row", "sample_id", "vent_site", "vent_area", "region_large",
+                "geologic_setting", "rock_type_primary", "sample_type", "date_raw",
+                "expedition", "vessel", "sampler_type", "lat", "lon", "coord_status",
+                "depth_mbsl", "temp_c", "ph", "alkalinity_mmol_kg", "salinity_g_kg",
+                "mg_mmol_kg", "cl_mmol_kg", "so4_mmol_kg", "h2s_mmol_kg",
+                "ch4_umol_kg", "h2_umol_kg", "co2_mmol_kg", "nh3_mmol_kg",
+                "si_mmol_kg", "ca_mmol_kg", "k_mmol_kg", "na_mmol_kg",
+                "fe_umol_kg", "mn_umol_kg", "zn_umol_kg", "cu_umol_kg",
+                "li_umol_kg", "sr_umol_kg", "ba_umol_kg", "br_umol_kg",
+                "b_umol_kg", "rb_umol_kg", "cs_nmol_kg", "params"),
+        prov=Provenance(
+            source="MARHYS Database 4.0 (MARUM, University of Bremen), via PANGAEA",
+            source_url="https://doi.org/10.1594/PANGAEA.972999",
+            # ⭐ BOTH DOIs, because the dataset's own header requires it: "Please
+            # always cite the base publication (Diehl & Bach, 2020) along with
+            # this dataset." Citing only the PANGAEA DOI breaches the terms.
+            citation=(
+                "Diehl, A. & Bach, W. (2024): MARHYS Database 4.0 [dataset]. PANGAEA, "
+                "doi:10.1594/PANGAEA.972999 (CC-BY-4.0). Base publication, required "
+                "alongside: Diehl, A. & Bach, W. (2020), Geochemistry, Geophysics, "
+                "Geosystems, doi:10.1029/2020GC009385"
+            ),
+            note="Values are verbatim; nothing is unit-converted or corrected. A "
+                 "magnesium reading of 0 is a real value, not a gap — end-member "
+                 "compositions are defined by extrapolation to zero magnesium. "
+                 "⛔ This export is spatial, so it reaches only the 5,905 of 6,788 "
+                 "samples that carry a usable position: 844 have no coordinate and 39 "
+                 "(Guaymas Basin) carry a latitude of 111.4 degrees, which the source "
+                 "produced by transposing its two axes. Those rows exist in the "
+                 "platform with the source's own numbers and no geometry, and a bbox "
+                 "query cannot return them. Collection dates are free text in eight "
+                 "formats and are exported exactly as published.",
+        ),
+    ),
     "methane-seeps": VectorExport(
         id="methane-seeps", label="Methane Seeps (SEAFLEA)", table="seaflea_seeps",
         geom_col="t.geom", id_col="ext_id", geom_kind="point", cap=10_000,
@@ -838,10 +878,21 @@ _VECTORS: dict[str, VectorExport] = {
         id="tailings", label="Tailings dams",
         table="tailings_dams",
         geom_col="t.geom", id_col="id", geom_kind="point", cap=10_000,
+        # ⛔ `risk_class` left this export 2026-09-22 with the derived scale it
+        # named. `hazard_raw` is the operator's own rating and
+        # `classification_system` names which of 255 national systems produced
+        # it — without the second, the first cannot be compared across rows.
         fields=("id", "dam_name", "mine_name", "country", "dam_type", "height_m",
-                "volume_m3", "risk_class", "status", "owner_company", "operator",
-                "construction_year", "hazard_raw", "raise_type", "data_source",
-                "created_at"),
+                "volume_m3", "status", "owner_company", "operator",
+                "construction_year", "hazard_raw", "classification_system",
+                "raise_type", "data_source",
+                "history_stability_concerns", "downstream_impact",
+                "recent_independent_expert_review", "extreme_weather_secure",
+                "currently_approved_design", "closure_plan_dam",
+                "closure_plan_long_term_monitoring", "internal_external_eng_support",
+                "relevant_engineering_records", "disclosure_origin",
+                "disclosure_link", "disclosure_notes", "partners",
+                "planned_storage_5_years", "created_at"),
         prov=Provenance(
             source="Hudson-Edwards, K. et al. (2023) WAPHA global metal mines database "
                    "(doi:10.5061/dryad.j3tx95xmg) + GRID-Arendal / UNEP (Global Tailings Portal)",

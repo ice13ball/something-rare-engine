@@ -123,6 +123,48 @@ async def ensure_land_schema():
         await conn.execute(
             "ALTER TABLE tailings_dams ADD COLUMN IF NOT EXISTS grid_facility_id TEXT")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_tailings_geom ON tailings_dams USING GIST (geom)")
+        # The enrichment looks a facility up by this key on every run instead of
+        # re-deriving the link from proximity, which is what makes a re-run safe.
+        # ⚠️ Deliberately NOT UNIQUE: a unique index would have to be built over
+        # rows written before the key existed, and a DDL failure here is a
+        # startup crash-loop, not a warning (2026-06 incident). The lookup takes
+        # the first match; duplicates would be a sync bug, not a schema one.
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tailings_grid_facility "
+            "ON tailings_dams (grid_facility_id) WHERE grid_facility_id IS NOT NULL")
+
+        # ── Global Tailings Portal: the 15 fields we used to throw away ──────
+        #
+        # ⛔ Measured against the live API 2026-09-22: GTP publishes 32 fields
+        # per facility and this ingest read 14. The rest were fetched, parsed
+        # and dropped on the floor — including `classification_system`, without
+        # which the hazard rating cannot be read at all (255 different national
+        # systems: ANCOLD, Canadian Dam Association, SANS 10286, "We follow the
+        # Japanese law"). "High" under one is not "High" under another.
+        #
+        # Two source fields are deliberately absent from this list:
+        #   `cell_info` — 1,939 rows, one distinct value, the string "NA"
+        #   `visible`   — one distinct value; a portal display flag, not facility data
+        # and `duplicate` is consumed by the sync to skip rows rather than stored.
+        for col, typ in [
+            ("classification_system",             "TEXT"),
+            ("disclosure_link",                   "TEXT"),
+            ("disclosure_origin",                 "TEXT"),
+            ("history_stability_concerns",        "TEXT"),
+            ("downstream_impact",                 "TEXT"),
+            ("recent_independent_expert_review",  "TEXT"),
+            ("extreme_weather_secure",            "TEXT"),
+            ("currently_approved_design",         "TEXT"),
+            ("closure_plan_dam",                  "TEXT"),
+            ("closure_plan_long_term_monitoring", "TEXT"),
+            ("internal_external_eng_support",     "TEXT"),
+            ("relevant_engineering_records",      "TEXT"),
+            ("disclosure_notes",                  "TEXT"),
+            ("partners",                          "TEXT"),
+            ("planned_storage_5_years",           "DOUBLE PRECISION"),
+        ]:
+            await conn.execute(
+                f"ALTER TABLE tailings_dams ADD COLUMN IF NOT EXISTS {col} {typ}")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS active_fires (

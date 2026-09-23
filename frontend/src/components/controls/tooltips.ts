@@ -190,6 +190,11 @@ export const LAYER_TOOLTIPS_META = {
     sourceUrl: "https://oceanobservatories.org/",
     pairsWith: ["onc", "onc-instruments", "noise-risk"],
   },
+  "marhys": {
+    source: "MARHYS Database 4.0 — Diehl & Bach (2024), PANGAEA (CC-BY-4.0). Cite the base publication alongside it: Diehl & Bach (2020), doi:10.1029/2020GC009385",
+    sourceUrl: "https://doi.org/10.1594/PANGAEA.972999",
+    pairsWith: ["hydrothermal-vents", "chess", "methane-seeps"],
+  },
   "ports": {
     source: "EMODnet Human Activities — Port locations (EC DG MARE, CC BY 4.0)",
     sourceUrl: "https://emodnet.ec.europa.eu/en/human-activities",

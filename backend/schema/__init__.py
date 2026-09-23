@@ -29,7 +29,7 @@ from schema.blog import ensure_blog
 from schema.cables import ensure_cables
 from schema.core import ensure_core, ensure_argo_long_form, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback, ensure_sync_queue
 from schema.fields import ensure_vme
-from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea
+from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea, ensure_marhys
 from schema.isa import ensure_mining_contracts_columns, ensure_isa_seed, ISA_CONTRACT_SEED
 from schema.offshore import ensure_ports, ensure_offshore_activities
 from schema.onc import ensure_onc_core, ensure_onc_ctd_series, ensure_usgs_earthquakes
@@ -56,6 +56,7 @@ async def ensure_schema() -> None:
         await ensure_geotraces(conn)  # geotraces_stations, geotraces_samples, geotraces_param_units
         await ensure_mosaic(conn)  # mosaic_cores, mosaic_samples
         await ensure_seaflea(conn)  # seaflea_seeps
+        await ensure_marhys(conn)  # marhys_samples, marhys_meta
         await ensure_cascade(conn)  # cascade_stations
         await ensure_sios(conn)  # sios_datasets
         await ensure_reports(conn)  # report_cache, report_cache_v2, report_jobs_v2, report_cache_v2_concession, report_jobs_v2_concession

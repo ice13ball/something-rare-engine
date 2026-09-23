@@ -48,7 +48,7 @@ export const LAND_LAYER_CONFIGS: LandLayerConfig[] = [
     color: "#dc2626",
     fillRgba: [220, 38, 38, 200],
     lineRgba: [220, 38, 38, 255],
-    description: "1,800+ mine tailings dams, with the operator's own hazard rating where disclosed — WAPHA (Hudson-Edwards et al. 2023) + Global Tailings Portal",
+    description: "11,900+ mine tailings dams, 1,900+ carrying the operator's own disclosed hazard rating — WAPHA (Hudson-Edwards et al. 2023) + Global Tailings Portal",
     phase: 2,
   },
   {

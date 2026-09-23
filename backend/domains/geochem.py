@@ -94,6 +94,7 @@ from auth import get_api_key
 from domains import geochem_sql
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from ingestion import marhys_ingest
 from ingestion import seaflea_ingest
 from ingestion import wod_oxygen_ingest
 from sync_log import log_sync as _log_sync
@@ -105,14 +106,19 @@ router = APIRouter()
 _geotraces_hex_cache: str | None = None
 _mosaic_hexes_cache: str | None = None
 _methane_seeps_cache: str | None = None
+_marhys_cache: str | None = None
+_marhys_meta_cache: str | None = None
 
 
 def clear_caches() -> None:
     """Drop this domain's cached responses. Called by /admin/cache/clear."""
     global _geotraces_hex_cache, _mosaic_hexes_cache, _methane_seeps_cache
+    global _marhys_cache, _marhys_meta_cache
     _geotraces_hex_cache = None
     _mosaic_hexes_cache = None
     _methane_seeps_cache = None
+    _marhys_cache = None
+    _marhys_meta_cache = None
 
 
 async def sync_wod_oxygen(force: bool = False, min_lat: float = -90.0) -> int:
@@ -549,6 +555,114 @@ async def sync_seaflea(force: bool = False) -> int:
     return len(rows)
 
 
+# ── MARHYS ──────────────────────────────────────────────────────────────────
+#
+# ⭐ THE COLUMN LIST IS DERIVED FROM THE PARSER, NOT RETYPED. A field added to
+# `marhys_ingest._NUMERIC_COLUMNS` but forgotten here would not raise anything —
+# the value would simply never reach the database, and the layer would look
+# complete while quietly missing an element. Building the statement from the
+# same maps the parser uses makes that drift impossible.
+_MARHYS_TEXT_FIELDS = list(marhys_ingest._TEXT_COLUMNS.values())
+_MARHYS_NUMBER_FIELDS = [field for field, _unit in marhys_ingest._NUMERIC_COLUMNS.values()]
+_MARHYS_FIELDS = _MARHYS_TEXT_FIELDS + _MARHYS_NUMBER_FIELDS + ["coord_status"]
+
+_MARHYS_COLUMNS = ["source_row", *_MARHYS_FIELDS, "params"]
+_MARHYS_PLACEHOLDERS = ", ".join(f"${i}" for i in range(1, len(_MARHYS_COLUMNS) + 1))
+_MARHYS_LAT = _MARHYS_COLUMNS.index("lat") + 1
+_MARHYS_LON = _MARHYS_COLUMNS.index("lon") + 1
+
+# ⛔ The geometry is built ONLY where the source's coordinates are usable. 844
+# samples carry no position and 39 carry `Latitude = 111.4` (the Guaymas rows,
+# whose axes the source transposed). Those rows still land in the table, with
+# their numbers intact and `geom` NULL — `ST_MakePoint` would otherwise either
+# throw or, worse, quietly accept an impossible latitude.
+_MARHYS_INSERT = f"""
+    INSERT INTO marhys_samples ({", ".join(_MARHYS_COLUMNS)}, geom)
+    VALUES ({_MARHYS_PLACEHOLDERS},
+            -- ⚠️ The casts are required, not decoration. Inside `abs()` and
+            -- `ST_MakePoint()` alone Postgres cannot infer a parameter's type
+            -- and refuses to prepare the statement with
+            -- "could not determine data type of parameter".
+            CASE WHEN ${_MARHYS_LAT}::double precision IS NOT NULL
+                  AND ${_MARHYS_LON}::double precision IS NOT NULL
+                  AND abs(${_MARHYS_LAT}::double precision) <= 90
+                  AND abs(${_MARHYS_LON}::double precision) <= 180
+                 THEN ST_SetSRID(ST_MakePoint(${_MARHYS_LON}::double precision,
+                                              ${_MARHYS_LAT}::double precision), 4326)
+            END)
+    ON CONFLICT (source_row) DO UPDATE SET
+        {", ".join(f"{c} = EXCLUDED.{c}" for c in _MARHYS_COLUMNS[1:])},
+        geom = EXCLUDED.geom
+"""
+
+
+async def sync_marhys(force: bool = False) -> int:
+    """MARHYS 4.0 hydrothermal fluid chemistry. Frozen archive — seeded once.
+
+    Source: Diehl, A; Bach, W (2024): MARHYS Database 4.0. PANGAEA,
+    https://doi.org/10.1594/PANGAEA.972999 — CC-BY-4.0.
+    ⭐ The publisher requires the base publication to be cited alongside it:
+    Diehl & Bach (2020), https://doi.org/10.1029/2020GC009385.
+
+    ⚠️ Version 4.0 is immutable behind its DOI, so re-running this spends 5.1 MB
+    to insert nothing. The guard below makes that a deliberate act (`force`)
+    rather than a schedule. A version 5.0 would carry a different DOI and is a
+    new ingest, not a silent update to this one.
+    """
+    if not force:
+        async with db.pool.acquire() as conn:
+            seeded = await conn.fetchval(
+                "SELECT last_synced_at FROM sync_log WHERE source = 'marhys'"
+            )
+        if seeded is not None:
+            await _log_sync("marhys", 0, 0)
+            return 0
+
+    blob = await marhys_ingest.fetch_marhys_workbook()
+    parsed = marhys_ingest.parse_marhys(blob)
+    records = parsed["records"]
+    if not records:
+        await _log_sync("marhys", 0, 0)
+        log.warning("marhys: workbook parsed to zero records — nothing written")
+        return 0
+
+    rows = [
+        tuple(
+            [record["source_row"]]
+            + [record[field] for field in _MARHYS_FIELDS]
+            # allow_nan=False: a bare NaN survives Python's round-trip and only
+            # explodes at the jsonb cast, far from its cause.
+            + [json.dumps(record["params"], allow_nan=False)]
+        )
+        for record in records
+    ]
+
+    async with db.pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.executemany(_MARHYS_INSERT, rows)
+            await conn.execute(
+                """INSERT INTO marhys_meta (version, param_units, updated_at)
+                   VALUES ($1, $2, now())
+                   ON CONFLICT (version) DO UPDATE
+                   SET param_units = EXCLUDED.param_units, updated_at = now()""",
+                marhys_ingest.MARHYS_VERSION,
+                json.dumps(parsed["param_units"], allow_nan=False),
+            )
+        placed = await conn.fetchval(
+            "SELECT count(*) FROM marhys_samples WHERE geom IS NOT NULL"
+        )
+
+    global _marhys_cache, _marhys_meta_cache
+    _marhys_cache = None
+    _marhys_meta_cache = None
+    await _log_sync("marhys", len(records), len(rows))
+    log.info(
+        "marhys: %d samples stored, %d placeable on the map (%d without a usable position)",
+        len(records), placed, len(records) - placed,
+    )
+    return len(rows)
+
+
 # ── Endpoints ───────────────────────────────────────────────────────────────
 
 @router.get("/v1/map/memento/hexes", dependencies=[Depends(get_api_key)])
@@ -625,3 +739,127 @@ async def get_methane_seeps():
         """)
     _methane_seeps_cache = txt or '{"type":"FeatureCollection","features":[]}'
     return Response(content=_methane_seeps_cache, media_type="application/json")
+
+
+# ── MARHYS endpoints ────────────────────────────────────────────────────────
+#
+# ⚠️ `/meta` IS DECLARED BEFORE `/{source_row}` ON PURPOSE. FastAPI matches in
+# declaration order; the other way round, a request for `/meta` would be handed
+# to the integer route and answered with a 422.
+
+# ⛔ THE PAYLOAD CARRIES THE WHOLE RECORD, AND THAT IS THE POINT. This project
+# forbids a detail panel from fetching on click — every enriched value must come
+# from properties already in hand, or opening a sample shows a spinner. Measured
+# 2026-09-23 over all 5,905 placeable samples:
+#
+#     identity only       1.50 MB   ->  0.10 MB gzipped
+#     every named column  7.62 MB   ->  0.52 MB gzipped
+#     plus `params`       8.12 MB   ->  0.65 MB gzipped
+#
+# ⚠️ Cloud Run's 32 MiB response ceiling applies BEFORE compression, so 8.12 MB
+# is the number that has to fit, and it does with room to spare.
+#
+# `to_jsonb(m) - 'geom'` rather than a hand-written field list: a column added to
+# the table reaches the client without anyone remembering to add it here, which
+# is the same drift the insert statement avoids by deriving its column list from
+# the parser.
+_MARHYS_LIST_SQL = """
+    SELECT json_build_object(
+      'type','FeatureCollection',
+      'features', COALESCE(json_agg(json_build_object(
+        'type','Feature',
+        'geometry', ST_AsGeoJSON(geom)::json,
+        'properties', to_jsonb(m) - 'geom'
+      )), '[]'::json)
+    )::text
+    FROM marhys_samples m
+    WHERE geom IS NOT NULL
+"""
+
+
+@router.get("/v1/map/marhys", dependencies=[Depends(get_api_key)])
+async def get_marhys():
+    """Every MARHYS sample the source placed well enough to map."""
+    global _marhys_cache
+    if _marhys_cache:
+        return Response(content=_marhys_cache, media_type="application/json")
+    assert db.pool is not None
+    async with db.pool.acquire() as conn:
+        txt = await conn.fetchval(_MARHYS_LIST_SQL)
+    _marhys_cache = txt or '{"type":"FeatureCollection","features":[]}'
+    return Response(content=_marhys_cache, media_type="application/json")
+
+
+@router.get("/v1/map/marhys/meta", dependencies=[Depends(get_api_key)])
+async def get_marhys_meta():
+    """Units, attribution, and an honest account of what is NOT on the map.
+
+    ⛔ `unplaceable` is not decoration. 883 of 6,788 samples cannot be given a
+    position, and a layer that silently renders 5,905 dots while calling itself
+    "6,788 samples" is making a claim it cannot support. The counts are served
+    so the interface can say which is which.
+    """
+    global _marhys_meta_cache
+    if _marhys_meta_cache:
+        return Response(content=_marhys_meta_cache, media_type="application/json")
+    assert db.pool is not None
+    async with db.pool.acquire() as conn:
+        units = await conn.fetchval(
+            "SELECT param_units::text FROM marhys_meta ORDER BY version DESC LIMIT 1"
+        )
+        by_status = await conn.fetch(
+            "SELECT coord_status, count(*) AS n FROM marhys_samples GROUP BY 1"
+        )
+        by_type = await conn.fetch(
+            """SELECT sample_type,
+                      count(*) AS n,
+                      count(*) FILTER (WHERE geom IS NOT NULL) AS mapped
+               FROM marhys_samples GROUP BY 1 ORDER BY 1"""
+        )
+        total = await conn.fetchval("SELECT count(*) FROM marhys_samples")
+
+    payload = {
+        "version": marhys_ingest.MARHYS_VERSION,
+        "doi": marhys_ingest.MARHYS_DOI,
+        "base_publication_doi": marhys_ingest.MARHYS_BASE_PUBLICATION_DOI,
+        "licence": "CC-BY-4.0",
+        "citation": (
+            "Diehl, Alexander; Bach, Wolfgang (2024): MARHYS Database 4.0 "
+            "[dataset]. PANGAEA, https://doi.org/10.1594/PANGAEA.972999"
+        ),
+        "total_samples": total,
+        "coord_status": {r["coord_status"]: r["n"] for r in by_status},
+        "sample_types": [
+            {"code": r["sample_type"], "total": r["n"], "mapped": r["mapped"]}
+            for r in by_type
+        ],
+        # asyncpg hands JSONB back as a string; decode it here or the client gets
+        # a JSON-encoded JSON string and every lookup on it fails.
+        "param_units": json.loads(units) if units else {},
+    }
+    _marhys_meta_cache = json.dumps(payload, allow_nan=False)
+    return Response(content=_marhys_meta_cache, media_type="application/json")
+
+
+@router.get("/v1/map/marhys/{source_row}", dependencies=[Depends(get_api_key)])
+async def get_marhys_sample(source_row: int):
+    """One sample in full, including the sparse tail.
+
+    Reachable for samples with no geometry too — an unplaceable sample is still
+    a real measurement, and the only way to see it is by its row.
+    """
+    assert db.pool is not None
+    async with db.pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM marhys_samples WHERE source_row = $1", source_row
+        )
+    if row is None:
+        raise HTTPException(status_code=404, detail="no such MARHYS sample")
+
+    record = {k: v for k, v in dict(row).items() if k != "geom"}
+    params = record.get("params")
+    record["params"] = json.loads(params) if isinstance(params, str) else (params or {})
+    return Response(
+        content=json.dumps(record, allow_nan=False, default=str),
+        media_type="application/json",
+    )

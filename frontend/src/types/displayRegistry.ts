@@ -83,6 +83,7 @@ export const DISPLAY_FIELDS = {
   arcticCatchmentsVariable: { layer: "arctic-catchments", default: "ocs_mean", values: ["ocs_mean", "oc_tot", "runoff_mean", "pf_frac", "t_2m_mean"] },
   cascadeVariable: { layer: "arctic-sediment-carbon", default: "oc", values: ["oc", "tn", "d13c", "d14c"] },
   cascadeDisplayMode: { layer: "arctic-sediment-carbon", default: "field", values: ["field", "stations"] },
+  marhysView: { layer: "marhys", default: "points", values: ["points", "density"] },
   currentsDepth: { layer: "ocean-currents", default: "surface", values: ["surface", "1000m"] },
   // null means "latest available". A sender parked on a specific day is saying
   // something a recipient cannot reconstruct, so it travels.

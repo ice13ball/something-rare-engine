@@ -20,6 +20,41 @@ stored as SQL `NULL`. `NULL` is that code's faithful rendering in a database
 that has a way to say "no value"; storing `-9999` in a 0-5 score column would
 add meaning the source did not intend.
 
+## Coordinates are not corrected either
+
+The same rule governs position. Where a source publishes a coordinate this
+platform renders that coordinate, including when it is visibly wrong.
+
+Until 2026-09-22 there was one exception, and it is worth naming because it was
+removed rather than kept. ChEssBase publishes a whale-fall record,
+`Grey Whale Carcass, San Diego Trough`, at 33.350 N / 117.300 W — a point 122 m
+above sea level in inland California, while the same record states a depth of
+1240 m. This platform used to substitute the position given by Smith & Baco
+(2003), 32.5833 N / 117.4833 W, where the seabed is 1220 m down.
+
+That substitution was accurate and is gone anyway. A platform that quietly
+repairs its sources cannot be checked against them, and the repair concealed
+exactly the kind of defect a reader might want to find. The record now renders
+where ChEssBase puts it: on land.
+
+Source errors are reported to the publisher instead. The coordinate errors
+found in ChEssBase were reported to EurOBIS on 2026-09-22 and are tracked by
+them under ticket `EUROBIS-959`.
+
+A second correction was removed on 2026-09-23, and this one was wrong as well
+as unwanted. The NOAA passive-acoustic ingest negated any longitude between 100
+and 180 in a "Pacific" sea area, to repair a few US Navy sites off Southern
+California published as `118.78` instead of `-118.78`. The western Pacific has
+positive longitudes too. The rule moved three NOAA PIFSC moorings across the
+ocean: Wake_S, published at 166.31 E, was drawn about 2,900 km east of Wake
+Island, and Saipan_A and Tinian_A about 7,400 km east of the Marianas. All
+three now render where NOAA puts them, and so do the Navy sites, at the
+longitudes they were published with.
+
+A longitude above 180 is still rewritten as its equivalent below it (`241.22`
+becomes `-118.78`). That names the same meridian in a different notation and
+moves nothing.
+
 ## Derived products are labelled
 
 Some layers are models this platform computed, not measurements it received.
@@ -66,6 +101,28 @@ otherwise pass-through layer can be ours too. One such field existed here, and o
   hydrothermal vent community more precisely than a word in a place name ever did.
   Re-introducing a derived habitat label is a decision for the maintainer, not a
   refactor.
+
+- `tailings_dams.risk_class` — **removed 2026-09-22.** It was a six-tier scale
+  (Extreme / Very High / High / Significant / Medium / Low) this platform derived
+  by keyword-matching the hazard rating published in the Global Tailings Portal.
+
+  Unlike the field above, the source here *does* publish a rating — so the defect
+  was not invention but **flattening**. Sampled from the live API on 2026-09-22,
+  the source carries 120 distinct rating strings drawn from **255 different
+  classification systems**: the Canadian Dam Association, ANCOLD, SANS 10286,
+  Anglo American's internal standard, "We follow the Japanese law (design
+  standard)", and 250 more. "High" under one system is not "High" under another,
+  and collapsing them into a single ordinal asserted a comparability that no
+  source claims.
+
+  Worse, the field that records *which* system produced a rating —
+  `classification_system`, present on 2,139 of 2,144 facilities — was being
+  fetched and discarded, along with 17 other published fields. A reader was shown
+  our word and denied the one piece of information that would let them judge it.
+
+  What is shown now is the operator's own rating verbatim, beside the name of the
+  system it was issued under. Both come from the source; neither is ranked,
+  scored, or coloured on a gradient by this platform.
 
 ## Underwater noise: the 80 dB reference and span
 

@@ -185,6 +185,19 @@ export interface MapStore {
   geotracesDecadeFilters: Set<string>;
   toggleGeotracesDecadeFilter: (d: string) => void;
 
+  // MARHYS vent fluid chemistry — display state (NOT a filter; not in resetAllFilters).
+  // "points" draws one marker per sample; "density" draws the same samples as a
+  // heat aggregation. Both show the same rows — this decides how they are drawn,
+  // it never removes one.
+  marhysView: "points" | "density";
+  setMarhysView: (v: "points" | "density") => void;
+  // MARHYS real filter (DO add to resetAllFilters). Empty set = show all.
+  // ⛔ The options are built from the data that actually arrived, never hard-coded:
+  // all 10 STD (calibration standard) samples lack coordinates, so a hard-coded
+  // "STD" option would be a control that can never match anything.
+  marhysTypeFilters: Set<string>;       // "HF" | "EM" | "SW"
+  toggleMarhysTypeFilter: (v: string) => void;
+
   // MOSAIC — global marine sediment carbon (ETH Zürich) — display state (NOT a filter; not in resetAllFilters)
   mosaicVariable: "toc" | "tn" | "d13c" | "d14c";
   setMosaicVariable: (v: "toc" | "tn" | "d13c" | "d14c") => void;
@@ -556,6 +569,10 @@ export const useMapStore = create<MapStore>((set) => ({
   geotracesDecadeFilters: new Set<string>(),
   toggleGeotracesDecadeFilter: _makeToggle(set, "geotracesDecadeFilters"),
 
+  marhysView: "points",
+  setMarhysView: (v) => set({ marhysView: v }),
+  marhysTypeFilters: new Set<string>(),
+  toggleMarhysTypeFilter: _makeToggle(set, "marhysTypeFilters"),
   mosaicVariable: "toc",
   setMosaicVariable: (v) => set({ mosaicVariable: v }),
   mosaicDisplayMode: "dots",
@@ -754,6 +771,7 @@ export const useMapStore = create<MapStore>((set) => ({
     hydrophoneSourceFilters: new Set<string>(),
     hydrophoneStatusFilters: new Set<string>(),
     hydrophoneDepthFilters:  new Set<string>(),
+    marhysTypeFilters: new Set<string>(),
     mementoGasFilters: new Set<string>(),
     mementoDecadeFilters: new Set<string>(),
     geotracesDecadeFilters: new Set<string>(),

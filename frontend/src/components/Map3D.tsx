@@ -6,6 +6,7 @@ import { useLocation } from "react-router-dom";
 import DeckGL from "@deck.gl/react";
 import { MVTLayer, TileLayer } from "@deck.gl/geo-layers";
 import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, ColumnLayer, TextLayer, IconLayer, BitmapLayer } from "@deck.gl/layers";
+import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { PickingInfo, MapViewState } from "@deck.gl/core";
 import { FlyToInterpolator } from "@deck.gl/core";
 import { Map as ReactMap } from "react-map-gl/maplibre";
@@ -76,6 +77,7 @@ import {
   RESOURCE_COLOR, hotspotPointColor, noiseRiskColor,
   MINING_FOOTPRINTS_FILL, MINING_FOOTPRINTS_STROKE,
   hydrophoneSourceColor,
+  marhysTypeColor,
 } from "./map3d/colors";
 import {
   type Box, expandBox, walkCoords, bboxToView, getBBoxCenter,
@@ -385,6 +387,8 @@ export function Map3D() {
   const geotracesElement      = useMapStore(s => s.geotracesElement);
   const geotracesDisplayMode  = useMapStore(s => s.geotracesDisplayMode);
   const geotracesDecadeFilters = useMapStore(s => s.geotracesDecadeFilters);
+  const marhysView           = useMapStore(s => s.marhysView);
+  const marhysTypeFilters    = useMapStore(s => s.marhysTypeFilters);
   const mosaicVariable       = useMapStore(s => s.mosaicVariable);
   const mosaicDisplayMode    = useMapStore(s => s.mosaicDisplayMode);
   const mosaicDecadeFilters  = useMapStore(s => s.mosaicDecadeFilters);
@@ -574,7 +578,7 @@ export function Map3D() {
   const {
     eezData, protectedSitesData, seamountsData, oceansitesData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
-    oncInstrumentsData, deepdataStationsData, hydrophoneData, portsData,
+    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
     damsData, vesselEventsData, aisLiveData, arcticRiversData, siosData,
     methaneSeepsData, permafrostThawData, cascadeStationsData, monitoringDensityData,
@@ -592,6 +596,7 @@ export function Map3D() {
       cables: cablesData, oncCables: oncCablesData, ooiCables: ooiCablesData, noaaCables: noaaCablesData, nzCables: nzCablesData, auCables: auCablesData, oncInstruments: oncInstrumentsData, ports: portsData,
       deepdataStations: deepdataStationsData,
       hydrophones: hydrophoneData,
+      marhys: marhysData,
       tectonic: tectonicData?.boundaries ?? null,
       tailings: tailingsData, fires: firesData, airQuality: airQualityData,
       landslides: landslidesData, dams: damsData, arcticRivers: arcticRiversData,
@@ -607,7 +612,7 @@ export function Map3D() {
       permafrostThaw: permafrostThawData,
     };
     setSearchDataVersion(v => v + 1);
-  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
+  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
 
   const mapRef = useRef<any>(null);
 
@@ -1692,6 +1697,16 @@ export function Map3D() {
     );
   }, [deepdataStationsData, deepdataStationContractorFilters]);
 
+  // ⛔ This predicate and the `filter` in `flyConfigs` below must stay
+  // identical. When they drift, fly-to walks through features the map is not
+  // drawing and lands the camera on empty ocean.
+  const filteredMarhysFeatures = useMemo(() => {
+    const feats = marhysData?.features ?? [];
+    if (marhysTypeFilters.size === 0) return feats;
+    return feats.filter((f: any) =>
+      marhysTypeFilters.has(String((f.properties ?? {}).sample_type)));
+  }, [marhysData, marhysTypeFilters]);
+
   const filteredHydrophoneFeatures = useMemo(() => {
     const feats = hydrophoneData?.features ?? [];
     return feats.filter((f: any) => {
@@ -1781,7 +1796,7 @@ export function Map3D() {
       const srcOk = noSrc || permafrostSourceFilters.has(String(p.source ?? ""));
       return typeOk && catOk && srcOk;
     });
-  }, [permafrostThawData, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
+  }, [permafrostThawData, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters, marhysTypeFilters]);
 
   const filteredCascadeFeatures = useMemo(() => {
     const feats = cascadeStationsData?.features ?? [];
@@ -2345,6 +2360,13 @@ export function Map3D() {
           }
         : undefined,
     },
+    marhys: {
+      deckLayerId: "marhys",
+      idProp: "source_row",
+      filter: marhysTypeFilters.size > 0
+        ? (f: any) => marhysTypeFilters.has(String((f.properties ?? {}).sample_type))
+        : undefined,
+    },
     "ports":               { deckLayerId: "ports" },
     "monitoring-density":  { deckLayerId: "monitoring-density" },
     "tectonic-plates":  { deckLayerId: "tectonic-plates-boundaries" },
@@ -2499,6 +2521,7 @@ export function Map3D() {
       "onc-instruments":    oncInstrumentsData,
       "deepdata-stations":  deepdataStationsData,
       "hydrophone-stations": hydrophoneData,
+      "marhys": marhysData,
       "monitoring-density": monitoringDensityData,
       "ports":              portsData,
       "tectonic-plates": tectonicData?.boundaries ?? null,
@@ -4214,6 +4237,59 @@ export function Map3D() {
           Array.from(hydrophoneStatusFilters),
           Array.from(hydrophoneDepthFilters),
         ],
+      },
+    }),
+
+    // MARHYS vent fluid chemistry — individual samples.
+    //
+    // ⛔ Colour carries a claim: warm = fluid measured at or extrapolated from a
+    // vent, cool blue = background seawater collected for reference. One colour
+    // for all of them would present 135 ordinary seawater samples as 135 more
+    // hydrothermal discharges.
+    activeLayers.has("marhys") && marhysData && marhysView === "points" && new ScatterplotLayer({
+      id: "marhys",
+      data: filteredMarhysFeatures,
+      pickable: true,
+      stroked: true,
+      filled: true,
+      radiusUnits: "pixels",
+      getPosition: (f: any) => f.geometry.coordinates,
+      getRadius: 4,
+      radiusMinPixels: 2,
+      lineWidthMinPixels: 1,
+      getFillColor: (f: any) => marhysTypeColor(f.properties?.sample_type),
+      getLineColor: [255, 255, 255, 180],
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 80],
+      onClick: handleClick,
+      updateTriggers: {
+        getFillColor: [Array.from(marhysTypeFilters)],
+      },
+    }),
+
+    // MARHYS — the same samples drawn as density.
+    //
+    // ⭐ This is a RENDERING, not a claim about position. Nothing is moved,
+    // aggregated into a new record, or averaged into a value: it is the same
+    // point cloud, drawn so that clusters are legible at world zoom. That
+    // distinction is why the layer offers this instead of one marker per vent
+    // area — MARHYS publishes a coordinate per SAMPLE and none per area, so any
+    // per-area marker would be a position this platform invented.
+    //
+    // ⛔ `pickable: false`. An aggregation layer picks its whole cell, including
+    // empty space, and would shadow every layer beneath it. Clicks belong to
+    // the points view.
+    activeLayers.has("marhys") && marhysData && marhysView === "density" && new HeatmapLayer({
+      id: "marhys-density",
+      data: filteredMarhysFeatures,
+      pickable: false,
+      getPosition: (f: any) => f.geometry.coordinates,
+      getWeight: 1,
+      radiusPixels: 30,
+      intensity: 1,
+      threshold: 0.05,
+      updateTriggers: {
+        getPosition: [Array.from(marhysTypeFilters)],
       },
     }),
 

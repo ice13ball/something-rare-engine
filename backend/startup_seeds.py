@@ -84,6 +84,7 @@ LAYER_DEFAULTS_PY = [
     {"id": "arctic-catchments",      "order_idx": 2084, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "seabed-substrate",       "order_idx": 70,   "default_on": False, "modes": ["ocean","continue"]},
     {"id": "arctic-sediment-carbon", "order_idx": 2085, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "marhys",                 "order_idx": 2087, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "mosaic-sediment", "order_idx": 2088, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "vme-suitability",        "order_idx": 68,   "default_on": False, "modes": ["ocean","continue"]},
     {"id": "ocean-acidification",    "order_idx": 69,   "default_on": False, "modes": ["ocean","continue"]},

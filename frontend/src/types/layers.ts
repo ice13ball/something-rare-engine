@@ -24,6 +24,7 @@ export const SEA_LAYER_IDS = [
   "ocean-carbon", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
   "seabed-substrate", "arctic-sediment-carbon", "mosaic-sediment", "vme-suitability",
   "ocean-acidification", "coral-acid-exposure", "cumulative-human-impact",
+  "marhys",
 ] as const;
 
 export type SeaLayerId = (typeof SEA_LAYER_IDS)[number];
@@ -44,6 +45,17 @@ export const VENT_STATUS_VALUES = ["active, confirmed", "active, inferred", "ina
  * than treated as "failed" — see the comment at that call site.
  */
 export const CLAIM_RISK_VALUES = ["biodiversity", "argo", "vents", "unesco"] as const;
+
+/**
+ * MARHYS sample types, as the source codes them.
+ *
+ * ⛔ `STD` (calibration standard) is deliberately ABSENT. The source ships ten
+ * STD samples and not one of them carries a coordinate, so an option for it
+ * would be a control that can never match a marker. A share link naming it must
+ * drop the value rather than blank the layer.
+ */
+export const MARHYS_SAMPLE_TYPE_VALUES = ["HF", "EM", "SW"] as const;
+export type MarhysSampleType = (typeof MARHYS_SAMPLE_TYPE_VALUES)[number];
 export type ClaimRiskValue = (typeof CLAIM_RISK_VALUES)[number];
 
 export type LayerId = SeaLayerId | LandLayerId;
@@ -260,6 +272,17 @@ export const LAYER_CONFIGS = [
     fillRgba: [232, 121, 249, 200],
     lineRgba: [232, 121, 249, 255],
     description: "Underwater acoustic monitoring stations — passive hydrophone deployments from cabled observatories and moored arrays. Per-feature colour overrides this default based on source/status.",
+  },
+  {
+    id: "marhys",
+    label: "Vent Fluid Chemistry",
+    // Warm orange: this is discharge chemistry, and it sits next to the vents
+    // layer without being mistaken for it. Per-sample colour overrides this by
+    // sample type — reference seawater is deliberately NOT drawn in a vent colour.
+    color: "#fb923c",
+    fillRgba: [251, 146, 60, 200],
+    lineRgba: [251, 146, 60, 255],
+    description: "Measured compositions of hydrothermal vent fluids — MARHYS 4.0 (Diehl & Bach 2024). Each point is one sample, shown with the source's own coordinates. 883 of 6,788 samples carry no usable position and are absent from the map.",
   },
   {
     id: "ocean-currents",

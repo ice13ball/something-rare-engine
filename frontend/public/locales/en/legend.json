@@ -68,9 +68,10 @@
     "hydrothermalVents": {
       "label": "Hydrothermal Vents",
       "source": "Beaulieu, S.E. & Szafrański, K.M. (2020) InterRidge Global Database of Active Submarine Hydrothermal Vent Fields Version 3.4 [dataset]. PANGAEA, https://doi.org/10.1594/PANGAEA.917894",
-      "updateFreq": "Static dataset — published 2020; new discoveries added as reported",
+      "updateFreq": "Frozen. Version 3.4 was completed 25 March 2020 and no newer version exists — InterRidge's own live database does not respond.",
       "description": "Vent fields from the InterRidge global database. Active vents InterRidge's own survey confirmed by direct observation are shown as tall red 3D spikes with a red glow halo; active vents InterRidge only inferred from a plume or chemical anomaly (not directly observed) get the same height and colour, dimmer, with no glow. Inactive vents appear as shorter grey columns. Vents inside Polymetallic Sulphide concession areas are flagged as conflicts in the claim popup.",
-      "reading": "Tall red spike + red glow = active, confirmed by direct observation. Tall red spike, dimmer, no glow = active, only inferred from a plume or anomaly. Short grey column = inactive. Spike and column size scales with zoom. Click a vent to see: depth range, max temperature, ocean & region, tectonic setting, national jurisdiction, discovery year, full spreading rate, other published names, and biology notes (species observed). ChEssBase species within 5 km are listed if available. Vent–mining conflicts are listed in the Mining Concession popup when you click an affected claim."
+      "reading": "Tall red spike + red glow = active, confirmed by direct observation. Tall red spike, dimmer, no glow = active, only inferred from a plume or anomaly. Short grey column = inactive. Spike and column size scales with zoom. Click a vent to see: depth range, max temperature, ocean & region, tectonic setting, national jurisdiction, discovery year, full spreading rate, other published names, and biology notes (species observed). ChEssBase species within 5 km are listed if available. Vent–mining conflicts are listed in the Mining Concession popup when you click an affected claim.",
+      "limitations": "721 vent fields, 666 active and 55 inactive, as the source counts them. Three limits matter when reading this layer. First, the data stop at 25 March 2020: fields described since then are absent, and at least four are known from other compilations — Jøtul on the Knipovich Ridge, Old City on the Mid-Atlantic Ridge, Yaeyama Knoll and Macauley Volcano. Second, a vent field is an area, not a chimney; one marker can stand for dozens of chimneys. Third, the compilers state their database is not comprehensive for inactive fields, so the 55 is what has been documented, not what exists."
     },
     "eezBoundaries": {
       "label": "EEZ Boundaries",
@@ -736,7 +737,14 @@
       "source": "Copernicus Sentinel-1 (CDSE) × AISStream.io"
     },
     "methodHeading": "Methodology",
-    "dataSourcesHeading": "Data sources"
+    "dataSourcesHeading": "Data sources",
+    "marhys": {
+      "label": "Vent Fluid Chemistry (MARHYS)",
+      "description": "Measured compositions of marine hydrothermal vent fluids — a global compilation of 6,788 samples from 153 vent areas, drawn from the published literature and released as MARHYS Database 4.0 (Diehl & Bach 2024). Each point is one sample at the coordinates the source published. Three kinds of sample sit in the dataset and are coloured apart: fluid measured at a vent (HF), an end-member composition extrapolated from it (EM), and background seawater collected as a reference (SW).",
+      "reading": "points = individual samples, colour = sample type (orange = vent fluid, red = end-member, blue = background seawater); click one for its full composition, collection metadata and the sparse tail of rarer parameters; switch to Density to see where sampling clusters. ⚠️ A magnesium reading of 0 is a real value, not a gap — an end-member composition is defined by extrapolation to zero magnesium.",
+      "limitations": "883 of the 6,788 samples cannot be placed on the map and are absent from it: 844 carry no usable coordinate, and 39 Guaymas Basin samples carry a latitude of 111.4°, which no latitude can be — the source transposed its two axes and lost the longitude's minus sign. Those rows are stored with the source's own numbers and no geometry; nothing is repaired. One further sample is misplaced but renders anyway: MARHYS puts the Saldanha Hydrothermal Field at 36.567 / +33.6, which GEBCO 2020 places 417 m above sea level in Turkey, where InterRidge has 36.567 / −33.433. It is the only one of 811 MARHYS positions that lands on dry ground. The collection date is free text in eight different formats (year only, month and year, ranges, lists) and is shown exactly as written rather than parsed into a date. Coverage follows the published literature, so it is dense at long-studied fields (East Pacific Rise, Mid-Atlantic Ridge) and thin elsewhere — absence of a sample is not absence of a vent. The dataset is frozen at version 4.0 behind its DOI and is not updated.",
+      "sources": "MARHYS Database 4.0 — Diehl, Alexander; Bach, Wolfgang (2024), PANGAEA, doi:10.1594/PANGAEA.972999, CC-BY-4.0 (download.pangaea.de/dataset/972999). The dataset's own terms require the base publication to be cited alongside it: Diehl, A. & Bach, W. (2020), MARHYS (MARine HYdrothermal Solutions) Database: A Global Compilation of Marine Hydrothermal Vent Fluid, End-Member, and Seawater Compositions, Geochemistry, Geophysics, Geosystems, doi:10.1029/2020GC009385. Compiled at MARUM, University of Bremen."
+    }
   },
   "header": {
     "title": "Data Reference",

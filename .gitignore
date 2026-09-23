@@ -130,6 +130,10 @@ celerybeat.pid
 # Environments
 .env
 .venv
+# Isolated interpreter for scripts/gate.sh — mirrors what CI installed.
+# Never committed: it is several hundred MB of wheels, and the whole point is
+# that it is rebuildable from backend/requirements*.txt.
+.venv-gate/
 env/
 venv/
 ENV/

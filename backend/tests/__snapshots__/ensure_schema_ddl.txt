@@ -157,6 +157,16 @@ ALTER TABLE seaflea_seeps ADD COLUMN IF NOT EXISTS pockmark_depth_m DOUBLE PRECI
 ALTER TABLE seaflea_seeps ADD COLUMN IF NOT EXISTS pockmark_radius_m DOUBLE PRECISION
 CREATE INDEX IF NOT EXISTS seaflea_seeps_geom_idx ON seaflea_seeps USING GIST(geom)
 ALTER TABLE seaflea_seeps OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS marhys_samples ( source_row INTEGER PRIMARY KEY, sample_id TEXT, vent_id TEXT, vent_site TEXT, vent_area TEXT, volcanic_edifice TEXT, rock_type_primary TEXT, rock_type_secondary TEXT, region_small TEXT, region_large TEXT, geologic_setting TEXT, expedition TEXT, vessel TEXT, rov_dsv TEXT, dive_no TEXT, sampler_type TEXT, date_raw TEXT, author_primary TEXT, author_secondary TEXT, description_a TEXT, description_b TEXT, sample_type TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, coord_status TEXT NOT NULL, depth_mbsl DOUBLE PRECISION, temp_c DOUBLE PRECISION, ph DOUBLE PRECISION, alkalinity_mmol_kg DOUBLE PRECISION, salinity_g_kg DOUBLE PRECISION, b_umol_kg DOUBLE PRECISION, ba_umol_kg DOUBLE PRECISION, ca_mmol_kg DOUBLE PRECISION, cu_umol_kg DOUBLE PRECISION, cs_nmol_kg DOUBLE PRECISION, fe_umol_kg DOUBLE PRECISION, k_mmol_kg DOUBLE PRECISION, li_umol_kg DOUBLE PRECISION, mg_mmol_kg DOUBLE PRECISION, mn_umol_kg DOUBLE PRECISION, na_mmol_kg DOUBLE PRECISION, nh3_mmol_kg DOUBLE PRECISION, rb_umol_kg DOUBLE PRECISION, si_mmol_kg DOUBLE PRECISION, sr_umol_kg DOUBLE PRECISION, zn_umol_kg DOUBLE PRECISION, br_umol_kg DOUBLE PRECISION, cl_mmol_kg DOUBLE PRECISION, so4_mmol_kg DOUBLE PRECISION, ch4_umol_kg DOUBLE PRECISION, co2_mmol_kg DOUBLE PRECISION, h2_umol_kg DOUBLE PRECISION, h2s_mmol_kg DOUBLE PRECISION, params JSONB NOT NULL DEFAULT '{}'::jsonb, geom geometry(Point, 4326) )
+COMMENT ON COLUMN marhys_samples.mg_mmol_kg IS 'mmol/kg. Zero is a real value on end-member samples, never a gap.'
+COMMENT ON COLUMN marhys_samples.coord_status IS 'ok | missing | out_of_range. Derived, and it describes the SOURCE: out_of_range is the 39 Guaymas rows whose axes the source transposed.'
+COMMENT ON COLUMN marhys_samples.params IS 'The sparse tail of ~149 source columns, {header: value}. Units are served separately by the meta endpoint, never guessed from a name.'
+CREATE INDEX IF NOT EXISTS marhys_samples_geom_gix ON marhys_samples USING GIST (geom)
+CREATE INDEX IF NOT EXISTS marhys_samples_type_idx ON marhys_samples (sample_type)
+CREATE INDEX IF NOT EXISTS marhys_samples_area_idx ON marhys_samples (vent_area)
+CREATE TABLE IF NOT EXISTS marhys_meta ( version TEXT PRIMARY KEY, param_units JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now() )
+ALTER TABLE marhys_samples OWNER TO abyssal_user
+ALTER TABLE marhys_meta OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS cascade_stations ( id INTEGER PRIMARY KEY, station TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, water_depth_m DOUBLE PRECISION, expedition TEXT, year INTEGER, decade INTEGER, oc_pct DOUBLE PRECISION, tn_pct DOUBLE PRECISION, oc_tn DOUBLE PRECISION, d13c DOUBLE PRECISION, d14c DOUBLE PRECISION, hmw_alkanes DOUBLE PRECISION, hmw_acids DOUBLE PRECISION, lignin DOUBLE PRECISION, params JSONB, geom geometry(Point, 4326) )
 CREATE INDEX IF NOT EXISTS cascade_stations_geom_gix ON cascade_stations USING GIST(geom)
 CREATE INDEX IF NOT EXISTS cascade_stations_decade_idx ON cascade_stations(decade)

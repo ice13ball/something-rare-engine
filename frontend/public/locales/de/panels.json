@@ -294,6 +294,40 @@
     },
     "vesselEvents": {
       "toggle": "Dunkle Schiffe"
+    },
+    "marhys": {
+      "toggle": "Chemie hydrothermaler Quellflüssigkeiten",
+      "view": "Ansicht",
+      "views": {
+        "points": "Punkte",
+        "density": "Dichte"
+      },
+      "sampleType": "Probentyp",
+      "types": {
+        "HF": "Hydrothermale Flüssigkeit — an der Quelle gemessen",
+        "EM": "Endglied — auf Magnesiumgehalt null extrapolierte Zusammensetzung",
+        "SW": "Hintergrund-Meerwasser — die Referenz, nicht der Austritt",
+        "STD": "Kalibrierstandard — eine Laborreferenz, kein Ort"
+      },
+      "unplaceable": "{{count}} von {{total}} Proben haben keine verwertbare Position und erscheinen nicht auf der Karte.",
+      "unnamedSample": "Unbenannte Probe",
+      "outOfRange": "Die Quelle gibt für diese Probe einen Breitengrad außerhalb von ±90° an, daher kann sie nicht platziert werden. Ihre Werte werden genau so angezeigt, wie sie veröffentlicht wurden.",
+      "noChemistry": "Diese Probe enthält keine gemessenen Werte — nur die Metadaten oben.",
+      "showAllParams": "{{count}} weitere anzeigen",
+      "sections": {
+        "sample": "Probe",
+        "composition": "Zusammensetzung",
+        "more": "Weitere Parameter ({{count}})"
+      },
+      "fields": {
+        "place": "Ort",
+        "collected": "Entnommen",
+        "expedition": "Expedition",
+        "vessel": "Schiff",
+        "sampler": "Probennehmer",
+        "setting": "Umgebung",
+        "rock": "Wirtsgestein"
+      }
     }
   },
   "filters": {
@@ -442,7 +476,7 @@
       "mining-footprints": "74.548 Bergbaupolygone (Gruben, Abraumhalden, Deponien, Verarbeitung), kartiert bei 10 m aus Sentinel-2. Das wahre räumliche Ausmaß des Bergbaus, das Unternehmensberichte selten zeigen.",
       "kbas": "Über 16.000 Standorte, die als die wichtigsten Orte der Erde für Arten und Ökosysteme identifiziert wurden. Überschneidungen mit Bergbaufußabdrücken offenbaren direkte Biodiversitätskonflikte.",
       "forest-loss": "Jährliche Entwaldung bei 30 m von Global Forest Watch (umd_tree_cover_loss v1.13). Straßen aus Minen strahlen nach außen und die Entwaldung folgt — der Fußabdruck der Mine erstreckt sich weit über die Grube hinaus.",
-      "tailings": "Über 11.800 Abraumdeponien weltweit, davon ca. 2.100 mit der eigenen Gefährdungseinstufung des Betreibers (hazard_raw), offengelegt über das Global Tailings Portal. Jede Einstufung erhält eine eigene, unterscheidbare Farbe — diese Plattform betreibt keine eigene Risikobewertung. Dämme nach der Oberstrom-Methode sind historisch am störanfälligsten.",
+      "tailings": "Über 11.900 Absetzanlagen weltweit, davon über 1.900 mit der vom Betreiber selbst angegebenen Gefahrenbewertung (hazard_raw) aus dem Global Tailings Portal, zusammen mit dem Klassifikationssystem, das sie ausgestellt hat — davon gibt es 255, ohne diese Angabe sind Bewertungen zeilenübergreifend nicht vergleichbar. Jeder Wert erhält eine eigene, unterscheidbare Farbe; diese Plattform nimmt keine eigene Schweregrad-Bewertung vor. Stromaufwärts erhöhte Dämme versagen historisch am häufigsten.",
       "fires": "Nahezu-Echtzeit-Branderkennungen von den drei VIIRS-Satelliten der NASA, innerhalb von 3 Stunden aktualisiert. Nach Konfidenzlevel filtern. Die Brandsaison überschneidet sich häufig mit der Landrodung durch Bergbau.",
       "air-quality": "Echtzeit-Messwerte von PM2.5, SO₂, NO₂, O₃, CO von staatlichen Überwachungsstationen weltweit. Bergbau und Brandrauch erzeugen Verschmutzungsschwerpunkte.",
       "landslides": "Durch Niederschlag ausgelöste Erdrutsche seit 2007. Abraumdämme in erdrutschgefährdetem Gelände sind ein Warnsignal für das Risiko eines strukturellen Versagens.",
@@ -475,7 +509,8 @@
       "cumulative-human-impact": "Modellierter dimensionsloser Index der gesamten menschlichen Belastung mariner Ökosysteme (NCEAS / Halpern et al. 2025) — die Summe von rund 10 anthropogenen Stressoren in sechs Kategorien, nur der gegenwärtige Zustand. Der Tiefseebergbau ist dabei nur eine geringe Komponente, und die ISA-Vertragsgebiete liegen in vergleichsweise gering belasteten abyssischen Zonen. Kontext, keine Anschuldigung: Ein Konzessionspolygon ist keine ursächliche Quelle dieser Belastung. Ein modellierter Index, keine Messung.",
       "ais-live": "Live-Schiffspositionen von AIS-Transpondern, weitergeleitet über AISStream. Zeigt, wo Schiffe jetzt sind, nicht wo sie waren — klicken Sie ein Schiff an, um seine 30-Tage-Spur zu laden. Die Abdeckung hängt von der Reichweite terrestrischer und satellitengestützter Empfänger ab, offene See ist daher lückenhafter als Küstengewässer.",
       "bathymetry": "Meeresbodentiefe als Schummerungsrelief aus dem globalen GEBCO-Gitter. Dies ist das Basisgelände, auf dem die übrigen Ozeanschichten liegen. GEBCO verbindet direkte Lotungen mit satellitengestützten Schätzungen — glatte Bereiche sind daher meist Interpolation, keine gemessene Ebenheit.",
-      "vessel-events": "SAR×AIS-Erkennung dunkler Schiffe: Radarkontakte ohne passendes AIS-Signal. Nur küstennahe Beobachtungszonen."
+      "vessel-events": "SAR×AIS-Erkennung dunkler Schiffe: Radarkontakte ohne passendes AIS-Signal. Nur küstennahe Beobachtungszonen.",
+      "marhys": "Gemessene Zusammensetzungen hydrothermaler Quellflüssigkeiten — MARHYS 4.0 (Diehl & Bach 2024). Jeder Punkt ist eine Probe, an den von der Quelle veröffentlichten Koordinaten. Die Farbe zeigt den Probentyp: Orange ist die an einer Quelle gemessene Flüssigkeit, Rot ist eine daraus extrapolierte Endglied-Zusammensetzung, Blau ist Hintergrund-Meerwasser, das als Referenz entnommen wurde — kein Austritt. Die Dichteansicht zeichnet dieselben Punkte als Cluster neu; dabei wird nichts verschoben und nichts gemittelt. Hinweis: 883 von 6.788 Proben haben keine verwertbare Position und erscheinen nie auf der Karte, darunter 39, für die die Quelle einen Breitengrad von 111° angibt."
     },
     "densityScaleLabel": "Datensätze pro Zelle",
     "argoReadingHeading": "So liest man die Messwerte",
@@ -1154,7 +1189,7 @@
         "title": "Gefahr durch Tailings-Dämme",
         "story": "Der brasilianische Bundesstaat Minas Gerais hat Hunderte von Tailings-Dämmen, die Milliarden Tonnen Bergbauabfälle lagern. Nach der Brumadinho-Katastrophe 2019, die 270 Menschen tötete, bleiben viele als Hochrisiko eingestuft. Einige befinden sich beunruhigend nah an Schutzgebieten und Städten.",
         "nextSteps": [
-          "Klicken Sie auf einen Tailings-Damm, um seine Risikoeinstufung zu sehen",
+          "Auf einen Damm klicken, um die vom Betreiber angegebene Gefahrenbewertung zu sehen",
           "Aktivieren Sie Wichtige Biodiversitätsgebiete, um ökologische Überschneidungen zu sehen",
           "Herauszoomen und den Erdrutsch-Katalog aktivieren, um Geländeinstabilität zu sehen"
         ],

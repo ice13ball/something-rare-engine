@@ -75,10 +75,17 @@ export interface OpenableLayer {
  * would let the two ends disagree — which is precisely the bug that shipped in
  * stage 1 and was caught only by the miss notice.
  */
-const ID_CHAIN = [
+// Exported so `__tests__/feature-id-chains-agree.test.ts` can drive SearchBar's
+// hand-copied twin with every name in here and catch the two drifting apart.
+export const ID_CHAIN = [
   "mmsi", "vessel_id", "event_id", "isa_id", "id", "platform_id", "peak_id", "mrgid",
   "site_id", "device_id", "device_code", "city", "dam_name", "site_name", "station_id",
   "cast_id", "ext_id", "metadata_id", "unique_id",
+  // MARHYS keys on the row's position in the published workbook. ⛔ Its
+  // `sample_id` is NOT an identifier — 6788 rows carry 6108 distinct labels —
+  // so it must never enter this chain. Last in the list: the chain is
+  // first-match-wins, and a late, uniquely-named key cannot shadow anything.
+  "source_row",
 ] as const;
 
 export const OPENABLE = {
@@ -167,6 +174,18 @@ export const OPENABLE = {
     zoom: 7, idStability: "nieustalone",
     dataKey: "geotraces",
     byIdPath: "/api/v2/spatial/geotraces/by-id/",
+  },
+  marhys: {
+    source: "client", idProps: ID_CHAIN,
+    routingKeys: ["marhys"], routingKey: () => "marhys",
+    // Vent-field scale: samples from one field sit within a few hundred metres
+    // of each other, so a shallower zoom lands on an indistinguishable cluster.
+    zoom: 11,
+    // ⭐ Genuinely stable, and for a reason worth stating: MARHYS 4.0 is frozen
+    // behind a DOI, so a row's position in the workbook cannot change. A
+    // version 5.0 would be a different DOI and a different ingest.
+    idStability: "stable",
+    dataKey: "marhys",
   },
   "hydrophone-stations": {
     source: "client", idProps: ID_CHAIN,

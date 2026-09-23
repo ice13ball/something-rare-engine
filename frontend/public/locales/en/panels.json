@@ -294,6 +294,40 @@
     },
     "vesselEvents": {
       "toggle": "Dark Vessels"
+    },
+    "marhys": {
+      "toggle": "Vent Fluid Chemistry",
+      "view": "View",
+      "views": {
+        "points": "Points",
+        "density": "Density"
+      },
+      "sampleType": "Sample type",
+      "types": {
+        "HF": "Hydrothermal fluid — measured at the vent",
+        "EM": "End-member — composition extrapolated to zero magnesium",
+        "SW": "Background seawater — the reference, not discharge",
+        "STD": "Calibration standard — a laboratory reference, not a place"
+      },
+      "unplaceable": "{{count}} of {{total}} samples carry no usable position and are not on the map.",
+      "unnamedSample": "Unnamed sample",
+      "outOfRange": "The source gives this sample a latitude outside ±90°, so it cannot be placed. Its numbers are shown exactly as published.",
+      "noChemistry": "This sample carries no measured values — only the metadata above.",
+      "showAllParams": "Show {{count}} more",
+      "sections": {
+        "sample": "Sample",
+        "composition": "Composition",
+        "more": "Other parameters ({{count}})"
+      },
+      "fields": {
+        "place": "Location",
+        "collected": "Collected",
+        "expedition": "Expedition",
+        "vessel": "Vessel",
+        "sampler": "Sampler",
+        "setting": "Setting",
+        "rock": "Host rock"
+      }
     }
   },
   "filters": {
@@ -442,7 +476,7 @@
       "mining-footprints": "74,548 mine polygons (pits, tailings, dumps, processing) mapped at 10m from Sentinel-2. The true spatial extent of mining that corporate reporting rarely shows.",
       "kbas": "16,000+ sites identified as the most important places on Earth for species and ecosystems. Overlap with mining footprints reveals direct biodiversity conflict.",
       "forest-loss": "Annual deforestation at 30 m from Global Forest Watch (umd_tree_cover_loss v1.13). Roads from mines radiate outward and deforestation follows — the mine's footprint extends far beyond the pit.",
-      "tailings": "11,800+ tailings facilities globally, ~2,100 carrying the operator's own hazard rating (hazard_raw) disclosed via the Global Tailings Portal. Each rating gets its own distinct color — this platform runs no severity scoring of its own. Upstream-raised dams are historically most failure-prone.",
+      "tailings": "11,900+ tailings facilities globally, 1,900+ carrying the operator's own hazard rating (hazard_raw) disclosed via the Global Tailings Portal, beside the classification system that issued it — there are 255 of them, so a rating cannot be compared across rows without it. Each value gets its own distinct colour; this platform runs no severity scoring of its own. Upstream-raised dams are historically most failure-prone.",
       "fires": "Near-real-time fire detections from NASA's three VIIRS satellites, updated within 3 hours. Filter by confidence level. Fire season often overlaps with land clearing for mining.",
       "air-quality": "Real-time PM2.5, SO₂, NO₂, O₃, CO readings from government monitoring stations worldwide. Mining and fire smoke create pollution hotspots.",
       "landslides": "Rainfall-triggered landslides since 2007. Tailings dams in landslide-prone terrain are a red flag for structural failure risk.",
@@ -475,7 +509,8 @@
       "cumulative-human-impact": "Modelled dimensionless index of total human pressure on marine ecosystems (NCEAS / Halpern et al. 2025) — the sum of ~10 anthropogenic stressors across six categories, present-state only. Seabed mining is only a minor component, and ISA claim areas sit in relatively low-impact abyssal zones. Context, not accusation: a concession polygon is not a causal source of this impact. A modelled index, not a measurement.",
       "ais-live": "Live vessel positions from AIS transponders, relayed by AISStream. Shows where ships are now, not where they have been — click a vessel to load its 30-day track. Coverage depends on terrestrial and satellite receiver reach, so open ocean is patchier than coastal water.",
       "bathymetry": "Seafloor depth as shaded relief, from the GEBCO global grid. This is the base terrain the other ocean layers sit on. GEBCO merges direct soundings with satellite-derived estimates, so smooth areas are usually interpolation, not measured flatness.",
-      "vessel-events": "SAR×AIS dark-vessel detection: radar contacts with no matching AIS. Coastal watchboxes only."
+      "vessel-events": "SAR×AIS dark-vessel detection: radar contacts with no matching AIS. Coastal watchboxes only.",
+      "marhys": "Measured compositions of hydrothermal vent fluids — MARHYS 4.0 (Diehl & Bach 2024). Each point is one sample, at the coordinates the source published. Colour is the sample type: orange is fluid measured at a vent, red is an end-member composition extrapolated from it, blue is background seawater collected for reference — not discharge. The density view redraws the same points as clusters; it moves nothing and averages nothing. Caveat: 883 of 6,788 samples carry no usable position and never appear on the map, including 39 whose latitude the source gives as 111°."
     },
     "densityScaleLabel": "Records per cell",
     "argoReadingHeading": "How to read the readings",
@@ -1154,7 +1189,7 @@
         "title": "Tailings Dam Danger",
         "story": "Brazil's Minas Gerais state has hundreds of tailings dams storing billions of tonnes of mine waste. After the Brumadinho disaster in 2019, which killed 270 people, many remain classified as high risk. Some sit disturbingly close to protected areas and towns.",
         "nextSteps": [
-          "Click a tailings dam to see its risk classification",
+          "Click a tailings dam to see the operator's own hazard rating",
           "Enable Key Biodiversity Areas to see ecological overlap",
           "Zoom out and enable Landslide Catalog to see terrain instability"
         ],

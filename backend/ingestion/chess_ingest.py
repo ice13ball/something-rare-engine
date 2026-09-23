@@ -38,12 +38,24 @@ CHESS_PAGE_SIZE = 300
 #: azoricus says "vent" more precisely than a word in a place name ever did.
 #: → `docs/methods/data-passthrough.md`
 
-# Known bad coordinates in ChEssBase/GBIF source data.
-# Key: locality prefix (case-insensitive match). Value: corrected (lat, lon).
-# Sources: Smith & Baco 2003 (San Diego Trough whale fall: 32°35'N, 117°29'W).
-_COORD_OVERRIDES: dict[str, tuple[float, float]] = {
-    "grey whale carcass, san diego trough": (32.5833, -117.4833),
-}
+#: ⛔ There was a `_COORD_OVERRIDES` table here from 2026-04-07 until
+#: 2026-09-22: one hard-coded coordinate, rewriting the whale-fall record
+#: `Grey Whale Carcass, San Diego Trough` from the 33.350 / -117.300 the source
+#: ships to 32.5833 / -117.4833 (Smith & Baco 2003). It is gone on Michal's
+#: decision, and nothing replaces it.
+#:
+#: The correction was not wrong on the facts. The source coordinate is inland
+#: California, +122 m above sea level on GEBCO 2020, while the same record
+#: states a depth of 1240 m; the override's target is -1220 m, which matches
+#: that stated depth almost exactly. It was wrong on the PRINCIPLE: this
+#: platform reproduces sources unchanged, and on 2026-09-22 we told EurOBIS
+#: exactly that while this line quietly said otherwise.
+#:
+#: ⛔ Do not reintroduce a coordinate override. A source error is reported to
+#: the publisher, not patched here — the ChEssBase coordinate errors found so
+#: far were reported to EurOBIS, which tracks them as ticket `EUROBIS-959`.
+#: Consequence, accepted deliberately: this one record now renders on land.
+#: → `docs/methods/data-passthrough.md`
 
 
 async def fetch_chess_occurrences() -> list[dict[str, Any]]:
@@ -76,10 +88,6 @@ async def fetch_chess_occurrences() -> list[dict[str, Any]]:
                 depth = occ.get("depth")
                 if depth is None:
                     depth = occ.get("minimumDepthInMeters")
-                # Apply coordinate overrides for known bad source data
-                override = _COORD_OVERRIDES.get(locality.lower().strip())
-                if override:
-                    lat, lon = override
                 records.append({
                     "occurrence_id":    occ_id,
                     "species":          occ.get("species") or occ.get("scientificName") or "",

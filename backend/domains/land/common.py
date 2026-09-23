@@ -16,8 +16,7 @@ functions, extracted verbatim from `land_layers.py`.
   client helpers. Used by four sync functions: `_sync_wod_profiles`,
   `_sync_pangaea_records`, `_sync_bco_dmo_datasets`, `_sync_noaa_datasets`.
 
-Deliberately NOT here: `_normalise_hazard` (tailings-only, called only by
-`_sync_dams`) and `_sync_pf_source` (permafrost-only despite the generic
+Deliberately NOT here: `_sync_pf_source` (permafrost-only despite the generic
 name) — both look shared and are not. Left alone in `land_layers.py`.
 """
 

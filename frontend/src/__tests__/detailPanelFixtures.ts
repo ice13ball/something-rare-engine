@@ -212,6 +212,24 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     },
   },
   {
+    layer: "marhys",
+    id: "TEST",
+    properties: {
+      source_row: 1234, sample_id: "TEST-Vent-1977", vent_site: "TEST Vent",
+      vent_area: "TEST Field", region_large: "Mid-Atlantic Ridge",
+      geologic_setting: "Mid-oceanic spreading center", rock_type_primary: "Basalt",
+      sample_type: "EM", date_raw: "March 1979 - May 1979", expedition: "TEST cruise",
+      vessel: "RV TEST", sampler_type: "TEST sampler",
+      lat: 37.8417, lon: -31.525, coord_status: "ok", depth_mbsl: 850,
+      temp_c: 284, ph: 4.3,
+      // ⛔ Zero, not null: an end-member composition is defined by
+      // extrapolation to zero magnesium. The panel must print it.
+      mg_mmol_kg: 0,
+      cl_mmol_kg: 380.2, h2s_mmol_kg: 2.4, ch4_umol_kg: 1.7, fe_umol_kg: 24,
+      params: { "δ34S H2S": 1.9, "87Sr/86Sr": 0.7032 },
+    },
+  },
+  {
     layer: "chess",
     id: "TEST",
     properties: {
@@ -586,4 +604,4 @@ export const LAYER_FIXTURES: LayerFixture[] = [
 // 74 -> 72 on 2026-09-03: the KBA withdrawal removed one branch carrying two
 // literals (`layer === "kbas" || layer === "kbas-mvt"`), so the count drops
 // by two for one layer. A drop of one here would mean something else was lost.
-export const EXPECTED_LAYER_COUNT = 72;
+export const EXPECTED_LAYER_COUNT = 73;

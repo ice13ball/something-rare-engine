@@ -53,6 +53,7 @@ import { PlumeOriginPanel } from "./panels/ocean/PlumeOriginPanel";
 import { OceansitesPanel } from "./panels/ocean/OceansitesPanel";
 import { OncPanel } from "./panels/ocean/OncPanel";
 import { HydrophoneStationPanel } from "./panels/ocean/HydrophoneStationPanel";
+import { MarhysPanel } from "./panels/ocean/MarhysPanel";
 import { ChessPanel } from "./panels/ocean/ChessPanel";
 import { CablePanel } from "./panels/ocean/CablePanel";
 import { OncCablePanel } from "./panels/ocean/OncCablePanel";
@@ -123,6 +124,7 @@ function PanelContent({ feature }: { feature: SelectedFeature }) {
   if (layer === "oceansites")                 return <OceansitesPanel properties={properties} />;
   if (layer === "onc")                        return <OncPanel properties={properties} />;
   if (layer === "hydrophone-stations")        return <HydrophoneStationPanel properties={properties} />;
+  if (layer === "marhys")                     return <MarhysPanel properties={properties} />;
   if (layer === "chess")                      return <ChessPanel properties={properties} />;
   if (layer === "submarine-cables")           return <CablePanel properties={properties} />;
   if (layer === "onc-cables")                 return <OncCablePanel properties={properties} />;
@@ -188,6 +190,7 @@ const LAYER_TITLE: Record<string, string> = {
   "argo-floats": "Argo Float",
   "deepdata-stations": "DeepData Station",
   "hydrophone-stations": "Hydrophone Station",
+  "marhys": "Vent Fluid Sample",
   "oceansites": "OceanSITES Mooring",
   "onc": "ONC Observatory",
   "seamounts": "Seamount",

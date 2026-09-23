@@ -464,6 +464,7 @@ async def _sync_all_sources():
         ("arctic-rivers",       arctic.sync_arctic_rivers_logged, "arctic_river_stations"),
         ("permafrost-thaw",     arctic.sync_permafrost_thaw_logged, "permafrost_thaw_features"),
         ("seaflea",             geochem.sync_seaflea,       "seaflea_seeps"),
+        ("marhys",              geochem.sync_marhys,        "marhys_samples"),
         ("sios",                arctic.sync_sios,                 "sios_datasets"),
         ("arcade",              arctic.sync_arcade,               "arctic_catchments"),
     ]:

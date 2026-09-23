@@ -74,8 +74,14 @@ async def ensure_overlap_views():
                 CREATE INDEX IF NOT EXISTS {tbl}_geog_gix
                 ON {tbl} USING GIST (geog)
             """)
+        # ⚠️ `CREATE MATERIALIZED VIEW IF NOT EXISTS` is a no-op against a view
+        # that already exists, so an edit to the definition below reaches a
+        # fresh database only. Every changed column needs a clause here or
+        # production silently keeps the old shape. `risk_class` is the second
+        # such clause: the column is no longer written and would read NULL for
+        # every row while the view still advertised it.
         needs_rebuild_tl = await conn.fetchval("""
-            SELECT definition !~ '\\.geog\\b'
+            SELECT definition !~ '\\.geog\\b' OR definition ~ 'risk_class'
             FROM pg_matviews WHERE matviewname = 'overlap_tailings_landslides'
         """)
         if needs_rebuild_tl:
@@ -128,7 +134,11 @@ async def ensure_overlap_views():
                 t.dam_name,
                 t.mine_name,
                 t.country     AS tailings_country,
-                t.risk_class,
+                -- The operator's own rating, verbatim, plus the system that
+                -- produced it. Was `t.risk_class`, this platform's six-tier
+                -- collapse of the same string; that column is no longer written.
+                t.hazard_raw,
+                t.classification_system,
                 l.id          AS landslide_id,
                 l.event_date,
                 l.event_type,

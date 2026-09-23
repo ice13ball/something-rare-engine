@@ -6,9 +6,10 @@ Extractive-industry land layers: mining footprints, key biodiversity areas
 (KBAs), WDPA protected areas, tailings dams, and global dams. Split out of
 land_layers.py.
 
-`_normalise_hazard` lives here physically inside the tailings block but is
-called ONLY by `_sync_dams` — moved with dams per the family split, kept
-next to the other tailings/hazard code as it was in land_layers.py.
+`_normalise_hazard` was removed 2026-09-22 together with the derived
+`risk_class` it produced. Its docstring here had claimed it was called only by
+`_sync_dams`; it was in fact called by `_enrich_tailings_from_grid`, and the
+comment misled a review into looking at the wrong layer.
 """
 from __future__ import annotations
 
@@ -480,6 +481,16 @@ async def get_wdpa():
     )
 
 
+# ⛔ Deleted by accident on 2026-09-03, collateral damage of the commit that
+# withdrew the WDPA layer, which took this line with it. `_sync_tailings` has
+# raised NameError on every run since. Nothing went red: no test in this repo imported the module, so the
+# break was invisible for nineteen days. Restored verbatim.
+#
+# ⚠️ Zenodo 8324697 is a MIRROR. The citation for this layer is WAPHA on
+# Dryad, doi:10.5061/dryad.j3tx95xmg — see rules/layers/tailings-dams.md.
+TAILINGS_ZENODO_URL = "https://zenodo.org/records/8324697/files/Global_TSFs.zip?download=1"
+
+
 async def _sync_tailings(force: bool = False) -> int:
     """
     Download tailings dam locations from Zenodo (Maus et al. WAPHA dataset).
@@ -580,40 +591,11 @@ async def _sync_tailings(force: bool = False) -> int:
 
 # ── Hazard normalisation for GRID-Arendal data ──────────────────────────────
 
-def _normalise_hazard(raw: str | None) -> str:
-    """Map 100+ hazard categorisations from different classification systems
-    into a simplified 6-tier risk scale."""
-    if not raw or raw.strip() in ("", "N/A", "NA", "n/a", "-", "Not Given",
-                                   "Not classified", "Unknown", "Unclassified",
-                                   "Not rated", "not categorized", "Not applicable"):
-        return "Unclassified"
-    h = raw.strip().lower().rstrip(".")
-    # Extreme tier
-    if any(k in h for k in ("extreme", "catastrophic")):
-        return "Extreme"
-    # Very High tier
-    if "very high" in h:
-        return "Very High"
-    # High tier
-    if any(k in h for k in ("high", "major", "serious", "category 1",
-                             "class 1", "hazard class i", "level 5",
-                             "high consequence")):
-        return "High"
-    # Significant tier
-    if any(k in h for k in ("significant", "category a")):
-        return "Significant"
-    # Medium tier
-    if any(k in h for k in ("medium", "moderate", "category b", "class 2",
-                             "class ii", "level 3")):
-        return "Medium"
-    # Low tier
-    if any(k in h for k in ("low", "minor", "insignificant", "non-hazard",
-                             "small", "category c", "class 3", "class iii",
-                             "not high")):
-        return "Low"
-    return "Unclassified"
-
-
+# ⛔ Deleting the dead `_normalise_hazard` on 2026-09-22 sliced from its `def`
+# to the next one, and this constant sat between them. The sync then raised
+# `NameError: GRID_TAILINGS_API` on its first real run — after deploy, in
+# production. Nothing went red first: the guard test for this module reads the
+# source as TEXT and never imports it, so a missing global is invisible to it.
 GRID_TAILINGS_API = "https://tailing.grida.no/api/tailings_all?format=json"
 
 
@@ -629,6 +611,11 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
         run, why = should_sync("tailings_enrich", last, datetime.now(timezone.utc), force=force)
         log.info("%s", why)
         if not run:
+            # ⛔ An early return without a log leaves the monitor unable to tell
+            # "ran, found nothing" from "never ran" — the engine rule in
+            # CLAUDE.md. This one was silent, and the silence is exactly what
+            # hid a sync that had not run since April.
+            await _log_land_sync("tailings_enrich", 0, 0)
             return 0
         # Add new columns if they don't exist (idempotent migration)
         for col, typ in [
@@ -646,14 +633,25 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
                 END $$
             """)
 
-        # Check if already enriched
-        enriched = await conn.fetchval(
-            "SELECT COUNT(*) FROM tailings_dams WHERE data_source = 'grid'"
-        )
-        if enriched and enriched > 100:
-            log.info("tailings-enrich: already have %d GRID records, skipping", enriched)
-            return 0
-
+    # ⛔ REMOVED 2026-09-22: `if COUNT(data_source='grid') > 100: return 0`.
+    #
+    # There are 234 such rows, so the condition was true on every run from the
+    # day the first batch landed. The enrichment last completed 2026-04-13 and
+    # could never run again — not on schedule, and not from the admin panel
+    # either, because `force=True` is consumed by `should_sync` ABOVE this point
+    # and never reached the guard. The Force Sync button returned success and
+    # did nothing.
+    #
+    # The guard was not paranoia: this sync was not idempotent. A second pass
+    # could not re-find the dams it had already enriched, because the spatial
+    # match excludes `data_source = 'grid-enriched'`, so it would have inserted
+    # ~1,414 duplicates. The fix is to make the pass idempotent rather than to
+    # forbid it — the facility's own key (`ubc_number`, stored as
+    # `grid_facility_id`) is looked up first, so a re-run refreshes the row it
+    # wrote last time.
+    #
+    # Cost of the freeze, measured against the live API 2026-09-22: GTP now
+    # publishes 2,144 facilities, 2,113 with coordinates; we hold 1,648.
     log.info("tailings-enrich: fetching from GRID-Arendal API...")
     async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
         resp = await client.get(GRID_TAILINGS_API)
@@ -663,15 +661,36 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
     log.info("tailings-enrich: got %d facilities, matching...", len(facilities))
     matched = 0
     inserted = 0
+    refreshed = 0
+    skipped_dupe = 0
+    skipped_nogeo = 0
+    skipped_nokey = 0
+
+    def _txt(key: str) -> str | None:
+        """GTP's own string, stripped of surrounding whitespace and nothing else.
+
+        ⛔ No case folding, no vocabulary mapping, no Yes/No coercion. Several of
+        these columns are ragged at source — `downstream_impact` holds "Yes",
+        "No" AND bare years like "2018"; `history_stability_concerns` holds both
+        "No" and "no". That raggedness is the source's, and flattening it would
+        be this platform putting words in an operator's mouth.
+        """
+        return (str(fac.get(key)).strip() or None) if fac.get(key) is not None else None
 
     async with db.pool.acquire() as conn:
         for fac in facilities:
+            # The source marks its own duplicate records. Honouring that flag is
+            # mirroring it; re-deriving duplicates ourselves would not be.
+            if str(fac.get("duplicate") or "").strip().lower() == "yes":
+                skipped_dupe += 1
+                continue
+
             lat = fac.get("latitude")
             lon = fac.get("longitude")
             if not lat or not lon:
+                skipped_nogeo += 1
                 continue
 
-            risk_class = _normalise_hazard(fac.get("hazard_categorization"))
             dam_type = (fac.get("raise_type") or "").strip() or None
             height = fac.get("current_maximum_height")
             volume = fac.get("current_tailings_storage")
@@ -686,6 +705,37 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
             # GRID's stable key for this facility. Stored so the enrichment link
             # is auditable instead of being re-guessed from distance each run.
             ubc = str(fac.get("ubc_number")).strip() if fac.get("ubc_number") else None
+            if not ubc:
+                # ⛔ Without the facility's own key this row cannot be claimed,
+                # so the NEXT run would match it again and insert a duplicate —
+                # the same failure that produced 1,584 of them on 2026-09-22.
+                # All 2,144 facilities carried ubc_number when measured that
+                # day; if that ever stops being true, the honest answer is to
+                # skip and say so, not to write an untrackable row.
+                skipped_nokey += 1
+                continue
+
+            # ── The 15 fields this sync used to fetch and discard ────────────
+            # Stored verbatim. `classification_system` is the one that makes the
+            # rest readable: it names WHICH national system produced
+            # `hazard_categorization`, and there are 255 of them.
+            gtp = (
+                _txt("classification_system"),
+                _txt("link"),                                 # disclosure_link
+                _txt("disclosure_origin"),
+                _txt("history_stability_concerns"),
+                _txt("downstream_impact"),
+                _txt("recent_independent_expert_review"),
+                _txt("extreme_weather_secure"),
+                _txt("currently_approved_design"),
+                _txt("closure_plan_dam"),
+                _txt("closure_plan_long_term_monitoring"),
+                _txt("internal_external_eng_support"),
+                _txt("relevant_engineering_records"),
+                _txt("notes"),                                # disclosure_notes
+                _txt("partners"),
+                fac.get("planned_storage_5_years"),
+            )
 
             # Try to match to an existing WAPHA dam within 5 km.
             #
@@ -707,59 +757,130 @@ async def _enrich_tailings_from_grid(force: bool = False) -> int:
             # risk_class is a safety rating. A facility that cannot claim an
             # unclaimed dam is stored as its own row instead, below, which keeps
             # both sources intact and invents no link.
-            match_id = await conn.fetchval("""
+            # ── 1) Already linked to this facility on an earlier run? ────────
+            # This lookup is what makes a re-run safe. Without it the spatial
+            # match below cannot see rows it enriched last time (it excludes
+            # 'grid-enriched' by design), so every pass after the first would
+            # insert the same ~1,414 facilities again as fresh rows. That is why
+            # the sync was frozen behind a guard instead of being run.
+            target_id = await conn.fetchval(
+                "SELECT id FROM tailings_dams WHERE grid_facility_id = $1", ubc
+            ) if ubc else None
+            first_link = False
+
+            # ── 2) Otherwise, match the nearest UNCLAIMED row within 5 km ────
+            #
+            # ⛔ The exclusion is `grid_facility_id IS NULL`, NOT a data_source
+            # test. That distinction cost 1,584 duplicate rows in production on
+            # 2026-09-22 and had to be deleted by hand.
+            #
+            # What happened: `grid_facility_id` was added on 2026-09-10, but
+            # this sync had not run since 2026-04-13, so the column was NULL on
+            # all 1,648 rows the April run had written. The lookup in step 1
+            # therefore matched nothing, and the old exclusion — on data_source
+            # — hid those very rows from step 2 as well. Every facility fell
+            # through to INSERT: "0 refreshed, 336 newly matched, 1584
+            # inserted". An idempotency key that nothing has populated yet is
+            # not idempotency; claiming otherwise is how this shipped.
+            #
+            # Keying the exclusion on the key itself fixes both halves at once:
+            # a legacy row with no key is adoptable exactly once, and the claim
+            # writes the key, so no later facility in the same pass can take it.
+            match_id = None if target_id else await conn.fetchval("""
                 SELECT id FROM tailings_dams
                 WHERE ST_DWithin(geom::geography,
                       ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
                       5000)
-                  AND data_source IS DISTINCT FROM 'grid'
-                  AND data_source IS DISTINCT FROM 'grid-enriched'
+                  AND grid_facility_id IS NULL
                 ORDER BY geom <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
                 LIMIT 1
             """, lon, lat)
-
             if match_id:
-                # Enrich existing dam
+                target_id, first_link = match_id, True
+
+            if target_id:
+                # ⛔ `risk_class` is set to NULL, not written.
+                #
+                # It held this platform's own 6-tier collapse of
+                # `hazard_categorization` — Extreme / Very High / High /
+                # Significant / Medium / Low — produced by keyword-matching the
+                # source string. The source publishes 120 distinct ratings drawn
+                # from 255 different national classification systems, so that
+                # collapse asserted a comparability the source does not claim.
+                # Michal's ruling 2026-09-22: show the source's own rating, run
+                # no scoring of our own. What replaces it is `hazard_raw` beside
+                # `classification_system`, both verbatim.
+                #
+                # ⚠️ No COALESCE on the GTP-derived columns. The WAPHA shapefile
+                # publishes exactly one attribute, `Name`, so there is no local
+                # value here to protect — and COALESCE would freeze whatever the
+                # first run saw, which is the opposite of mirroring a source that
+                # updates. `dam_name` and `country` are not touched: those ARE
+                # local (WAPHA's name; a platform-derived country).
                 await conn.execute("""
                     UPDATE tailings_dams SET
-                        risk_class = $1, dam_type = COALESCE(dam_type, $2),
-                        height_m = COALESCE(height_m, $3),
-                        volume_m3 = COALESCE(volume_m3, $4),
-                        status = COALESCE(status, $5),
-                        owner_company = $6, operator = $7,
-                        mine_name = COALESCE(mine_name, $8),
-                        construction_year = $9, hazard_raw = $10,
-                        raise_type = $11, data_source = 'grid-enriched',
-                        -- GRID's own key for the facility these attributes came
-                        -- from. Without it the link was re-derived from bare
-                        -- proximity on every run and nobody could audit which
-                        -- facility a dam's hazard rating actually describes.
-                        grid_facility_id = $13
-                    WHERE id = $12
-                """, risk_class, dam_type, height, volume, status,
-                     owner, operator, mine, year, hazard_raw, dam_type, match_id,
-                     ubc)
-                matched += 1
+                        risk_class = NULL,
+                        dam_type = $1, height_m = $2, volume_m3 = $3,
+                        status = $4, owner_company = $5, operator = $6,
+                        mine_name = $7, construction_year = $8, hazard_raw = $9,
+                        raise_type = $10,
+                        -- A row first seen as a GRID-only facility stays 'grid';
+                        -- only a WAPHA dam we enriched becomes 'grid-enriched'.
+                        -- Without this a refresh silently reclassified 234 rows.
+                        data_source = CASE WHEN data_source = 'grid'
+                                           THEN 'grid' ELSE 'grid-enriched' END,
+                        grid_facility_id = $11,
+                        classification_system = $12, disclosure_link = $13,
+                        disclosure_origin = $14, history_stability_concerns = $15,
+                        downstream_impact = $16, recent_independent_expert_review = $17,
+                        extreme_weather_secure = $18, currently_approved_design = $19,
+                        closure_plan_dam = $20, closure_plan_long_term_monitoring = $21,
+                        internal_external_eng_support = $22,
+                        relevant_engineering_records = $23, disclosure_notes = $24,
+                        partners = $25, planned_storage_5_years = $26
+                    WHERE id = $27
+                """, dam_type, height, volume, status, owner, operator, mine,
+                     year, hazard_raw, dam_type, ubc, *gtp, target_id)
+                if first_link:
+                    matched += 1
+                else:
+                    refreshed += 1
             else:
                 # Insert as new dam
                 await conn.execute("""
                     INSERT INTO tailings_dams
                         (dam_name, mine_name, country, dam_type, height_m,
-                         volume_m3, risk_class, status, owner_company, operator,
+                         volume_m3, status, owner_company, operator,
                          construction_year, hazard_raw, raise_type, data_source,
-                         grid_facility_id, geom)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-                            'grid', $16, ST_SetSRID(ST_MakePoint($14, $15), 4326))
+                         grid_facility_id,
+                         classification_system, disclosure_link, disclosure_origin,
+                         history_stability_concerns, downstream_impact,
+                         recent_independent_expert_review, extreme_weather_secure,
+                         currently_approved_design, closure_plan_dam,
+                         closure_plan_long_term_monitoring,
+                         internal_external_eng_support, relevant_engineering_records,
+                         disclosure_notes, partners, planned_storage_5_years,
+                         geom)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+                            'grid', $13,
+                            $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
+                            $24, $25, $26, $27, $28,
+                            ST_SetSRID(ST_MakePoint($29, $30), 4326))
                 """, tsf_name, mine, country, dam_type, height,
-                     volume, risk_class, status, owner, operator,
-                     year, hazard_raw, dam_type, lon, lat, ubc)
+                     volume, status, owner, operator,
+                     year, hazard_raw, dam_type, ubc, *gtp, lon, lat)
                 inserted += 1
 
     global _tailings_cache
     _tailings_cache = None
-    total = matched + inserted
-    await _log_land_sync("tailings_enrich", total, total)
-    log.info("tailings-enrich: matched %d, inserted %d (%d total)", matched, inserted, total)
+    total = matched + inserted + refreshed
+    # `fetched` is what the source offered, `stored` what we wrote. Reporting
+    # the same number for both hides a source that shrank.
+    await _log_land_sync("tailings_enrich", len(facilities), total)
+    log.info(
+        "tailings-enrich: %d facilities from source → %d refreshed, %d newly matched, "
+        "%d inserted (skipped: %d flagged duplicate at source, %d without coordinates, %d without a facility key)",
+        len(facilities), refreshed, matched, inserted, skipped_dupe, skipped_nogeo, skipped_nokey)
     return total
 
 
@@ -785,14 +906,37 @@ async def get_tailings():
                             'dam_type', dam_type,
                             'height_m', height_m,
                             'volume_m3', volume_m3,
-                            'risk_class', risk_class,
                             'status', status,
                             'owner_company', owner_company,
                             'operator', operator,
                             'construction_year', construction_year,
+                            -- ⛔ `risk_class` is gone from this response. It was
+                            -- this platform's own collapse of the line below
+                            -- into six tiers; the source's own rating is
+                            -- `hazard_raw`, and `classification_system` names
+                            -- the system that produced it. Sending both and
+                            -- letting the reader see them is the whole point.
                             'hazard_raw', hazard_raw,
+                            'classification_system', classification_system,
                             'raise_type', raise_type,
                             'data_source', data_source,
+                            -- The operator's own answers, as published by the
+                            -- Global Tailings Portal. Ragged on purpose: some
+                            -- hold "Yes"/"No", some a bare year. Not cleaned.
+                            'history_stability_concerns', history_stability_concerns,
+                            'downstream_impact', downstream_impact,
+                            'recent_independent_expert_review', recent_independent_expert_review,
+                            'extreme_weather_secure', extreme_weather_secure,
+                            'currently_approved_design', currently_approved_design,
+                            'closure_plan_dam', closure_plan_dam,
+                            'closure_plan_long_term_monitoring', closure_plan_long_term_monitoring,
+                            'internal_external_eng_support', internal_external_eng_support,
+                            'relevant_engineering_records', relevant_engineering_records,
+                            'disclosure_origin', disclosure_origin,
+                            'disclosure_link', disclosure_link,
+                            'disclosure_notes', disclosure_notes,
+                            'partners', partners,
+                            'planned_storage_5_years', planned_storage_5_years,
                             'latitude', ROUND(ST_Y(geom)::numeric, 4),
                             'longitude', ROUND(ST_X(geom)::numeric, 4)
                         )

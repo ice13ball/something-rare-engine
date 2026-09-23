@@ -2,7 +2,7 @@
 
 **Almost no data ships in this repository, and the exception is named here rather than
 glossed.** Beyond the source code, `backend/tests/fixtures/` holds ~1.1 MB of **real**
-upstream excerpts across 13 sources — among them GEOTRACES seawater rows, ONC ADCP
+upstream excerpts across 14 sources — among them GEOTRACES seawater rows, ONC ADCP
 profiles, and GLODAP and SOCAT NetCDF slices. They exist so parsers are tested against
 the shapes they actually meet, and they remain under their upstream terms.
 
@@ -58,6 +58,7 @@ These are carried verbatim in the platform and must be preserved in any derivati
 | Source | Layer(s) | Licence | Required citation / note |
 |---|---|---|---|
 | **MEMENTO** (GEOMAR marine CH₄/N₂O) | `memento` | Terms of use | Cite **Kock & Bange (2015), *Eos* 96(3), doi:10.1029/2015EO023665** + the verbatim GEOMAR/SOPRAN acknowledgement. **Contributors may include unpublished data — contact the contributing scientist before publishing results.** GEOMAR states data are "freely usable" but does not name a specific open licence — treat "Terms of use" literally, not as a stand-in for e.g. CC-BY. |
+| **MARHYS Database 4.0** (vent fluid chemistry) | `marhys` | CC-BY 4.0 | Diehl & Bach (2024), PANGAEA doi:10.1594/PANGAEA.972999. ⭐ **The dataset's own header requires the base publication to be cited ALONGSIDE it**: Diehl & Bach (2020), *Geochemistry, Geophysics, Geosystems*, doi:10.1029/2020GC009385 — citing only the PANGAEA DOI does not satisfy the terms. Compiled at MARUM, University of Bremen; funded by DFG EXC 2077. Frozen at v4.0; versions 1.0-3.0 carry their own DOIs. |
 | **GLODAP v2.2016b** (interior-ocean carbon) | `ocean-carbon`, `marine-carbon`, `ocean-acidification`, `coral-acid-exposure` | Open, cite | Lauvset et al. 2016 (ESSD 8:325) + Key et al. 2015 (NDP-093). |
 | **SOCAT v2026** (surface CO₂) | `ocean-co2-surface`, `marine-carbon` | CC-BY 4.0 | Bakker et al. 2026 (NCEI Accession 0315110, doi:10.25921/8dba-fr90) + Sabine et al. 2013. |
 | **GEOTRACES IDP2025** (trace metals) | `geotraces` | CC-BY 4.0 | BODC-hosted; research-grade. |

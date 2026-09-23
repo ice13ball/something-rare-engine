@@ -294,6 +294,40 @@
     },
     "vesselEvents": {
       "toggle": "Navires furtifs"
+    },
+    "marhys": {
+      "toggle": "Chimie des fluides hydrothermaux",
+      "view": "Vue",
+      "views": {
+        "points": "Points",
+        "density": "Densité"
+      },
+      "sampleType": "Type d'échantillon",
+      "types": {
+        "HF": "Fluide hydrothermal — mesuré à la cheminée",
+        "EM": "Pôle extrême (end-member) — composition extrapolée à une teneur en magnésium nulle",
+        "SW": "Eau de mer de fond — la référence, et non le rejet",
+        "STD": "Étalon de calibration — une référence de laboratoire, pas un lieu"
+      },
+      "unplaceable": "{{count}} des {{total}} échantillons n'ont pas de position exploitable et n'apparaissent pas sur la carte.",
+      "unnamedSample": "Échantillon sans nom",
+      "outOfRange": "La source indique pour cet échantillon une latitude hors de la plage ±90°, il ne peut donc pas être placé. Ses valeurs sont affichées exactement telles que publiées.",
+      "noChemistry": "Cet échantillon ne comporte aucune valeur mesurée — seulement les métadonnées ci-dessus.",
+      "showAllParams": "Afficher {{count}} de plus",
+      "sections": {
+        "sample": "Échantillon",
+        "composition": "Composition",
+        "more": "Autres paramètres ({{count}})"
+      },
+      "fields": {
+        "place": "Localisation",
+        "collected": "Prélevé",
+        "expedition": "Expédition",
+        "vessel": "Navire",
+        "sampler": "Préleveur",
+        "setting": "Contexte",
+        "rock": "Roche encaissante"
+      }
     }
   },
   "filters": {
@@ -442,7 +476,7 @@
       "mining-footprints": "74 548 polygones de mines (puits, résidus, décharges, traitement) cartographiés à 10 m depuis Sentinel-2. La véritable étendue spatiale de l'exploitation minière que les rapports d'entreprise montrent rarement.",
       "kbas": "Plus de 16 000 sites identifiés comme les lieux les plus importants de la Terre pour les espèces et les écosystèmes. Le chevauchement avec les empreintes minières révèle un conflit direct avec la biodiversité.",
       "forest-loss": "Déforestation annuelle à 30 m depuis Global Forest Watch (umd_tree_cover_loss v1.13). Les routes issues des mines rayonnent vers l'extérieur et la déforestation suit — l'empreinte de la mine s'étend bien au-delà de la fosse.",
-      "tailings": "Plus de 11 800 installations de résidus miniers à l'échelle mondiale, dont environ 2 100 portant la propre cote de danger de l'exploitant (hazard_raw) divulguée via le Global Tailings Portal. Chaque cote a sa propre couleur distincte — cette plateforme n'effectue aucune notation de risque qui lui soit propre. Les digues construites par la méthode en amont sont historiquement les plus sujettes aux défaillances.",
+      "tailings": "Plus de 11 900 installations de résidus miniers dans le monde, dont plus de 1 900 portent l'évaluation du danger publiée par l'exploitant lui-même (hazard_raw) via le Global Tailings Portal, accompagnée du système de classification qui l'a émise — il en existe 255, sans quoi une évaluation ne peut être comparée d'une ligne à l'autre. Chaque valeur reçoit sa propre couleur distincte ; cette plateforme n'applique aucune notation de gravité. Les digues rehaussées vers l'amont sont historiquement les plus sujettes aux ruptures.",
       "fires": "Détections d'incendies en quasi-temps réel depuis les trois satellites VIIRS de la NASA, mises à jour sous 3 heures. Filtrez par niveau de confiance. La saison des feux recoupe souvent le défrichement pour l'exploitation minière.",
       "air-quality": "Relevés en temps réel de PM2.5, SO₂, NO₂, O₃, CO depuis des stations de surveillance gouvernementales dans le monde entier. L'exploitation minière et la fumée des incendies créent des points chauds de pollution.",
       "landslides": "Glissements de terrain déclenchés par les pluies depuis 2007. Les digues de résidus en terrain sujet aux glissements constituent un signal d'alarme pour le risque de défaillance structurelle.",
@@ -475,7 +509,8 @@
       "cumulative-human-impact": "Indice sans dimension modélisé de la pression humaine totale sur les écosystèmes marins (NCEAS / Halpern et al. 2025) — la somme d'une dizaine de facteurs de stress anthropiques répartis en six catégories, état actuel uniquement. L'exploitation minière des fonds marins n'en est qu'une composante mineure, et les zones de contrat de l'AIFM se situent dans des zones abyssales à impact relativement faible. Contexte, pas accusation : un polygone de concession n'est pas une source causale de cet impact. Un indice modélisé, pas une mesure.",
       "ais-live": "Positions de navires en direct depuis les transpondeurs AIS, relayées par AISStream. Montre où les navires se trouvent maintenant, pas où ils sont passés — cliquez sur un navire pour charger sa trace sur 30 jours. La couverture dépend de la portée des récepteurs terrestres et satellitaires, donc le large est moins bien couvert que les eaux côtières.",
       "bathymetry": "Profondeur des fonds marins en relief ombré, issue de la grille mondiale GEBCO. C'est le terrain de base sur lequel reposent les autres couches océaniques. GEBCO combine des sondages directs et des estimations satellitaires : les zones lisses relèvent donc généralement de l'interpolation, non d'une planéité mesurée.",
-      "vessel-events": "Détection de navires furtifs par SAR×AIS : contacts radar sans AIS correspondant. Zones de surveillance côtières uniquement."
+      "vessel-events": "Détection de navires furtifs par SAR×AIS : contacts radar sans AIS correspondant. Zones de surveillance côtières uniquement.",
+      "marhys": "Compositions mesurées de fluides de cheminées hydrothermales — MARHYS 4.0 (Diehl & Bach 2024). Chaque point représente un échantillon, aux coordonnées publiées par la source. La couleur indique le type d'échantillon : orange pour le fluide mesuré à la cheminée, rouge pour un pôle extrême extrapolé à partir de celui-ci, bleu pour l'eau de mer de fond prélevée comme référence — et non un rejet. La vue Densité redessine les mêmes points sous forme d'agrégats ; elle ne déplace ni ne moyenne rien. Remarque : 883 des 6 788 échantillons n'ont pas de position exploitable et n'apparaissent jamais sur la carte, dont 39 pour lesquels la source indique une latitude de 111°."
     },
     "densityScaleLabel": "Enregistrements par cellule",
     "argoReadingHeading": "Comment lire les mesures",
@@ -1154,7 +1189,7 @@
         "title": "Danger des bassins de résidus",
         "story": "L'État brésilien de Minas Gerais compte des centaines de bassins de résidus stockant des milliards de tonnes de déchets miniers. Après la catastrophe de Brumadinho en 2019, qui a tué 270 personnes, beaucoup restent classés à risque élevé. Certains se trouvent à une distance inquiétante des zones protégées et des villes.",
         "nextSteps": [
-          "Cliquez sur un bassin de résidus pour voir sa classification de risque",
+          "Cliquez sur une digue pour voir l'évaluation du danger publiée par l'exploitant",
           "Activez les Zones Clés de Biodiversité pour voir les chevauchements écologiques",
           "Dézoomez et activez le Catalogue de Glissements de Terrain pour voir l'instabilité du terrain"
         ],

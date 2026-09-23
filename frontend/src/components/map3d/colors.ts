@@ -192,3 +192,30 @@ const HYDROPHONE_SOURCE_COLOR_DEFAULT: [number, number, number, number] = [156, 
 export function hydrophoneSourceColor(source: unknown): [number, number, number, number] {
   return HYDROPHONE_SOURCE_COLOR[String(source)] ?? HYDROPHONE_SOURCE_COLOR_DEFAULT;
 }
+
+/**
+ * MARHYS sample types, coloured so reference water cannot be mistaken for vent
+ * discharge.
+ *
+ * ⛔ THE POINT OF THIS FUNCTION. The source ships three kinds of sample under
+ * one dataset: `HF` is fluid measured at a vent, `EM` is an end-member
+ * composition extrapolated from it, and `SW` is ordinary background seawater
+ * collected for reference. Drawn in one colour, 135 seawater samples would read
+ * as 135 more hydrothermal discharges. Warm colours mean vent fluid; the cool
+ * blue means "this is the baseline the vent fluid is compared against".
+ *
+ * (`STD`, the calibration standards, never reaches a map — all ten lack
+ * coordinates — but it keeps an entry so a stray value renders as something
+ * rather than falling through to the vent colour.)
+ */
+const MARHYS_TYPE_COLOR: Record<string, [number, number, number, number]> = {
+  HF:  [251, 146, 60, 210],    // orange — measured vent fluid
+  EM:  [239, 68, 68, 210],     // red — end-member composition
+  SW:  [56, 189, 248, 190],    // blue — background seawater, NOT discharge
+  STD: [148, 163, 184, 190],   // grey — calibration standard
+};
+const MARHYS_TYPE_COLOR_DEFAULT: [number, number, number, number] = [148, 163, 184, 190];
+
+export function marhysTypeColor(sampleType: unknown): [number, number, number, number] {
+  return MARHYS_TYPE_COLOR[String(sampleType)] ?? MARHYS_TYPE_COLOR_DEFAULT;
+}

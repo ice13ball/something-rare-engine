@@ -173,6 +173,7 @@ SYNC_SOURCES: dict[str, Callable[[], Awaitable[Any]]] = {
     "arctic-rivers": lambda: arctic.sync_arctic_rivers_logged(),
     "permafrost-thaw": lambda: arctic.sync_permafrost_thaw_logged(force=True),
     "seaflea": lambda: geochem.sync_seaflea(force=True),
+    "marhys": lambda: geochem.sync_marhys(force=True),
     "sios":    lambda: arctic.sync_sios(force=True),
     "arcade":  lambda: arctic.sync_arcade(force=True),
     "bathymetry-stats": lambda: seafloor.sync_bathymetry_stats(force=True),

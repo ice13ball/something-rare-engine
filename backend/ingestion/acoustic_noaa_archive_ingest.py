@@ -624,13 +624,13 @@ def _extract_record(
     # 0-360 longitudes; normalise.
     if lon > 180:
         lon -= 360
-    # NAVY USWTR data publishes a few SoCal sites with the sign dropped on
-    # longitude (`DEPLOY_LON = 118.78` instead of `-118.78`). Detected via
-    # `SEA_AREA = 'Northern Pacific'` + lon in 100..180 range. Confirmed by
-    # cross-checking the SWAL Flip07/Flip08 sites against the published
-    # CalCOFI SoCal grid — true positions are -118.78, -119.18 etc.
-    if sea_area and "pacific" in sea_area.lower() and 100 <= lon <= 180 and 0 <= lat <= 60:
-        lon = -lon
+    # ⛔ No sign "repair" on longitude. A rule here used to negate any positive
+    # longitude of 100..180 in a "Pacific" sea area, to fix a few Navy SoCal
+    # sites published as 118.78 instead of -118.78. The western Pacific has
+    # positive longitudes too: PIFSC Wake_S (published 166.3073) was moved
+    # ~2,900 km east, and Saipan_A / Tinian_A ~7,400 km. A position that looks
+    # wrong is rendered where the source puts it and reported upstream - see
+    # docs/methods/data-passthrough.md, "Coordinates are not corrected either".
     if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
         return None
 

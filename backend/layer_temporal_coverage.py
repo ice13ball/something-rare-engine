@@ -240,6 +240,25 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-09-08",
     ),
     Coverage(
+        layer_id="marhys",
+        start_year=1977, end_year=2023,
+        kind="compilation",
+        # ⚠️ Span DERIVED, and the wording says so. MARHYS publishes no temporal
+        # statement at all, and its collection-date column is free text in eight
+        # formats — year only, month and year, ordinal dates, ranges, lists — so
+        # there is no date field to read a span from. These years come from
+        # scanning every date string for a four-digit year: 6,369 of 6,788
+        # samples carry one, and every one of those parsed. ⛔ The remaining 419
+        # samples are undated in the source, so the span covers what is dated,
+        # not the whole dataset.
+        wording="publisher states no temporal coverage. Years extracted from the "
+                "source's free-text collection dates: 1977 to 2023, across the "
+                "6,369 of 6,788 samples that carry a year. The dataset is frozen "
+                "at version 4.0 (published 2024-10-14) behind its DOI.",
+        source_url="https://doi.org/10.1594/PANGAEA.972999",
+        verified_on="2026-09-23",
+    ),
+    Coverage(
         layer_id="geotraces",
         start_year=2005, end_year=2023,
         kind="compilation",

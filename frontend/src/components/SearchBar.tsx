@@ -272,6 +272,18 @@ const SEARCH_CONFIGS = [
     color: "#22d3ee",
   },
   {
+    key: "marhys", layerId: "marhys", label: "Vent Fluid Chemistry",
+    // ⛔ `sample_id` is searchable but is NOT an identifier — 6788 rows carry
+    // 6108 distinct labels. Searching it is fine; routing on it is not, which
+    // is why the openable registry keys on `source_row` instead.
+    fields: ["sample_id", "vent_site", "vent_area", "region_large"],
+    display: p => ({
+      primary: String(p.sample_id ?? p.vent_site ?? p.vent_area ?? ""),
+      secondary: [p.vent_area, p.region_large, p.date_raw].filter(Boolean).join(" · "),
+    }),
+    color: "#fb923c",
+  },
+  {
     key: "arcticRivers", layerId: "arctic-rivers", label: "Arctic Rivers",
     fields: ["river_name", "site_label", "source"],
     display: p => ({
@@ -398,8 +410,16 @@ function getCoords(feature: Feature): [number, number] | null {
   }
 }
 
-function featureId(p: Record<string, unknown>): string | number {
-  return (p.mmsi ?? p.vessel_id ?? p.event_id ?? p.isa_id ?? p.id ?? p.platform_id ?? p.peak_id ?? p.mrgid ?? p.site_id ?? p.device_id ?? p.device_code ?? p.city ?? p.dam_name ?? p.site_name ?? p.station_id ?? p.cast_id ?? p.ext_id ?? p.metadata_id ?? p.unique_id ?? "") as string | number;
+/**
+ * ⚠️ THIS CHAIN IS A HAND-COPIED TWIN of `ID_CHAIN` in `types/openableRegistry.ts`,
+ * and on 2026-09-23 the two had already drifted: `source_row` was added there for
+ * MARHYS and missed here, so selecting a MARHYS sample from search produced a
+ * share link carrying `["marhys", ""]` — an empty id that reopens nothing. The
+ * failure is silent: the camera still flies to the right spot, so nothing looks
+ * wrong until someone follows the link. Keep the two lists in the same order.
+ */
+export function featureId(p: Record<string, unknown>): string | number {
+  return (p.mmsi ?? p.vessel_id ?? p.event_id ?? p.isa_id ?? p.id ?? p.platform_id ?? p.peak_id ?? p.mrgid ?? p.site_id ?? p.device_id ?? p.device_code ?? p.city ?? p.dam_name ?? p.site_name ?? p.station_id ?? p.cast_id ?? p.ext_id ?? p.metadata_id ?? p.unique_id ?? p.source_row ?? "") as string | number;
 }
 
 /**

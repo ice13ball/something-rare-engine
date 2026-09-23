@@ -40,6 +40,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const [oncInstrumentsData, setOncInstrumentsData] = useState<FeatureCollection | null>(null);
   const [deepdataStationsData, setDeepdataStationsData] = useState<FeatureCollection | null>(null);
   const [hydrophoneData, setHydrophoneData] = useState<FeatureCollection | null>(null);
+  const [marhysData, setMarhysData] = useState<FeatureCollection | null>(null);
   const [portsData, setPortsData] = useState<FeatureCollection | null>(null);
   const [miningFootprintsData, setMiningFootprintsData] = useState<FeatureCollection | null>(null);
   const [tailingsData, setTailingsData] = useState<FeatureCollection | null>(null);
@@ -72,6 +73,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const oncInstrumentsFetchedRef = useRef(false);
   const deepdataStationsFetchedRef = useRef(false);
   const hydrophoneFetchedRef = useRef(false);
+  const marhysFetchedRef = useRef(false);
   const portsFetchedRef = useRef(false);
   const miningFootprintsFetchedRef = useRef(false);
   const tailingsFetchedRef = useRef(false);
@@ -120,6 +122,8 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
       fetchGuarded(deepdataStationsFetchedRef, "/api/v2/map/deepdata-stations", setDeepdataStationsData, "Contractor Sampling Stations");
     if (activeLayers.has("hydrophone-stations"))
       fetchGuarded(hydrophoneFetchedRef, "/api/v1/map/hydrophones", setHydrophoneData, "Hydrophone Stations");
+    if (activeLayers.has("marhys"))
+      fetchGuarded(marhysFetchedRef, "/api/v1/map/marhys", setMarhysData, "Vent Fluid Chemistry");
     if (activeLayers.has("ports"))
       fetchGuarded(portsFetchedRef, "/api/v1/map/ports", setPortsData, "Port Locations");
 
@@ -163,7 +167,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   return {
     eezData, protectedSitesData, seamountsData, oceansitesData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
-    oncInstrumentsData, deepdataStationsData, hydrophoneData, portsData,
+    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
     damsData, vesselEventsData, aisLiveData, arcticRiversData, siosData,
     methaneSeepsData, permafrostThawData, cascadeStationsData, monitoringDensityData,

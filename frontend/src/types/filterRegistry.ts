@@ -4,7 +4,7 @@
 import type { MapStore, FilterSetKey } from "../store/mapStore";
 import { useMapStore } from "../store/mapStore";
 import { AssertComplete, AssertDisjoint } from "./layerRegistry";
-import { VENT_STATUS_VALUES, CLAIM_RISK_VALUES } from "./layers";
+import { VENT_STATUS_VALUES, CLAIM_RISK_VALUES, MARHYS_SAMPLE_TYPE_VALUES } from "./layers";
 import { TAILINGS_HAZARD_VALUES } from "./landLayers";
 
 /**
@@ -44,6 +44,7 @@ export const SHAREABLE_FILTER_FIELDS = [
   "hydrophoneSourceFilters",
   "hydrophoneStatusFilters",
   "hydrophoneDepthFilters",
+  "marhysTypeFilters",
   "aisShipTypeFilters",
   "aisFlagFilters",
   "offshoreActivityFilters",
@@ -89,6 +90,7 @@ void _filterRegistryDisjoint;
  */
 const CLOSED_VOCABULARIES: Partial<Record<ShareableFilterField, readonly string[]>> = {
   ventStatusFilters: VENT_STATUS_VALUES,
+  marhysTypeFilters: MARHYS_SAMPLE_TYPE_VALUES,
   claimRiskFilters: CLAIM_RISK_VALUES,
   // The six hazard_raw values the filter UI exposes (TAILINGS_HAZARD_VALUES),
   // plus the synthetic "other" bucket (tailingsHazardVisible /

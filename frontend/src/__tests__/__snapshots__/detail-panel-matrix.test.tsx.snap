@@ -6424,6 +6424,353 @@ exports[`DetailPanel dispatch matrix > renders landslides without throwing and m
 </div>
 `;
 
+exports[`DetailPanel dispatch matrix > renders marhys without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Vent Fluid Sample
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div
+          class="flex flex-col gap-3"
+        >
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST-Vent-1977
+          </h2>
+          <div
+            class="flex items-center gap-2"
+          >
+            <span
+              class="inline-block text-[14px] font-mono border rounded px-1.5 py-0.5 mb-2 #ef4444"
+            >
+              EM
+            </span>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              End-member — composition extrapolated to zero magnesium
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Sample
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Location
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST Vent · TEST Field · Mid-Atlantic Ridge
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Collected
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                March 1979 - May 1979
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Expedition
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST cruise
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Vessel
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                RV TEST
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Sampler
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST sampler
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Setting
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                Mid-oceanic spreading center
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Host rock
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                Basalt
+              </span>
+            </div>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Composition
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                T
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                284 °C
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                pH
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                4.3
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Depth
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                850 m
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Mg
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                0 mmol/kg
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Cl
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                380.2 mmol/kg
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                ∑H₂S
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                2.4 mmol/kg
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                CH₄
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                1.7 µmol/kg
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Fe
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                24 µmol/kg
+              </span>
+            </div>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Other parameters (2)
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                87Sr/86Sr
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                0.703
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                δ34S H2S
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                1.9
+              </span>
+            </div>
+          </div>
+          <p
+            class="text-white/65 text-[14px] mt-2 uppercase tracking-wider"
+          >
+            MARHYS Database 4.0 —
+             
+            <a
+              class="text-cyan-400 hover:text-cyan-300"
+              href="https://doi.org/10.1594/PANGAEA.972999"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Diehl & Bach (2024), PANGAEA
+            </a>
+             
+            (CC-BY-4.0).
+             
+            <a
+              class="text-cyan-400 hover:text-cyan-300"
+              href="https://doi.org/10.1029/2020GC009385"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Diehl & Bach (2020)
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`DetailPanel dispatch matrix > renders marine-carbon after data loads 1`] = `
 <div>
   <div

@@ -234,3 +234,138 @@ async def ensure_seaflea(conn) -> None:
     await conn.execute("ALTER TABLE seaflea_seeps OWNER TO abyssal_user")
 
 
+
+
+async def ensure_marhys(conn) -> None:
+    """marhys_samples — MARHYS 4.0 hydrothermal fluid chemistry.
+
+    ⛔ `source_row` IS THE KEY, and it is the row's position in the published
+    workbook, not `Sample-ID`. Measured 2026-09-22: 6788 rows carry only 6108
+    distinct Sample-IDs, in 503 duplicate groups, because the label is a
+    constructed "Site-Vent-Year" string. The file is frozen behind a DOI, so its
+    row order is a stable identity; the label is not.
+
+    ⛔ `geom` IS NULLABLE ON PURPOSE. 883 of 6788 samples cannot be placed: 844
+    carry no usable position, and 39 Guaymas Basin rows carry `Latitude = 111.4`,
+    which no latitude can be — the source transposed its two axes and lost the
+    longitude's minus sign. Those rows keep the source's numbers in `lat`/`lon`
+    and simply get no geometry. `coord_status` says which case a row is, so
+    "no marker" is never indistinguishable from "we dropped it".
+
+    ⛔ `date_raw` IS TEXT AND STAYS TEXT. The source's date column is free text
+    in eight formats — year only, month and year, ordinal dates, ranges, lists.
+    Michal's instruction 2026-09-22: show it exactly as the source writes it.
+
+    Units live in the column NAMES (`fe_umol_kg`, not `fe`). The ingestion
+    refuses to run if the workbook ever declares a different unit for one of
+    them, so a republished file cannot silently rescale a column by 1000.
+    """
+
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS marhys_samples (
+            source_row          INTEGER PRIMARY KEY,
+
+            sample_id           TEXT,
+            vent_id             TEXT,
+            vent_site           TEXT,
+            vent_area           TEXT,
+            volcanic_edifice    TEXT,
+            rock_type_primary   TEXT,
+            rock_type_secondary TEXT,
+            region_small        TEXT,
+            region_large        TEXT,
+            geologic_setting    TEXT,
+            expedition          TEXT,
+            vessel              TEXT,
+            rov_dsv             TEXT,
+            dive_no             TEXT,
+            sampler_type        TEXT,
+            date_raw            TEXT,
+            author_primary      TEXT,
+            author_secondary    TEXT,
+            description_a       TEXT,
+            description_b       TEXT,
+            sample_type         TEXT,
+
+            lat                 DOUBLE PRECISION,
+            lon                 DOUBLE PRECISION,
+            coord_status        TEXT NOT NULL,
+            depth_mbsl          DOUBLE PRECISION,
+
+            temp_c              DOUBLE PRECISION,
+            ph                  DOUBLE PRECISION,
+            alkalinity_mmol_kg  DOUBLE PRECISION,
+            salinity_g_kg       DOUBLE PRECISION,
+
+            b_umol_kg           DOUBLE PRECISION,
+            ba_umol_kg          DOUBLE PRECISION,
+            ca_mmol_kg          DOUBLE PRECISION,
+            cu_umol_kg          DOUBLE PRECISION,
+            cs_nmol_kg          DOUBLE PRECISION,
+            fe_umol_kg          DOUBLE PRECISION,
+            k_mmol_kg           DOUBLE PRECISION,
+            li_umol_kg          DOUBLE PRECISION,
+            mg_mmol_kg          DOUBLE PRECISION,
+            mn_umol_kg          DOUBLE PRECISION,
+            na_mmol_kg          DOUBLE PRECISION,
+            nh3_mmol_kg         DOUBLE PRECISION,
+            rb_umol_kg          DOUBLE PRECISION,
+            si_mmol_kg          DOUBLE PRECISION,
+            sr_umol_kg          DOUBLE PRECISION,
+            zn_umol_kg          DOUBLE PRECISION,
+            br_umol_kg          DOUBLE PRECISION,
+            cl_mmol_kg          DOUBLE PRECISION,
+            so4_mmol_kg         DOUBLE PRECISION,
+            ch4_umol_kg         DOUBLE PRECISION,
+            co2_mmol_kg         DOUBLE PRECISION,
+            h2_umol_kg          DOUBLE PRECISION,
+            h2s_mmol_kg         DOUBLE PRECISION,
+
+            params              JSONB NOT NULL DEFAULT '{}'::jsonb,
+            geom                geometry(Point, 4326)
+        )
+    """)
+
+    # ⛔ `mg_mmol_kg = 0` is a VALUE, not a gap: an end-member composition is
+    # defined by extrapolation to zero magnesium. 1252 of the 1265 zeros sit on
+    # `EM` samples, which carry 24 non-zero magnesium values between them.
+    # Nothing in this schema may treat that zero as missing.
+    await conn.execute(
+        "COMMENT ON COLUMN marhys_samples.mg_mmol_kg IS "
+        "'mmol/kg. Zero is a real value on end-member samples, never a gap.'"
+    )
+    await conn.execute(
+        "COMMENT ON COLUMN marhys_samples.coord_status IS "
+        "'ok | missing | out_of_range. Derived, and it describes the SOURCE: "
+        "out_of_range is the 39 Guaymas rows whose axes the source transposed.'"
+    )
+    await conn.execute(
+        "COMMENT ON COLUMN marhys_samples.params IS "
+        "'The sparse tail of ~149 source columns, {header: value}. Units are "
+        "served separately by the meta endpoint, never guessed from a name.'"
+    )
+
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS marhys_samples_geom_gix "
+        "ON marhys_samples USING GIST (geom)"
+    )
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS marhys_samples_type_idx ON marhys_samples (sample_type)"
+    )
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS marhys_samples_area_idx ON marhys_samples (vent_area)"
+    )
+
+    # One row per published file version: the parameter→unit map the source
+    # declares in its units row. Stored rather than hard-coded so a consumer
+    # never has to infer a unit from a column name.
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS marhys_meta (
+            version     TEXT PRIMARY KEY,
+            param_units JSONB NOT NULL,
+            updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    """)
+
+    await conn.execute("ALTER TABLE marhys_samples OWNER TO abyssal_user")
+    await conn.execute("ALTER TABLE marhys_meta OWNER TO abyssal_user")

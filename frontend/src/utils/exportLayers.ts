@@ -98,6 +98,17 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     citation: "Kock & Bange 2015, Eos 96(3), doi:10.1029/2015EO023665",
   },
   {
+    id: "marhys",
+    label: "MARHYS vent fluid chemistry",
+    kind: "vector",
+    geomKind: "point",
+    family: "Life & geology",
+    source: "MARHYS 4.0 (MARUM) via PANGAEA",
+    sourceUrl: "https://doi.org/10.1594/PANGAEA.972999",
+    // Both DOIs: the dataset's terms require the base publication alongside it.
+    citation: "Diehl & Bach 2024, doi:10.1594/PANGAEA.972999 + Diehl & Bach 2020, doi:10.1029/2020GC009385",
+  },
+  {
     id: "methane-seeps",
     label: "Methane Seeps (SEAFLEA)",
     kind: "vector",

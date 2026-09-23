@@ -6,6 +6,7 @@ import { useMapStore } from "../../../store/mapStore";
 import type { LayerId } from "../../../types/layers";
 import { analytics } from "../../../utils/analytics";
 import { IUCN_FILTER_DEFS, CHESS_PHYLUM_DEFS, VENT_STATUS_FILTER_DEFS } from "../filterDefs";
+import { MarhysRow } from "./MarhysRow";
 import {
   LayerRow, SubGroup, CheckboxFilter, FilterResetLink,
 } from "../rows";
@@ -82,6 +83,14 @@ export function LifeGeologySection({ expandedFilter, toggleExpand, toggle, flyTo
             ))}
           </>
         }
+      />
+      {/* Vent fluid chemistry sits directly under the vents themselves: it is
+          what comes OUT of them, and the two are read together. */}
+      <MarhysRow
+        expandedFilter={expandedFilter}
+        toggleExpand={toggleExpand}
+        toggle={toggle}
+        flyToLayer={flyToLayer}
       />
       <LayerRow
         id="chess"

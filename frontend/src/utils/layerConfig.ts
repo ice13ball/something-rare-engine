@@ -68,6 +68,7 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "arctic-catchments",      order_idx: 2084, default_on: false, modes: ["ocean","continue"] },
   { id: "seabed-substrate",       order_idx: 70,   default_on: false, modes: ["ocean","continue"] },
   { id: "arctic-sediment-carbon", order_idx: 2085, default_on: false, modes: ["ocean","continue"] },
+  { id: "marhys",                 order_idx: 2087, default_on: false, modes: ["ocean","continue"] },
   { id: "permafrost-thaw",        order_idx: 2086, default_on: false, modes: ["ocean","continue"] },
   { id: "mosaic-sediment",        order_idx: 2088, default_on: false, modes: ["ocean","continue"] },
   { id: "vme-suitability",        order_idx: 68,   default_on: false, modes: ["ocean","continue"] },
@@ -124,6 +125,10 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
   "seabed-substrate-hexes":         "seabed-substrate",
   "arctic-sediment-carbon-raster":   "arctic-sediment-carbon",
   "arctic-sediment-carbon-stations": "arctic-sediment-carbon",
+  // MARHYS draws either individual samples or a density aggregation of the
+  // same samples. Without this the density view sorts at 9999 — forced to the
+  // top, ignoring its order_idx — and covers the layers above it.
+  "marhys-density":                  "marhys",
   "mosaic-hexes":                   "mosaic-sediment",
 };
 

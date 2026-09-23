@@ -122,10 +122,24 @@ async def sync_chess() -> int:
                 geom)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                        ST_SetSRID(ST_MakePoint($8, $7), 4326))
+               -- ⛔ EVERY column the source supplies is refreshed here, and the
+               -- omission of some was not harmless. Until 2026-09-22 this SET
+               -- carried `geom` but not `lat`/`lon`, so a changed source
+               -- coordinate rewrote the geometry and left the two numeric
+               -- columns holding the old value. Measured that day on
+               -- production: gbifID 5789994787 had geom at 33.3500/-117.3000
+               -- and lat/lon at 32.5833/-117.4833 — one row, two contradictory
+               -- positions. `/v1/map/chess` reads lat/lon, so the map kept
+               -- serving a coordinate the ingestion had already stopped
+               -- producing. `class_name`, `family` and `institution_code` were
+               -- stale by the same mechanism.
                ON CONFLICT (occurrence_id) DO UPDATE
                SET species=EXCLUDED.species, phylum=EXCLUDED.phylum,
+                   class_name=EXCLUDED.class_name, family=EXCLUDED.family,
                    depth_m=EXCLUDED.depth_m,
+                   lat=EXCLUDED.lat, lon=EXCLUDED.lon,
                    locality=EXCLUDED.locality,
+                   institution_code=EXCLUDED.institution_code,
                    geom=EXCLUDED.geom""",
             [(r["occurrence_id"], r["species"], r["phylum"], r["class_name"],
               r["family"], r["depth_m"], r["lat"], r["lon"],
