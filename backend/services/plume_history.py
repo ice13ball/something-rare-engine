@@ -7,24 +7,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone, timedelta
 
 import asyncpg
 
-from services.ocean_currents import backtrack, CMEMSUnavailableError, CMEMSTooRecentError
+from services.ocean_currents import backtrack, dataset_label, CMEMSUnavailableError, CMEMSTooRecentError
 
 log = logging.getLogger(__name__)
 
-REANALYSIS_LAG_DAYS = 28
 DEFAULT_HOURS = 168   # 7 days back-track
 DEFAULT_DEPTH = 1000  # metres
-
-
-def _dataset_label(profile_date: datetime) -> str:
-    """Return 'nrt' for recent profiles, 'reanalysis' for older ones."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=REANALYSIS_LAG_DAYS)
-    dt = profile_date if profile_date.tzinfo else profile_date.replace(tzinfo=timezone.utc)
-    return "nrt" if dt > cutoff else "reanalysis"
 
 
 async def _resolve_contractor(pool: asyncpg.Pool, origin_lon: float, origin_lat: float) -> str | None:
@@ -130,13 +121,15 @@ async def compute_pending_plume_paths(
                 json.dumps(result.path),
                 result.speed_cms,
                 result.steps_completed,
-                _dataset_label(row["profile_date"]),
+                dataset_label(result.dataset_id),
                 contractor_name,
             )
             computed += 1
             log.debug("plume_history: stored path for %s (origin contractor: %s)", profile_id, contractor_name or "none")
 
-        except (CMEMSUnavailableError, CMEMSTooRecentError) as exc:
+        except CMEMSUnavailableError as exc:
+            log.warning("plume_history: CMEMS unavailable for %s — %s", profile_id, exc)
+        except CMEMSTooRecentError as exc:
             log.debug("plume_history: CMEMS skip for %s — %s", profile_id, exc)
         except Exception as exc:
             log.warning("plume_history: failed for %s — %s", profile_id, exc)

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
+
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 

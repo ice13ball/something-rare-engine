@@ -2086,6 +2086,7 @@ export function Map3D() {
     setIsTracing(true);
     let succeeded = 0;
     let failed = 0;
+    let noData = 0; // HTTP 503: source has no current data for those dates
     try {
       // Collect all profile_ids for this platform from trail data
       const profileIds: string[] = [];
@@ -2115,16 +2116,22 @@ export function Map3D() {
             const data = await r.json();
             addPlumeTrace(pid, data, platformId);
             succeeded++;
-          } else { failed++; }
+          } else { failed++; if (r.status === 503) noData++; }
         } catch { failed++; }
       }
     } finally {
       setIsTracing(false);
       // Surface structured feedback when traces fail
-      if (failed > 0 && succeeded === 0) {
-        setFailedLayers(prev => [...prev, "Plume model — CMEMS endpoint timed out or is unavailable. Try again later."]);
-      } else if (failed > 0) {
-        setFailedLayers(prev => [...prev, `Plume model — ${succeeded} of ${succeeded + failed} traces completed, ${failed} timed out`]);
+      if (failed > 0) {
+        const total = succeeded + failed;
+        const reason = noData === failed
+          ? "ocean-current data not available for those dates"
+          : noData > 0
+            ? `${noData} had no ocean-current data for those dates, ${failed - noData} timed out`
+            : "timed out";
+        setFailedLayers(prev => [...prev, succeeded === 0 && noData === 0
+          ? "Plume model — CMEMS endpoint timed out or is unavailable. Try again later."
+          : `Plume model — ${failed} of ${total} traces failed: ${reason}`]);
       }
     }
   }, [addPlumeTrace, argoTrailsData]);

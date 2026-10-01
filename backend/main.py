@@ -15,7 +15,7 @@ import asyncpg
 import auth
 import db as _db
 from dotenv import load_dotenv
-from services.ocean_currents import backtrack as _backtrack, CMEMSUnavailableError
+from services.ocean_currents import backtrack as _backtrack, dataset_label as _dataset_label, CMEMSUnavailableError
 import services.currents_bake as currents_bake
 from services import woa_climatology
 from sync_log import log_sync as _log_sync, is_sync_paused, _load_paused_syncs, invalidate_paused_cache
@@ -866,7 +866,7 @@ async def correlate_plume(
                 argo_id, row["platform_id"], profile_date,
                 result.origin[0], result.origin[1],
                 json.dumps(result.path), result.speed_cms, result.steps_completed,
-                "nrt", contractor_name,
+                _dataset_label(result.dataset_id), contractor_name,
             )
 
     # Build GeoJSON response

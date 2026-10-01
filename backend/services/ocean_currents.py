@@ -4,6 +4,7 @@
 """CMEMS ocean current fetching and RK4 back-tracking."""
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
@@ -12,12 +13,17 @@ from typing import List, Tuple
 
 import numpy as np
 
+log = logging.getLogger(__name__)
+
 # Multi-year reanalysis: 1993–present minus ~28 days lag
 DATASET_REANALYSIS = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 REANALYSIS_LAG_DAYS = 28
 
 # Near-real-time analysis/forecast: covers up to ~2 days ahead, ~2022 onwards
 DATASET_NRT = "cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m"
+
+# copernicusmarine wording when the requested window is past the dataset's end
+_TIME_RANGE_MARKER = "exceed the dataset coordinates"
 
 
 class CMEMSTooRecentError(Exception):
@@ -48,6 +54,12 @@ class BacktrackResult:
     v_mean: float                      # mean northward velocity in m/s
     speed_cms: float                   # mean current speed in cm/s
     steps_completed: int               # number of daily steps actually taken (may be < requested if NaN hit)
+    dataset_id: str = ""               # CMEMS dataset actually used (may differ from the age-based pick)
+
+
+def dataset_label(dataset_id: str) -> str:
+    """Short stored label for a CMEMS dataset id: 'nrt' or 'reanalysis'."""
+    return "nrt" if dataset_id == DATASET_NRT else "reanalysis"
 
 
 def _credentials() -> dict:
@@ -66,7 +78,11 @@ def fetch_currents(lon: float, lat: float, date: datetime, depth_m: int, hours: 
     - Recent profiles (< REANALYSIS_LAG_DAYS old): NRT analysis/forecast
     - Older profiles: multi-year reanalysis
 
-    Returns a lazy xarray Dataset via open_dataset (no file download).
+    If the reanalysis does not yet cover the window (time-range error), retries
+    once with NRT.
+
+    Returns (dataset, dataset_id_used): a lazy xarray Dataset via open_dataset
+    (no file download) and the CMEMS dataset id it came from.
     Raises CMEMSUnavailableError on network/auth failure.
     """
     now = datetime.now(timezone.utc)
@@ -79,9 +95,9 @@ def fetch_currents(lon: float, lat: float, date: datetime, depth_m: int, hours: 
     start = profile_dt - timedelta(hours=hours)
     bbox_pad = 4.0  # degrees — wide enough to cover daily drift
 
-    try:
-        ds = _cm().open_dataset(
-            dataset_id=dataset_id,
+    def _open(ds_id: str):
+        return _cm().open_dataset(
+            dataset_id=ds_id,
             variables=["uo", "vo"],
             minimum_longitude=lon - bbox_pad,
             maximum_longitude=lon + bbox_pad,
@@ -93,10 +109,28 @@ def fetch_currents(lon: float, lat: float, date: datetime, depth_m: int, hours: 
             maximum_depth=float(depth_m + 50),
             **_credentials(),
         )
+
+    try:
+        try:
+            return _open(dataset_id), dataset_id
+        except Exception as exc:
+            # The reanalysis trails real time by more than REANALYSIS_LAG_DAYS
+            # (about 100 days on 2026-10-01). Only a time-range error means "the
+            # window is past the end of this dataset" -- auth and network errors
+            # must not be masked by a silent switch to NRT.
+            if (
+                dataset_id != DATASET_REANALYSIS
+                or _TIME_RANGE_MARKER not in str(exc).lower()
+            ):
+                raise
+            log.info(
+                "ocean_currents: reanalysis does not cover profile %s (time range); "
+                "retrying with NRT dataset",
+                profile_dt.date().isoformat(),
+            )
+            return _open(DATASET_NRT), DATASET_NRT
     except Exception as exc:
         raise CMEMSUnavailableError(f"CMEMS fetch failed: {exc}") from exc
-
-    return ds
 
 
 def _sample_uv(
@@ -207,7 +241,7 @@ def backtrack(
     Steps backward one day at a time through CMEMS daily velocity data.
     Stops early if a NaN velocity (land mask) is encountered.
     """
-    ds = fetch_currents(lon, lat, date, depth_m, hours)
+    ds, dataset_id = fetch_currents(lon, lat, date, depth_m, hours)
 
     # Determine depth coordinate name — CMEMS uses 'depth' or 'elevation'
     depth_coord = "depth" if "depth" in ds.coords else "elevation"
@@ -254,4 +288,5 @@ def backtrack(
         v_mean=round(v_mean, 4),
         speed_cms=round(speed, 2),
         steps_completed=len(u_values),
+        dataset_id=dataset_id,
     )
