@@ -4,9 +4,11 @@
 import { useTranslation } from "react-i18next";
 import type { LayerId } from "../../../types/layers";
 import type { BgcModelMeta } from "../../../types/bgcModel";
+import type { OceanColourMeta } from "../../../types/oceanColour";
 import { SubGroup } from "../rows";
 import { WoaClimatologyRow } from "./oceanClimatology/WoaClimatologyRow";
 import { OceanNutrientsModelRow } from "./oceanClimatology/OceanNutrientsModelRow";
+import { OceanColourRow } from "./oceanClimatology/OceanColourRow";
 import { OceanCarbonRow } from "./oceanClimatology/OceanCarbonRow";
 import { OceanCo2SurfaceRow } from "./oceanClimatology/OceanCo2SurfaceRow";
 import { WodOxygenRow } from "./oceanClimatology/WodOxygenRow";
@@ -34,12 +36,13 @@ interface Props {
   flyToLayer: ((id: LayerId) => void) | null;
   woaMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
   nutrientsMeta?: BgcModelMeta | null;
+  oceanColourMeta?: OceanColourMeta | null;
   oxygenMeta?: { views: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp: Array<{ pos: number; hex: string }>; depths: number[]; diverging: boolean }>; depths: number[]; attribution: string } | null;
   carbonMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
   co2Meta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp?: Array<{ pos: number; hex: string }> }>; decades: Array<{ index: number; label: string }> } | null;
 }
 
-export function OceanClimatologySection({ expandedFilter, setExpandedFilter, toggleExpand, toggle, flyToLayer, woaMeta, nutrientsMeta, oxygenMeta, carbonMeta, co2Meta }: Props) {
+export function OceanClimatologySection({ expandedFilter, setExpandedFilter, toggleExpand, toggle, flyToLayer, woaMeta, nutrientsMeta, oceanColourMeta, oxygenMeta, carbonMeta, co2Meta }: Props) {
   const { t } = useTranslation(["panels", "common"]);
 
   return (
@@ -58,6 +61,14 @@ export function OceanClimatologySection({ expandedFilter, setExpandedFilter, tog
                 toggleExpand={toggleExpand}
                 toggle={toggle}
                 nutrientsMeta={nutrientsMeta}
+              />
+
+              <OceanColourRow
+                expandedFilter={expandedFilter}
+                setExpandedFilter={setExpandedFilter}
+                toggleExpand={toggleExpand}
+                toggle={toggle}
+                oceanColourMeta={oceanColourMeta}
               />
 
               <OceanCarbonRow

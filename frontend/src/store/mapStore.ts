@@ -291,6 +291,12 @@ export interface MapStore {
   nutrientsMonth: string | null;          // "yyyy-mm"; null = latest available
   setNutrientsMonth: (m: string | null) => void;
 
+  // Ocean colour (satellite) — display state (NOT a filter; not reset by resetAllFilters)
+  oceanColourVariable: string;
+  setOceanColourVariable: (v: string) => void;
+  oceanColourMonth: string | null;        // "yyyy-mm"; null = latest available
+  setOceanColourMonth: (m: string | null) => void;
+
   // Ocean Carbon (GLODAP) — display mode (NOT a filter; not reset by resetAllFilters)
   carbonVariable: string;
   setCarbonVariable: (v: string) => void;
@@ -624,6 +630,11 @@ export const useMapStore = create<MapStore>((set) => ({
   setNutrientsVariable: (v) => set({ nutrientsVariable: v }),
   nutrientsMonth: null,
   setNutrientsMonth: (m) => set({ nutrientsMonth: m }),
+
+  oceanColourVariable: "chl",
+  setOceanColourVariable: (v) => set({ oceanColourVariable: v }),
+  oceanColourMonth: null,
+  setOceanColourMonth: (m) => set({ oceanColourMonth: m }),
 
   carbonVariable: "dic",
   setCarbonVariable: (v) => set({ carbonVariable: v }),

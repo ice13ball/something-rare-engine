@@ -717,6 +717,26 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-10-01",
     ),
     Coverage(
+        layer_id="ocean-colour-satellite",
+        # The span is the multi-year product's monthly series (first month 1997-09);
+        # the span a reader can reach is the newest available month and the 11 before it.
+        start_year=1997, end_year=None,
+        kind="observations",
+        wording="Chlorophyll-a and primary production come from merged satellite "
+                "ocean-colour observations (Copernicus-GlobColour, Copernicus Marine), "
+                "monthly means, whose multi-year series starts in September 1997. "
+                "\u26d4 This map serves far less than the product holds: only the newest "
+                "available month and the 11 before it are kept, so the month selector "
+                "spans one year and no further back \u2014 do not read \u201c1997 "
+                "onward\u201d as something reachable here. Each month comes from the "
+                "multi-year (reprocessed) product when it has that month, otherwise from "
+                "the near-real-time product, and the panel says which. A cell with no "
+                "satellite observation that month (cloud, sea ice, polar night, land) is "
+                "empty, not zero.",
+        source_url="https://data.marine.copernicus.eu/product/OCEANCOLOUR_GLO_BGC_L4_MY_009_104/description",
+        verified_on="2026-10-01",
+    ),
+    Coverage(
         layer_id="deepdata-stations",
         # ⛔ DERIVED, not quoted: all 142 ISA/OBIS Darwin Core archives were
         # fetched 2026-09-15 and not one `eml.xml` carries a <temporalCoverage>

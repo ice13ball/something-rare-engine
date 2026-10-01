@@ -351,6 +351,9 @@
     },
     "oceanNutrientsModel": {
       "toggle": "Nährstoffe & Produktivität (Modell)"
+    },
+    "oceanColourSatellite": {
+      "toggle": "Ozeanfarbe (Satellit)"
     }
   },
   "filters": {
@@ -538,7 +541,8 @@
       "greenland-primary-production": "Bruttoprimärproduktion von Kohlenstoff, gemessen über die Sauerstoffentwicklung an 12 Stationen der Grönlandsee im August 2021 und August 2022 (PANGAEA). Eine flächenbezogene Rate in mg C pro Quadratmeter und Tag — die Markergröße folgt der Rate.",
       "greenland-sea-poc-aoc2025": "Partikulärer organischer Kohlenstoff an 32 Stationen, Fahrt Atlantic-Arctic Ocean Change (AOC2025), Grönlandsee, 19.–31. Mai 2025 (Institut für Ozeanologie der Polnischen Akademie der Wissenschaften, CC-BY 4.0). Die Metadaten der Quelle geben einen zeitlichen Umfang an, der nicht mit dem Titel oder den Daten übereinstimmt — gezeigt, nicht korrigiert.",
       "svalbard-fjords-primary-production": "In-situ-Primärproduktion, Kongsfjorden & Hornsund (Spitzbergen), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, mit Genehmigung verwendet — die Quelle veröffentlicht keine offene Lizenz. Die Metadaten der Quelle nennen Stations- und Inkubationszahlen, die von den Daten abweichen — gezeigt, nicht korrigiert.",
-      "ocean-nutrients-model": "Modellausgabe, keine Messwerte: Oberflächennitrat, Chlorophyll-a, Nettoprimärproduktion (eine volumetrische Rate an der Oberfläche, kein Säulenintegral) und N* (Nitrat − 16 × Phosphat) aus dem globalen biogeochemischen Modell von Copernicus Marine (PISCES, 0,25°). Monatsmittel für den neuesten verfügbaren Monat und die 11 davor. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle."
+      "ocean-nutrients-model": "Modellausgabe, keine Messwerte: Oberflächennitrat, Chlorophyll-a, Nettoprimärproduktion (eine volumetrische Rate an der Oberfläche, kein Säulenintegral) und N* (Nitrat − 16 × Phosphat) aus dem globalen biogeochemischen Modell von Copernicus Marine (PISCES, 0,25°). Monatsmittel für den neuesten verfügbaren Monat und die 11 davor. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle.",
+      "ocean-colour-satellite": "Satellitenbeobachtungen: Chlorophyll-a und Primärproduktion (Integral über die Wassersäule) aus der Ozeanfarbe von Copernicus-GlobColour, Monatsmittel auf 0,25° gemittelt. Wolken, Meereis und Polarnacht hinterlassen Lücken. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle."
     },
     "densityScaleLabel": "Datensätze pro Zelle",
     "argoReadingHeading": "So liest man die Messwerte",
@@ -1544,6 +1548,30 @@
       "noData": "Hier gibt es keinen Modellwert (Land oder Meereis).",
       "notCovered": "Außerhalb des Modellgitters, das bei 80°S endet.",
       "failed": "Die Modellwerte konnten nicht geladen werden."
+    }
+  },
+  "oceanColour": {
+    "satelliteNote": "Satellitenbeobachtungen, hier von 4 km auf 0,25° gemittelt. Lücken sind Wolken, Meereis, Polarnacht oder Land.",
+    "ppHint": "Die Primärproduktion ist hier ein Integral über die Wassersäule (mg m⁻² pro Tag). Sie ist nicht mit der volumetrischen Oberflächenrate der Ebene Nährstoffe und Produktivität (Modell) vergleichbar.",
+    "gapHint": "Leere Zellen haben in diesem Monat keine Satellitenbeobachtung; das ist nicht null.",
+    "clickHint": "Klicken Sie auf die Karte für den genauen Wert der nächsten 0,25°-Zelle.",
+    "variable": {
+      "chl": "Chlorophyll-a (Satellit)",
+      "pp": "Primärproduktion (Satellit, Säule)"
+    },
+    "product": {
+      "my": "mehrjährig (neu prozessiert)",
+      "nrt": "nahezu in Echtzeit"
+    },
+    "panel": {
+      "badge": "Ozeanfarbe (Satellit)",
+      "where": "Nächste 0,25°-Zelle · {{lat}}°, {{lon}}° · Monatsmittel {{month}}",
+      "product": "Quellprodukt: {{product}}",
+      "section": "Satellitenwerte",
+      "footnote": "Monatsmittel von Satellitenbeobachtungen der Ozeanfarbe, von 4 km auf 0,25° gemittelt. Die letzte Spalte ist der Anteil der 36 Quellzellen, die einen Wert hatten. Die Farben der Karte sind 8-Bit; diese Zahlen stammen aus dem Gitter in voller Genauigkeit.",
+      "noData": "Keine Satellitenbeobachtung in diesem Monat (Wolken, Meereis, Polarnacht oder Land).",
+      "notCovered": "Außerhalb des Gitters, das bei 89,875° Breite endet.",
+      "failed": "Die Satellitenwerte konnten nicht geladen werden."
     }
   }
 }

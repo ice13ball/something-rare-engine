@@ -46,6 +46,7 @@ _TAG_RULES: list[tuple[str, str]] = [
     ("/v1/map/argo", "Ocean fields"),
     ("/v1/currents", "Ocean fields"),
     ("/v1/bgc-model", "Ocean fields"),
+    ("/v1/ocean-colour", "Ocean fields"),
     ("/v1/woa", "Ocean fields"),
     ("/v1/oxygen", "Ocean fields"),
     ("/v1/carbon", "Ocean fields"),

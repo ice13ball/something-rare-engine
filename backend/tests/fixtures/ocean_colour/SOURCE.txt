@@ -1,0 +1,19 @@
+Real excerpt, not synthetic. One month (2026-08-01 stamp), a 3 x 3 degree window at the
+products' native 1/24 degree resolution (72 x 72 cells; lat -13.875..-10.875, lon -77.875..-74.875,
+the central Peru coast, so it holds open ocean, coastal water and land). Cell edges sit on the
+0.25 degree grid of the layer, so the window is exactly 12 x 12 target cells. About two thirds of the
+cells are NaN (land and cloud); the two variables are NaN in slightly different places.
+
+Product   OCEANCOLOUR_GLO_BGC_L4_MY_009_104, Global Ocean Colour (Copernicus-GlobColour),
+          Bio-Geo-Chemical, L4 (monthly and interpolated), multi-year
+DOI       https://doi.org/10.48670/moi-00281
+Datasets  cmems_obs-oc_glo_bgc-plankton_my_l4-multi-4km_P1M   (CHL  mg m-3)
+          cmems_obs-oc_glo_bgc-pp_my_l4-multi-4km_P1M         (PP   mg m-2 day-1)
+Cut       copernicusmarine.open_dataset(...) .sel(time="2026-08-01") .isel(latitude=slice(.., +72),
+          longitude=slice(.., +72)); stored as float32 with NaN where the source has its -999 fill.
+          Retrieved 2026-10-01.
+Licence   Copernicus Marine Service Commitments and Licence, section 2.2 permits distributing
+          derivative work and redistributing products in any medium, subject to the credit in 2.4:
+          https://marine.copernicus.eu/user-corner/service-commitments-and-licence
+
+E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00281

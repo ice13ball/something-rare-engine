@@ -176,7 +176,12 @@ def _ramp_lookup(t: np.ndarray, cmap: str) -> np.ndarray:
 
 def encode_to_rgba(arr: np.ndarray, var: str) -> np.ndarray:
     """(H, W) float grid -> (H, W, 4) uint8 RGBA. NaN is transparent, never a colour."""
-    cfg = VARS[var]
+    return encode_with(arr, VARS[var])
+
+
+def encode_with(arr: np.ndarray, cfg: dict) -> np.ndarray:
+    """As ``encode_to_rgba`` for any variable config (scale, vmin, vmax, cmap); shared
+    with the satellite ocean-colour layer so the two read alike."""
     mask = ~np.isfinite(arr)
     t = normalise(np.where(mask, cfg["vmin"], arr), cfg)
     rgba = np.zeros((*arr.shape, 4), dtype="uint8")
@@ -193,14 +198,22 @@ def derive_nstar(no3: np.ndarray, po4: np.ndarray) -> np.ndarray:
     return (no3.astype("float64") - float(d["k"]) * po4.astype("float64")).astype("float32")
 
 
-def _ramp_hex(cmap: str) -> list[dict]:
+def ramp_hex(cmap: str) -> list[dict]:
+    """Anchor stops of a named ramp as ``{pos, hex}``; shared with the satellite layer."""
     return [{"pos": pos, "hex": "#%02x%02x%02x" % rgb} for pos, rgb in _RAMPS[cmap]]
 
 
-def _tick_list(var: str) -> list[dict]:
-    cfg = VARS[var]
+def tick_list_for(cfg: dict) -> list[dict]:
+    """Legend ticks of a variable config as ``{value, pos}`` on its own scale."""
     ts = normalise(np.array(cfg["ticks"], dtype="float64"), cfg)
     return [{"value": v, "pos": round(float(t), 4)} for v, t in zip(cfg["ticks"], ts)]
+
+
+_ramp_hex = ramp_hex
+
+
+def _tick_list(var: str) -> list[dict]:
+    return tick_list_for(VARS[var])
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -268,18 +281,25 @@ def png_path(var: str, month: str) -> pathlib.Path | None:
 def prune_old(keep: int = MONTHS_KEPT) -> int:
     """Keep the `keep` newest COMPLETE months; remove older ones, any incomplete
     month directory and any leftover temporary directory. Returns dirs removed."""
-    if not CACHE_DIR.is_dir():
+    return prune_months(CACHE_DIR, keep, is_complete)
+
+
+def prune_months(cache_dir: pathlib.Path, keep: int, complete) -> int:
+    """The retention rule for a month-per-directory cache. `complete(month)` says
+    whether a month directory is whole. Shared with the satellite layer."""
+    if not cache_dir.is_dir():
         return 0
     removed = 0
-    complete = complete_months()
-    for month in complete[:-keep] if keep > 0 else complete:
-        shutil.rmtree(_month_dir(month), ignore_errors=True)
+    done = sorted(p.name for p in cache_dir.iterdir()
+                  if p.is_dir() and valid_month(p.name) and complete(p.name))
+    for month in done[:-keep] if keep > 0 else done:
+        shutil.rmtree(cache_dir / month, ignore_errors=True)
         removed += 1
-    for p in CACHE_DIR.iterdir():
+    for p in cache_dir.iterdir():
         if not p.is_dir():
             continue
         if p.name.startswith(".tmp-") or p.name.startswith(".old-") or (
-                valid_month(p.name) and not is_complete(p.name)):
+                valid_month(p.name) and not complete(p.name)):
             shutil.rmtree(p, ignore_errors=True)
             removed += 1
     return removed
@@ -292,6 +312,9 @@ def _stats(arr: np.ndarray) -> dict:
     p1, p50, p99 = (float(x) for x in np.percentile(f, [1, 50, 99]))
     return {"n_valid": int(f.size), "n_nan": int(arr.size - f.size),
             "min": float(f.min()), "max": float(f.max()), "p1": p1, "p50": p50, "p99": p99}
+
+
+array_stats = _stats  # shared with the satellite layer
 
 
 def _grid_geometry(lat: np.ndarray, lon: np.ndarray) -> dict:
@@ -318,14 +341,35 @@ def _grid_geometry(lat: np.ndarray, lon: np.ndarray) -> dict:
     }
 
 
+def publish_month(cache_dir: pathlib.Path, month: str, build) -> None:
+    """Build a month directory under a temporary name and rename it into place.
+    `build(tmp)` writes every file, `meta.json` LAST (the completeness marker). If it
+    raises, nothing is left behind and an existing month is untouched. Shared with the
+    satellite ocean-colour layer."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    tmp = cache_dir / f".tmp-{month}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    tmp.mkdir()
+    try:
+        build(tmp)
+        final = cache_dir / month
+        old = None
+        if final.exists():
+            old = cache_dir / f".old-{month}-{uuid.uuid4().hex[:8]}"
+            os.replace(final, old)
+        os.replace(tmp, final)
+        if old is not None:
+            shutil.rmtree(old, ignore_errors=True)
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+
+
 def _write_month(month: str, grids: dict[str, np.ndarray], geometry: dict, extra: dict) -> None:
     """Build the month in a temporary directory and rename it into place."""
     if not _PIL_AVAILABLE:
         raise RuntimeError("Pillow not installed — cannot bake")
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = CACHE_DIR / f".tmp-{month}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
-    tmp.mkdir()
-    try:
+
+    def build(tmp: pathlib.Path) -> None:
         var_stats = {}
         for var, grid in grids.items():
             g32 = np.ascontiguousarray(grid, dtype="float32")
@@ -343,17 +387,8 @@ def _write_month(month: str, grids: dict[str, np.ndarray], geometry: dict, extra
             **extra,
         }
         (tmp / "meta.json").write_text(json.dumps(meta))  # last: completeness marker
-        final = _month_dir(month)
-        old = None
-        if final.exists():
-            old = CACHE_DIR / f".old-{month}-{uuid.uuid4().hex[:8]}"
-            os.replace(final, old)
-        os.replace(tmp, final)
-        if old is not None:
-            shutil.rmtree(old, ignore_errors=True)
-    except BaseException:
-        shutil.rmtree(tmp, ignore_errors=True)
-        raise
+
+    publish_month(CACHE_DIR, month, build)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -351,6 +351,9 @@
     },
     "oceanNutrientsModel": {
       "toggle": "Biogeny i produktywność (model)"
+    },
+    "oceanColourSatellite": {
+      "toggle": "Barwa oceanu (satelita)"
     }
   },
   "filters": {
@@ -538,7 +541,8 @@
       "greenland-primary-production": "Produkcja pierwotna brutto węgla zmierzona metodą wydzielania tlenu na 12 stacjach Morza Grenlandzkiego w sierpniu 2021 i sierpniu 2022 (PANGAEA). Tempo na jednostkę powierzchni w mg C na metr kwadratowy na dobę — rozmiar znacznika odpowiada temu tempu.",
       "greenland-sea-poc-aoc2025": "Węgiel organiczny w postaci cząstek na 32 stacjach, rejs Atlantic-Arctic Ocean Change (AOC2025), Morze Grenlandzkie, 19–31 maja 2025 (Instytut Oceanologii PAN, CC-BY 4.0). Metadane źródła podają zakres czasowy, który nie zgadza się z tytułem ani danymi — pokazane, nie poprawione.",
       "svalbard-fjords-primary-production": "Produkcja pierwotna in situ, Kongsfjorden i Hornsund (Svalbard), 1994–2019 (Instytut Oceanologii PAN). © IO PAN, użyte za zgodą — źródło nie publikuje otwartej licencji. Metadane źródła podają liczby stacji i inkubacji różne od danych — pokazane, nie poprawione.",
-      "ocean-nutrients-model": "Wynik modelu, nie pomiary: powierzchniowe azotany, chlorofil-a, produkcja pierwotna netto (tempo objętościowe przy powierzchni, a nie całka po słupie wody) oraz N* (azotany − 16 × fosforany) z globalnego modelu biogeochemicznego Copernicus Marine (PISCES, 0,25°). Średnie miesięczne dla najnowszego dostępnego miesiąca i 11 poprzednich. Kliknij mapę, aby zobaczyć dokładną wartość z najbliższej komórki."
+      "ocean-nutrients-model": "Wynik modelu, nie pomiary: powierzchniowe azotany, chlorofil-a, produkcja pierwotna netto (tempo objętościowe przy powierzchni, a nie całka po słupie wody) oraz N* (azotany − 16 × fosforany) z globalnego modelu biogeochemicznego Copernicus Marine (PISCES, 0,25°). Średnie miesięczne dla najnowszego dostępnego miesiąca i 11 poprzednich. Kliknij mapę, aby zobaczyć dokładną wartość z najbliższej komórki.",
+      "ocean-colour-satellite": "Obserwacje satelitarne: chlorofil-a i produkcja pierwotna (całka po słupie wody) z barwy oceanu Copernicus-GlobColour, średnie miesięczne uśrednione do 0,25°. Chmury, lód morski i noc polarna zostawiają luki. Kliknij mapę, by poznać dokładną wartość najbliższej komórki."
     },
     "densityScaleLabel": "Rekordy na komórkę",
     "argoReadingHeading": "Jak odczytywać pomiary",
@@ -1550,6 +1554,30 @@
       "noData": "Brak wartości modelu w tym miejscu (ląd lub lód morski).",
       "notCovered": "Poza siatką modelu, która kończy się na 80°S.",
       "failed": "Nie udało się wczytać wartości modelu."
+    }
+  },
+  "oceanColour": {
+    "satelliteNote": "Obserwacje satelitarne, uśrednione tutaj z 4 km do 0,25°. Luki to chmury, lód morski, noc polarna lub ląd.",
+    "ppHint": "Produkcja pierwotna to tu całka po słupie wody (mg m⁻² na dobę). Nie można jej porównywać z powierzchniową stawką objętościową z warstwy Składniki odżywcze i produkcja (model).",
+    "gapHint": "Puste komórki nie mają w tym miesiącu obserwacji satelitarnej; to nie jest zero.",
+    "clickHint": "Kliknij mapę, by poznać dokładną wartość najbliższej komórki 0,25°.",
+    "variable": {
+      "chl": "Chlorofil-a (satelita)",
+      "pp": "Produkcja pierwotna (satelita, słup wody)"
+    },
+    "product": {
+      "my": "wieloletni (przetworzony ponownie)",
+      "nrt": "niemal w czasie rzeczywistym"
+    },
+    "panel": {
+      "badge": "Barwa oceanu (satelita)",
+      "where": "Najbliższa komórka 0,25° · {{lat}}°, {{lon}}° · średnia miesięczna {{month}}",
+      "product": "Produkt źródłowy: {{product}}",
+      "section": "Wartości satelitarne",
+      "footnote": "Średnie miesięczne z satelitarnych obserwacji barwy oceanu, uśrednione z 4 km do 0,25°. Ostatnia kolumna to odsetek z 36 komórek źródłowych, które miały wartość. Kolory na mapie są 8-bitowe; te liczby pochodzą z siatki o pełnej precyzji.",
+      "noData": "Brak obserwacji satelitarnej w tym miesiącu (chmury, lód morski, noc polarna lub ląd).",
+      "notCovered": "Poza siatką, która kończy się na szerokości 89,875°.",
+      "failed": "Nie udało się wczytać wartości satelitarnych."
     }
   }
 }

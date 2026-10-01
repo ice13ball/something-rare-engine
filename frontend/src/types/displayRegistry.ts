@@ -62,6 +62,9 @@ export const DISPLAY_FIELDS = {
   // "latest available", which a recipient resolves against their own /meta.
   nutrientsVariable: { layer: "ocean-nutrients-model", default: "no3", check: "slug" },
   nutrientsMonth: { layer: "ocean-nutrients-model", default: null, check: "isoMonth" },
+  // Same shape and same reasons as the two above: a path segment, null = latest.
+  oceanColourVariable: { layer: "ocean-colour-satellite", default: "chl", check: "slug" },
+  oceanColourMonth: { layer: "ocean-colour-satellite", default: null, check: "isoMonth" },
   oxygenView: { layer: "oxygen-deox", default: "change", values: ["recent", "change"] },
   oxygenDepth: { layer: "oxygen-deox", default: 500, check: "depth" },
   oxygenDisplayMode: { layer: "oxygen-deox", default: "field", values: ["field", "hexes"] },

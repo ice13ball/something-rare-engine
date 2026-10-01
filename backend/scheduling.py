@@ -158,6 +158,7 @@ OFFSHORE_ACTIVITIES_INTERVAL = 7 * 24 * 3600  # weekly
 _BAKE_STARTUP_DELAY = {
     "currents":        300,
     "bgc_model":       360,   # plain external-API call (3 lazy opens + ~12 small reads)
+    "ocean_colour":    480,   # ~110 s of reads and block means; starts after the bgc bake
     "seabed":          540,
     "cascade":         780,
     "woa":            1020,
@@ -796,6 +797,21 @@ async def _ocean_nutrients_bake_task():
         except Exception:
             log.exception("Ocean nutrients (model) bake task failed")
         await asyncio.sleep(fields.bgc_model.BGC_MODEL_BAKE_INTERVAL_SECONDS)
+
+
+async def _ocean_colour_bake_task():
+    """Daily Copernicus Marine ocean-colour bake (layer ocean-colour-satellite).
+    External-API tier: staggered startup delay (after the bgc bake), no DB scan. Bakes
+    the newest month either product's time axis offers plus the 11 before it, only what
+    is missing or now supplied by a different product; logs a sync_log row on every run,
+    including "nothing new"."""
+    await asyncio.sleep(_BAKE_STARTUP_DELAY["ocean_colour"])
+    while True:
+        try:
+            await fields.ocean_colour.sync_ocean_colour()
+        except Exception:
+            log.exception("Ocean colour (satellite) bake task failed")
+        await asyncio.sleep(fields.ocean_colour.OCEAN_COLOUR_BAKE_INTERVAL_SECONDS)
 
 
 async def _currents_backfill_task(force: bool = False):
@@ -1462,6 +1478,12 @@ TASK_REGISTRY: list[TaskSpec] = [
         "Copernicus Marine fetch + disk bake in a thread; the web process reads the "
         "files, so there is no in-memory cache to go stale (see module docstring).",
         _f(_ocean_nutrients_bake_task),
+    ),
+    TaskSpec(
+        "ocean-colour-satellite-daily-bake", ROLE_WORKER,
+        "Copernicus Marine fetch + block-mean + disk bake in a thread; the web process "
+        "reads the files, so there is no in-memory cache to go stale.",
+        _f(_ocean_colour_bake_task),
     ),
     TaskSpec(
         "currents-history-backfill", ROLE_WORKER,

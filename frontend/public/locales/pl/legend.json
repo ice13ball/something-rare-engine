@@ -766,6 +766,14 @@
       "description": "Powierzchniowe azotany, chlorofil-a, produkcja pierwotna netto oraz N* (azotany − 16 × fosforany) z globalnego systemu analiz i prognoz biogeochemicznych Copernicus Marine, jako średnie miesięczne na siatce 0,25°. To WYNIK MODELU (model biogeochemiczny PISCES, sterowany globalną analizą fizyczną Mercator, z chlorofilem korygowanym asymilowanym kolorem oceanu), a nie pomiary. To warstwa kontekstowa dla produktywności i dostaw biogenów wokół interesujących obszarów.",
       "reading": "Wybierz zmienną i miesiąc; kolor oznacza wartość na pierwszym poziomie modelu (0,49 m). Azotany mają skalę kolorów w pierwiastku kwadratowym, a chlorofil i produkcja skalę logarytmiczną, dzięki czemu niskie wartości dominujące na otwartym oceanie pozostają rozróżnialne; skalę odczytasz pod selektorami. N* ma skalę rozbieżną wyśrodkowaną na 0: wartość ujemna oznacza mniej azotanów niż fosforanów przy stosunku 16:1, w jakim zużywa je plankton, dodatnia nadmiar azotanów. Kliknij mapę, aby zobaczyć dokładną wartość z najbliższej komórki.",
       "limitations": "Wynik modelu w rozdzielczości 0,25° (ok. 25 km), nie pomiary; siatka kończy się na 80°S i nie ma wartości nad lądem ani lodem morskim. Produkcja pierwotna netto jest tu tempem objętościowym przy powierzchni (mg m⁻³ na dobę), a NIE całką po słupie wody, więc nie można jej porównywać z produktami satelitarnymi w mg C m⁻² na dobę. N* liczone jest tu bez stałego przesunięcia. Średnie miesięczne wygładzają zakwity i wiry krótsze niż miesiąc. Przechowywany jest tylko najnowszy miesiąc i 11 poprzednich."
+    },
+    "ocean-colour-satellite": {
+      "label": "Barwa oceanu (satelita)",
+      "source": "E.U. Copernicus Marine Service Information; Global Ocean Colour (Copernicus-GlobColour), Bio-Geo-Chemical, L4 miesięczny, wieloletni (OCEANCOLOUR_GLO_BGC_L4_MY_009_104, https://doi.org/10.48670/moi-00281) i niemal w czasie rzeczywistym (OCEANCOLOUR_GLO_BGC_L4_NRT_009_102, https://doi.org/10.48670/moi-00279), ACRI-ST.",
+      "updateFreq": "Sprawdzane codziennie; nowy miesiąc dochodzi, gdy produkt go opublikuje. Każdy miesiąc pochodzi z produktu wieloletniego (przetworzonego ponownie), jeśli go ma, a w przeciwnym razie z produktu niemal w czasie rzeczywistym; panel podaje, z którego. Przechowywany jest najnowszy miesiąc i 11 poprzednich.",
+      "description": "Stężenie chlorofilu-a i produkcja pierwotna obserwowane z kosmosu przez połączone czujniki barwy oceanu (Copernicus-GlobColour), pokazane jako średnie miesięczne na siatce 0,25°. To obserwacje satelitarne, tutaj uśrednione z siatki 4 km: 36 komórek źródłowych każdej komórki 0,25° jest uśrednianych z pominięciem brakujących, a komórka bez obserwacji pozostaje pusta.",
+      "reading": "Wybierz zmienną i miesiąc; skalę odczytasz pod selektorami (obie są logarytmiczne, więc niskie wartości, które dominują na otwartym oceanie, pozostają rozróżnialne). Chmury, lód morski i noc polarna zostawiają luki, które są puste, nigdy zerowe. Kliknij mapę, by poznać dokładną wartość najbliższej komórki, odsetek komórek źródłowych za nią i produkt, który dostarczył ten miesiąc.",
+      "limitations": "Chlorofil satelitarny widzi tylko warstwę powierzchniową i tylko tam, gdzie jest światło i brak chmur; wartości przybrzeżne i z wysokich szerokości są najmniej pewne. Produkcja pierwotna to całka po słupie wody wyliczona modelem z chlorofilu satelitarnego (mg m⁻² na dobę) i nie można jej porównywać z powierzchniową stawką objętościową z warstwy modelowej. Produkt niemal w czasie rzeczywistym jest mniej przetworzony niż wieloletni i miesiąc może się zmienić po jego zastąpieniu. Przechowywany jest tylko najnowszy miesiąc i 11 poprzednich."
     }
   },
   "header": {
@@ -1016,7 +1024,8 @@
     "fresh_waterRisk": "statyczny zbiór (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "Ogólne",
     "fresh_apiResponses": "buforowane po stronie serwera; przeglądarka może dodać dodatkową warstwę buforowania",
-    "fresh_nutrients_model": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy"
+    "fresh_nutrients_model": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy",
+    "fresh_ocean_colour": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy"
   },
   "verify": {
     "primaryTitle": "Źródła pierwotne",
@@ -1143,7 +1152,9 @@
       "greenlandPrimaryProduction": "Produkcja pierwotna Morza Grenlandzkiego: porównaj stację po etykiecie zdarzenia na doi.org/10.1594/PANGAEA.965985."
     },
     "nutrients_model_title": "Biogeny i produktywność (model)",
-    "nutrients_model": "Porównaj komórkę z przeglądarką lub usługą pobierania samego produktu:"
+    "nutrients_model": "Porównaj komórkę z przeglądarką lub usługą pobierania samego produktu:",
+    "ocean_colour_title": "Barwa oceanu (satelita)",
+    "ocean_colour": "Porównaj komórkę z przeglądarką lub usługą pobierania produktu na"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

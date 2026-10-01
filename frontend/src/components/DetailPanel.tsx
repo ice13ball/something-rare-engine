@@ -17,6 +17,7 @@ import { MonitoringDensityPanel } from "./panels/density/MonitoringDensityPanel"
 import { WodOxygenPanel } from "./panels/fields/WodOxygenPanel";
 import { WoaPointPanel } from "./panels/fields/WoaPointPanel";
 import { NutrientsModelPanel } from "./panels/fields/NutrientsModelPanel";
+import { OceanColourPanel } from "./panels/fields/OceanColourPanel";
 import { CarbonPointPanel } from "./panels/fields/CarbonPointPanel";
 import { AcidificationPointPanel } from "./panels/fields/AcidificationPointPanel";
 import { ChiPanel } from "./panels/fields/ChiPanel";
@@ -172,6 +173,7 @@ function PanelContent({ feature }: { feature: SelectedFeature }) {
   if (layer === "arctic-catchments") return <ArcticCatchmentPanel gid={properties.gid as number} />;
   if (layer === "woa-climatology")            return <WoaPointPanel props={properties} />;
   if (layer === "ocean-nutrients-model")     return <NutrientsModelPanel props={properties} />;
+  if (layer === "ocean-colour-satellite")    return <OceanColourPanel props={properties} />;
   if (layer === "oxygen-deox")               return <OxygenPointPanel props={properties} />;
   if (layer === "ocean-carbon")              return <CarbonPointPanel props={properties} />;
   if (layer === "marine-carbon")             return <UnifiedCarbonPanel props={properties} />;

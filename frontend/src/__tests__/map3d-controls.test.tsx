@@ -35,6 +35,7 @@ const SECTION_FILES = [
   "OceanClimatologySection.tsx",
   "oceanClimatology/WoaClimatologyRow.tsx",
   "oceanClimatology/OceanNutrientsModelRow.tsx",
+  "oceanClimatology/OceanColourRow.tsx",
   "oceanClimatology/OceanCarbonRow.tsx",
   "oceanClimatology/OceanCo2SurfaceRow.tsx",
   "oceanClimatology/WodOxygenRow.tsx",
@@ -109,7 +110,8 @@ const ALL_LAYER_IDS = [...LITERAL_IDS, ...MAPPED_IDS];
 //   60 → 61 on 2026-09-25: `greenland-sea-poc-aoc2025` added (preview, dev-only).
 //   61 → 62 on 2026-09-26: `svalbard-fjords-primary-production` added (preview, dev-only).
 //   62 → 63 on 2026-10-01: `ocean-nutrients-model` added.
-const EXPECTED_LAYER_ROW_COUNT = 63;
+//   63 → 64 on 2026-10-01: `ocean-colour-satellite` added.
+const EXPECTED_LAYER_ROW_COUNT = 64;
 
 const SUBGROUP_STORAGE_KEYS = [
   "sea_claims", "sea_life", "sea_analysis", "sea_sensors", "sea_woa",
@@ -193,6 +195,7 @@ const baseProps = {
   setCurrentsPlaying: noop,
   woaMeta: null,
   nutrientsMeta: null,
+  oceanColourMeta: null,
   oxygenMeta: null,
   carbonMeta: null,
   co2Meta: null,
@@ -223,6 +226,27 @@ const nutrientsMetaFull = {
   attribution: "Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00015",
   caveat: "Model output, not measurements.",
 };
+const oceanColourMetaFull = {
+  layer: "ocean-colour-satellite",
+  months: ["2026-07", "2026-08"],
+  latest: "2026-08",
+  month_products: { "2026-07": "my" as const, "2026-08": "nrt" as const },
+  variables: [{
+    key: "chl", label: "Chlorophyll-a (satellite)", unit: "mg m-3", field: "chl_mg_m3", scale: "log" as const,
+    vmin: 0.03, vmax: 10, ramp: [rampEntry, { pos: 1, hex: "#ffffff" }],
+    ticks: [{ value: 0.03, pos: 0 }, { value: 1, pos: 0.6 }], note: "Chlorophyll.",
+    stats: { p1: 0.03, p50: 0.13, p99: 10.9, n_valid: 10, n_nan: 2 },
+  }],
+  grid: { lat0: -89.75, lon0: -180, step: 0.25, n_lat: 719, n_lon: 1440, lat_max: 89.75, lon_max: 179.75, lon_global: true,
+          bounds: [-180.125, -89.875, 179.875, 89.875] as [number, number, number, number] },
+  products: {
+    my: { id: "M", title: "Multi-year", label: "multi-year (reprocessed)", doi: "10.48670/moi-00281", doi_url: "https://doi.org/10.48670/moi-00281", url: "https://example.org/m" },
+    nrt: { id: "N", title: "Near-real-time", label: "near-real-time", doi: "10.48670/moi-00279", doi_url: "https://doi.org/10.48670/moi-00279", url: "https://example.org/n" },
+  },
+  licence_url: "https://example.org/l",
+  attribution: "Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00281; https://doi.org/10.48670/moi-00279",
+  caveat: "Satellite observations.",
+};
 const oxygenMetaFull = {
   views: [{ key: "recent", label: "Recent O2", units: "µmol/kg", vmin: 0, vmax: 300, cmap: "viridis", ramp: [rampEntry], depths: [0, 100], diverging: false }],
   depths: [0, 100],
@@ -249,8 +273,8 @@ const currentsMetaFull = {
 };
 
 describe("Map3DControls source structure", () => {
-  it("finds exactly 63 layer rows (58 literal + 5 array-driven)", () => {
-    expect(LITERAL_IDS).toHaveLength(58);
+  it("finds exactly 64 layer rows (59 literal + 5 array-driven)", () => {
+    expect(LITERAL_IDS).toHaveLength(59);
     expect(MAPPED_IDS).toEqual(["reserved-areas", "relinquished-areas", "apeis", "protected-marine-sites", "eez"]);
     expect(ALL_LAYER_IDS).toHaveLength(EXPECTED_LAYER_ROW_COUNT);
     // No id appears twice — a duplicate id would mean two rows silently
@@ -390,13 +414,14 @@ describe("Map3DControls parent props", () => {
 
   it("matches with every optional prop populated (real shapes from Props)", () => {
     seedExpandedPanelState();
-    useMapStore.setState({ activeLayers: new Set(["ocean-currents", "woa-climatology", "ocean-nutrients-model", "ocean-carbon", "ocean-co2-surface", "oxygen-deox"]) });
+    useMapStore.setState({ activeLayers: new Set(["ocean-currents", "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "ocean-carbon", "ocean-co2-surface", "oxygen-deox"]) });
     const { container } = render(
       <Map3DControls
         {...baseProps}
         currentsMeta={{ surface: currentsMetaFull.surface, "1000m": currentsMetaFull.surface }}
         woaMeta={woaMetaFull}
         nutrientsMeta={nutrientsMetaFull}
+        oceanColourMeta={oceanColourMetaFull}
         oxygenMeta={oxygenMetaFull}
         carbonMeta={carbonMetaFull}
         co2Meta={co2MetaFull}

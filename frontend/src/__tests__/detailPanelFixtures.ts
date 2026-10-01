@@ -568,6 +568,11 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     properties: { _lat: 1.23, _lon: 4.56 },
   },
   {
+    layer: "ocean-colour-satellite",
+    id: "TEST",
+    properties: { _lat: 1.23, _lon: 4.56 },
+  },
+  {
     layer: "oxygen-deox",
     id: "TEST",
     properties: { _lat: 1.23, _lon: 4.56, depth: 100 },
@@ -635,4 +640,5 @@ export const LAYER_FIXTURES: LayerFixture[] = [
 // literals (`layer === "kbas" || layer === "kbas-mvt"`), so the count drops
 // by two for one layer. A drop of one here would mean something else was lost.
 // 77 -> 78 on 2026-10-01: `ocean-nutrients-model` point panel added.
-export const EXPECTED_LAYER_COUNT = 78;
+// 78 -> 79 on 2026-10-01: `ocean-colour-satellite` point panel added.
+export const EXPECTED_LAYER_COUNT = 79;

@@ -123,6 +123,7 @@ const LAYER_STRUCT = [
   { id: "svalbard-fjords-primary-production", layerId: "svalbard-fjords-primary-production", color: "#6366f1", symbol: "dot", syncKey: "svalbard-fjords-pp" },
   { id: "woa-climatology",      layerId: "woa-climatology",     color: "#50aac8", symbol: "polygon" },
   { id: "ocean-nutrients-model", layerId: "ocean-nutrients-model", color: "#3fb98a", symbol: "polygon", syncKey: "ocean-nutrients-model" },
+  { id: "ocean-colour-satellite", layerId: "ocean-colour-satellite", color: "#2fa5b8", symbol: "polygon", syncKey: "ocean-colour-satellite" },
   { id: "wod-oxygen",           layerId: "wod-oxygen",           color: "#0891b2", symbol: "dot",     syncKey: "wod-oxygen",
     colorRampHex: WOD_DECADE_HEX,
   },
@@ -836,6 +837,7 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li><span className="text-white/90">Ocean Currents</span> — {t("dates.fresh_currents")}{syncDates["currents-surface"] && <span className="text-white/75 font-mono ml-1">({syncDates["currents-surface"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Climatology (WOA)</span> — Static (WOA23 release)</li>
                   <li><span className="text-white/90">{t("layers.ocean-nutrients-model.label")}</span> — {t("dates.fresh_nutrients_model")}{syncDates["ocean-nutrients-model"] && <span className="text-white/75 font-mono ml-1">({syncDates["ocean-nutrients-model"]})</span>}</li>
+                  <li><span className="text-white/90">{t("layers.ocean-colour-satellite.label")}</span> — {t("dates.fresh_ocean_colour")}{syncDates["ocean-colour-satellite"] && <span className="text-white/75 font-mono ml-1">({syncDates["ocean-colour-satellite"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Carbon (GLODAP)</span> — Static (GLODAPv2.2016b release; observations 1972–2013){syncDates["glodap-carbon"] && <span className="text-white/75 font-mono ml-1">({syncDates["glodap-carbon"]})</span>}</li>
                   <li><span className="text-white/90">Surface Ocean CO₂ (SOCAT)</span> — Static (SOCATv2026 release){syncDates["socat-co2"] && <span className="text-white/75 font-mono ml-1">({syncDates["socat-co2"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Oxygen &amp; Deoxygenation</span> — Static (ISAS 2014–2018 release){syncDates["oxygen-deox"] && <span className="text-white/75 font-mono ml-1">({syncDates["oxygen-deox"]})</span>}</li>
@@ -1052,6 +1054,10 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li>
                     <span className="text-white/90 font-medium">{t("verify.nutrients_model_title")}</span>
                     <p className="mt-0.5">{t("verify.nutrients_model")} <span className="text-cyan-400">data.marine.copernicus.eu</span></p>
+                  </li>
+                  <li>
+                    <span className="text-white/90 font-medium">{t("verify.ocean_colour_title")}</span>
+                    <p className="mt-0.5">{t("verify.ocean_colour")} <span className="text-cyan-400">data.marine.copernicus.eu</span></p>
                   </li>
                   <li>
                     <span className="text-white/90 font-medium">Ocean Climatology (WOA)</span>

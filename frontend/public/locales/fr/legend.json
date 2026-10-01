@@ -766,6 +766,14 @@
       "description": "Nitrate de surface, chlorophylle-a, production primaire nette et N* (nitrate − 16 × phosphate) issus du système global d'analyse et de prévision biogéochimique de Copernicus Marine, en moyennes mensuelles sur une grille de 0,25°. Il s'agit de SORTIES DE MODÈLE (le modèle biogéochimique PISCES, forcé par l'analyse physique globale de Mercator, avec une chlorophylle contrainte par assimilation de la couleur de l'océan), et non de mesures. C'est une couche de contexte pour la productivité et l'apport en nutriments autour des zones d'intérêt.",
       "reading": "Choisissez une variable et un mois ; la couleur code la valeur au premier niveau du modèle (0,49 m). Le nitrate utilise une échelle de couleurs en racine carrée, la chlorophylle et la production une échelle logarithmique, pour que les faibles valeurs qui dominent le large restent distinctes ; lisez l'échelle sous les sélecteurs. N* utilise une échelle divergente centrée sur 0 : négatif signifie moins de nitrate que de phosphate au rapport 16:1 utilisé par le plancton, positif un excès de nitrate. Cliquez sur la carte pour la valeur exacte de la maille la plus proche.",
       "limitations": "Sortie de modèle à 0,25° (environ 25 km), pas des mesures ; la grille s'arrête à 80°S et n'a aucune valeur sur la terre ni sur la glace de mer. La production primaire nette est ici un taux volumique en surface (mg m⁻³ par jour), et NON une intégrale sur la colonne d'eau ; elle n'est donc pas comparable aux produits satellitaires en mg C m⁻² par jour. N* est calculé ici sans décalage constant. Les moyennes mensuelles lissent les efflorescences et les tourbillons plus courts qu'un mois. Seuls le mois le plus récent et les 11 précédents sont conservés."
+    },
+    "ocean-colour-satellite": {
+      "label": "Couleur de l'océan (satellite)",
+      "source": "E.U. Copernicus Marine Service Information ; Global Ocean Colour (Copernicus-GlobColour), Bio-Geo-Chemical, L4 mensuel, pluriannuel (OCEANCOLOUR_GLO_BGC_L4_MY_009_104, https://doi.org/10.48670/moi-00281) et quasi temps réel (OCEANCOLOUR_GLO_BGC_L4_NRT_009_102, https://doi.org/10.48670/moi-00279), ACRI-ST.",
+      "updateFreq": "Vérifié chaque jour ; un nouveau mois est ajouté quand un produit le publie. Chaque mois vient du produit pluriannuel (retraité) quand il l'a, sinon du produit quasi temps réel, et le panneau indique lequel. Le mois le plus récent et les 11 précédents sont conservés.",
+      "description": "Concentration en chlorophylle-a et production primaire observées depuis l'espace par des capteurs de couleur de l'océan fusionnés (Copernicus-GlobColour), présentées en moyennes mensuelles sur une grille de 0,25°. Ce sont des observations satellitaires, moyennées ici depuis la grille de 4 km : les 36 cellules sources de chaque cellule de 0,25° sont moyennées sans les cellules manquantes, et une cellule sans observation reste vide.",
+      "reading": "Choisissez une variable et un mois ; lisez l'échelle sous les sélecteurs (toutes deux logarithmiques, pour que les faibles valeurs qui dominent le large restent distinguables). Les nuages, la glace de mer et la nuit polaire laissent des lacunes, vides et jamais nulles. Cliquez sur la carte pour la valeur exacte de la cellule la plus proche, la part de cellules sources derrière elle et le produit qui a fourni le mois.",
+      "limitations": "La chlorophylle satellitaire ne voit que la couche de surface et seulement là où il y a de la lumière et pas de nuage ; les valeurs côtières et des hautes latitudes sont les moins sûres. La production primaire est une intégrale sur la colonne d'eau calculée par un modèle à partir de la chlorophylle satellitaire (mg m⁻² par jour) et n'est pas comparable au taux volumique de surface de la couche modélisée. Le produit quasi temps réel est moins traité que le pluriannuel et un mois peut changer quand il est remplacé. Seuls le mois le plus récent et les 11 précédents sont conservés."
     }
   },
   "header": {
@@ -1016,7 +1024,8 @@
     "fresh_waterRisk": "jeu de données statique (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "Général",
     "fresh_apiResponses": "mis en cache côté serveur ; votre navigateur peut ajouter une couche supplémentaire de mise en cache",
-    "fresh_nutrients_model": "Mis à jour chaque mois par le producteur ; la plateforme vérifie chaque jour et conserve 12 mois"
+    "fresh_nutrients_model": "Mis à jour chaque mois par le producteur ; la plateforme vérifie chaque jour et conserve 12 mois",
+    "fresh_ocean_colour": "Mis à jour chaque mois par le producteur ; cette plateforme vérifie chaque jour et conserve 12 mois"
   },
   "verify": {
     "primaryTitle": "Sources primaires",
@@ -1143,7 +1152,9 @@
       "greenlandPrimaryProduction": "Production primaire de la mer du Groenland : comparer une station par son étiquette d'événement sur doi.org/10.1594/PANGAEA.965985."
     },
     "nutrients_model_title": "Nutriments et productivité (modèle)",
-    "nutrients_model": "Comparez une maille avec le visualiseur ou le service de téléchargement du produit sur"
+    "nutrients_model": "Comparez une maille avec le visualiseur ou le service de téléchargement du produit sur",
+    "ocean_colour_title": "Couleur de l'océan (satellite)",
+    "ocean_colour": "Comparez une cellule avec le visualiseur ou le service de téléchargement du produit sur"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

@@ -67,6 +67,9 @@ export const POINT_LAYERS = {
   // state a link already carries (nutrientsVariable / nutrientsMonth), and the
   // panel shows all four variables for the displayed month.
   "ocean-nutrients-model":   { routingKey: "ocean-nutrients-model",   idPrefix: "ocean-nutrients-model",   extra: null     },
+  // Same: the coordinate is the whole address; the panel shows both variables for the
+  // displayed month (oceanColourMonth in the link's display state).
+  "ocean-colour-satellite":  { routingKey: "ocean-colour-satellite",  idPrefix: "ocean-colour-satellite",  extra: null     },
   // Surface only — the selector here picks a decade, not a depth.
   "ocean-co2-surface":       { routingKey: "ocean-co2-surface",       idPrefix: "ocean-co2-surface",       extra: "decade" },
   // Coordinate is the whole address; these panels take no selector.

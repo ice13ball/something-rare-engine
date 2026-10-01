@@ -54,6 +54,11 @@ export const LAYER_TOOLTIPS_META = {
     sourceUrl: "https://doi.org/10.48670/moi-00015",
     pairsWith: ["woa-climatology", "ocean-currents", "argo"],
   },
+  "ocean-colour-satellite": {
+    source: "E.U. Copernicus Marine Service — OCEANCOLOUR_GLO_BGC_L4_MY_009_104 and _NRT_009_102 (Copernicus-GlobColour satellite observations, monthly)",
+    sourceUrl: "https://doi.org/10.48670/moi-00281",
+    pairsWith: ["ocean-nutrients-model", "woa-climatology", "ocean-currents"],
+  },
   "ocean-carbon": {
     source: "GLODAP v2.2016b Mapped Climatology (GEOMAR / NOAA NCEI)",
     sourceUrl: "https://glodap.info/index.php/mapped-data-product/",

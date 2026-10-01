@@ -64,7 +64,7 @@ _EXPECTED_ALL_TASK_NAMES = {
     "argo-history-backfill", "worms-taxonomy-sync", "sio-bic-catalogue-sync",
     "slow-sources-daily-tick", "monitoring-density-refresh",
     "land-layers-sync", "currents-daily-bake", "currents-history-backfill",
-    "ocean-nutrients-model-daily-bake",
+    "ocean-nutrients-model-daily-bake", "ocean-colour-satellite-daily-bake",
     "woa-startup-bake", "woa-anomaly-backfill", "carbon-startup-bake",
     "acidification-startup-bake", "chi-startup-bake",
     "coral-exposure-startup-bake", "socat-startup-bake",

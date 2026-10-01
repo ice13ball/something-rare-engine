@@ -48,6 +48,7 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "oxygen-deox",            order_idx: 2076, default_on: false, modes: ["ocean","continue"] },
   { id: "wod-oxygen",             order_idx: 2077, default_on: false, modes: ["ocean","continue"] },
   { id: "ocean-nutrients-model",  order_idx: 73,   default_on: false, modes: ["ocean","continue"] },
+  { id: "ocean-colour-satellite", order_idx: 74,   default_on: false, modes: ["ocean","continue"] },
   { id: "geotraces",             order_idx: 2074, default_on: false, modes: ["ocean","continue"] },
   { id: "memento",               order_idx: 2078, default_on: false, modes: ["ocean","continue"] },
   { id: "surface-water",          order_idx: 2100, default_on: false, modes: ["land"] },
@@ -153,6 +154,7 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
  */
 const DECK_ID_PREFIX_TO_TOGGLE: ReadonlyArray<readonly [string, string]> = [
   ["ocean-nutrients-model-bitmap-", "ocean-nutrients-model"],
+  ["ocean-colour-satellite-bitmap-", "ocean-colour-satellite"],
 ];
 
 /** The toggle id a deck.gl layer id belongs to (exact map first, then prefixes). */

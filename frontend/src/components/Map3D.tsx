@@ -12,6 +12,7 @@ import { FlyToInterpolator } from "@deck.gl/core";
 import { Map as ReactMap } from "react-map-gl/maplibre";
 import type { FeatureCollection } from "geojson";
 import { effectiveBgcMonth, effectiveBgcVariable, wrapLongitude, type BgcModelMeta } from "../types/bgcModel";
+import { effectiveOceanColourMonth, effectiveOceanColourVariable, type OceanColourMeta } from "../types/oceanColour";
 import { booleanPointInPolygon, centroid, distance as turfDistance } from "@turf/turf";
 import { useMapStore } from "../store/mapStore";
 import { DetailPanel } from "./DetailPanel";
@@ -331,6 +332,7 @@ const NO_FLY_TO = [
   // but isn't wired into flyToLayer's layerMap.
   "woa-climatology",
   "ocean-nutrients-model",
+  "ocean-colour-satellite",
   "oxygen-deox",
   "ocean-carbon",
   "ocean-co2-surface",
@@ -413,6 +415,8 @@ export function Map3D() {
   const setCurrentsPlaying = useMapStore((s) => s.setCurrentsPlaying);
   const nutrientsVariable  = useMapStore((s) => s.nutrientsVariable);
   const nutrientsMonth     = useMapStore((s) => s.nutrientsMonth);
+  const oceanColourVariable = useMapStore((s) => s.oceanColourVariable);
+  const oceanColourMonth   = useMapStore((s) => s.oceanColourMonth);
   const woaVariable        = useMapStore((s) => s.woaVariable);
   const woaDepth           = useMapStore((s) => s.woaDepth);
   const woaDisplayMode     = useMapStore((s) => s.woaDisplayMode);
@@ -478,6 +482,8 @@ export function Map3D() {
   const [woaMeta,         setWoaMeta]         = useState<{ variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null>(null);
   const [woaTiles,        setWoaTiles]        = useState<{ bounds: [number, number, number, number]; image: HTMLCanvasElement }[] | null>(null);
   const [bgcMeta,         setBgcMeta]         = useState<BgcModelMeta | null>(null);
+  const [ocMeta,         setOcMeta]         = useState<OceanColourMeta | null>(null);
+  const [ocTiles,        setOcTiles]        = useState<{ bounds: [number, number, number, number]; image: HTMLCanvasElement }[] | null>(null);
   const [bgcTiles,        setBgcTiles]        = useState<{ bounds: [number, number, number, number]; image: HTMLCanvasElement }[] | null>(null);
   const [carbonMeta,      setCarbonMeta]      = useState<{ variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null>(null);
   const [carbonTiles,     setCarbonTiles]     = useState<{ bounds: [number, number, number, number]; image: HTMLCanvasElement }[] | null>(null);
@@ -650,6 +656,7 @@ export function Map3D() {
   const currentsFetchedRef      = useRef(false);
   const woaFetchedRef           = useRef(false);
   const bgcFetchedRef           = useRef(false);
+  const ocFetchedRef            = useRef(false);
   const oxygenFetchedRef        = useRef(false);
   const carbonFetchedRef        = useRef(false);
   const acidFetchedRef          = useRef(false);
@@ -1090,6 +1097,73 @@ export function Map3D() {
     })();
     return () => { cancelled = true; };
   }, [bgcActive, bgcMeta, bgcMonthEff, bgcVarEff]);
+
+  // ── Ocean colour (satellite): meta, then one PNG per variable + month ──────────
+  const ocActive = activeLayers.has("ocean-colour-satellite");
+  const OC_LABEL = "Ocean colour (satellite)";
+  // The store holds a choice; the product decides what exists (see effectiveBgcMonth).
+  const ocMonthEff = effectiveOceanColourMonth(ocMeta, oceanColourMonth);
+  const ocVarEff = effectiveOceanColourVariable(ocMeta, oceanColourVariable);
+
+  useEffect(() => {
+    if (!ocActive || ocFetchedRef.current) return;
+    ocFetchedRef.current = true;
+    fetch(`${API}/api/v1/ocean-colour/meta`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((m: OceanColourMeta) => {
+        if (!m?.variables?.length || !m.latest || !m.grid) throw new Error("empty ocean-colour meta");
+        setOcMeta(m);
+      })
+      .catch(() => {
+        ocFetchedRef.current = false; // allow retry on next toggle
+        setFailedLayers((prev) => (prev.includes(OC_LABEL) ? prev : [...prev, OC_LABEL]));
+      });
+  }, [ocActive]);
+
+  // Slice the PNG into small BitmapLayer quads, exactly as the model layer does (same
+  // 0.25° pixel-edge bounds from /meta, rows N -> S, stop at the web-mercator limit).
+  useEffect(() => {
+    if (!ocActive || !ocMeta?.grid || !ocMonthEff || !ocVarEff) { setOcTiles(null); return; }
+    let cancelled = false;
+    setOcTiles(null); // never leave the previous variable/month on screen under a new label
+    const grid = ocMeta.grid;
+    (async () => {
+      try {
+        const resp = await fetch(`${API}/api/v1/ocean-colour/${ocVarEff}/${ocMonthEff}.png`);
+        if (!resp.ok) throw new Error(String(resp.status));
+        const bmp = await createImageBitmap(await resp.blob());
+        const W = bmp.width, H = bmp.height;
+        const [west, south, east, north] = grid.bounds;
+        const lonOf = (px: number) => west + (px / W) * (east - west);
+        const latOf = (py: number) => north - (py / H) * (north - south);
+        const MAXLAT = 85.0511;
+        const yTop = Math.max(0, Math.round(((north - MAXLAT) / (north - south)) * H));
+        const COLS = 9, ROWS = 6;
+        const xs = Array.from({ length: COLS + 1 }, (_, i) => Math.round((i * W) / COLS));
+        const ys = Array.from({ length: ROWS + 1 }, (_, i) => Math.round(yTop + (i * (H - yTop)) / ROWS));
+        const tiles: { bounds: [number, number, number, number]; image: HTMLCanvasElement }[] = [];
+        for (let cy = 0; cy < ROWS; cy++) {
+          for (let cx = 0; cx < COLS; cx++) {
+            const sx = xs[cx], sw = xs[cx + 1] - xs[cx];
+            const sy = ys[cy], sh = ys[cy + 1] - ys[cy];
+            if (sw <= 0 || sh <= 0) continue;
+            const cv = document.createElement("canvas");
+            cv.width = sw; cv.height = sh;
+            cv.getContext("2d")!.drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
+            tiles.push({ bounds: [lonOf(sx), latOf(ys[cy + 1]), lonOf(xs[cx + 1]), latOf(sy)], image: cv });
+          }
+        }
+        bmp.close();
+        if (!cancelled) setOcTiles(tiles);
+      } catch {
+        if (!cancelled) {
+          setOcTiles(null);
+          setFailedLayers((prev) => (prev.includes(OC_LABEL) ? prev : [...prev, OC_LABEL]));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ocActive, ocMeta, ocMonthEff, ocVarEff]);
 
   // ── Ocean Carbon (GLODAP): fetch meta when layer activates ─────────────────
   const carbonActive = activeLayers.has("ocean-carbon");
@@ -3581,6 +3655,16 @@ export function Map3D() {
       pickable: false,
     })) : null,
 
+    // Ocean colour (satellite): same sort-order and picking rules as the model layer above;
+    // ids start with "ocean-colour-satellite-bitmap-", mapped back by toggleIdForDeckLayer.
+    ocActive && ocTiles && ocMonthEff && ocVarEff ? ocTiles.map((tile, i) => new BitmapLayer({
+      id: `ocean-colour-satellite-bitmap-${ocVarEff}-${ocMonthEff}-${i}`,
+      image: tile.image,
+      bounds: tile.bounds,
+      opacity: 0.72,
+      pickable: false,
+    })) : null,
+
     oxygenActive && oxygenDisplayMode === "field" && oxygenTiles ? oxygenTiles.map((tile, i) => new BitmapLayer({
       id: `oxygen-deox-bitmap-${oxygenView}-${oxygenDepth}-${i}`,
       bounds: tile.bounds,
@@ -5590,6 +5674,16 @@ export function Map3D() {
                 properties: { _lat: lat, _lon: lng },
               });
             }
+            // Ocean colour (satellite): same rule and the same id shape as the model layer.
+            if (activeLayers.has("ocean-colour-satellite") && info.coordinate) {
+              const lat = info.coordinate[1];
+              const lng = wrapLongitude(info.coordinate[0]);
+              setSelectedFeature({
+                id: `ocean-colour-satellite:${lat},${lng}`,
+                layer: "ocean-colour-satellite",
+                properties: { _lat: lat, _lon: lng },
+              });
+            }
             // With bathymetry on, also show the ephemeral depth popup.
             if (activeLayers.has("bathymetry") && info.coordinate && typeof info.x === "number") {
               const [lon, lat] = info.coordinate;
@@ -5726,6 +5820,7 @@ export function Map3D() {
         setCurrentsPlaying={setCurrentsPlaying}
         woaMeta={woaMeta}
         nutrientsMeta={bgcMeta}
+        oceanColourMeta={ocMeta}
         oxygenMeta={oxygenMeta}
         carbonMeta={carbonMeta}
         co2Meta={co2Meta}

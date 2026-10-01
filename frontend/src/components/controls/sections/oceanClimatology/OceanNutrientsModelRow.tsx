@@ -29,7 +29,7 @@ function tickShift(pos: number): string {
   return "translateX(-50%)";
 }
 
-function ColourScale({ v }: { v: BgcModelVariable }) {
+export function ColourScale({ v }: { v: BgcModelVariable }) {
   const { t } = useTranslation(["panels", "common"]);
   const stops = v.ramp.map((s) => `${s.hex} ${Math.round(s.pos * 100)}%`).join(", ");
   const scaleNote = v.scale === "log" ? t("nutrients.scaleLog")

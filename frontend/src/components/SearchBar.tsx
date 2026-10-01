@@ -41,6 +41,7 @@ const NO_SEARCH = [
   "ocean-currents",
   "woa-climatology",
   "ocean-nutrients-model",
+  "ocean-colour-satellite",
   "oxygen-deox",
   "ocean-carbon",
   "ocean-co2-surface",

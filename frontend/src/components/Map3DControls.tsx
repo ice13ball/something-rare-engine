@@ -19,6 +19,7 @@ import { AnalysisSection } from "./controls/sections/AnalysisSection";
 import { SensorsSection } from "./controls/sections/SensorsSection";
 import { OceanClimatologySection } from "./controls/sections/OceanClimatologySection";
 import type { BgcModelMeta } from "../types/bgcModel";
+import type { OceanColourMeta } from "../types/oceanColour";
 import { InfrastructureSection } from "./controls/sections/InfrastructureSection";
 import { UnderwaterNoiseSection } from "./controls/sections/UnderwaterNoiseSection";
 import { LandCoreSection } from "./controls/sections/LandCoreSection";
@@ -37,6 +38,8 @@ interface Props {
   woaMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
   // Nutrients & productivity (model) meta — passed from Map3D once the layer first activates.
   nutrientsMeta?: BgcModelMeta | null;
+  // Ocean colour (satellite) meta — passed from Map3D once the layer first activates.
+  oceanColourMeta?: OceanColourMeta | null;
   // Ocean Oxygen meta — passed from Map3D once the layer first activates.
   oxygenMeta?: { views: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp: Array<{ pos: number; hex: string }>; depths: number[]; diverging: boolean }>; depths: number[]; attribution: string } | null;
   // Ocean Carbon (GLODAP) meta — passed from Map3D once the layer first activates.
@@ -56,6 +59,7 @@ export function Map3DControls({
   setCurrentsPlaying,
   woaMeta,
   nutrientsMeta,
+  oceanColourMeta,
   oxygenMeta,
   carbonMeta,
   co2Meta,
@@ -375,7 +379,7 @@ export function Map3DControls({
             <SensorsSection expandedFilter={expandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} currentsMeta={currentsMeta} currentsDate={currentsDate} setCurrentsDate={setCurrentsDate} currentsPlaying={currentsPlaying} setCurrentsPlaying={setCurrentsPlaying} />
 
             {/* ── Ocean Climatology ─────────────────────────────────── */}
-            <OceanClimatologySection expandedFilter={expandedFilter} setExpandedFilter={setExpandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} woaMeta={woaMeta} nutrientsMeta={nutrientsMeta} oxygenMeta={oxygenMeta} carbonMeta={carbonMeta} co2Meta={co2Meta} />
+            <OceanClimatologySection expandedFilter={expandedFilter} setExpandedFilter={setExpandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} woaMeta={woaMeta} nutrientsMeta={nutrientsMeta} oceanColourMeta={oceanColourMeta} oxygenMeta={oxygenMeta} carbonMeta={carbonMeta} co2Meta={co2Meta} />
 
             {/* ── Infrastructure ────────────────────────────────────── */}
             {/* ── Infrastructure ────────────────────────────────────── */}

@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from . import bgc_model, carbon, climatology, currents, habitat
+from . import bgc_model, carbon, climatology, currents, habitat, ocean_colour
 
 router = APIRouter()
 router.include_router(carbon.router)
@@ -42,6 +42,7 @@ router.include_router(habitat.router)
 router.include_router(climatology.router)
 router.include_router(currents.router)
 router.include_router(bgc_model.router)
+router.include_router(ocean_colour.router)
 
 
 def clear_caches() -> None:

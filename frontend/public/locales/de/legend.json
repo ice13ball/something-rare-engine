@@ -766,6 +766,14 @@
       "description": "Oberflächennitrat, Chlorophyll-a, Nettoprimärproduktion und N* (Nitrat − 16 × Phosphat) aus dem globalen biogeochemischen Analyse- und Vorhersagesystem von Copernicus Marine, als Monatsmittel auf einem 0,25°-Gitter. Das ist MODELLAUSGABE (das biogeochemische Modell PISCES, angetrieben von der globalen Physikanalyse von Mercator, mit durch assimilierte Ozeanfarbe gestütztem Chlorophyll), keine Messung. Es ist eine Kontextebene für Produktivität und Nährstoffnachschub rund um interessierende Gebiete.",
       "reading": "Wählen Sie eine Variable und einen Monat; die Farbe kodiert den Wert auf der ersten Modellebene (0,49 m). Nitrat nutzt eine Farbskala mit Quadratwurzel, Chlorophyll und Produktion eine logarithmische, damit die niedrigen Werte, die den offenen Ozean prägen, unterscheidbar bleiben; die Skala steht unter den Auswahlfeldern. N* nutzt eine divergierende Skala mit Mitte bei 0: negativ heißt weniger Nitrat als Phosphat im Verhältnis 16:1, das Plankton nutzt, positiv ein Nitratüberschuss. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle.",
       "limitations": "Modellausgabe mit 0,25° (etwa 25 km), keine Messwerte; das Gitter endet bei 80°S und hat über Land und Meereis keine Werte. Die Nettoprimärproduktion ist hier eine volumetrische Rate an der Oberfläche (mg m⁻³ pro Tag), KEIN Integral über die Wassersäule und daher nicht mit Satellitenprodukten in mg C m⁻² pro Tag vergleichbar. N* wird hier ohne konstanten Offset berechnet. Monatsmittel glätten Blüten und Wirbel, die kürzer als ein Monat sind. Nur der neueste Monat und die 11 davor werden vorgehalten."
+    },
+    "ocean-colour-satellite": {
+      "label": "Ozeanfarbe (Satellit)",
+      "source": "E.U. Copernicus Marine Service Information; Global Ocean Colour (Copernicus-GlobColour), Bio-Geo-Chemical, L4 monatlich, mehrjährig (OCEANCOLOUR_GLO_BGC_L4_MY_009_104, https://doi.org/10.48670/moi-00281) und nahezu in Echtzeit (OCEANCOLOUR_GLO_BGC_L4_NRT_009_102, https://doi.org/10.48670/moi-00279), ACRI-ST.",
+      "updateFreq": "Täglich geprüft; ein neuer Monat kommt hinzu, sobald ein Produkt ihn veröffentlicht. Jeder Monat stammt aus dem mehrjährigen (neu prozessierten) Produkt, wenn es ihn hat, sonst aus dem Nahe-Echtzeit-Produkt; das Panel nennt, aus welchem. Der neueste Monat und die 11 davor werden behalten.",
+      "description": "Chlorophyll-a-Konzentration und Primärproduktion, aus dem All von zusammengeführten Ozeanfarbsensoren (Copernicus-GlobColour) beobachtet, als Monatsmittel auf einem 0,25°-Gitter. Das sind Satellitenbeobachtungen, hier aus dem 4-km-Gitter gemittelt: Die 36 Quellzellen jeder 0,25°-Zelle werden ohne fehlende Zellen gemittelt, und eine Zelle ohne Beobachtung bleibt leer.",
+      "reading": "Wählen Sie eine Variable und einen Monat; die Skala lesen Sie unter den Auswahlfeldern ab (beide sind logarithmisch, damit die niedrigen Werte, die den offenen Ozean prägen, unterscheidbar bleiben). Wolken, Meereis und Polarnacht hinterlassen Lücken, die leer sind, nie null. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle, den Anteil der Quellzellen dahinter und das Produkt, das den Monat geliefert hat.",
+      "limitations": "Satellitenchlorophyll sieht nur die Oberflächenschicht und nur dort, wo Licht und keine Wolken sind; Küsten- und Hochbreitenwerte sind am unsichersten. Die Primärproduktion ist ein von einem Modell aus Satellitenchlorophyll abgeleitetes Integral über die Wassersäule (mg m⁻² pro Tag) und nicht mit der volumetrischen Oberflächenrate der Modellebene vergleichbar. Das Nahe-Echtzeit-Produkt ist weniger prozessiert als das mehrjährige, und ein Monat kann sich ändern, wenn er ersetzt wird. Nur der neueste Monat und die 11 davor werden behalten."
     }
   },
   "header": {
@@ -1016,7 +1024,8 @@
     "fresh_waterRisk": "statischer Datensatz (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "Allgemein",
     "fresh_apiResponses": "serverseitig zwischengespeichert; Ihr Browser kann eine zusätzliche Caching-Schicht hinzufügen",
-    "fresh_nutrients_model": "Vom Produzenten monatlich aktualisiert; die Plattform prüft täglich und hält 12 Monate vor"
+    "fresh_nutrients_model": "Vom Produzenten monatlich aktualisiert; die Plattform prüft täglich und hält 12 Monate vor",
+    "fresh_ocean_colour": "Vom Produzenten monatlich aktualisiert; diese Plattform prüft täglich und behält 12 Monate"
   },
   "verify": {
     "primaryTitle": "Primärquellen",
@@ -1143,7 +1152,9 @@
       "greenlandPrimaryProduction": "Primärproduktion der Grönlandsee: eine Station über ihre Event-Bezeichnung unter doi.org/10.1594/PANGAEA.965985 vergleichen."
     },
     "nutrients_model_title": "Nährstoffe & Produktivität (Modell)",
-    "nutrients_model": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter"
+    "nutrients_model": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter",
+    "ocean_colour_title": "Ozeanfarbe (Satellit)",
+    "ocean_colour": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

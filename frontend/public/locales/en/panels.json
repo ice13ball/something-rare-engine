@@ -351,6 +351,9 @@
     },
     "oceanNutrientsModel": {
       "toggle": "Nutrients & productivity (model)"
+    },
+    "oceanColourSatellite": {
+      "toggle": "Ocean colour (satellite)"
     }
   },
   "filters": {
@@ -538,7 +541,8 @@
       "greenland-primary-production": "Gross primary production of carbon measured by oxygen evolution at 12 Greenland Sea stations in August 2021 and August 2022 (PANGAEA). An areal rate in mg C per square metre per day — marker size follows the rate.",
       "greenland-sea-poc-aoc2025": "Particulate organic carbon at 32 stations, Atlantic-Arctic Ocean Change cruise (AOC2025), Greenland Sea, 19–31 May 2025 (Institute of Oceanology Polish Academy of Sciences, CC-BY 4.0). The source's own metadata states a temporal extent that does not match its title or its data — shown, not corrected.",
       "svalbard-fjords-primary-production": "In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, used with permission — the source publishes no open licence. The source's own metadata states station and incubation counts that differ from the data — shown, not corrected.",
-      "ocean-nutrients-model": "Model output, not measurements: surface nitrate, chlorophyll-a, net primary production (a volumetric rate at the surface, not a column integral) and N* (nitrate − 16 × phosphate) from the Copernicus Marine global biogeochemical model (PISCES, 0.25°). Monthly means for the newest available month and the 11 before it. Click the map for the exact value of the nearest cell."
+      "ocean-nutrients-model": "Model output, not measurements: surface nitrate, chlorophyll-a, net primary production (a volumetric rate at the surface, not a column integral) and N* (nitrate − 16 × phosphate) from the Copernicus Marine global biogeochemical model (PISCES, 0.25°). Monthly means for the newest available month and the 11 before it. Click the map for the exact value of the nearest cell.",
+      "ocean-colour-satellite": "Satellite observations: chlorophyll-a and primary production (a water-column integral) from Copernicus-GlobColour ocean colour, monthly means averaged to 0.25°. Cloud, sea ice and polar night leave gaps. Click the map for the exact value of the nearest cell."
     },
     "densityScaleLabel": "Records per cell",
     "argoReadingHeading": "How to read the readings",
@@ -1544,6 +1548,30 @@
       "noData": "No model value here (land or sea ice).",
       "notCovered": "Outside the model grid, which ends at 80°S.",
       "failed": "Could not load the model values."
+    }
+  },
+  "oceanColour": {
+    "satelliteNote": "Satellite observations, averaged here from 4 km to 0.25°. Gaps are cloud, sea ice, polar night or land.",
+    "ppHint": "Primary production here is a water-column integral (mg m⁻² per day). It cannot be compared with the surface volumetric rate of the Nutrients & productivity (model) layer.",
+    "gapHint": "Empty cells have no satellite observation that month; they are not zero.",
+    "clickHint": "Click the map for the exact value of the nearest 0.25° cell.",
+    "variable": {
+      "chl": "Chlorophyll-a (satellite)",
+      "pp": "Primary production (satellite, column)"
+    },
+    "product": {
+      "my": "multi-year (reprocessed)",
+      "nrt": "near-real-time"
+    },
+    "panel": {
+      "badge": "Ocean colour (satellite)",
+      "where": "Nearest 0.25° cell · {{lat}}°, {{lon}}° · monthly mean {{month}}",
+      "product": "Source product: {{product}}",
+      "section": "Satellite values",
+      "footnote": "Monthly means of satellite ocean-colour observations, averaged from 4 km to 0.25°. The last column is the share of the 36 source cells that held a value. The colours on the map are 8-bit; these numbers come from the full-precision grid.",
+      "noData": "No satellite observation this month (cloud, sea ice, polar night or land).",
+      "notCovered": "Outside the grid, which ends at 89.875° latitude.",
+      "failed": "Could not load the satellite values."
     }
   }
 }

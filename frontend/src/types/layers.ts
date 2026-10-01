@@ -20,7 +20,7 @@ export const SEA_LAYER_IDS = [
   "noise-risk", "oceansites", "onc", "onc-instruments", "chess", "submarine-cables", "ports",
   "tectonic-plates", "vessel-events", "ais-live", "monitoring-density", "offshore-activities",
   "deepdata-stations", "hydrophone-stations", "bathymetry", "ocean-currents",
-  "woa-climatology", "ocean-nutrients-model", "oxygen-deox", "wod-oxygen", "memento", "geotraces", "methane-seeps",
+  "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "oxygen-deox", "wod-oxygen", "memento", "geotraces", "methane-seeps",
   "ocean-carbon", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
   "seabed-substrate", "arctic-sediment-carbon", "mosaic-sediment", "vme-suitability",
   "ocean-acidification", "coral-acid-exposure", "cumulative-human-impact",
@@ -351,6 +351,15 @@ export const LAYER_CONFIGS = [
     fillRgba: [63, 185, 138, 0],
     lineRgba: [63, 185, 138, 0],
     description: "Model output, not measurements: surface nitrate, chlorophyll-a, volumetric net primary production and N* from the Copernicus Marine global biogeochemical model (PISCES), monthly means at 0.25°. The newest month and the 11 before it.",
+  },
+  {
+    id: "ocean-colour-satellite",
+    label: "Ocean colour (satellite)",
+    color: "#2fa5b8",
+    // Raster colour-field layer — fill/line RGBA are placeholders to satisfy the type.
+    fillRgba: [47, 165, 184, 0],
+    lineRgba: [47, 165, 184, 0],
+    description: "Satellite observations: chlorophyll-a and column-integrated primary production from the Copernicus-GlobColour ocean-colour product, monthly means averaged to 0.25°. The newest month and the 11 before it; cloud, sea ice and polar night leave gaps.",
   },
   {
     id: "ocean-carbon",

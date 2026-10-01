@@ -48,7 +48,7 @@ KNOWN_LAYER_IDS: frozenset[str] = frozenset({
     "argo", "oceansites", "onc", "onc-instruments", "hydrophone-stations",
     "ocean-currents",
     # sea_woa
-    "woa-climatology", "ocean-nutrients-model", "ocean-carbon", "ocean-co2-surface", "wod-oxygen",
+    "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "ocean-carbon", "ocean-co2-surface", "wod-oxygen",
     "memento", "geotraces", "mosaic-sediment", "methane-seeps", "oxygen-deox",
     "arctic-rivers", "arctic-catchments", "arctic-sediment-carbon",
     "permafrost-thaw", "sios-svalbard", "seabed-substrate", "coastdom", "greenland-primary-production",

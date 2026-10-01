@@ -351,6 +351,9 @@
     },
     "oceanNutrientsModel": {
       "toggle": "Nutriments et productivité (modèle)"
+    },
+    "oceanColourSatellite": {
+      "toggle": "Couleur de l'océan (satellite)"
     }
   },
   "filters": {
@@ -538,7 +541,8 @@
       "greenland-primary-production": "Production primaire brute de carbone mesurée par dégagement d'oxygène à 12 stations de la mer du Groenland en août 2021 et août 2022 (PANGAEA). Un taux surfacique en mg C par mètre carré et par jour — la taille du marqueur suit ce taux.",
       "greenland-sea-poc-aoc2025": "Carbone organique particulaire à 32 stations, campagne Atlantic-Arctic Ocean Change (AOC2025), mer du Groenland, 19–31 mai 2025 (Institut d'océanologie de l'Académie polonaise des sciences, CC-BY 4.0). Les métadonnées de la source indiquent une étendue temporelle qui ne correspond ni au titre ni aux données — montrée, non corrigée.",
       "svalbard-fjords-primary-production": "Production primaire in situ, Kongsfjorden et Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, utilisé avec permission — la source ne publie aucune licence ouverte. Les métadonnées de la source indiquent des nombres de stations et d'incubations différents des données — montrés, non corrigés.",
-      "ocean-nutrients-model": "Sortie de modèle, pas des mesures : nitrate de surface, chlorophylle-a, production primaire nette (taux volumique en surface, et non intégrale sur la colonne) et N* (nitrate − 16 × phosphate) issus du modèle biogéochimique global de Copernicus Marine (PISCES, 0,25°). Moyennes mensuelles du mois le plus récent disponible et des 11 précédents. Cliquez sur la carte pour la valeur exacte de la maille la plus proche."
+      "ocean-nutrients-model": "Sortie de modèle, pas des mesures : nitrate de surface, chlorophylle-a, production primaire nette (taux volumique en surface, et non intégrale sur la colonne) et N* (nitrate − 16 × phosphate) issus du modèle biogéochimique global de Copernicus Marine (PISCES, 0,25°). Moyennes mensuelles du mois le plus récent disponible et des 11 précédents. Cliquez sur la carte pour la valeur exacte de la maille la plus proche.",
+      "ocean-colour-satellite": "Observations satellitaires : chlorophylle-a et production primaire (intégrale sur la colonne d'eau) issues de la couleur de l'océan Copernicus-GlobColour, moyennes mensuelles ramenées à 0,25°. Les nuages, la glace de mer et la nuit polaire laissent des lacunes. Cliquez sur la carte pour la valeur exacte de la cellule la plus proche."
     },
     "densityScaleLabel": "Enregistrements par cellule",
     "argoReadingHeading": "Comment lire les mesures",
@@ -1544,6 +1548,30 @@
       "noData": "Aucune valeur du modèle ici (terre ou glace de mer).",
       "notCovered": "Hors de la grille du modèle, qui s'arrête à 80°S.",
       "failed": "Impossible de charger les valeurs du modèle."
+    }
+  },
+  "oceanColour": {
+    "satelliteNote": "Observations satellitaires, moyennées ici de 4 km à 0,25°. Les lacunes sont des nuages, de la glace de mer, la nuit polaire ou la terre.",
+    "ppHint": "La production primaire est ici une intégrale sur la colonne d'eau (mg m⁻² par jour). Elle n'est pas comparable au taux volumique de surface de la couche Nutriments et productivité (modèle).",
+    "gapHint": "Les cellules vides n'ont pas d'observation satellitaire ce mois-là ; ce n'est pas zéro.",
+    "clickHint": "Cliquez sur la carte pour la valeur exacte de la cellule de 0,25° la plus proche.",
+    "variable": {
+      "chl": "Chlorophylle-a (satellite)",
+      "pp": "Production primaire (satellite, colonne)"
+    },
+    "product": {
+      "my": "pluriannuel (retraité)",
+      "nrt": "quasi temps réel"
+    },
+    "panel": {
+      "badge": "Couleur de l'océan (satellite)",
+      "where": "Cellule de 0,25° la plus proche · {{lat}}°, {{lon}}° · moyenne mensuelle {{month}}",
+      "product": "Produit source : {{product}}",
+      "section": "Valeurs satellitaires",
+      "footnote": "Moyennes mensuelles d'observations satellitaires de la couleur de l'océan, moyennées de 4 km à 0,25°. La dernière colonne est la part des 36 cellules sources qui avaient une valeur. Les couleurs de la carte sont en 8 bits ; ces chiffres viennent de la grille en pleine précision.",
+      "noData": "Aucune observation satellitaire ce mois-là (nuages, glace de mer, nuit polaire ou terre).",
+      "notCovered": "Hors de la grille, qui s'arrête à 89,875° de latitude.",
+      "failed": "Impossible de charger les valeurs satellitaires."
     }
   }
 }

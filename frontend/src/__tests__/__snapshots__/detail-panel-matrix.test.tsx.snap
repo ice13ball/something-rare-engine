@@ -11807,6 +11807,84 @@ exports[`DetailPanel dispatch matrix > renders ocean-co2-surface without throwin
 </div>
 `;
 
+exports[`DetailPanel dispatch matrix > renders ocean-colour-satellite after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          ocean colour satellite
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <p
+          class="text-white/60 text-xs"
+        >
+          Could not load the satellite values.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders ocean-colour-satellite without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          ocean colour satellite
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <p
+          class="text-white/60 text-xs animate-pulse"
+        >
+          Loading…
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`DetailPanel dispatch matrix > renders ocean-nutrients-model after data loads 1`] = `
 <div>
   <div

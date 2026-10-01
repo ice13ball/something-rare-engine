@@ -66,6 +66,10 @@ These carry an explicit banner and are never presented as observations:
 - `ocean-nutrients-model` — output of the Copernicus Marine PISCES biogeochemical
   model, not measurements; its `nstar` variable (nitrate − 16 × phosphate) is
   computed by this platform from two model variables
+- `ocean-colour-satellite` — satellite observations (Copernicus-GlobColour) that this
+  platform averages from the product's 4 km grid to 0.25° (a 6 × 6 block mean with
+  missing cells ignored), so the served value is not the product's own number; the
+  valid share of source cells is returned beside it. Not a model, but not verbatim either.
 
 A whole layer is not the only thing that can be derived. A single **field** on an
 otherwise pass-through layer can be ours too. One such field existed here, and on

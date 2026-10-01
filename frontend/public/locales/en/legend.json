@@ -766,6 +766,14 @@
       "description": "Surface nitrate, chlorophyll-a, net primary production and N* (nitrate − 16 × phosphate) from the Copernicus Marine global biogeochemical analysis-and-forecast system, shown as monthly means on a 0.25° grid. This is MODEL OUTPUT (the PISCES biogeochemical model, forced by the Mercator global physics analysis, with chlorophyll constrained by assimilated ocean colour), not measurements. It is a context layer for productivity and nutrient supply around areas of interest.",
       "reading": "Pick a variable and a month; colour encodes the value at the first model level (0.49 m). Nitrate uses a square-root colour scale and chlorophyll and production a logarithmic one, so the low values that dominate the open ocean stay distinguishable; read the scale under the selectors. N* uses a diverging scale centred on 0: negative means less nitrate than phosphate at the 16:1 ratio plankton use, positive a nitrate surplus. Click the map for the exact value of the nearest cell.",
       "limitations": "Model output at 0.25° (about 25 km), not measurements; the grid ends at 80°S and has no values over land or sea ice. Net primary production here is a volumetric rate at the surface (mg m⁻³ per day), NOT a water-column integral, so it cannot be compared with satellite products in mg C m⁻² per day. N* is calculated here without a constant offset. Monthly means smooth out blooms and eddies shorter than a month. Only the newest month and the 11 before it are kept."
+    },
+    "ocean-colour-satellite": {
+      "label": "Ocean colour (satellite)",
+      "source": "E.U. Copernicus Marine Service Information; Global Ocean Colour (Copernicus-GlobColour), Bio-Geo-Chemical, L4 monthly, multi-year (OCEANCOLOUR_GLO_BGC_L4_MY_009_104, https://doi.org/10.48670/moi-00281) and near-real-time (OCEANCOLOUR_GLO_BGC_L4_NRT_009_102, https://doi.org/10.48670/moi-00279), ACRI-ST.",
+      "updateFreq": "Checked daily; a new month is added when a product publishes it. Each month comes from the multi-year (reprocessed) product when it has that month, otherwise from the near-real-time one, and the panel says which. The newest month and the 11 before it are kept.",
+      "description": "Chlorophyll-a concentration and primary production observed from space by merged ocean-colour sensors (Copernicus-GlobColour), shown as monthly means on a 0.25° grid. These are satellite observations, averaged here from the products' 4 km grid: the 36 source cells of each 0.25° cell are averaged with missing cells ignored, and a cell with no observation stays empty.",
+      "reading": "Pick a variable and a month; read the scale under the selectors (both are logarithmic, so the low values that dominate the open ocean stay distinguishable). Cloud, sea ice and polar night leave gaps, which are empty, never zero. Click the map for the exact value of the nearest cell, the share of source cells behind it and the product that supplied the month.",
+      "limitations": "Satellite chlorophyll sees only the surface layer and only where there is light and no cloud; coastal and high-latitude values are the least certain. Primary production is a water-column integral derived from satellite chlorophyll by a model (mg m⁻² per day) and cannot be compared with the surface volumetric rate of the model layer. The near-real-time product is less processed than the multi-year one and a month may change when it is replaced. Only the newest month and the 11 before it are kept."
     }
   },
   "header": {
@@ -1016,7 +1024,8 @@
     "fresh_waterRisk": "static dataset (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "General",
     "fresh_apiResponses": "cached server-side; your browser may add an additional layer of caching",
-    "fresh_nutrients_model": "Updated by the producer monthly; this platform checks daily and keeps 12 months"
+    "fresh_nutrients_model": "Updated by the producer monthly; this platform checks daily and keeps 12 months",
+    "fresh_ocean_colour": "Updated by the producer monthly; this platform checks daily and keeps 12 months"
   },
   "verify": {
     "primaryTitle": "Primary sources",
@@ -1143,7 +1152,9 @@
       "greenlandPrimaryProduction": "Greenland Sea primary production: compare a station by its event label at doi.org/10.1594/PANGAEA.965985."
     },
     "nutrients_model_title": "Nutrients & productivity (model)",
-    "nutrients_model": "Compare a cell with the product's own viewer or download service at"
+    "nutrients_model": "Compare a cell with the product's own viewer or download service at",
+    "ocean_colour_title": "Ocean colour (satellite)",
+    "ocean_colour": "Compare a cell with the product's own viewer or download service at"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

@@ -154,7 +154,7 @@ const FETCHING_LAYERS = new Set([
   "mining-contracts-mvt", "hydrothermal-vents-active", "hydrothermal-vents-inactive",
   "onc", "hydrophone-stations", "monitoring-density",
   "wod-oxygen", "memento", "geotraces", "mosaic-sediment", "arctic-catchments",
-  "woa-climatology", "ocean-nutrients-model", "ocean-carbon", "ocean-acidification", "cumulative-human-impact",
+  "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "ocean-carbon", "ocean-acidification", "cumulative-human-impact",
   "marine-carbon", "vme-suitability", "coral-acid-exposure", "ocean-co2-surface",
   "oxygen-deox", "permafrost-thaw", "coastdom", "greenland-primary-production",
   "greenland-sea-poc-aoc2025", "svalbard-fjords-primary-production",
