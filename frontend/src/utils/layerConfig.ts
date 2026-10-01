@@ -47,6 +47,7 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "woa-climatology",        order_idx: 2075, default_on: false, modes: ["ocean","continue"] },
   { id: "oxygen-deox",            order_idx: 2076, default_on: false, modes: ["ocean","continue"] },
   { id: "wod-oxygen",             order_idx: 2077, default_on: false, modes: ["ocean","continue"] },
+  { id: "ocean-nutrients-model",  order_idx: 73,   default_on: false, modes: ["ocean","continue"] },
   { id: "geotraces",             order_idx: 2074, default_on: false, modes: ["ocean","continue"] },
   { id: "memento",               order_idx: 2078, default_on: false, modes: ["ocean","continue"] },
   { id: "surface-water",          order_idx: 2100, default_on: false, modes: ["land"] },
@@ -142,6 +143,25 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
   "marhys-density":                  "marhys",
   "mosaic-hexes":                   "mosaic-sediment",
 };
+
+/**
+ * Deck ids that carry a variable part (a sliced raster is one BitmapLayer per
+ * tile, id'd by variable, month and tile index) cannot sit in DECK_TO_TOGGLE,
+ * which matches exactly. They are matched by prefix here instead. Without this
+ * the tiles resolve to themselves, miss `order_idx` and sort at 9999 — on top
+ * of every point layer.
+ */
+const DECK_ID_PREFIX_TO_TOGGLE: ReadonlyArray<readonly [string, string]> = [
+  ["ocean-nutrients-model-bitmap-", "ocean-nutrients-model"],
+];
+
+/** The toggle id a deck.gl layer id belongs to (exact map first, then prefixes). */
+export function toggleIdForDeckLayer(deckId: string): string {
+  const exact = DECK_TO_TOGGLE[deckId];
+  if (exact) return exact;
+  const hit = DECK_ID_PREFIX_TO_TOGGLE.find(([prefix]) => deckId.startsWith(prefix));
+  return hit ? hit[1] : deckId;
+}
 
 const LS_KEY = "abyssal_layer_config";
 const LS_TTL_MS = 60 * 1000; // visibility must be fresh — a disabled layer disappears within ~1 min

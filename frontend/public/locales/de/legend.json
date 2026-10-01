@@ -758,6 +758,14 @@
       "reading": "Die Markergröße folgt GPP, einer flächenbezogenen Rate in mg C pro Quadratmeter und Tag ('GPP C [mg/m**2/day]' in der Quelle). Nicht vergleichbar mit Werten pro Liter anderer Ebenen.",
       "limitations": "Zwölf Stationen mit je einem Wert aus zwei Sommerfahrten. Kein Tiefenprofil und kein Qualitätsflag veröffentlicht. Keine saisonale oder jährliche Schätzung.",
       "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Zugehöriger Artikel: Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
+    },
+    "ocean-nutrients-model": {
+      "label": "Nährstoffe & Produktivität (Modell)",
+      "source": "E.U. Copernicus Marine Service Information; Global Ocean Biogeochemistry Analysis and Forecast (GLOBAL_ANALYSISFORECAST_BGC_001_028), Mercator Ocean International. https://doi.org/10.48670/moi-00015",
+      "updateFreq": "Täglich geprüft; ein neuer Monat wird ergänzt, sobald das Produkt ihn veröffentlicht (meist der zuletzt abgeschlossene Monat). Der neueste Monat und die 11 davor werden vorgehalten.",
+      "description": "Oberflächennitrat, Chlorophyll-a, Nettoprimärproduktion und N* (Nitrat − 16 × Phosphat) aus dem globalen biogeochemischen Analyse- und Vorhersagesystem von Copernicus Marine, als Monatsmittel auf einem 0,25°-Gitter. Das ist MODELLAUSGABE (das biogeochemische Modell PISCES, angetrieben von der globalen Physikanalyse von Mercator, mit durch assimilierte Ozeanfarbe gestütztem Chlorophyll), keine Messung. Es ist eine Kontextebene für Produktivität und Nährstoffnachschub rund um interessierende Gebiete.",
+      "reading": "Wählen Sie eine Variable und einen Monat; die Farbe kodiert den Wert auf der ersten Modellebene (0,49 m). Nitrat nutzt eine Farbskala mit Quadratwurzel, Chlorophyll und Produktion eine logarithmische, damit die niedrigen Werte, die den offenen Ozean prägen, unterscheidbar bleiben; die Skala steht unter den Auswahlfeldern. N* nutzt eine divergierende Skala mit Mitte bei 0: negativ heißt weniger Nitrat als Phosphat im Verhältnis 16:1, das Plankton nutzt, positiv ein Nitratüberschuss. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle.",
+      "limitations": "Modellausgabe mit 0,25° (etwa 25 km), keine Messwerte; das Gitter endet bei 80°S und hat über Land und Meereis keine Werte. Die Nettoprimärproduktion ist hier eine volumetrische Rate an der Oberfläche (mg m⁻³ pro Tag), KEIN Integral über die Wassersäule und daher nicht mit Satellitenprodukten in mg C m⁻² pro Tag vergleichbar. N* wird hier ohne konstanten Offset berechnet. Monatsmittel glätten Blüten und Wirbel, die kürzer als ein Monat sind. Nur der neueste Monat und die 11 davor werden vorgehalten."
     }
   },
   "header": {
@@ -1007,7 +1015,8 @@
     "fresh_surfaceWater": "statische Rasterkacheln (JRC 1984–2021-Komposit)",
     "fresh_waterRisk": "statischer Datensatz (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "Allgemein",
-    "fresh_apiResponses": "serverseitig zwischengespeichert; Ihr Browser kann eine zusätzliche Caching-Schicht hinzufügen"
+    "fresh_apiResponses": "serverseitig zwischengespeichert; Ihr Browser kann eine zusätzliche Caching-Schicht hinzufügen",
+    "fresh_nutrients_model": "Vom Produzenten monatlich aktualisiert; die Plattform prüft täglich und hält 12 Monate vor"
   },
   "verify": {
     "primaryTitle": "Primärquellen",
@@ -1037,7 +1046,7 @@
     "unesco_title": "UNESCO-Meereserbstätten",
     "unesco": "Stättengrenzen aus dem UNESCO-Welterbe-Meeresprogramm-Layer auf MarineRegions WFS.",
     "oceansites_title": "OceanSITES-Verankerungen",
-    "oceansites": "Die Stationsmetadaten stammen von OceanOPS — suchen Sie die im Popup gezeigte Referenzkennung auf ocean-ops.org. Einen Messwert prüfen Sie bei der Quelle, die das Popup dafür nennt: NDBC unter ndbc.noaa.gov/station_page.php?station=REF, PMEL unter data.pmel.noaa.gov/pmel/erddap oder das OceanSITES GDAC unter data-oceansites.ifremer.fr. Eine Station ohne Messwert lässt sich an keiner dieser Stellen gegenprüfen — sie steht im Register, wird aber nicht abgefragt, und das ist etwas anderes als ein fehlgeschlagener Datenstrom.",
+    "oceansites": "Die Stationsmetadaten stammen von OceanOPS — suchen Sie die im Popup gezeigte Referenzkennung auf ocean-ops.org. Einen Messwert prüfen Sie bei der Quelle, die das Popup dafür nennt: NDBC unter ndbc.noaa.gov/station_page.php?station= gefolgt von der im Popup genannten NDBC-Stationsnummer (nicht der OceanOPS-Referenz — die kennt NDBC nicht), PMEL unter data.pmel.noaa.gov/pmel/erddap oder das OceanSITES GDAC unter data-oceansites.ifremer.fr. Eine Station ohne Messwert lässt sich an keiner dieser Stellen gegenprüfen — sie steht im Register, wird aber nicht abgefragt, und das ist etwas anderes als ein fehlgeschlagener Datenstrom.",
     "currents_title": "Meeresströmungen",
     "currents": "Überprüfen Sie Strömungsgeschwindigkeit und -richtung im Copernicus Marine Viewer (Produkt GLOBAL_ANALYSISFORECAST_PHY_001_024, Datensatz cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, Variablen uo/vo). Die Quell-netCDF-Dateien können über die Copernicus Marine Toolbox heruntergeladen werden:",
     "onc_title": "ONC-Observatorien",
@@ -1090,7 +1099,7 @@
     "lim_argo": "Argo-Float-Positionen sind letzte bekannte Standorte; Floats driften kontinuierlich",
     "lim_isa": "ISA-Blockgrenzen sind Explorationszonen, keine garantierten Bergbau-Fußabdrücke",
     "lim_conflict": "Konfliktrisikoniveaus sind räumliche Näheeinschätzungen, keine rechtlich bindenden Entscheidungen",
-    "lim_oceansites": "Messwerte werden nur für Verankerungen abgerufen, die OceanOPS derzeit als in Betrieb führt — rund 60 von etwa 1.070 Stationen. Jeder andere Ring zeigt allein Position und Metadaten, und NDBC liefert in der Praxis keinen der aktuellen Messwerte, obwohl es zuerst versucht wird",
+    "lim_oceansites": "Messwerte werden nur für Verankerungen abgerufen, die OceanOPS derzeit als in Betrieb führt — rund 70 von etwa 1.040 Stationen. Jeder andere Ring zeigt allein Position und Metadaten. NDBC wird mit der WMO-Nummer abgefragt, die in der OceanOPS-Referenz steckt, und ein Messwert wird nur übernommen, wenn die NDBC-Position dieser Station mit der der Verankerung übereinstimmt; PMEL und das GDAC ergänzen den Rest",
     "lim_onc": "ONC zeigt den neuesten Messwert, der für jede Station vorliegt, ohne Aktualitätsgrenze — ein stillgelegter Knoten oder eine geborgene Driftboje kann einen Jahre alten Messwert anzeigen; lesen Sie daher den Zeitstempel neben dem Wert",
     "lim_noise": "Lärm-Risikoraster-Zellen, die als 'Datenlücke' markiert sind, haben gemessenen Lärm, aber keine Walbestandsaufnahmeabdeckung — Fehlen von Datensätzen bedeutet nicht Fehlen von Tieren",
     "lim_chess": "Chemosynthetischer Standort-Habitattyp wird durch Schlüsselwort aus Ortsnamen abgeleitet",
@@ -1132,7 +1141,9 @@
       "arcticSedimentCarbon": "Arktischer Sedimentkohlenstoff: Stationswerte im Bolin-Centre-CASCADE-Repositorium (doi.org/10.17043/cascade-2) anhand des Stationsnamens überprüfen.",
       "coastdom": "CoastDOM: die Quelltabelle unter doi.org/10.1594/PANGAEA.964012 herunterladen und eine Probe über Ort, Datum und Tiefe aus dem Klickpanel finden; Werte werden unverändert mit den Einheiten der Quelle ausgeliefert.",
       "greenlandPrimaryProduction": "Primärproduktion der Grönlandsee: eine Station über ihre Event-Bezeichnung unter doi.org/10.1594/PANGAEA.965985 vergleichen."
-    }
+    },
+    "nutrients_model_title": "Nährstoffe & Produktivität (Modell)",
+    "nutrients_model": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

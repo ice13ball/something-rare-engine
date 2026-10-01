@@ -758,6 +758,14 @@
       "reading": "Rozmiar znacznika odpowiada GPP — tempu na jednostkę powierzchni w mg C na metr kwadratowy na dobę (w źródle 'GPP C [mg/m**2/day]'). Nie jest porównywalne z wartościami na litr z innych warstw.",
       "limitations": "Dwanaście stacji, po jednej wartości, z dwóch letnich rejsów. Źródło nie publikuje profilu głębokości ani flagi jakości. To nie jest szacunek sezonowy ani roczny.",
       "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Powiązany artykuł: Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
+    },
+    "ocean-nutrients-model": {
+      "label": "Biogeny i produktywność (model)",
+      "source": "E.U. Copernicus Marine Service Information; Global Ocean Biogeochemistry Analysis and Forecast (GLOBAL_ANALYSISFORECAST_BGC_001_028), Mercator Ocean International. https://doi.org/10.48670/moi-00015",
+      "updateFreq": "Sprawdzane codziennie; nowy miesiąc jest dodawany, gdy produkt go opublikuje (zwykle ostatni zakończony miesiąc). Przechowywany jest najnowszy miesiąc i 11 poprzednich.",
+      "description": "Powierzchniowe azotany, chlorofil-a, produkcja pierwotna netto oraz N* (azotany − 16 × fosforany) z globalnego systemu analiz i prognoz biogeochemicznych Copernicus Marine, jako średnie miesięczne na siatce 0,25°. To WYNIK MODELU (model biogeochemiczny PISCES, sterowany globalną analizą fizyczną Mercator, z chlorofilem korygowanym asymilowanym kolorem oceanu), a nie pomiary. To warstwa kontekstowa dla produktywności i dostaw biogenów wokół interesujących obszarów.",
+      "reading": "Wybierz zmienną i miesiąc; kolor oznacza wartość na pierwszym poziomie modelu (0,49 m). Azotany mają skalę kolorów w pierwiastku kwadratowym, a chlorofil i produkcja skalę logarytmiczną, dzięki czemu niskie wartości dominujące na otwartym oceanie pozostają rozróżnialne; skalę odczytasz pod selektorami. N* ma skalę rozbieżną wyśrodkowaną na 0: wartość ujemna oznacza mniej azotanów niż fosforanów przy stosunku 16:1, w jakim zużywa je plankton, dodatnia nadmiar azotanów. Kliknij mapę, aby zobaczyć dokładną wartość z najbliższej komórki.",
+      "limitations": "Wynik modelu w rozdzielczości 0,25° (ok. 25 km), nie pomiary; siatka kończy się na 80°S i nie ma wartości nad lądem ani lodem morskim. Produkcja pierwotna netto jest tu tempem objętościowym przy powierzchni (mg m⁻³ na dobę), a NIE całką po słupie wody, więc nie można jej porównywać z produktami satelitarnymi w mg C m⁻² na dobę. N* liczone jest tu bez stałego przesunięcia. Średnie miesięczne wygładzają zakwity i wiry krótsze niż miesiąc. Przechowywany jest tylko najnowszy miesiąc i 11 poprzednich."
     }
   },
   "header": {
@@ -1007,7 +1015,8 @@
     "fresh_surfaceWater": "statyczne kafelki rastrowe (kompozyt JRC 1984–2021)",
     "fresh_waterRisk": "statyczny zbiór (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "Ogólne",
-    "fresh_apiResponses": "buforowane po stronie serwera; przeglądarka może dodać dodatkową warstwę buforowania"
+    "fresh_apiResponses": "buforowane po stronie serwera; przeglądarka może dodać dodatkową warstwę buforowania",
+    "fresh_nutrients_model": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy"
   },
   "verify": {
     "primaryTitle": "Źródła pierwotne",
@@ -1037,7 +1046,7 @@
     "unesco_title": "Morskie dziedzictwo UNESCO",
     "unesco": "Granice obszarów pochodzą z warstwy UNESCO World Heritage Marine Programme na MarineRegions WFS. Autorytatywna lista wszystkich morskich obszarów Dziedzictwa Światowego dostępna na whc.unesco.org/en/marine-programme/.",
     "oceansites_title": "Kotwiczenia OceanSITES",
-    "oceansites": "Metadane stacji pochodzą z OceanOPS — wyszukaj kod referencyjny z okna na ocean-ops.org. Odczyt sprawdzaj u źródła, które okno przy nim wskazuje: NDBC pod ndbc.noaa.gov/station_page.php?station=REF, PMEL pod data.pmel.noaa.gov/pmel/erddap, albo OceanSITES GDAC pod data-oceansites.ifremer.fr. Stacji bez odczytu nie da się sprawdzić w żadnym z tych miejsc — jest w rejestrze, ale nie jest odpytywana, a to co innego niż strumień, który zawiódł.",
+    "oceansites": "Metadane stacji pochodzą z OceanOPS — wyszukaj kod referencyjny z okna na ocean-ops.org. Odczyt sprawdzaj u źródła, które okno przy nim wskazuje: NDBC pod ndbc.noaa.gov/station_page.php?station= z numerem stacji NDBC podanym w oknie (nie z kodem OceanOPS — NDBC go nie zna), PMEL pod data.pmel.noaa.gov/pmel/erddap, albo OceanSITES GDAC pod data-oceansites.ifremer.fr. Stacji bez odczytu nie da się sprawdzić w żadnym z tych miejsc — jest w rejestrze, ale nie jest odpytywana, a to co innego niż strumień, który zawiódł.",
     "currents_title": "Prądy oceaniczne",
     "currents": "Zweryfikuj prędkość i kierunek prądów w przeglądarce Copernicus Marine (produkt GLOBAL_ANALYSISFORECAST_PHY_001_024, zbiór danych cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, zmienne uo/vo). Źródłowe pliki netCDF można pobrać za pomocą Copernicus Marine Toolbox:",
     "onc_title": "Obserwatoria ONC",
@@ -1090,7 +1099,7 @@
     "lim_argo": "Pozycje boi Argo to ostatnie znane lokalizacje; boje dryfują ciągle",
     "lim_isa": "Granice bloków ISA to strefy eksploracji, nie gwarantowane ślady wydobycia",
     "lim_conflict": "Poziomy ryzyka konfliktu to oceny bliskości przestrzennej, nie prawnie wiążące ustalenia",
-    "lim_oceansites": "Odczyty pobieramy tylko dla cum, które OceanOPS uznaje obecnie za czynne — około 60 z mniej więcej 1070 stacji. Każdy inny pierścień pokazuje wyłącznie pozycję i metadane, a NDBC, choć próbujemy go jako pierwszego, w praktyce nie dostarcza dziś żadnego z bieżących odczytów",
+    "lim_oceansites": "Odczyty pobieramy tylko dla cum, które OceanOPS uznaje obecnie za czynne — około 70 z mniej więcej 1040 stacji. Każdy inny pierścień pokazuje wyłącznie pozycję i metadane. NDBC pytamy o numer WMO zawarty w kodzie OceanOPS, a odczyt bierzemy tylko wtedy, gdy pozycja tej stacji w NDBC zgadza się z pozycją cumy; resztę uzupełniają PMEL i GDAC",
     "lim_onc": "ONC pokazuje najnowszy odczyt, jaki ma dla danej stacji, bez progu świeżości — wycofany węzeł albo podniesiona boja mogą pokazywać odczyt sprzed lat, więc czytaj znacznik czasu obok wartości",
     "lim_noise": "Komórki siatki ryzyka hałasu oznaczone jako „brak danych” mają zmierzony hałas, ale brak badań waleni — brak rekordów nie oznacza braku zwierząt",
     "lim_chess": "Typ siedliska Miejsc chemosyntety jest wnioskowany ze słów kluczowych nazw miejscowości — rekordy z nieopisowymi nazwami domyślnie trafiają do OMZ; ręczna reklasyfikacja nie jest możliwa bez tworzenia nowych rekordów OBIS",
@@ -1132,7 +1141,9 @@
       "arcticSedimentCarbon": "Węgiel w osadach arktycznych: zweryfikuj wartości stacji w repozytorium Bolin Centre CASCADE (doi.org/10.17043/cascade-2), posługując się nazwą stacji.",
       "coastdom": "CoastDOM: pobierz tabelę źródłową z doi.org/10.1594/PANGAEA.964012 i znajdź próbkę po miejscu, dacie i głębokości pokazanych w panelu; wartości są serwowane dosłownie, z jednostkami źródła.",
       "greenlandPrimaryProduction": "Produkcja pierwotna Morza Grenlandzkiego: porównaj stację po etykiecie zdarzenia na doi.org/10.1594/PANGAEA.965985."
-    }
+    },
+    "nutrients_model_title": "Biogeny i produktywność (model)",
+    "nutrients_model": "Porównaj komórkę z przeglądarką lub usługą pobierania samego produktu:"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

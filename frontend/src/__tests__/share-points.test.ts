@@ -353,8 +353,8 @@ describe("pointObjectsFor ignores non-point panels", () => {
 
 describe("registry shape", () => {
   // sabotaż: move an id from one list to the other (this also breaks tsc, which is fine — the test must ALSO go red) → ten test
-  it("has 9 point layers and 12 opted-out layers", () => {
-    expect(Object.keys(POINT_LAYERS).length).toBe(9);
+  it("has 10 point layers and 12 opted-out layers", () => {
+    expect(Object.keys(POINT_LAYERS).length).toBe(10);
     expect(NOT_POINT.length).toBe(12);
   });
 

@@ -1020,6 +1020,7 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "currents-surface":       "currents-surface",
     "currents-1000m":         "currents-1000m",
     "currents-backfill":      "currents-backfill",
+    "ocean-nutrients-model":  "ocean-nutrients-model",
     "woa-climatology":        "woa-climatology",
     "glodap-carbon":          "glodap-carbon",
     "acidification":          "acidification",

@@ -58,6 +58,7 @@ LAYER_DEFAULTS_PY = [
     {"id": "onc-instruments",        "order_idx": 1900, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "ports",                  "order_idx": 2000, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "ocean-currents",         "order_idx": 2050, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "ocean-nutrients-model",  "order_idx": 73, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "geotraces",              "order_idx": 2074, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "woa-climatology",        "order_idx": 2075, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "oxygen-deox",            "order_idx": 2076, "default_on": False, "modes": ["ocean","continue"]},

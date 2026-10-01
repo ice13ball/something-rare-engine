@@ -28,7 +28,7 @@ export const LAYER_TO_SUBGROUP: Record<string, string> = {
   "onc-instruments": "sea_sensors", "hydrophone-stations": "sea_sensors",
   "ocean-currents": "sea_sensors",
   // sea_woa
-  "woa-climatology": "sea_woa", "ocean-carbon": "sea_woa",
+  "woa-climatology": "sea_woa", "ocean-nutrients-model": "sea_woa", "ocean-carbon": "sea_woa",
   "ocean-co2-surface": "sea_woa", "wod-oxygen": "sea_woa", "memento": "sea_woa",
   "geotraces": "sea_woa", "mosaic-sediment": "sea_woa", "methane-seeps": "sea_woa",
   "oxygen-deox": "sea_woa", "arctic-rivers": "sea_woa",

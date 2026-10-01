@@ -20,7 +20,7 @@ export const SEA_LAYER_IDS = [
   "noise-risk", "oceansites", "onc", "onc-instruments", "chess", "submarine-cables", "ports",
   "tectonic-plates", "vessel-events", "ais-live", "monitoring-density", "offshore-activities",
   "deepdata-stations", "hydrophone-stations", "bathymetry", "ocean-currents",
-  "woa-climatology", "oxygen-deox", "wod-oxygen", "memento", "geotraces", "methane-seeps",
+  "woa-climatology", "ocean-nutrients-model", "oxygen-deox", "wod-oxygen", "memento", "geotraces", "methane-seeps",
   "ocean-carbon", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
   "seabed-substrate", "arctic-sediment-carbon", "mosaic-sediment", "vme-suitability",
   "ocean-acidification", "coral-acid-exposure", "cumulative-human-impact",
@@ -342,6 +342,15 @@ export const LAYER_CONFIGS = [
     fillRgba: [80, 170, 200, 0],
     lineRgba: [80, 170, 200, 0],
     description: "World Ocean Atlas 2023 gridded climatology — temperature, salinity, oxygen, nutrients and more at 8 standard depths. Static annual mean at ~1° resolution.",
+  },
+  {
+    id: "ocean-nutrients-model",
+    label: "Nutrients & productivity (model)",
+    color: "#3fb98a",
+    // Raster colour-field layer — fill/line RGBA are placeholders to satisfy the type.
+    fillRgba: [63, 185, 138, 0],
+    lineRgba: [63, 185, 138, 0],
+    description: "Model output, not measurements: surface nitrate, chlorophyll-a, volumetric net primary production and N* from the Copernicus Marine global biogeochemical model (PISCES), monthly means at 0.25°. The newest month and the 11 before it.",
   },
   {
     id: "ocean-carbon",

@@ -11,6 +11,7 @@ import type { PickingInfo, MapViewState } from "@deck.gl/core";
 import { FlyToInterpolator } from "@deck.gl/core";
 import { Map as ReactMap } from "react-map-gl/maplibre";
 import type { FeatureCollection } from "geojson";
+import { effectiveBgcMonth, effectiveBgcVariable, wrapLongitude, type BgcModelMeta } from "../types/bgcModel";
 import { booleanPointInPolygon, centroid, distance as turfDistance } from "@turf/turf";
 import { useMapStore } from "../store/mapStore";
 import { DetailPanel } from "./DetailPanel";
@@ -64,7 +65,7 @@ import {
 import { stationAqi, AQI_NO_DATA_COLOR } from "../styles/aqi";
 import { ONC_EOV_CATEGORIES, ONC_ALL_KNOWN_CATEGORIES } from "../types/onc";
 import type { OncEov } from "../types/onc";
-import { useLayerConfig, DECK_TO_TOGGLE } from "../utils/layerConfig";
+import { useLayerConfig, toggleIdForDeckLayer } from "../utils/layerConfig";
 import { isLayerHidden } from "../utils/hiddenLayers";
 import { gebcoTileUrl } from "../utils/gebcoTiles";
 import { wodDecadeColor } from "../utils/wodDecades";
@@ -329,6 +330,7 @@ const NO_FLY_TO = [
   // Group B — hex/field dual-mode layers; real feature data exists client-side
   // but isn't wired into flyToLayer's layerMap.
   "woa-climatology",
+  "ocean-nutrients-model",
   "oxygen-deox",
   "ocean-carbon",
   "ocean-co2-surface",
@@ -409,6 +411,8 @@ export function Map3D() {
   const setCurrentsDate    = useMapStore((s) => s.setCurrentsDate);
   const currentsPlaying    = useMapStore((s) => s.currentsPlaying);
   const setCurrentsPlaying = useMapStore((s) => s.setCurrentsPlaying);
+  const nutrientsVariable  = useMapStore((s) => s.nutrientsVariable);
+  const nutrientsMonth     = useMapStore((s) => s.nutrientsMonth);
   const woaVariable        = useMapStore((s) => s.woaVariable);
   const woaDepth           = useMapStore((s) => s.woaDepth);
   const woaDisplayMode     = useMapStore((s) => s.woaDisplayMode);
@@ -473,6 +477,8 @@ export function Map3D() {
   const [currentsMeta,    setCurrentsMeta]    = useState<Record<string, CurrentsMeta> | null>(null);
   const [woaMeta,         setWoaMeta]         = useState<{ variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null>(null);
   const [woaTiles,        setWoaTiles]        = useState<{ bounds: [number, number, number, number]; image: HTMLCanvasElement }[] | null>(null);
+  const [bgcMeta,         setBgcMeta]         = useState<BgcModelMeta | null>(null);
+  const [bgcTiles,        setBgcTiles]        = useState<{ bounds: [number, number, number, number]; image: HTMLCanvasElement }[] | null>(null);
   const [carbonMeta,      setCarbonMeta]      = useState<{ variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null>(null);
   const [carbonTiles,     setCarbonTiles]     = useState<{ bounds: [number, number, number, number]; image: HTMLCanvasElement }[] | null>(null);
   const [carbonHexData,   setCarbonHexData]   = useState<FeatureCollection | null>(null);
@@ -643,6 +649,7 @@ export function Map3D() {
   const noiseRiskFetchedRef     = useRef(false);
   const currentsFetchedRef      = useRef(false);
   const woaFetchedRef           = useRef(false);
+  const bgcFetchedRef           = useRef(false);
   const oxygenFetchedRef        = useRef(false);
   const carbonFetchedRef        = useRef(false);
   const acidFetchedRef          = useRef(false);
@@ -1014,6 +1021,75 @@ export function Map3D() {
     })();
     return () => { cancelled = true; };
   }, [woaActive, woaVariable, woaDepth]);
+
+  // ── Nutrients & productivity (model): meta, then one PNG per variable + month ──
+  const bgcActive = activeLayers.has("ocean-nutrients-model");
+  const BGC_LABEL = "Nutrients & productivity (model)";
+  // The store holds a choice; the product decides what exists. A link naming a
+  // month that has since been pruned falls back to the latest rather than 404ing.
+  const bgcMonthEff = effectiveBgcMonth(bgcMeta, nutrientsMonth);
+  const bgcVarEff = effectiveBgcVariable(bgcMeta, nutrientsVariable);
+
+  useEffect(() => {
+    if (!bgcActive || bgcFetchedRef.current) return;
+    bgcFetchedRef.current = true;
+    fetch(`${API}/api/v1/bgc-model/meta`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((m: BgcModelMeta) => {
+        if (!m?.variables?.length || !m.latest || !m.grid) throw new Error("empty bgc-model meta");
+        setBgcMeta(m);
+      })
+      .catch(() => {
+        bgcFetchedRef.current = false; // allow retry on next toggle
+        setFailedLayers((prev) => (prev.includes(BGC_LABEL) ? prev : [...prev, BGC_LABEL]));
+      });
+  }, [bgcActive]);
+
+  // Slice the PNG into small BitmapLayer quads (same reason and method as woaTiles).
+  // The texture is 0.25° per pixel with pixel-EDGE bounds from /meta, rows N -> S;
+  // tiles stop at the web-mercator latitude limit and share integer pixel edges.
+  useEffect(() => {
+    if (!bgcActive || !bgcMeta?.grid || !bgcMonthEff || !bgcVarEff) { setBgcTiles(null); return; }
+    let cancelled = false;
+    setBgcTiles(null); // never leave the previous variable/month on screen under a new label
+    const grid = bgcMeta.grid;
+    (async () => {
+      try {
+        const resp = await fetch(`${API}/api/v1/bgc-model/${bgcVarEff}/${bgcMonthEff}.png`);
+        if (!resp.ok) throw new Error(String(resp.status));
+        const bmp = await createImageBitmap(await resp.blob());
+        const W = bmp.width, H = bmp.height;
+        const [west, south, east, north] = grid.bounds;
+        const lonOf = (px: number) => west + (px / W) * (east - west);
+        const latOf = (py: number) => north - (py / H) * (north - south);
+        const MAXLAT = 85.0511;
+        const yTop = Math.max(0, Math.round(((north - MAXLAT) / (north - south)) * H));
+        const COLS = 9, ROWS = 6;
+        const xs = Array.from({ length: COLS + 1 }, (_, i) => Math.round((i * W) / COLS));
+        const ys = Array.from({ length: ROWS + 1 }, (_, i) => Math.round(yTop + (i * (H - yTop)) / ROWS));
+        const tiles: { bounds: [number, number, number, number]; image: HTMLCanvasElement }[] = [];
+        for (let cy = 0; cy < ROWS; cy++) {
+          for (let cx = 0; cx < COLS; cx++) {
+            const sx = xs[cx], sw = xs[cx + 1] - xs[cx];
+            const sy = ys[cy], sh = ys[cy + 1] - ys[cy];
+            if (sw <= 0 || sh <= 0) continue;
+            const cv = document.createElement("canvas");
+            cv.width = sw; cv.height = sh;
+            cv.getContext("2d")!.drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
+            tiles.push({ bounds: [lonOf(sx), latOf(ys[cy + 1]), lonOf(xs[cx + 1]), latOf(sy)], image: cv });
+          }
+        }
+        bmp.close();
+        if (!cancelled) setBgcTiles(tiles);
+      } catch {
+        if (!cancelled) {
+          setBgcTiles(null);
+          setFailedLayers((prev) => (prev.includes(BGC_LABEL) ? prev : [...prev, BGC_LABEL]));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [bgcActive, bgcMeta, bgcMonthEff, bgcVarEff]);
 
   // ── Ocean Carbon (GLODAP): fetch meta when layer activates ─────────────────
   const carbonActive = activeLayers.has("ocean-carbon");
@@ -3493,6 +3569,18 @@ export function Map3D() {
       opacity: 0.72,
     })) : null,
 
+    // Nutrients & productivity (model). Tile ids start with "ocean-nutrients-model-bitmap-",
+    // which toggleIdForDeckLayer maps back to the toggle, so the field sorts by its
+    // order_idx (under the point layers) instead of falling to 9999. pickable:false —
+    // a BitmapLayer would pick its whole quad; clicks resolve in the empty-click branch.
+    bgcActive && bgcTiles && bgcMonthEff && bgcVarEff ? bgcTiles.map((tile, i) => new BitmapLayer({
+      id: `ocean-nutrients-model-bitmap-${bgcVarEff}-${bgcMonthEff}-${i}`,
+      image: tile.image,
+      bounds: tile.bounds,
+      opacity: 0.72,
+      pickable: false,
+    })) : null,
+
     oxygenActive && oxygenDisplayMode === "field" && oxygenTiles ? oxygenTiles.map((tile, i) => new BitmapLayer({
       id: `oxygen-deox-bitmap-${oxygenView}-${oxygenDepth}-${i}`,
       bounds: tile.bounds,
@@ -5252,8 +5340,8 @@ export function Map3D() {
       return [...layersRaw].sort((a: RawItem, b: RawItem) => {
         const aid = (a as unknown as { id?: string })?.id ?? "";
         const bid = (b as unknown as { id?: string })?.id ?? "";
-        const ga = DECK_TO_TOGGLE[aid] ?? aid;
-        const gb = DECK_TO_TOGGLE[bid] ?? bid;
+        const ga = toggleIdForDeckLayer(aid);
+        const gb = toggleIdForDeckLayer(bid);
         return (orderMap.get(ga) ?? 9999) - (orderMap.get(gb) ?? 9999);
       });
     })();
@@ -5490,6 +5578,18 @@ export function Map3D() {
                 properties: { _lat: lat, _lon: lng },
               });
             }
+            // Nutrients & productivity (model): a non-pickable BitmapLayer, so the field
+            // click resolves here. The id is `<lat>,<lon>` unrounded — byte-identical to
+            // the one a share link rebuilds (pointFromLink), so the two never stack.
+            if (activeLayers.has("ocean-nutrients-model") && info.coordinate) {
+              const lat = info.coordinate[1];
+              const lng = wrapLongitude(info.coordinate[0]);
+              setSelectedFeature({
+                id: `ocean-nutrients-model:${lat},${lng}`,
+                layer: "ocean-nutrients-model",
+                properties: { _lat: lat, _lon: lng },
+              });
+            }
             // With bathymetry on, also show the ephemeral depth popup.
             if (activeLayers.has("bathymetry") && info.coordinate && typeof info.x === "number") {
               const [lon, lat] = info.coordinate;
@@ -5625,6 +5725,7 @@ export function Map3D() {
         currentsPlaying={currentsPlaying}
         setCurrentsPlaying={setCurrentsPlaying}
         woaMeta={woaMeta}
+        nutrientsMeta={bgcMeta}
         oxygenMeta={oxygenMeta}
         carbonMeta={carbonMeta}
         co2Meta={co2Meta}

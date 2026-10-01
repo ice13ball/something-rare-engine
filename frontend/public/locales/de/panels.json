@@ -10,7 +10,8 @@
       "decade": "Jahrzehnt",
       "view": "Ansicht",
       "scale": "Skala ({{units}})",
-      "stations": "Stationen"
+      "stations": "Stationen",
+      "month": "Monat"
     },
     "layersHeading": "Ebenen",
     "filtersHeading": "Filter",
@@ -347,6 +348,9 @@
     },
     "svalbardFjordsPrimaryProduction": {
       "toggle": "In-situ-Primärproduktion — Svalbard-Fjorde"
+    },
+    "oceanNutrientsModel": {
+      "toggle": "Nährstoffe & Produktivität (Modell)"
     }
   },
   "filters": {
@@ -533,7 +537,8 @@
       "coastdom": "Gemessener gelöster organischer Kohlenstoff, Stickstoff und Phosphor (DOC, DON, DOP) sowie weitere Wassersäulenparameter in Küstengewässern weltweit, 1978–2022 — CoastDOM v1, eine auf PANGAEA veröffentlichte Kompilation. Ein Marker pro beprobter Position; die Farbe zeigt die Zahl der Proben dort, nie einen Messwert.",
       "greenland-primary-production": "Bruttoprimärproduktion von Kohlenstoff, gemessen über die Sauerstoffentwicklung an 12 Stationen der Grönlandsee im August 2021 und August 2022 (PANGAEA). Eine flächenbezogene Rate in mg C pro Quadratmeter und Tag — die Markergröße folgt der Rate.",
       "greenland-sea-poc-aoc2025": "Partikulärer organischer Kohlenstoff an 32 Stationen, Fahrt Atlantic-Arctic Ocean Change (AOC2025), Grönlandsee, 19.–31. Mai 2025 (Institut für Ozeanologie der Polnischen Akademie der Wissenschaften, CC-BY 4.0). Die Metadaten der Quelle geben einen zeitlichen Umfang an, der nicht mit dem Titel oder den Daten übereinstimmt — gezeigt, nicht korrigiert.",
-      "svalbard-fjords-primary-production": "In-situ-Primärproduktion, Kongsfjorden & Hornsund (Spitzbergen), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, mit Genehmigung verwendet — die Quelle veröffentlicht keine offene Lizenz. Die Metadaten der Quelle nennen Stations- und Inkubationszahlen, die von den Daten abweichen — gezeigt, nicht korrigiert."
+      "svalbard-fjords-primary-production": "In-situ-Primärproduktion, Kongsfjorden & Hornsund (Spitzbergen), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, mit Genehmigung verwendet — die Quelle veröffentlicht keine offene Lizenz. Die Metadaten der Quelle nennen Stations- und Inkubationszahlen, die von den Daten abweichen — gezeigt, nicht korrigiert.",
+      "ocean-nutrients-model": "Modellausgabe, keine Messwerte: Oberflächennitrat, Chlorophyll-a, Nettoprimärproduktion (eine volumetrische Rate an der Oberfläche, kein Säulenintegral) und N* (Nitrat − 16 × Phosphat) aus dem globalen biogeochemischen Modell von Copernicus Marine (PISCES, 0,25°). Monatsmittel für den neuesten verfügbaren Monat und die 11 davor. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle."
     },
     "densityScaleLabel": "Datensätze pro Zelle",
     "argoReadingHeading": "So liest man die Messwerte",
@@ -860,7 +865,7 @@
     "deployShipLabel": "Ausgebracht von",
     "deploymentCountLabel": "Ausbringungen",
     "sensorModelsLabel": "Instrumente",
-    "noObservationsText": "Keine Live-Beobachtungen von NDBC, PMEL oder OceanSITES GDAC für diese Station",
+    "noObservationsText": "In Betrieb, aber keine unserer Quellen — NOAA NDBC, NOAA PMEL, OceanSITES GDAC — veröffentlicht Live-Messwerte für diese Verankerung.",
     "obsTimeLabel": "Beobachtungszeit (UTC)",
     "panelBadge": "OceanSITES-Verankerung",
     "pressureLabel": "Druck",
@@ -879,7 +884,10 @@
     "ageDaysValue": "{{days}} Tage",
     "ageDaysWithYears": "{{days}} Tage (~{{years}} J.)",
     "qcWithheld": "PMEL hat {{count}} Messwert(e) als fragwürdig oder schlecht markiert; sie werden nicht angezeigt: {{fields}}. Das ist das Qualitätskennzeichen des Herausgebers, keine Lücke in unserem Abruf.",
-    "qcLowered": "PMEL stuft {{count}} dieser Messwerte als geringere Qualität ein: {{fields}}."
+    "qcLowered": "PMEL stuft {{count}} dieser Messwerte als geringere Qualität ein: {{fields}}.",
+    "noObservationsClosed": "Geschlossen — diese Verankerung sendet nicht mehr, daher gibt es keine Live-Messwerte. Soweit ihre früheren Messungen veröffentlicht wurden, liegen sie im OceanSITES-GDAC-Archiv (IFREMER).",
+    "noObservationsInactive": "OceanOPS führt diese Verankerung als inaktiv: Sie sendet derzeit nicht, daher werden keine Live-Messwerte abgerufen.",
+    "noObservationsRegistered": "Bei OceanOPS registriert, aber noch nicht ausgebracht — es gibt noch keine Messwerte."
   },
   "offshore": {
     "areaLabel": "Fläche",
@@ -1515,5 +1523,27 @@
   },
   "woaPoint": {
     "nstarHint": "N* = Nitrat − 16 × Phosphat. Negativ = weniger Nitrat als Phosphat im 16:1-Verhältnis, das Plankton nutzt (Stickstoffdefizit); positiv = Nitratüberschuss."
+  },
+  "nutrients": {
+    "modelWarning": "Modellausgabe (PISCES, Copernicus Marine), keine Messwerte.",
+    "scaleLog": "Logarithmische Farbskala.",
+    "scaleSqrt": "Farbskala mit Quadratwurzel, damit niedrige Werte unterscheidbar bleiben.",
+    "nppvHint": "Die Nettoprimärproduktion ist eine volumetrische Rate auf der Oberflächenebene (mg m⁻³ pro Tag), kein Integral über die Wassersäule. Sie ist nicht mit Satellitenwerten in mg C m⁻² pro Tag vergleichbar.",
+    "clickHint": "Klicken Sie auf die Karte, um den genauen Modellwert der nächsten 0,25°-Zelle zu sehen.",
+    "variable": {
+      "no3": "Nitrat",
+      "chl": "Chlorophyll-a",
+      "nppv": "Nettoprimärproduktion (Oberfläche, volumetrisch)",
+      "nstar": "N* (Nitrat − 16 × Phosphat)"
+    },
+    "panel": {
+      "badge": "Nährstoffe & Produktivität (Modell)",
+      "where": "Nächste 0,25°-Zelle · {{lat}}°, {{lon}}° · Monatsmittel {{month}} · Oberfläche",
+      "section": "Modellwerte",
+      "footnote": "Monatsmittel eines biogeochemischen Modells auf seiner ersten Ebene (0,49 m). Die Farben auf der Karte sind 8-Bit; diese Zahlen stammen aus dem Gitter in voller Genauigkeit.",
+      "noData": "Hier gibt es keinen Modellwert (Land oder Meereis).",
+      "notCovered": "Außerhalb des Modellgitters, das bei 80°S endet.",
+      "failed": "Die Modellwerte konnten nicht geladen werden."
+    }
   }
 }

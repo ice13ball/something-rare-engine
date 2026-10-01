@@ -11,8 +11,9 @@ Strategy: bulk-fetch latest reading per station from each pollutant dataset in
 ONE request per dataset using ERDDAP's ``orderByMax("station,time")`` filter.
 Five concurrent requests cover SST, wind, air temp, pressure, salinity.
 
-Mapping to OceanSITES: PMEL ``station`` ID is the lowercased OceanSITES ``name``
-(e.g. OceanSITES "9N140W" → PMEL "9n140w").
+Mapping to OceanSITES: see ``match_pmel_stations``. The PMEL ``station`` ID is
+usually the lowercased OceanSITES ``name`` (OceanSITES "9N140W" → PMEL
+"9n140w"), but not always, so a name miss falls back to position.
 
 Reference: https://data.pmel.noaa.gov/pmel/erddap/
 """
@@ -20,6 +21,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -180,3 +183,91 @@ async def fetch_pmel_observations(lookback_days: int = 365) -> dict[str, dict[st
         sid: obs for sid, obs in merged.items()
         if any(k not in ("obs_time", "qc") and v is not None for k, v in obs.items())
     }
+
+
+# ── OceanSITES station → PMEL station ───────────────────────────────────────
+#
+# ⛔ Matching by name alone lost live moorings. Measured 2026-10-01 on
+# production: OceanOPS calls the PIRATA buoy at 0°N 3°W "00N03"; PMEL calls it
+# "0n3w" and was reporting, and the station showed "no observations". Another
+# one is stored as "4N23W " with a trailing space. A PMEL station ID IS a
+# position, though — "0n3w", "4s80.5e" — so it can be decoded and compared with
+# the coordinates OceanOPS gives the mooring.
+
+_PMEL_ID = re.compile(r"^(\d+(?:\.\d+)?)([ns])(\d+(?:\.\d+)?)([ew])$")
+
+#: How far (in degrees, on the lat/lon plane) an OceanSITES mooring may sit from
+#: the nominal grid position in a PMEL station ID and still be that station.
+#: The PMEL arrays are laid out on a grid at least 2° apart, so this cannot
+#: reach a neighbouring buoy.
+PMEL_MATCH_MAX_DEG = 0.5
+
+
+def pmel_station_position(station_id: str) -> tuple[float, float] | None:
+    """Decode a PMEL station ID into (lat, lon): "0n3w" → (0.0, -3.0).
+
+    None for anything that is not a grid position, so an unexpected ID is
+    skipped rather than placed somewhere wrong.
+    """
+    m = _PMEL_ID.match(station_id.strip().lower())
+    if not m:
+        return None
+    lat = float(m[1]) * (1 if m[2] == "n" else -1)
+    lon = float(m[3]) * (1 if m[4] == "e" else -1)
+    return lat, lon
+
+
+def _deg_apart(a: tuple[float, float], b: tuple[float, float]) -> float:
+    dlon = (a[1] - b[1] + 180.0) % 360.0 - 180.0  # 179°E and 179°W are 2° apart
+    return math.hypot(a[0] - b[0], dlon)
+
+
+def match_pmel_stations(
+    stations: list[tuple[str, str | None, float | None, float | None]],
+    pmel_ids,
+    max_deg: float = PMEL_MATCH_MAX_DEG,
+) -> dict[str, str]:
+    """Assign PMEL station IDs to OceanSITES stations: ``{ref: pmel_id}``.
+
+    ``stations`` is ``(ref, name, lat, lon)``. Two passes:
+
+    1. Name — the OceanSITES name, stripped and lowercased, equals a PMEL ID.
+    2. Position — for stations still unmatched, the nearest PMEL station whose
+       decoded position is within ``max_deg``.
+
+    ⛔ One PMEL station feeds at most ONE mooring. Without that, two moorings
+    near the same grid point would both show the same buoy's reading as their
+    own. A name match claims its PMEL ID first; in the position pass the
+    closest mooring wins and the rest stay unmatched.
+    """
+    pmel_ids = set(pmel_ids)
+    out: dict[str, str] = {}
+    taken: set[str] = set()
+
+    for ref, name, _lat, _lon in stations:
+        key = (name or "").strip().lower()
+        if key in pmel_ids and key not in taken:
+            out[ref] = key
+            taken.add(key)
+
+    positions = {
+        sid: pos for sid in pmel_ids - taken
+        if (pos := pmel_station_position(sid)) is not None
+    }
+    candidates: list[tuple[float, str, str]] = []
+    for ref, _name, lat, lon in stations:
+        if ref in out or lat is None or lon is None:
+            continue
+        if not (math.isfinite(lat) and math.isfinite(lon)):
+            continue
+        for sid, pos in positions.items():
+            d = _deg_apart((lat, lon), pos)
+            if d <= max_deg:
+                candidates.append((d, ref, sid))
+
+    for _d, ref, sid in sorted(candidates):
+        if ref in out or sid in taken:
+            continue
+        out[ref] = sid
+        taken.add(sid)
+    return out

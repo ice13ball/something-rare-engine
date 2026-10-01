@@ -34,6 +34,7 @@ const SECTION_FILES = [
   "SensorsSection.tsx",
   "OceanClimatologySection.tsx",
   "oceanClimatology/WoaClimatologyRow.tsx",
+  "oceanClimatology/OceanNutrientsModelRow.tsx",
   "oceanClimatology/OceanCarbonRow.tsx",
   "oceanClimatology/OceanCo2SurfaceRow.tsx",
   "oceanClimatology/WodOxygenRow.tsx",
@@ -107,7 +108,8 @@ const ALL_LAYER_IDS = [...LITERAL_IDS, ...MAPPED_IDS];
 //   58 → 60 on 2026-09-25: `coastdom` and `greenland-primary-production` added.
 //   60 → 61 on 2026-09-25: `greenland-sea-poc-aoc2025` added (preview, dev-only).
 //   61 → 62 on 2026-09-26: `svalbard-fjords-primary-production` added (preview, dev-only).
-const EXPECTED_LAYER_ROW_COUNT = 62;
+//   62 → 63 on 2026-10-01: `ocean-nutrients-model` added.
+const EXPECTED_LAYER_ROW_COUNT = 63;
 
 const SUBGROUP_STORAGE_KEYS = [
   "sea_claims", "sea_life", "sea_analysis", "sea_sensors", "sea_woa",
@@ -190,6 +192,7 @@ const baseProps = {
   currentsPlaying: false,
   setCurrentsPlaying: noop,
   woaMeta: null,
+  nutrientsMeta: null,
   oxygenMeta: null,
   carbonMeta: null,
   co2Meta: null,
@@ -202,6 +205,23 @@ const rampEntry = { pos: 0, hex: "#000000" };
 const woaMetaFull = {
   variables: [{ key: "temp", label: "Temperature", units: "°C", vmin: 0, vmax: 30, cmap: "viridis", baseline: "1991-2020", depths: [0, 100], ramp: [rampEntry] }],
   depths: [0, 100],
+};
+const nutrientsMetaFull = {
+  layer: "ocean-nutrients-model",
+  months: ["2026-07", "2026-08"],
+  latest: "2026-08",
+  variables: [{
+    key: "no3", label: "Nitrate", unit: "mmol m-3", field: "no3_mmol_m3", scale: "sqrt" as const,
+    vmin: 0, vmax: 35, ramp: [rampEntry, { pos: 1, hex: "#ffffff" }],
+    ticks: [{ value: 0, pos: 0 }, { value: 10, pos: 0.53 }], note: "Nitrate.",
+    stats: { p1: 0, p50: 1, p99: 30, n_valid: 10, n_nan: 2 },
+  }],
+  grid: { lat0: -80, lon0: -180, step: 0.25, n_lat: 681, n_lon: 1440, lat_max: 90, lon_max: 179.75, lon_global: true,
+          bounds: [-180.125, -80.125, 179.875, 90.125] as [number, number, number, number] },
+  product: { id: "P", title: "Global Ocean Biogeochemistry Analysis and Forecast", doi: "10.48670/moi-00015",
+             doi_url: "https://doi.org/10.48670/moi-00015", url: "https://example.org/p", licence_url: "https://example.org/l" },
+  attribution: "Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00015",
+  caveat: "Model output, not measurements.",
 };
 const oxygenMetaFull = {
   views: [{ key: "recent", label: "Recent O2", units: "µmol/kg", vmin: 0, vmax: 300, cmap: "viridis", ramp: [rampEntry], depths: [0, 100], diverging: false }],
@@ -229,8 +249,8 @@ const currentsMetaFull = {
 };
 
 describe("Map3DControls source structure", () => {
-  it("finds exactly 62 layer rows (57 literal + 5 array-driven)", () => {
-    expect(LITERAL_IDS).toHaveLength(57);
+  it("finds exactly 63 layer rows (58 literal + 5 array-driven)", () => {
+    expect(LITERAL_IDS).toHaveLength(58);
     expect(MAPPED_IDS).toEqual(["reserved-areas", "relinquished-areas", "apeis", "protected-marine-sites", "eez"]);
     expect(ALL_LAYER_IDS).toHaveLength(EXPECTED_LAYER_ROW_COUNT);
     // No id appears twice — a duplicate id would mean two rows silently
@@ -370,12 +390,13 @@ describe("Map3DControls parent props", () => {
 
   it("matches with every optional prop populated (real shapes from Props)", () => {
     seedExpandedPanelState();
-    useMapStore.setState({ activeLayers: new Set(["ocean-currents", "woa-climatology", "ocean-carbon", "ocean-co2-surface", "oxygen-deox"]) });
+    useMapStore.setState({ activeLayers: new Set(["ocean-currents", "woa-climatology", "ocean-nutrients-model", "ocean-carbon", "ocean-co2-surface", "oxygen-deox"]) });
     const { container } = render(
       <Map3DControls
         {...baseProps}
         currentsMeta={{ surface: currentsMetaFull.surface, "1000m": currentsMetaFull.surface }}
         woaMeta={woaMetaFull}
+        nutrientsMeta={nutrientsMetaFull}
         oxygenMeta={oxygenMetaFull}
         carbonMeta={carbonMetaFull}
         co2Meta={co2MetaFull}

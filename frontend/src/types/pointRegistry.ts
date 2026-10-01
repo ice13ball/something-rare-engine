@@ -63,6 +63,10 @@ export const POINT_LAYERS = {
   "ocean-carbon":            { routingKey: "ocean-carbon",            idPrefix: "ocean-carbon",            extra: "depth"  },
   "ocean-acidification":     { routingKey: "ocean-acidification",     idPrefix: "ocean-acidification",     extra: "depth"  },
   "marine-carbon":           { routingKey: "marine-carbon",           idPrefix: "marine-carbon",           extra: "depth"  },
+  // Coordinate is the whole address: variable and month come from the display
+  // state a link already carries (nutrientsVariable / nutrientsMonth), and the
+  // panel shows all four variables for the displayed month.
+  "ocean-nutrients-model":   { routingKey: "ocean-nutrients-model",   idPrefix: "ocean-nutrients-model",   extra: null     },
   // Surface only — the selector here picks a decade, not a depth.
   "ocean-co2-surface":       { routingKey: "ocean-co2-surface",       idPrefix: "ocean-co2-surface",       extra: "decade" },
   // Coordinate is the whole address; these panels take no selector.

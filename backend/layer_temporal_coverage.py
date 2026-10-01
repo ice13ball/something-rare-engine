@@ -696,6 +696,27 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-09-15",
     ),
     Coverage(
+        layer_id="ocean-nutrients-model",
+        # The span is the PRODUCT's monthly series (stamped on the 1st of each
+        # month, first month 2021-10); the span a reader can reach is the newest
+        # available month and the 11 before it, because that is all we keep.
+        start_year=2021, end_year=None,
+        kind="modelled",
+        wording="Nitrate, chlorophyll-a, surface net primary production and N* "
+                "come from the Copernicus Marine global biogeochemical "
+                "analysis-and-forecast system (PISCES model, 0.25\u00b0, monthly "
+                "means), whose monthly series starts in October 2021. "
+                "\u26a0\ufe0f These are MODEL OUTPUT, not measurements. "
+                "\u26d4 This map serves far less than the product holds: only the "
+                "newest available month and the 11 before it are kept, so the "
+                "month selector spans one year and no further back \u2014 do not "
+                "read \u201c2021 onward\u201d as something reachable here. The "
+                "newest month is whatever the product's own time axis offers, "
+                "usually the last completed month.",
+        source_url="https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_BGC_001_028/description",
+        verified_on="2026-10-01",
+    ),
+    Coverage(
         layer_id="deepdata-stations",
         # ⛔ DERIVED, not quoted: all 142 ISA/OBIS Darwin Core archives were
         # fetched 2026-09-15 and not one `eml.xml` carries a <temporalCoverage>

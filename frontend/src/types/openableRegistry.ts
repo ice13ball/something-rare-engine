@@ -401,6 +401,7 @@ export const NOT_OPENABLE = [
   "bathymetry",
   "ocean-currents",
   "woa-climatology",
+  "ocean-nutrients-model",
   "oxygen-deox",
   "ocean-carbon",
   "ocean-co2-surface",

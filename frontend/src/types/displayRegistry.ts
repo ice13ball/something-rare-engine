@@ -30,7 +30,7 @@ import type { AssertComplete, AssertDisjoint } from "./layerRegistry";
  * it can and must refuse anything that is not a plain lowercase token, or a
  * link decides what path we fetch.
  */
-export type DisplayCheck = "slug" | "depth" | "index" | "boolean" | "isoDate";
+export type DisplayCheck = "slug" | "depth" | "index" | "boolean" | "isoDate" | "isoMonth";
 
 export interface DisplayField {
   /** The layer this selector belongs to. Documentation, and it makes the list auditable. */
@@ -57,6 +57,11 @@ export const DISPLAY_FIELDS = {
   woaVariable: { layer: "woa-climatology", default: "oxygen", check: "slug" },
   woaDepth: { layer: "woa-climatology", default: 500, check: "depth" },
   woaDisplayMode: { layer: "woa-climatology", default: "field", values: ["field", "hexes"] },
+  // The variable goes into a request PATH (`/api/v1/bgc-model/${var}/${month}.png`),
+  // hence `slug`; its legal values come from the backend's /meta. null month =
+  // "latest available", which a recipient resolves against their own /meta.
+  nutrientsVariable: { layer: "ocean-nutrients-model", default: "no3", check: "slug" },
+  nutrientsMonth: { layer: "ocean-nutrients-model", default: null, check: "isoMonth" },
   oxygenView: { layer: "oxygen-deox", default: "change", values: ["recent", "change"] },
   oxygenDepth: { layer: "oxygen-deox", default: 500, check: "depth" },
   oxygenDisplayMode: { layer: "oxygen-deox", default: "field", values: ["field", "hexes"] },
@@ -167,6 +172,8 @@ const CHECKS: Record<DisplayCheck, (v: unknown) => boolean> = {
   index: (v) => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 99,
   boolean: (v) => typeof v === "boolean",
   isoDate: (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
+  // A calendar month, also a path segment. Month 00 or 13 would only 404 the tile.
+  isoMonth: (v) => typeof v === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(v),
 };
 
 export function isValidDisplayValue(field: string, value: unknown): boolean {

@@ -10,7 +10,8 @@
       "decade": "Dekada",
       "view": "Widok",
       "scale": "Skala ({{units}})",
-      "stations": "Stacje"
+      "stations": "Stacje",
+      "month": "Miesiąc"
     },
     "layersHeading": "Warstwy",
     "filtersHeading": "Filtry",
@@ -347,6 +348,9 @@
     },
     "svalbardFjordsPrimaryProduction": {
       "toggle": "Produkcja pierwotna in situ — Fiordy Svalbardu"
+    },
+    "oceanNutrientsModel": {
+      "toggle": "Biogeny i produktywność (model)"
     }
   },
   "filters": {
@@ -533,7 +537,8 @@
       "coastdom": "Zmierzony rozpuszczony węgiel, azot i fosfor organiczny (DOC, DON, DOP) oraz powiązane parametry kolumny wody w wodach przybrzeżnych na całym świecie, 1978–2022 — CoastDOM v1, kompilacja opublikowana w PANGAEA. Jeden znacznik na opróbowaną pozycję; kolor to liczba próbek w tym miejscu, nigdy wartość.",
       "greenland-primary-production": "Produkcja pierwotna brutto węgla zmierzona metodą wydzielania tlenu na 12 stacjach Morza Grenlandzkiego w sierpniu 2021 i sierpniu 2022 (PANGAEA). Tempo na jednostkę powierzchni w mg C na metr kwadratowy na dobę — rozmiar znacznika odpowiada temu tempu.",
       "greenland-sea-poc-aoc2025": "Węgiel organiczny w postaci cząstek na 32 stacjach, rejs Atlantic-Arctic Ocean Change (AOC2025), Morze Grenlandzkie, 19–31 maja 2025 (Instytut Oceanologii PAN, CC-BY 4.0). Metadane źródła podają zakres czasowy, który nie zgadza się z tytułem ani danymi — pokazane, nie poprawione.",
-      "svalbard-fjords-primary-production": "Produkcja pierwotna in situ, Kongsfjorden i Hornsund (Svalbard), 1994–2019 (Instytut Oceanologii PAN). © IO PAN, użyte za zgodą — źródło nie publikuje otwartej licencji. Metadane źródła podają liczby stacji i inkubacji różne od danych — pokazane, nie poprawione."
+      "svalbard-fjords-primary-production": "Produkcja pierwotna in situ, Kongsfjorden i Hornsund (Svalbard), 1994–2019 (Instytut Oceanologii PAN). © IO PAN, użyte za zgodą — źródło nie publikuje otwartej licencji. Metadane źródła podają liczby stacji i inkubacji różne od danych — pokazane, nie poprawione.",
+      "ocean-nutrients-model": "Wynik modelu, nie pomiary: powierzchniowe azotany, chlorofil-a, produkcja pierwotna netto (tempo objętościowe przy powierzchni, a nie całka po słupie wody) oraz N* (azotany − 16 × fosforany) z globalnego modelu biogeochemicznego Copernicus Marine (PISCES, 0,25°). Średnie miesięczne dla najnowszego dostępnego miesiąca i 11 poprzednich. Kliknij mapę, aby zobaczyć dokładną wartość z najbliższej komórki."
     },
     "densityScaleLabel": "Rekordy na komórkę",
     "argoReadingHeading": "Jak odczytywać pomiary",
@@ -860,7 +865,7 @@
     "deployShipLabel": "Rozstawiona z",
     "deploymentCountLabel": "Liczba rozstawień",
     "sensorModelsLabel": "Przyrządy",
-    "noObservationsText": "Brak aktywnych obserwacji z NDBC, PMEL lub OceanSITES GDAC dla tej stacji",
+    "noObservationsText": "Stacja działa, ale żadne z naszych źródeł — NOAA NDBC, NOAA PMEL, OceanSITES GDAC — nie publikuje dla niej bieżących odczytów.",
     "obsTimeLabel": "Czas obserwacji (UTC)",
     "panelBadge": "Kotwiczenie OceanSITES",
     "pressureLabel": "Ciśnienie",
@@ -879,7 +884,10 @@
     "ageDaysValue": "{{days}} dni",
     "ageDaysWithYears": "{{days}} dni (~{{years}} lat)",
     "qcWithheld": "PMEL oznaczył {{count}} odczyt(y) jako wątpliwe lub złe i nie są pokazane: {{fields}}. To flaga jakości samego wydawcy, nie luka w naszym pobraniu.",
-    "qcLowered": "PMEL ocenia {{count}} z tych odczytów jako niższej jakości: {{fields}}."
+    "qcLowered": "PMEL ocenia {{count}} z tych odczytów jako niższej jakości: {{fields}}.",
+    "noObservationsClosed": "Stacja zamknięta — już nie nadaje, więc bieżących odczytów nie ma. Jeśli jej dawne pomiary zostały opublikowane, są w archiwum OceanSITES GDAC (IFREMER).",
+    "noObservationsInactive": "OceanOPS oznacza tę stację jako nieaktywną: obecnie nie nadaje, więc nie pobieramy dla niej bieżących odczytów.",
+    "noObservationsRegistered": "Stacja zgłoszona w OceanOPS, ale jeszcze nie postawiona — odczytów jeszcze nie ma."
   },
   "offshore": {
     "areaLabel": "Obszar",
@@ -1521,5 +1529,27 @@
   },
   "woaPoint": {
     "nstarHint": "N* = azotany − 16 × fosforany. Wartość ujemna = mniej azotanów niż fosforanów przy stosunku 16:1, w jakim zużywa je plankton (niedobór azotu); dodatnia = nadmiar azotanów."
+  },
+  "nutrients": {
+    "modelWarning": "Wynik modelu (PISCES, Copernicus Marine), nie pomiary.",
+    "scaleLog": "Logarytmiczna skala kolorów.",
+    "scaleSqrt": "Skala kolorów w pierwiastku kwadratowym, aby niskie wartości pozostały rozróżnialne.",
+    "nppvHint": "Produkcja pierwotna netto to tempo objętościowe na poziomie powierzchni (mg m⁻³ na dobę), a nie całka po słupie wody. Nie można jej porównywać z wartościami satelitarnymi w mg C m⁻² na dobę.",
+    "clickHint": "Kliknij mapę, aby zobaczyć dokładną wartość modelu z najbliższej komórki 0,25°.",
+    "variable": {
+      "no3": "Azotany",
+      "chl": "Chlorofil-a",
+      "nppv": "Produkcja pierwotna netto (powierzchnia, objętościowa)",
+      "nstar": "N* (azotany − 16 × fosforany)"
+    },
+    "panel": {
+      "badge": "Biogeny i produktywność (model)",
+      "where": "Najbliższa komórka 0,25° · {{lat}}°, {{lon}}° · średnia miesięczna {{month}} · powierzchnia",
+      "section": "Wartości modelu",
+      "footnote": "Średnie miesięczne modelu biogeochemicznego na jego pierwszym poziomie (0,49 m). Kolory na mapie są 8-bitowe; te liczby pochodzą z siatki o pełnej precyzji.",
+      "noData": "Brak wartości modelu w tym miejscu (ląd lub lód morski).",
+      "notCovered": "Poza siatką modelu, która kończy się na 80°S.",
+      "failed": "Nie udało się wczytać wartości modelu."
+    }
   }
 }

@@ -1,0 +1,19 @@
+Real excerpt, not synthetic. Surface level (first model level, 0.494 m), one month
+(2026-08-01 stamp), a 10 x 10 degree window (lat -20..-10, lon -85..-75; 41 x 41 cells
+at 0.25 degrees; the Peru upwelling coast, so it holds both ocean and land/NaN cells).
+
+Product   GLOBAL_ANALYSISFORECAST_BGC_001_028, Global Ocean Biogeochemistry Analysis and Forecast
+DOI       https://doi.org/10.48670/moi-00015
+Datasets  cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m   (no3, po4  mmol m-3)
+          cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m   (chl       mg m-3)
+          cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m   (nppv      mg m-3 day-1)
+Cut       copernicusmarine.open_dataset(..., minimum_depth=0, maximum_depth=1,
+          minimum/maximum_latitude=-20/-10, minimum/maximum_longitude=-85/-75),
+          time 2026-08-01, first depth level; stored as float32 with NaN where the
+          model has no value. Retrieved 2026-10-01.
+Licence   Copernicus Marine Service Commitments and Licence, section 2.2 (b) and (c)
+          permit distributing derivative work and redistributing products in any
+          medium, subject to the credit in 2.4:
+          https://marine.copernicus.eu/user-corner/service-commitments-and-licence
+
+E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00015

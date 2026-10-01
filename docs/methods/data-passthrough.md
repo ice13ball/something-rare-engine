@@ -63,6 +63,9 @@ These carry an explicit banner and are never presented as observations:
 - `vme-suitability` — a MaxEnt habitat-suitability model
 - `coral-acid-exposure` — modelled exposure derived from the above
 - `noise-risk` — a derived index combining two independent noise datasets
+- `ocean-nutrients-model` — output of the Copernicus Marine PISCES biogeochemical
+  model, not measurements; its `nstar` variable (nitrate − 16 × phosphate) is
+  computed by this platform from two model variables
 
 A whole layer is not the only thing that can be derived. A single **field** on an
 otherwise pass-through layer can be ours too. One such field existed here, and on

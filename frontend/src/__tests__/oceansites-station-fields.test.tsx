@@ -98,4 +98,29 @@ describe("OceanSITES station fields", () => {
     });
     expect(screen.getAllByText("5.5 m/s from 99°").length).toBeGreaterThan(0);
   });
+
+  // ~93% of the register is not operational and is never polled. One message
+  // for every station without a reading read as "our feed failed" on a buoy
+  // closed decades ago. Each phrase below appears only in its own message.
+  it.each([
+    ["CLOSED",      /no longer transmits/],
+    ["INACTIVE",    /lists this mooring as inactive/],
+    ["REGISTERED",  /not yet deployed/],
+    ["OPERATIONAL", /none of our sources/],
+  ])("says why a %s station has no reading", (status, phrase) => {
+    renderWith({ status });
+    expect(screen.getAllByText(phrase).length).toBe(1);
+    for (const other of [/no longer transmits/, /lists this mooring as inactive/, /not yet deployed/, /none of our sources/]) {
+      if (other.source !== phrase.source) expect(screen.queryAllByText(other).length).toBe(0);
+    }
+  });
+
+  it("names the NDBC station number, which is what NDBC is searched by", () => {
+    renderWith({
+      obs_source: "NDBC",
+      obs_fetched_at: new Date().toISOString(),
+      latest_obs: { wtmp: 26.0, obs_time: new Date().toISOString(), ndbc_station: "15009" },
+    });
+    expect(screen.getAllByText(/NDBC station 15009/).length).toBe(1);
+  });
 });

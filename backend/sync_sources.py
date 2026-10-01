@@ -160,6 +160,7 @@ SYNC_SOURCES: dict[str, Callable[[], Awaitable[Any]]] = {
     "currents-surface": lambda: fields.currents.sync_currents("surface"),
     "currents-1000m":   lambda: fields.currents.sync_currents("1000m"),
     "currents-backfill": lambda: _currents_backfill_task(force=True),
+    "ocean-nutrients-model": lambda: fields.bgc_model.sync_bgc_model(force=True),
     "woa-climatology": lambda: fields.climatology.sync_woa(force=True),
     "glodap-carbon": lambda: fields.carbon.sync_glodap_carbon(force=True),
     "acidification": lambda: fields.carbon.sync_acidification(force=True),

@@ -10,7 +10,8 @@
       "decade": "Decade",
       "view": "View",
       "scale": "Scale ({{units}})",
-      "stations": "Stations"
+      "stations": "Stations",
+      "month": "Month"
     },
     "layersHeading": "Layers",
     "filtersHeading": "Filters",
@@ -347,6 +348,9 @@
     },
     "svalbardFjordsPrimaryProduction": {
       "toggle": "In situ Primary Production — Svalbard Fjords"
+    },
+    "oceanNutrientsModel": {
+      "toggle": "Nutrients & productivity (model)"
     }
   },
   "filters": {
@@ -533,7 +537,8 @@
       "coastdom": "Measured dissolved organic carbon, nitrogen and phosphorus (DOC, DON, DOP) and related water-column parameters in coastal waters worldwide, 1978–2022 — CoastDOM v1, a compilation published on PANGAEA. One marker per sampled position; its colour is the number of samples there, never a value.",
       "greenland-primary-production": "Gross primary production of carbon measured by oxygen evolution at 12 Greenland Sea stations in August 2021 and August 2022 (PANGAEA). An areal rate in mg C per square metre per day — marker size follows the rate.",
       "greenland-sea-poc-aoc2025": "Particulate organic carbon at 32 stations, Atlantic-Arctic Ocean Change cruise (AOC2025), Greenland Sea, 19–31 May 2025 (Institute of Oceanology Polish Academy of Sciences, CC-BY 4.0). The source's own metadata states a temporal extent that does not match its title or its data — shown, not corrected.",
-      "svalbard-fjords-primary-production": "In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, used with permission — the source publishes no open licence. The source's own metadata states station and incubation counts that differ from the data — shown, not corrected."
+      "svalbard-fjords-primary-production": "In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, used with permission — the source publishes no open licence. The source's own metadata states station and incubation counts that differ from the data — shown, not corrected.",
+      "ocean-nutrients-model": "Model output, not measurements: surface nitrate, chlorophyll-a, net primary production (a volumetric rate at the surface, not a column integral) and N* (nitrate − 16 × phosphate) from the Copernicus Marine global biogeochemical model (PISCES, 0.25°). Monthly means for the newest available month and the 11 before it. Click the map for the exact value of the nearest cell."
     },
     "densityScaleLabel": "Records per cell",
     "argoReadingHeading": "How to read the readings",
@@ -861,7 +866,7 @@
     "deployShipLabel": "Deployed from",
     "deploymentCountLabel": "Deployments",
     "sensorModelsLabel": "Instruments",
-    "noObservationsText": "No live observations from NDBC, PMEL, or OceanSITES GDAC for this station",
+    "noObservationsText": "Operational, but none of our sources — NOAA NDBC, NOAA PMEL, OceanSITES GDAC — publishes live readings for this mooring.",
     "obsTimeLabel": "Obs time (UTC)",
     "panelBadge": "OceanSITES Mooring",
     "pressureLabel": "Pressure",
@@ -879,7 +884,10 @@
     "ageDaysValue": "{{days}} days",
     "ageDaysWithYears": "{{days}} days (~{{years}} yr)",
     "qcWithheld": "PMEL flagged {{count}} reading(s) as questionable or bad and they are not shown: {{fields}}. This is the publisher's own quality flag, not a gap in our fetch.",
-    "qcLowered": "PMEL rates {{count}} of these reading(s) as lower quality: {{fields}}."
+    "qcLowered": "PMEL rates {{count}} of these reading(s) as lower quality: {{fields}}.",
+    "noObservationsClosed": "Closed — this mooring no longer transmits, so there are no live readings. Where its past measurements were published, they are in the OceanSITES GDAC archive (IFREMER).",
+    "noObservationsInactive": "OceanOPS lists this mooring as inactive: it is not transmitting now, so no live readings are fetched.",
+    "noObservationsRegistered": "Registered with OceanOPS but not yet deployed — no readings exist yet."
   },
   "offshore": {
     "areaLabel": "Area",
@@ -1515,5 +1523,27 @@
   },
   "woaPoint": {
     "nstarHint": "N* = nitrate − 16 × phosphate. Negative = less nitrate than phosphate at the 16:1 ratio plankton use (nitrogen-deficient); positive = a nitrate surplus."
+  },
+  "nutrients": {
+    "modelWarning": "Model output (PISCES, Copernicus Marine), not measurements.",
+    "scaleLog": "Logarithmic colour scale.",
+    "scaleSqrt": "Square-root colour scale, so low values stay distinguishable.",
+    "nppvHint": "Net primary production is a volumetric rate at the surface level (mg m⁻³ per day), not a water-column integral. It cannot be compared with satellite values in mg C m⁻² per day.",
+    "clickHint": "Click the map for the exact model value of the nearest 0.25° cell.",
+    "variable": {
+      "no3": "Nitrate",
+      "chl": "Chlorophyll-a",
+      "nppv": "Net primary production (surface, volumetric)",
+      "nstar": "N* (nitrate − 16 × phosphate)"
+    },
+    "panel": {
+      "badge": "Nutrients & productivity (model)",
+      "where": "Nearest 0.25° cell · {{lat}}°, {{lon}}° · monthly mean {{month}} · surface",
+      "section": "Model values",
+      "footnote": "Monthly means of a biogeochemical model at its first level (0.49 m). The colours on the map are 8-bit; these numbers come from the full-precision grid.",
+      "noData": "No model value here (land or sea ice).",
+      "notCovered": "Outside the model grid, which ends at 80°S.",
+      "failed": "Could not load the model values."
+    }
   }
 }

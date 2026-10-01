@@ -10,7 +10,8 @@
       "decade": "Décennie",
       "view": "Vue",
       "scale": "Échelle ({{units}})",
-      "stations": "Stations"
+      "stations": "Stations",
+      "month": "Mois"
     },
     "layersHeading": "Couches",
     "filtersHeading": "Filtres",
@@ -347,6 +348,9 @@
     },
     "svalbardFjordsPrimaryProduction": {
       "toggle": "Production primaire in situ — Fjords du Svalbard"
+    },
+    "oceanNutrientsModel": {
+      "toggle": "Nutriments et productivité (modèle)"
     }
   },
   "filters": {
@@ -533,7 +537,8 @@
       "coastdom": "Carbone, azote et phosphore organiques dissous mesurés (DOC, DON, DOP) et paramètres associés de la colonne d'eau dans les eaux côtières du monde entier, 1978–2022 — CoastDOM v1, une compilation publiée sur PANGAEA. Un marqueur par position échantillonnée ; sa couleur indique le nombre d'échantillons, jamais une valeur.",
       "greenland-primary-production": "Production primaire brute de carbone mesurée par dégagement d'oxygène à 12 stations de la mer du Groenland en août 2021 et août 2022 (PANGAEA). Un taux surfacique en mg C par mètre carré et par jour — la taille du marqueur suit ce taux.",
       "greenland-sea-poc-aoc2025": "Carbone organique particulaire à 32 stations, campagne Atlantic-Arctic Ocean Change (AOC2025), mer du Groenland, 19–31 mai 2025 (Institut d'océanologie de l'Académie polonaise des sciences, CC-BY 4.0). Les métadonnées de la source indiquent une étendue temporelle qui ne correspond ni au titre ni aux données — montrée, non corrigée.",
-      "svalbard-fjords-primary-production": "Production primaire in situ, Kongsfjorden et Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, utilisé avec permission — la source ne publie aucune licence ouverte. Les métadonnées de la source indiquent des nombres de stations et d'incubations différents des données — montrés, non corrigés."
+      "svalbard-fjords-primary-production": "Production primaire in situ, Kongsfjorden et Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, utilisé avec permission — la source ne publie aucune licence ouverte. Les métadonnées de la source indiquent des nombres de stations et d'incubations différents des données — montrés, non corrigés.",
+      "ocean-nutrients-model": "Sortie de modèle, pas des mesures : nitrate de surface, chlorophylle-a, production primaire nette (taux volumique en surface, et non intégrale sur la colonne) et N* (nitrate − 16 × phosphate) issus du modèle biogéochimique global de Copernicus Marine (PISCES, 0,25°). Moyennes mensuelles du mois le plus récent disponible et des 11 précédents. Cliquez sur la carte pour la valeur exacte de la maille la plus proche."
     },
     "densityScaleLabel": "Enregistrements par cellule",
     "argoReadingHeading": "Comment lire les mesures",
@@ -860,7 +865,7 @@
     "deployShipLabel": "Déployée depuis",
     "deploymentCountLabel": "Déploiements",
     "sensorModelsLabel": "Instruments",
-    "noObservationsText": "Aucune observation en direct de NDBC, PMEL ou OceanSITES GDAC pour cette station",
+    "noObservationsText": "En service, mais aucune de nos sources — NOAA NDBC, NOAA PMEL, GDAC OceanSITES — ne publie de relevés en direct pour ce mouillage.",
     "obsTimeLabel": "Heure d'observation (UTC)",
     "panelBadge": "Mouillage OceanSITES",
     "pressureLabel": "Pression",
@@ -879,7 +884,10 @@
     "ageDaysValue": "{{days}} jours",
     "ageDaysWithYears": "{{days}} jours (~{{years}} ans)",
     "qcWithheld": "PMEL a signalé {{count}} relevé(s) comme douteux ou mauvais ; ils ne sont pas affichés : {{fields}}. Il s'agit du drapeau qualité de l'éditeur, pas d'une lacune de notre récupération.",
-    "qcLowered": "PMEL classe {{count}} de ces relevés en qualité inférieure : {{fields}}."
+    "qcLowered": "PMEL classe {{count}} de ces relevés en qualité inférieure : {{fields}}.",
+    "noObservationsClosed": "Fermé — ce mouillage n'émet plus, il n'y a donc pas de relevés en direct. Lorsque ses mesures passées ont été publiées, elles se trouvent dans l'archive GDAC OceanSITES (IFREMER).",
+    "noObservationsInactive": "OceanOPS indique ce mouillage comme inactif : il n'émet pas actuellement, aucun relevé en direct n'est donc récupéré.",
+    "noObservationsRegistered": "Enregistré auprès d'OceanOPS mais pas encore déployé — aucun relevé n'existe encore."
   },
   "offshore": {
     "areaLabel": "Superficie",
@@ -1515,5 +1523,27 @@
   },
   "woaPoint": {
     "nstarHint": "N* = nitrate − 16 × phosphate. Négatif = moins de nitrate que de phosphate au rapport 16:1 utilisé par le plancton (déficit en azote) ; positif = excédent de nitrate."
+  },
+  "nutrients": {
+    "modelWarning": "Sortie de modèle (PISCES, Copernicus Marine), pas des mesures.",
+    "scaleLog": "Échelle de couleurs logarithmique.",
+    "scaleSqrt": "Échelle de couleurs en racine carrée, pour que les faibles valeurs restent distinctes.",
+    "nppvHint": "La production primaire nette est un taux volumique au niveau de la surface (mg m⁻³ par jour), et non une intégrale sur la colonne d'eau. Elle n'est pas comparable aux valeurs satellitaires en mg C m⁻² par jour.",
+    "clickHint": "Cliquez sur la carte pour obtenir la valeur exacte du modèle dans la maille de 0,25° la plus proche.",
+    "variable": {
+      "no3": "Nitrate",
+      "chl": "Chlorophylle-a",
+      "nppv": "Production primaire nette (surface, volumique)",
+      "nstar": "N* (nitrate − 16 × phosphate)"
+    },
+    "panel": {
+      "badge": "Nutriments et productivité (modèle)",
+      "where": "Maille de 0,25° la plus proche · {{lat}}°, {{lon}}° · moyenne mensuelle {{month}} · surface",
+      "section": "Valeurs du modèle",
+      "footnote": "Moyennes mensuelles d'un modèle biogéochimique à son premier niveau (0,49 m). Les couleurs de la carte sont codées sur 8 bits ; ces nombres proviennent de la grille en pleine précision.",
+      "noData": "Aucune valeur du modèle ici (terre ou glace de mer).",
+      "notCovered": "Hors de la grille du modèle, qui s'arrête à 80°S.",
+      "failed": "Impossible de charger les valeurs du modèle."
+    }
   }
 }

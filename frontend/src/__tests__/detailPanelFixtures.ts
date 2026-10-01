@@ -563,6 +563,11 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     properties: { _lat: 1.23, _lon: 4.56, depth: 100 },
   },
   {
+    layer: "ocean-nutrients-model",
+    id: "TEST",
+    properties: { _lat: 1.23, _lon: 4.56 },
+  },
+  {
     layer: "oxygen-deox",
     id: "TEST",
     properties: { _lat: 1.23, _lon: 4.56, depth: 100 },
@@ -629,4 +634,5 @@ export const LAYER_FIXTURES: LayerFixture[] = [
 // 74 -> 72 on 2026-09-03: the KBA withdrawal removed one branch carrying two
 // literals (`layer === "kbas" || layer === "kbas-mvt"`), so the count drops
 // by two for one layer. A drop of one here would mean something else was lost.
-export const EXPECTED_LAYER_COUNT = 77;
+// 77 -> 78 on 2026-10-01: `ocean-nutrients-model` point panel added.
+export const EXPECTED_LAYER_COUNT = 78;

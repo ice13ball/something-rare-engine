@@ -49,6 +49,11 @@ export const LAYER_TOOLTIPS_META = {
     sourceUrl: "https://www.ncei.noaa.gov/products/world-ocean-atlas",
     pairsWith: ["argo", "ocean-currents", "biodiversity-hotspots"],
   },
+  "ocean-nutrients-model": {
+    source: "E.U. Copernicus Marine Service — GLOBAL_ANALYSISFORECAST_BGC_001_028 (PISCES model output, monthly means)",
+    sourceUrl: "https://doi.org/10.48670/moi-00015",
+    pairsWith: ["woa-climatology", "ocean-currents", "argo"],
+  },
   "ocean-carbon": {
     source: "GLODAP v2.2016b Mapped Climatology (GEOMAR / NOAA NCEI)",
     sourceUrl: "https://glodap.info/index.php/mapped-data-product/",

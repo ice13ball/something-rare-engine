@@ -157,6 +157,7 @@ OFFSHORE_ACTIVITIES_INTERVAL = 7 * 24 * 3600  # weekly
 # first, GEBCO (7.5 GB read) last. Keep them distinct when adding a new bake.
 _BAKE_STARTUP_DELAY = {
     "currents":        300,
+    "bgc_model":       360,   # plain external-API call (3 lazy opens + ~12 small reads)
     "seabed":          540,
     "cascade":         780,
     "woa":            1020,
@@ -781,6 +782,20 @@ async def _currents_bake_task():
         except Exception:
             log.exception("Currents bake task failed")
         await asyncio.sleep(fields.currents.CURRENTS_BAKE_INTERVAL_SECONDS)
+
+
+async def _ocean_nutrients_bake_task():
+    """Daily Copernicus Marine BGC bake (layer ocean-nutrients-model). External-API
+    tier: staggered startup delay, no DB scan. Bakes the newest month the datasets'
+    time axes offer plus the 11 before it, only what is missing; logs a sync_log row
+    on every run, including "nothing new"."""
+    await asyncio.sleep(_BAKE_STARTUP_DELAY["bgc_model"])
+    while True:
+        try:
+            await fields.bgc_model.sync_bgc_model()
+        except Exception:
+            log.exception("Ocean nutrients (model) bake task failed")
+        await asyncio.sleep(fields.bgc_model.BGC_MODEL_BAKE_INTERVAL_SECONDS)
 
 
 async def _currents_backfill_task(force: bool = False):
@@ -1441,6 +1456,12 @@ TASK_REGISTRY: list[TaskSpec] = [
         "CMEMS fetch + disk texture bake; see module docstring for the "
         "meta-cache staleness caveat shared by every bake in this file.",
         _f(_currents_bake_task),
+    ),
+    TaskSpec(
+        "ocean-nutrients-model-daily-bake", ROLE_WORKER,
+        "Copernicus Marine fetch + disk bake in a thread; the web process reads the "
+        "files, so there is no in-memory cache to go stale (see module docstring).",
+        _f(_ocean_nutrients_bake_task),
     ),
     TaskSpec(
         "currents-history-backfill", ROLE_WORKER,

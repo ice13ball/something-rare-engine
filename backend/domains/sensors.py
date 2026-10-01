@@ -1985,7 +1985,9 @@ async def sync_oceansites_obs() -> int:
     """Fetch latest observations for every OceanSITES station and cache in DB.
 
     Source priority (first hit wins):
-      1. NDBC — US-operated buoys, ~1-3h fresh
+      1. NDBC — US-operated buoys, ~1-3h fresh. Asked by the WMO number
+         inside the OceanOPS ref; asking by the ref itself (until 2026-10-01)
+         404'd on every station, which is the "NDBC 0" below.
       2. PMEL ERDDAP — TAO/TRITON/PIRATA/RAMA, daily QC'd, days-to-weeks lag
       3. OceanSITES GDAC THREDDS — IFREMER NetCDF backstop for stations PMEL
          missed and a handful of regional moorings (Stratus, etc.)
@@ -2000,8 +2002,9 @@ async def sync_oceansites_obs() -> int:
     carrying an observation, obs_source = PMEL 49 / GDAC 1 / NDBC 0.
     Returns count of stations with cached observations.
     """
+    from ingestion.ndbc_realtime import fetch_ndbc_observation
     from ingestion.oceansites_gdac import fetch_gdac_observations
-    from ingestion.pmel_erddap import fetch_pmel_observations
+    from ingestion.pmel_erddap import fetch_pmel_observations, match_pmel_stations
 
     # 2026-09-08: oceansites_stations widened from 65 OPERATIONAL-only rows to
     # every OceanOPS status (~5,795). Fetching live observations for a
@@ -2011,8 +2014,9 @@ async def sync_oceansites_obs() -> int:
     # are only meaningful for currently OPERATIONAL platforms.
     async with db.pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT ref, name FROM oceansites_stations WHERE status = 'OPERATIONAL'"
+            "SELECT ref, name, lat, lon FROM oceansites_stations WHERE status = 'OPERATIONAL'"
         )
+    stations = [(r["ref"], r["name"], r["lat"], r["lon"]) for r in rows]
     refs_with_names = [(r["ref"], r["name"]) for r in rows]
     refs = [ref for ref, _ in refs_with_names]
     if not refs:
@@ -2020,67 +2024,21 @@ async def sync_oceansites_obs() -> int:
 
     sem = asyncio.Semaphore(10)
 
-    def _parse_float(v: str) -> float | None:
-        return None if v in ("MM", "N/A", "", "9999.0", "999.0", "99.0") else float(v)
-
-    async def _fetch_obs(client: httpx.AsyncClient, ref: str) -> tuple[str, dict | None]:
+    async def _fetch_obs(client: httpx.AsyncClient, ref: str, lat, lon) -> tuple[str, dict | None]:
         async with sem:
-            for url in (
-                f"https://www.ndbc.noaa.gov/data/latest_obs/{ref.upper()}.txt",
-                f"https://www.ndbc.noaa.gov/data/realtime2/{ref.upper()}.txt",
-            ):
-                try:
-                    r = await client.get(url, timeout=12)
-                    if r.status_code != 200:
-                        continue
-                    lines = [ln for ln in r.text.strip().splitlines()
-                              if ln.strip() and not ln.startswith("#")]
-                    if not lines:
-                        continue
-                    # latest_obs is a single-line format (last line = only line)
-                    # realtime2 is newest-first — take lines[0] to get the most recent
-                    parts = (lines[-1] if "latest_obs" in url else lines[0]).split()
-                    if "latest_obs" in url:
-                        if len(parts) < 19:
-                            continue
-                        obs = {
-                            "obs_time": f"{parts[3]}-{parts[4]}-{parts[5]} {parts[6]}:{parts[7]}Z",
-                            "wtmp": _parse_float(parts[18]),
-                            "atmp": _parse_float(parts[17]),
-                            "wspd": _parse_float(parts[9]),
-                            "wdir": _parse_float(parts[8]),
-                            "wvht": _parse_float(parts[11]),
-                            "pres": _parse_float(parts[15]),
-                        }
-                    else:
-                        if len(parts) < 15:
-                            continue
-                        yr = parts[0] if len(parts[0]) == 4 else f"20{parts[0]}"
-                        obs = {
-                            "obs_time": f"{yr}-{parts[1]}-{parts[2]} {parts[3]}:{parts[4]}Z",
-                            "wdir": _parse_float(parts[5]),
-                            "wspd": _parse_float(parts[6]),
-                            "wvht": _parse_float(parts[8]),
-                            "pres": _parse_float(parts[12]),
-                            "atmp": _parse_float(parts[13]),
-                            "wtmp": _parse_float(parts[14]),
-                        }
-                    if any(v is not None for k, v in obs.items() if k != "obs_time"):
-                        return ref, obs
-                except Exception as exc:
-                    log.debug("oceansites NDBC fetch %s: %s", ref, exc)
-        return ref, None
+            return ref, await fetch_ndbc_observation(client, ref, lat, lon)
 
     async with httpx.AsyncClient() as client:
-        ndbc_results = await asyncio.gather(*[_fetch_obs(client, r) for r in refs])
+        ndbc_results = await asyncio.gather(
+            *[_fetch_obs(client, ref, lat, lon) for ref, _name, lat, lon in stations]
+        )
 
-    # Source 1: NDBC (primary)
+    # Source 1: NDBC (primary) — asked by WMO number, see ingestion/ndbc_realtime.
     obs_by_ref: dict[str, tuple[dict, str]] = {
         ref: (obs, "NDBC") for ref, obs in ndbc_results if obs
     }
 
     # Source 2: PMEL ERDDAP — fill gaps for TAO/TRITON/PIRATA/RAMA stations.
-    # PMEL keys are lowercase station names (e.g. "9n140w"); OceanSITES `name` is "9N140W".
     try:
         pmel_obs = await fetch_pmel_observations()
     except Exception:
@@ -2088,12 +2046,12 @@ async def sync_oceansites_obs() -> int:
         pmel_obs = {}
 
     if pmel_obs:
-        for ref, name in refs_with_names:
-            if ref in obs_by_ref or not name:
-                continue
-            pmel_match = pmel_obs.get(name.lower())
-            if pmel_match:
-                obs_by_ref[ref] = (pmel_match, "PMEL")
+        # By name, then by the position a PMEL station ID encodes — a bare
+        # name lookup missed "00N03" (PMEL "0n3w") and "4N23W\xa0".
+        unfed = [st for st in stations if st[0] not in obs_by_ref]
+        for ref, station_id in match_pmel_stations(unfed, pmel_obs).items():
+            pmel_match = pmel_obs[station_id]
+            obs_by_ref[ref] = (pmel_match, "PMEL")
 
     # Source 3: OceanSITES GDAC THREDDS — only probe stations still missing.
     # Each lookup costs ~10 small OPeNDAP requests, so cap to remaining gaps.
@@ -2138,6 +2096,18 @@ async def sync_oceansites_obs() -> int:
                        WHERE ref = ANY($1::text[])""",
                     without_data,
                 )
+            # ⛔ A mooring that left OPERATIONAL is no longer in `refs`, so
+            # neither branch above touches it and its last reading stayed on
+            # the map as the "latest". Seen 2026-10-01: 0N10W and 15N90E,
+            # both INACTIVE, still showing July and August readings.
+            await conn.execute(
+                """UPDATE oceansites_stations
+                   SET latest_obs = NULL,
+                       obs_source = NULL,
+                       obs_fetched_at = NOW()
+                   WHERE status <> 'OPERATIONAL'
+                     AND (latest_obs IS NOT NULL OR obs_source IS NOT NULL)"""
+            )
 
     global _oceansites_cache
     _oceansites_cache = None

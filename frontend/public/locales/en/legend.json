@@ -758,6 +758,14 @@
       "reading": "Marker size follows GPP, an areal rate in mg C per square metre per day (the source's 'GPP C [mg/m**2/day]'). It is not comparable with the per-litre values of other layers.",
       "limitations": "Twelve stations, one value each, from two summer cruises. No depth profile and no quality flag are published. Not a seasonal or annual estimate.",
       "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Related article: Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
+    },
+    "ocean-nutrients-model": {
+      "label": "Nutrients & productivity (model)",
+      "source": "E.U. Copernicus Marine Service Information; Global Ocean Biogeochemistry Analysis and Forecast (GLOBAL_ANALYSISFORECAST_BGC_001_028), Mercator Ocean International. https://doi.org/10.48670/moi-00015",
+      "updateFreq": "Checked daily; a new month is added when the product publishes it (usually the last completed month). The newest month and the 11 before it are kept.",
+      "description": "Surface nitrate, chlorophyll-a, net primary production and N* (nitrate − 16 × phosphate) from the Copernicus Marine global biogeochemical analysis-and-forecast system, shown as monthly means on a 0.25° grid. This is MODEL OUTPUT (the PISCES biogeochemical model, forced by the Mercator global physics analysis, with chlorophyll constrained by assimilated ocean colour), not measurements. It is a context layer for productivity and nutrient supply around areas of interest.",
+      "reading": "Pick a variable and a month; colour encodes the value at the first model level (0.49 m). Nitrate uses a square-root colour scale and chlorophyll and production a logarithmic one, so the low values that dominate the open ocean stay distinguishable; read the scale under the selectors. N* uses a diverging scale centred on 0: negative means less nitrate than phosphate at the 16:1 ratio plankton use, positive a nitrate surplus. Click the map for the exact value of the nearest cell.",
+      "limitations": "Model output at 0.25° (about 25 km), not measurements; the grid ends at 80°S and has no values over land or sea ice. Net primary production here is a volumetric rate at the surface (mg m⁻³ per day), NOT a water-column integral, so it cannot be compared with satellite products in mg C m⁻² per day. N* is calculated here without a constant offset. Monthly means smooth out blooms and eddies shorter than a month. Only the newest month and the 11 before it are kept."
     }
   },
   "header": {
@@ -1007,7 +1015,8 @@
     "fresh_surfaceWater": "static raster tiles (JRC 1984–2021 composite)",
     "fresh_waterRisk": "static dataset (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "General",
-    "fresh_apiResponses": "cached server-side; your browser may add an additional layer of caching"
+    "fresh_apiResponses": "cached server-side; your browser may add an additional layer of caching",
+    "fresh_nutrients_model": "Updated by the producer monthly; this platform checks daily and keeps 12 months"
   },
   "verify": {
     "primaryTitle": "Primary sources",
@@ -1037,7 +1046,7 @@
     "unesco_title": "UNESCO Marine Heritage",
     "unesco": "Site boundaries sourced from the UNESCO World Heritage Marine Programme layer on MarineRegions WFS. The authoritative list of all World Heritage marine sites is at whc.unesco.org/en/marine-programme/. Site polygons represent the inscribed property boundary as submitted by the nominating state.",
     "oceansites_title": "OceanSITES Moorings",
-    "oceansites": "Station metadata comes from OceanOPS — search the reference code shown in the popup at ocean-ops.org. For a reading, check the source the popup names for it: NDBC at ndbc.noaa.gov/station_page.php?station=REF, PMEL at data.pmel.noaa.gov/pmel/erddap, or the OceanSITES GDAC at data-oceansites.ifremer.fr. A station showing no reading cannot be cross-checked at any of those — it is in the register but not currently polled, which is a different thing from a feed that failed.",
+    "oceansites": "Station metadata comes from OceanOPS — search the reference code shown in the popup at ocean-ops.org. For a reading, check the source the popup names for it: NDBC at ndbc.noaa.gov/station_page.php?station= followed by the NDBC station number the popup gives (not the OceanOPS reference — NDBC does not know it), PMEL at data.pmel.noaa.gov/pmel/erddap, or the OceanSITES GDAC at data-oceansites.ifremer.fr. A station showing no reading cannot be cross-checked at any of those — it is in the register but not currently polled, which is a different thing from a feed that failed.",
     "currents_title": "Ocean Currents",
     "currents": "Cross-check current speed and direction against the Copernicus Marine viewer (product GLOBAL_ANALYSISFORECAST_PHY_001_024, dataset cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, variables uo/vo). The source netCDF files are available for download via the Copernicus Marine Toolbox:",
     "onc_title": "ONC Observatories",
@@ -1090,7 +1099,7 @@
     "lim_argo": "Argo float positions are last known locations; floats drift continuously",
     "lim_isa": "ISA block boundaries are exploration zones, not guaranteed mining footprints",
     "lim_conflict": "Conflict risk levels are spatial proximity assessments, not legally binding determinations",
-    "lim_oceansites": "Readings are fetched only for moorings OceanOPS currently lists as operational — around 60 of roughly 1,070 stations. Every other ring shows position and metadata only, and NDBC in practice supplies none of the current readings even though it is tried first",
+    "lim_oceansites": "Readings are fetched only for moorings OceanOPS currently lists as operational — around 70 of roughly 1,040 stations. Every other ring shows position and metadata only. NDBC is asked by the WMO number contained in the OceanOPS reference, and a reading is used only when NDBC's position for that station matches the mooring's; PMEL and the GDAC fill in for the rest",
     "lim_onc": "ONC shows the most recent reading it holds for each station, with no recency floor — a retired node or a recovered drifter can show a reading that is years old, so read the timestamp beside the value",
     "lim_noise": "Noise Risk cells marked 'data gap' have measured noise but no cetacean survey coverage — absence of records does not mean absence of animals",
     "lim_chess": "Chemosynthetic Sites habitat type is keyword-inferred from locality names — records with non-descriptive names default to OMZ; manual reclassification is not possible without authoring new OBIS records",
@@ -1132,7 +1141,9 @@
       "arcticSedimentCarbon": "Arctic Sediment Carbon: cross-check station values at the Bolin Centre CASCADE repository (doi.org/10.17043/cascade-2) using the station name.",
       "coastdom": "CoastDOM: download the source table at doi.org/10.1594/PANGAEA.964012 and find a sample by the location, date and depth shown in the click panel; values are served verbatim with the source's units.",
       "greenlandPrimaryProduction": "Greenland Sea primary production: compare a station by its event label at doi.org/10.1594/PANGAEA.965985."
-    }
+    },
+    "nutrients_model_title": "Nutrients & productivity (model)",
+    "nutrients_model": "Compare a cell with the product's own viewer or download service at"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

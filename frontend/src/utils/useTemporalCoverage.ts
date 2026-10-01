@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { Coverage } from "../components/panels/shared/TemporalFrame";
-import { DECK_TO_TOGGLE } from "./layerConfig";
+import { toggleIdForDeckLayer } from "./layerConfig";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -54,5 +54,5 @@ export function useTemporalCoverage(): Record<string, Coverage> {
 export function coverageForDeckLayer(
   coverage: Record<string, Coverage>, deckLayerId: string,
 ): Coverage | undefined {
-  return coverage[DECK_TO_TOGGLE[deckLayerId] ?? deckLayerId] ?? coverage[deckLayerId];
+  return coverage[toggleIdForDeckLayer(deckLayerId)] ?? coverage[deckLayerId];
 }

@@ -23,6 +23,18 @@ function groupSensorModels(raw: string): string {
     .join(", ");
 }
 
+// Readings are fetched only for OPERATIONAL moorings, and ~93% of the register
+// is not operational (2026-10-01: 1,038 stations, 67 operational). One message
+// for all of them read as "our feed is broken" on a buoy closed in 1998.
+function noObservationsKey(status: unknown) {
+  switch (String(status ?? "").toUpperCase()) {
+    case "CLOSED":     return "oceansites.noObservationsClosed" as const;
+    case "INACTIVE":   return "oceansites.noObservationsInactive" as const;
+    case "REGISTERED": return "oceansites.noObservationsRegistered" as const;
+    default:           return "oceansites.noObservationsText" as const;
+  }
+}
+
 export function OceansitesPanel({ properties: p }: { properties: Record<string, unknown> }) {
   const { t } = useTranslation(["panels", "enums"]);
   const obs = p.latest_obs as Record<string, unknown> | null | undefined;
@@ -48,7 +60,7 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
   const isStale = obsAgeDays !== null && obsAgeDays > staleThreshold;
 
   const sourceLabel = obsSource === "NDBC"
-    ? "NDBC (live, ~1-3h fresh)"
+    ? `NDBC${obs?.ndbc_station ? ` station ${String(obs.ndbc_station)}` : ""} (live, ~1-3h fresh)`
     : obsSource === "PMEL"
     ? "NOAA PMEL ERDDAP (TAO/PIRATA/RAMA, daily QC'd)"
     : obsSource === "GDAC"
@@ -131,7 +143,7 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
             )}
           </>
         ) : (
-          <p className="text-xs text-white/65 italic">{t("oceansites.noObservationsText")}</p>
+          <p className="text-xs text-white/65 italic">{t(noObservationsKey(p.status))}</p>
         )}
       </Section>
       <BodyText>{t("oceansites.body")}</BodyText>

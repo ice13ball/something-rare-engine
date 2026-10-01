@@ -285,6 +285,12 @@ export interface MapStore {
   woaDisplayMode: "field" | "hexes";
   setWoaDisplayMode: (m: "field" | "hexes") => void;
 
+  // Nutrients & productivity (model) — display state (NOT a filter; not reset by resetAllFilters)
+  nutrientsVariable: string;
+  setNutrientsVariable: (v: string) => void;
+  nutrientsMonth: string | null;          // "yyyy-mm"; null = latest available
+  setNutrientsMonth: (m: string | null) => void;
+
   // Ocean Carbon (GLODAP) — display mode (NOT a filter; not reset by resetAllFilters)
   carbonVariable: string;
   setCarbonVariable: (v: string) => void;
@@ -613,6 +619,11 @@ export const useMapStore = create<MapStore>((set) => ({
   setWoaDepth: (d) => set({ woaDepth: d }),
   woaDisplayMode: "field",
   setWoaDisplayMode: (m) => set({ woaDisplayMode: m }),
+
+  nutrientsVariable: "no3",
+  setNutrientsVariable: (v) => set({ nutrientsVariable: v }),
+  nutrientsMonth: null,
+  setNutrientsMonth: (m) => set({ nutrientsMonth: m }),
 
   carbonVariable: "dic",
   setCarbonVariable: (v) => set({ carbonVariable: v }),

@@ -758,6 +758,14 @@
       "reading": "La taille du marqueur suit la GPP, un taux surfacique en mg C par mètre carré et par jour ('GPP C [mg/m**2/day]' dans la source). Non comparable aux valeurs par litre des autres couches.",
       "limitations": "Douze stations, une valeur chacune, issues de deux campagnes estivales. Aucun profil de profondeur ni indicateur de qualité publié. Pas une estimation saisonnière ou annuelle.",
       "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Article associé : Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
+    },
+    "ocean-nutrients-model": {
+      "label": "Nutriments et productivité (modèle)",
+      "source": "E.U. Copernicus Marine Service Information; Global Ocean Biogeochemistry Analysis and Forecast (GLOBAL_ANALYSISFORECAST_BGC_001_028), Mercator Ocean International. https://doi.org/10.48670/moi-00015",
+      "updateFreq": "Vérifié chaque jour ; un nouveau mois est ajouté lorsque le produit le publie (en général le dernier mois achevé). Le mois le plus récent et les 11 précédents sont conservés.",
+      "description": "Nitrate de surface, chlorophylle-a, production primaire nette et N* (nitrate − 16 × phosphate) issus du système global d'analyse et de prévision biogéochimique de Copernicus Marine, en moyennes mensuelles sur une grille de 0,25°. Il s'agit de SORTIES DE MODÈLE (le modèle biogéochimique PISCES, forcé par l'analyse physique globale de Mercator, avec une chlorophylle contrainte par assimilation de la couleur de l'océan), et non de mesures. C'est une couche de contexte pour la productivité et l'apport en nutriments autour des zones d'intérêt.",
+      "reading": "Choisissez une variable et un mois ; la couleur code la valeur au premier niveau du modèle (0,49 m). Le nitrate utilise une échelle de couleurs en racine carrée, la chlorophylle et la production une échelle logarithmique, pour que les faibles valeurs qui dominent le large restent distinctes ; lisez l'échelle sous les sélecteurs. N* utilise une échelle divergente centrée sur 0 : négatif signifie moins de nitrate que de phosphate au rapport 16:1 utilisé par le plancton, positif un excès de nitrate. Cliquez sur la carte pour la valeur exacte de la maille la plus proche.",
+      "limitations": "Sortie de modèle à 0,25° (environ 25 km), pas des mesures ; la grille s'arrête à 80°S et n'a aucune valeur sur la terre ni sur la glace de mer. La production primaire nette est ici un taux volumique en surface (mg m⁻³ par jour), et NON une intégrale sur la colonne d'eau ; elle n'est donc pas comparable aux produits satellitaires en mg C m⁻² par jour. N* est calculé ici sans décalage constant. Les moyennes mensuelles lissent les efflorescences et les tourbillons plus courts qu'un mois. Seuls le mois le plus récent et les 11 précédents sont conservés."
     }
   },
   "header": {
@@ -1007,7 +1015,8 @@
     "fresh_surfaceWater": "tuiles raster statiques (composite JRC 1984–2021)",
     "fresh_waterRisk": "jeu de données statique (WRI Aqueduct 4.0 Baseline Annual)",
     "generalTitle": "Général",
-    "fresh_apiResponses": "mis en cache côté serveur ; votre navigateur peut ajouter une couche supplémentaire de mise en cache"
+    "fresh_apiResponses": "mis en cache côté serveur ; votre navigateur peut ajouter une couche supplémentaire de mise en cache",
+    "fresh_nutrients_model": "Mis à jour chaque mois par le producteur ; la plateforme vérifie chaque jour et conserve 12 mois"
   },
   "verify": {
     "primaryTitle": "Sources primaires",
@@ -1037,7 +1046,7 @@
     "unesco_title": "Patrimoine marin UNESCO",
     "unesco": "Limites des sites provenant de la couche du Programme du patrimoine marin mondial de l'UNESCO sur MarineRegions WFS. La liste faisant autorité de tous les sites marins du patrimoine mondial se trouve sur whc.unesco.org/en/marine-programme/",
     "oceansites_title": "Mouillages OceanSITES",
-    "oceansites": "Les métadonnées de station proviennent d'OceanOPS — cherchez sur ocean-ops.org le code de référence affiché dans la fiche. Pour un relevé, consultez la source que la fiche lui associe : NDBC sur ndbc.noaa.gov/station_page.php?station=REF, PMEL sur data.pmel.noaa.gov/pmel/erddap, ou le GDAC OceanSITES sur data-oceansites.ifremer.fr. Une station sans relevé ne peut être recoupée nulle part — elle figure au registre mais n'est pas interrogée, ce qui est différent d'un flux en échec.",
+    "oceansites": "Les métadonnées de station proviennent d'OceanOPS — cherchez sur ocean-ops.org le code de référence affiché dans la fiche. Pour un relevé, consultez la source que la fiche lui associe : NDBC sur ndbc.noaa.gov/station_page.php?station= suivi du numéro de station NDBC indiqué dans la fiche (pas du code OceanOPS, que NDBC ne connaît pas), PMEL sur data.pmel.noaa.gov/pmel/erddap, ou le GDAC OceanSITES sur data-oceansites.ifremer.fr. Une station sans relevé ne peut être recoupée nulle part — elle figure au registre mais n'est pas interrogée, ce qui est différent d'un flux en échec.",
     "currents_title": "Courants océaniques",
     "currents": "Vérifiez la vitesse et la direction des courants dans la visionneuse Copernicus Marine (produit GLOBAL_ANALYSISFORECAST_PHY_001_024, jeu de données cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, variables uo/vo). Les fichiers netCDF sources sont téléchargeables via le Copernicus Marine Toolbox :",
     "onc_title": "Observatoires ONC",
@@ -1090,7 +1099,7 @@
     "lim_argo": "Les positions des flotteurs Argo sont les derniers emplacements connus ; les flotteurs dérivent continuellement",
     "lim_isa": "Les limites des blocs ISA sont des zones d'exploration, pas des empreintes minières garanties",
     "lim_conflict": "Les niveaux de risque de conflit sont des évaluations de proximité spatiale, pas des déterminations juridiquement contraignantes",
-    "lim_oceansites": "Les relevés ne sont récupérés que pour les mouillages qu'OceanOPS déclare opérationnels — environ 60 sur quelque 1 070 stations. Tout autre anneau n'affiche que position et métadonnées, et NDBC, bien qu'essayé en premier, ne fournit en pratique aucun des relevés actuels",
+    "lim_oceansites": "Les relevés ne sont récupérés que pour les mouillages qu'OceanOPS déclare opérationnels — environ 70 sur quelque 1 040 stations. Tout autre anneau n'affiche que position et métadonnées. NDBC est interrogé avec le numéro OMM contenu dans le code OceanOPS, et un relevé n'est retenu que si la position que NDBC donne pour cette station correspond à celle du mouillage ; PMEL et le GDAC complètent le reste",
     "lim_onc": "ONC affiche la lecture la plus récente dont il dispose pour chaque station, sans seuil de fraîcheur — un nœud retiré ou une bouée récupérée peut afficher une lecture vieille de plusieurs années ; lisez donc l'horodatage à côté de la valeur",
     "lim_noise": "Les cellules de la grille de risque sonore marquées « données manquantes » ont du bruit mesuré mais pas de couverture de recensement des cétacés — l'absence de données ne signifie pas l'absence d'animaux",
     "lim_chess": "Le type d'habitat des sites chémosynthétiques est inféré par mot-clé à partir des noms de localités",
@@ -1132,7 +1141,9 @@
       "arcticSedimentCarbon": "Carbone des sédiments arctiques : vérifiez les valeurs des stations dans le dépôt Bolin Centre CASCADE (doi.org/10.17043/cascade-2) à l'aide du nom de la station.",
       "coastdom": "CoastDOM : télécharger la table source sur doi.org/10.1594/PANGAEA.964012 et retrouver un échantillon par le lieu, la date et la profondeur affichés dans le panneau ; les valeurs sont servies telles quelles, avec les unités de la source.",
       "greenlandPrimaryProduction": "Production primaire de la mer du Groenland : comparer une station par son étiquette d'événement sur doi.org/10.1594/PANGAEA.965985."
-    }
+    },
+    "nutrients_model_title": "Nutriments et productivité (modèle)",
+    "nutrients_model": "Comparez une maille avec le visualiseur ou le service de téléchargement du produit sur"
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {
