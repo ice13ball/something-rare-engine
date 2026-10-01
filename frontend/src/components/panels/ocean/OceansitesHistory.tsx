@@ -15,8 +15,11 @@ import { Row, Section, ExternalLink } from "../shared/primitives";
 // same quantity, same depth, different units. Merging them would put m/s values
 // on a cm/s line. Units are shown exactly as the archive declares them.
 // ⛔ The points are every N-th REAL measurement, not averages: never compute one.
-// ⛔ qc_withheld (the source's own quality flag), missing (no value recorded) and
-// duplicates_dropped (overlapping files) are three different counts. Do not sum.
+// ⛔ qc_withheld (the source's own quality flag), range_withheld (our physical-range
+// test on values the source did NOT flag), missing (no value recorded) and
+// duplicates_dropped (overlapping files) are four different counts. Do not sum.
+// The points the endpoint sends are already net of the first three, so min/max below
+// are computed from what is plotted, never from a withheld extreme.
 
 export interface HistorySeries {
   variable: string;
@@ -29,6 +32,7 @@ export interface HistorySeries {
   n_total_measurements: number;
   stride_max: number;
   qc_withheld: number;
+  range_withheld?: number;  // absent in a response cached before the range test existed
   missing: number;
   duplicates_dropped: number;
 }
@@ -122,6 +126,7 @@ function SeriesRow({ s, variable }: { s: HistorySeries; variable: string }) {
   const vals = pts.map(p => p[1]);
   const flags: string[] = [];
   if (s.qc_withheld > 0) flags.push(t("oceansites.historyQcWithheld", { count: s.qc_withheld }));
+  if ((s.range_withheld ?? 0) > 0) flags.push(t("oceansites.historyRangeWithheld", { count: s.range_withheld }));
   if (s.missing > 0) flags.push(t("oceansites.historyMissing", { count: s.missing }));
   if (s.duplicates_dropped > 0) flags.push(t("oceansites.historyDuplicates", { count: s.duplicates_dropped }));
   return (

@@ -430,6 +430,43 @@ OCEANSITES_CITATION = (
 OPENDAP_HTML = "https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/{file}.html"
 MAX_POINTS = 600                 # per merged series, so the payload stays small
 WITHHELD_QC = frozenset({3, 4, 9})   # bad-but-correctable, bad, missing (OceanSITES flags)
+
+# ── Gross range test (applied AFTER the QC flag, counted apart as `range_withheld`) ──
+# The stored series are pass-through and some values the source did NOT flag are
+# physically impossible. Measured on the first production sync (2026-10-01, 21,456
+# series, ~2.2M points, ~3.5k of them outside any plausible range): ALOHA UCUR/VCUR
+# ±12 m/s (no QC); PAP PSAL exactly 0 with QC 1; CCE1/CCE2 UCUR -39.088 and VCUR
+# -24.892 repeated 153 times (no QC); PYLOS/E1M3A TEMP/PSAL -999.99 and 99.999
+# (QC 0/1); CORC-GIZO TEMP 105 degC; LINE-W TEMP -17.8 (QC 1). One such point flattens
+# a whole sparkline. The stored data are NOT touched: the endpoint withholds and counts.
+#
+# Limits are the Argo Quality Control Manual's global range test (Test 6): temperature
+# -2.5 .. 40.0 degC, salinity 2.0 .. 41.0 (PSS-78). Currents have no Argo equivalent; a
+# 5 m/s ceiling (500 cm/s) lies above the strongest open-ocean currents (Gulf Stream /
+# Agulhas cores reach ~2.5 m/s, tidal jets in straits a little more), so anything past
+# it is an instrument or processing artefact, not an event.
+# ⛔ A test applies only when the series DECLARES a unit of the family the limits are
+# written in; any other quantity, or an unknown unit, is never tested (a unit is never
+# guessed, so a "1" on temperature or a bare "m" on a current is left alone).
+_CELSIUS = frozenset({"degree_Celsius", "degrees_Celsius", "degree_C", "deg_C", "celsius", "Celsius"})
+_SALINITY_UNITS = frozenset({"1", "psu", "PSU", "1e-3", "0.001"})
+_MS = frozenset({"m/s", "m s-1", "meters_per_second", "m.s-1"})
+_CMS = frozenset({"cm/s", "cm s-1", "centimeters_per_second"})
+RANGE_TESTS: dict[str, tuple[tuple[frozenset, float, float], ...]] = {
+    "sea_water_temperature":         ((_CELSIUS, -2.5, 40.0),),
+    "sea_surface_temperature":       ((_CELSIUS, -2.5, 40.0),),
+    "sea_water_practical_salinity":  ((_SALINITY_UNITS, 2.0, 41.0),),
+    "sea_water_salinity":            ((_SALINITY_UNITS, 2.0, 41.0),),
+    "eastward_sea_water_velocity":   ((_MS, -5.0, 5.0), (_CMS, -500.0, 500.0)),
+    "northward_sea_water_velocity":  ((_MS, -5.0, 5.0), (_CMS, -500.0, 500.0)),
+}
+
+
+def _range_limits(standard_name: str | None, units: str | None) -> tuple[float, float] | None:
+    for fam, lo, hi in RANGE_TESTS.get(standard_name or "", ()):
+        if units is not None and units.strip() in fam:
+            return lo, hi
+    return None
 _MODE_ORDER = {"D": 0, "M": 1, "P": 2, "R": 3}
 _CACHE_PREFIX = "oceansites-history:"
 DEFAULT_MAX_POINTS = 200       # per series in the default (3 depths per quantity) response
@@ -529,6 +566,9 @@ def merge_series(rows: list[dict], *, max_points: int = MAX_POINTS,
       is dropped and counted in ``missing``. A value whose QC flag is 3, 4 or 9
       is dropped and counted in ``qc_withheld``. The two counts are never
       added together — a missing sample is not a rejected one.
+    * A value that survives those two but lies outside the physical range of its
+      quantity (``RANGE_TESTS``, only where the declared unit is known) is dropped and
+      counted in ``range_withheld`` — a third, separate count.
     * ``n_total_measurements`` is counted after that resolution (see the comment at
       the field): a measurement in two overlapping files is counted once.
     * Points are real every-k-th samples, never averages. Above ``max_points``
@@ -575,13 +615,16 @@ def merge_series(rows: list[dict], *, max_points: int = MAX_POINTS,
                 else:
                     dropped_weight += r["stride"]
         pts: list[list] = []
-        missing = withheld = 0
+        missing = withheld = out_of_range = 0
+        limits = _range_limits(std, units)
         for t in sorted(best):
             _, v, q, _ = best[t]
             if v is None or not math.isfinite(v):
                 missing += 1
             elif q is not None and q in WITHHELD_QC:
                 withheld += 1
+            elif limits is not None and not (limits[0] <= v <= limits[1]):
+                out_of_range += 1
             else:
                 pts.append([t, v])
         pts, extra = _thin(pts, max_points)
@@ -602,6 +645,7 @@ def merge_series(rows: list[dict], *, max_points: int = MAX_POINTS,
             "n_total_measurements": max(sum(r["n_total"] for r in grp) - dropped_weight, len(best)),
             "stride_max": max(r["stride"] for r in grp) * extra,
             "qc_withheld": withheld,
+            "range_withheld": out_of_range,
             "missing": missing,
             "duplicates_dropped": dropped,
         })
@@ -699,7 +743,8 @@ async def get_oceansites_history(
     Series are every-k-th real measurements of the mooring's GDAC files, merged
     across files by standard name and depth, NOT averages. Values flagged bad
     (QC 3, 4, 9) are withheld and counted in `qc_withheld`; fill values are
-    counted in `missing`. By default each quantity returns its shallowest, deepest
+    counted in `missing`; unflagged values outside the physical range of a
+    quantity with a known unit are counted in `range_withheld`. By default each quantity returns its shallowest, deepest
     and median-depth series at up to 200 points (`depths_available` lists all
     depths); `all_depths=true` returns every depth at up to 600 points. 404 = no such station; 200 with empty lists = a known
     mooring with no stored history.

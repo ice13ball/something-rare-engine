@@ -14,6 +14,8 @@
 // Each assertion below targets a phrase that appears only in its own element,
 // and counts matches exactly: "at least one" would stay green if the section
 // rendered the same line for every series, or for none of them but one.
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { OceansitesPanel } from "../components/panels/ocean/OceansitesPanel";
@@ -213,6 +215,71 @@ describe("OceanSITES historical record: three different counts stay three", () =
     await screen.findAllByTestId("oceansites-series");
     // TAO eastward and northward cm/s at 25 m and 120 m: four series, each dropped one instant.
     expect(count(/^Same-instant duplicates dropped \(overlapping files\): 1$/)).toBe(4);
+  });
+});
+
+describe("OceanSITES historical record: the physical-range count", () => {
+  const RANGE = /^Points outside the physical range for this quantity, not plotted: 7$/;
+  const withRange = (n: number | undefined) => {
+    const body = structuredClone(PAP) as typeof PAP;
+    (body.series[0] as Record<string, unknown>).range_withheld = n;
+    return body;
+  };
+
+  it("appears only on the series that has some, and only when the count is above zero", async () => {
+    stubFetch(() => ok(PAP));                       // the captured response: no range_withheld at all
+    const first = renderWith();
+    await screen.findAllByTestId("oceansites-series");
+    expect(count(/outside the physical range/)).toBe(0);
+    first.unmount();
+
+    stubFetch(() => ok(withRange(0)));
+    const zero = renderWith();
+    await screen.findAllByTestId("oceansites-series");
+    expect(count(/outside the physical range/)).toBe(0);
+    zero.unmount();
+
+    stubFetch(() => ok(withRange(7)));
+    renderWith();
+    await screen.findAllByTestId("oceansites-series");
+    expect(count(RANGE)).toBe(1);
+    expect(count(/outside the physical range/)).toBe(1);
+  });
+
+  it("is a sentence of its own, not folded into the quality-flag or the empty-value count", async () => {
+    stubFetch(() => ok(withRange(7)));
+    renderWith();
+    await screen.findAllByTestId("oceansites-series");
+    // the same three counts the captured response already shows, unchanged by the new one
+    expect(count(/^Withheld by the source's quality flag: 1$/)).toBe(1);
+    expect(count(/Withheld by the source's quality flag/)).toBe(1);
+    expect(count(/Empty in the file/)).toBe(3);
+    expect(count(RANGE)).toBe(1);
+  });
+
+  it("draws min and max from the points it was sent, which are already net of withheld extremes", async () => {
+    const body = withRange(7);
+    body.series[0].points = [["2002-10-14T04:00:00Z", 35.1], ["2002-10-15T04:00:00Z", 35.9], ["2002-10-16T04:00:00Z", 35.5]] as never;
+    stubFetch(() => ok(body));
+    renderWith();
+    await screen.findAllByTestId("oceansites-series");
+    expect(count(/^min 35\.1 · max 35\.9$/)).toBe(1);
+  });
+});
+
+describe("OceanSITES historical record: the range sentence exists in every language", () => {
+  const read = (lng: string) =>
+    JSON.parse(readFileSync(resolve(__dirname, `../../public/locales/${lng}/panels.json`), "utf-8"));
+
+  it.each(["en", "pl", "fr", "de"])("%s has historyRangeWithheld with its count, and not the QC sentence", lng => {
+    const o = read(lng).oceansites;
+    expect(o.historyRangeWithheld).toContain("{{count}}");
+    expect(o.historyRangeWithheld).not.toBe(o.historyQcWithheld);
+  });
+
+  it("is a real translation: no two languages share the sentence", () => {
+    const all = ["en", "pl", "fr", "de"].map(l => read(l).oceansites.historyRangeWithheld);
+    expect(new Set(all).size).toBe(4);
   });
 });
 

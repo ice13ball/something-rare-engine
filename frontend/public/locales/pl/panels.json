@@ -906,6 +906,7 @@
     "historyRange": "min. {{min}} · maks. {{max}}",
     "historyPlotted": "na wykresie {{plotted}} z {{total}} pomiarów",
     "historyQcWithheld": "Wstrzymane przez flagę jakości źródła: {{count}}",
+    "historyRangeWithheld": "Punkty poza fizycznym zakresem tej wielkości, niewykreślone: {{count}}",
     "historyMissing": "Puste w pliku (brak wartości): {{count}}",
     "historyDuplicates": "Pominięte duplikaty tej samej chwili (pliki nakładają się): {{count}}",
     "historyShowAll": "Pokaż wszystkie zmienne ({{count}})",

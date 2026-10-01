@@ -235,7 +235,8 @@ async def test_more_than_the_cap_are_thinned_keeping_first_and_last(pool, client
     await _station(pool, "S1")
     await _file(pool, "S1", "DATA/PAP/f.nc")
     vals = [float(i) for i in range(1000)]
-    await _series(pool, "DATA/PAP/f.nc", _hours(1000), vals, stride=3, n_total=3000)
+    await _series(pool, "DATA/PAP/f.nc", _hours(1000), vals, stride=3, n_total=3000,
+                  variable="PRES", units="dbar", std="sea_water_pressure")   # no range test: values 0..999
 
     _, default = await _get(client, "S1")
     _, full = await _get(client, "S1", all_depths="true")
@@ -255,7 +256,8 @@ async def test_more_than_the_cap_are_thinned_keeping_first_and_last(pool, client
 async def test_a_series_within_the_cap_is_not_thinned(pool, client):
     await _station(pool, "S1")
     await _file(pool, "S1", "DATA/PAP/f.nc")
-    await _series(pool, "DATA/PAP/f.nc", _hours(200), [float(i) for i in range(200)], stride=3)
+    await _series(pool, "DATA/PAP/f.nc", _hours(200), [float(i) for i in range(200)], stride=3,
+                  variable="PRES", units="dbar", std="sea_water_pressure")
 
     s = (await _get(client, "S1"))[1]["series"][0]
 
@@ -529,6 +531,23 @@ async def test_dropping_the_history_caches_refreshes_map_and_history(pool, clien
 
     assert len((await _get(client, "S1"))[1]["series"]) == 1
     assert (await client.get("/v1/map/oceansites")).json()["features"][0]["properties"]["history_files"] == 1
+
+
+async def test_range_withheld_travels_through_the_endpoint_beside_the_other_counts(pool, client):
+    await _station(pool, "S1")
+    await _file(pool, "S1", "DATA/PAP/f.nc")
+    # PAP PSAL: exactly 0 with QC 1 is the real production case; stored data stay as they are
+    await _series(pool, "DATA/PAP/f.nc", _hours(5), [35.1, 0.0, None, 35.2, 99.0], [1, 1, 1, 4, 1],
+                  variable="PSAL", units="psu", std="sea_water_practical_salinity")
+
+    _, body = await _get(client, "S1")
+
+    s = body["series"][0]
+    assert [p[1] for p in s["points"]] == [35.1]
+    assert (s["range_withheld"], s["qc_withheld"], s["missing"]) == (2, 1, 1)
+    async with pool.acquire() as c:
+        stored = await c.fetchval("SELECT vals FROM oceansites_gdac_series WHERE file = 'DATA/PAP/f.nc'")
+    assert stored == [35.1, 0.0, None, 35.2, 99.0], "the endpoint withholds; it never edits what is stored"
 
 
 # ── pure merge ───────────────────────────────────────────────────────────────

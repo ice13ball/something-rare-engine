@@ -906,6 +906,7 @@
     "historyRange": "min {{min}} · max {{max}}",
     "historyPlotted": "{{plotted}} of {{total}} measurements plotted",
     "historyQcWithheld": "Withheld by the source's quality flag: {{count}}",
+    "historyRangeWithheld": "Points outside the physical range for this quantity, not plotted: {{count}}",
     "historyMissing": "Empty in the file (no value recorded): {{count}}",
     "historyDuplicates": "Same-instant duplicates dropped (overlapping files): {{count}}",
     "historyShowAll": "Show all {{count}} variables",

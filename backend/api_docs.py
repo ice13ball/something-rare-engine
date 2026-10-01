@@ -185,6 +185,7 @@ _OCEANSITES_HISTORY_EXAMPLE = {
             "n_total_measurements": 6593,
             "stride_max": 44,
             "qc_withheld": 1,
+            "range_withheld": 0,
             "missing": 115,
             "duplicates_dropped": 0,
         }
@@ -201,7 +202,12 @@ CURATED: dict[str, dict] = {
             "depth and declared units — never averages, and units are never converted "
             "(two units for one quantity stay two series). Values the file flags bad "
             "(QC 3, 4 or 9) are withheld and counted in `qc_withheld`; fill values are "
-            "dropped and counted in `missing`; the two counts are separate. Two samples "
+            "dropped and counted in `missing`; the two counts are separate. A value that is neither "
+            "missing nor flagged but lies outside the physical range of its quantity "
+            "(temperature -2.5 to 40 degC and salinity 2 to 41, the Argo global range test; "
+            "currents beyond 5 m/s) is withheld and counted in `range_withheld`, a third, "
+            "separate count; it applies only where the declared unit is a known one, and the "
+            "stored data are not altered. Two samples "
             "with the same timestamp are one instant: the file with the better data mode "
             "(D, M, P, R) wins, then the later GDAC update, and the others are counted in "
             "`duplicates_dropped`. Thinning always keeps the first and the last real point. "

@@ -906,6 +906,7 @@
     "historyRange": "Min. {{min}} · Max. {{max}}",
     "historyPlotted": "{{plotted}} von {{total}} Messwerten dargestellt",
     "historyQcWithheld": "Durch das Qualitätskennzeichen der Quelle zurückgehalten: {{count}}",
+    "historyRangeWithheld": "Punkte außerhalb des physikalischen Bereichs dieser Größe, nicht dargestellt: {{count}}",
     "historyMissing": "In der Datei leer (kein Wert erfasst): {{count}}",
     "historyDuplicates": "Verworfene Doppel desselben Zeitpunkts (überlappende Dateien): {{count}}",
     "historyShowAll": "Alle {{count}} Größen anzeigen",

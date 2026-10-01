@@ -906,6 +906,7 @@
     "historyRange": "min. {{min}} · max. {{max}}",
     "historyPlotted": "{{plotted}} mesures tracées sur {{total}}",
     "historyQcWithheld": "Écartées par l'indicateur de qualité de la source : {{count}}",
+    "historyRangeWithheld": "Points hors de la plage physique de cette grandeur, non tracés : {{count}}",
     "historyMissing": "Vides dans le fichier (aucune valeur) : {{count}}",
     "historyDuplicates": "Doublons du même instant écartés (fichiers qui se chevauchent) : {{count}}",
     "historyShowAll": "Afficher les {{count}} variables",
