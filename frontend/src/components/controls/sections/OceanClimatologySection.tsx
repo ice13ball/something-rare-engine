@@ -19,6 +19,10 @@ import { ArcticSedimentCarbonRow } from "./oceanClimatology/ArcticSedimentCarbon
 import { PermafrostThawRow } from "./oceanClimatology/PermafrostThawRow";
 import { SiosSvalbardRow } from "./oceanClimatology/SiosSvalbardRow";
 import { SeabedSubstrateRow } from "./oceanClimatology/SeabedSubstrateRow";
+import { CoastdomRow } from "./oceanClimatology/CoastdomRow";
+import { GreenlandPrimaryProductionRow } from "./oceanClimatology/GreenlandPrimaryProductionRow";
+import { AocPocRow } from "./oceanClimatology/AocPocRow";
+import { SvalbardFjordsPpRow } from "./oceanClimatology/SvalbardFjordsPpRow";
 
 interface Props {
   expandedFilter: LayerId | null;
@@ -141,6 +145,28 @@ export function OceanClimatologySection({ expandedFilter, setExpandedFilter, tog
                 expandedFilter={expandedFilter}
                 setExpandedFilter={setExpandedFilter}
                 toggleExpand={toggleExpand}
+                toggle={toggle}
+                flyToLayer={flyToLayer}
+              />
+
+              <CoastdomRow
+                expandedFilter={expandedFilter}
+                toggleExpand={toggleExpand}
+                toggle={toggle}
+                flyToLayer={flyToLayer}
+              />
+
+              <GreenlandPrimaryProductionRow
+                toggle={toggle}
+                flyToLayer={flyToLayer}
+              />
+
+              <AocPocRow
+                toggle={toggle}
+                flyToLayer={flyToLayer}
+              />
+
+              <SvalbardFjordsPpRow
                 toggle={toggle}
                 flyToLayer={flyToLayer}
               />

@@ -5,6 +5,7 @@ import type { LayerId } from "../types/layers";
 import type { PersistedViewState } from "./mapState";
 import { VALID_LAYER_IDS } from "./layersParam";
 import { isShareableFilterField } from "../types/filterRegistry";
+import { COASTDOM_YEAR_RANGE_KEY, decodeYearRange } from "./coastdomYearFilter";
 import { isValidDisplayValue } from "../types/displayRegistry";
 
 // Bump on any incompatible envelope change. A version MISMATCH returns null
@@ -127,6 +128,10 @@ function validateFilters(f: ShareEnvelope["f"]): Record<string, string[]> | null
   if (!f || typeof f !== "object") return null;
   const out: Record<string, string[]> = {};
   for (const [key, value] of Object.entries(f)) {
+    if (key === COASTDOM_YEAR_RANGE_KEY) {
+      if (decodeYearRange(value)) out[key] = value as string[];
+      continue;
+    }
     if (!isShareableFilterField(key)) continue;
     if (!Array.isArray(value) || !value.every((v) => typeof v === "string")) continue;
     if (value.length === 0) continue;

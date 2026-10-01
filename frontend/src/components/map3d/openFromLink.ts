@@ -179,6 +179,53 @@ export async function fetchOpenTarget(
  * reproducing it. Exists as one function so that ordering can be sabotaged in
  * a test instead of living inside a React effect nothing can reach.
  */
+/**
+ * The id Map3D's click handler writes into `SelectedFeature.id` — and from
+ * there into a share link via `openObjectsFor`.
+ *
+ * ⛔ A THIRD hand-copied chain, next to `SearchBar.featureId()` and
+ * `openableRegistry.ID_CHAIN`. A layer missing here still opens on click
+ * (the panel reads live `properties`) — it just writes a deck.gl pick index
+ * into the link, which stops matching the moment the data reorders. That is
+ * exactly what happened to `coastdom` and `greenland-primary-production`:
+ * both fell through to the generic tail, which has no branch for their id
+ * property, so the index became the link's id.
+ */
+export function clickIdFor(
+  layerId: string,
+  props: Record<string, unknown>,
+  index: number,
+): string | number {
+  return layerId === "chess"
+    ? ((props.locality as string | number | undefined) ?? String(index))
+    : layerId === "deepdata-stations"
+      ? ((props.station_id as string | number | undefined) ?? String(index))
+      : layerId === "hydrophone-stations"
+        ? ((props.station_id as string | number | undefined) ?? String(index))
+        : layerId === "arctic-rivers"
+          ? ((props.station_id as string | number | undefined) ?? String(index))
+          : layerId === "sios-svalbard"
+            ? ((props.metadata_id as string | number | undefined) ?? (props.station_key as string | number | undefined) ?? String(index))
+            : layerId === "memento"
+              ? ((props.cast_id as string | number | undefined) ?? String(index))
+              : layerId === "geotraces"
+                ? ((props.station_id as string | number | undefined) ?? String(index))
+                : layerId === "arctic-catchments"
+                  ? ((props.gid as string | number | undefined) ?? String(index))
+                  : layerId === "coastdom"
+                    ? ((props.site_id as string | number | undefined) ?? String(index))
+                    : layerId === "greenland-primary-production"
+                      ? ((props.event as string | number | undefined) ?? String(index))
+                      : layerId === "greenland-sea-poc-aoc2025"
+                        ? ((props.station as string | number | undefined) ?? String(index))
+                        : layerId === "svalbard-fjords-primary-production"
+                          // ⛔ NOT props.station — station names repeat at more than one
+                          // position in this dataset (see rules/subsystems...); position_id
+                          // is the only unique key.
+                          ? ((props.position_id as string | number | undefined) ?? String(index))
+                          : ((props.isa_id as string | number | undefined) ?? (props.id as string | number | undefined) ?? (props.platform_id as string | number | undefined) ?? String(index));
+}
+
 export async function openTargetFor(
   layerId: string,
   featureId: string,

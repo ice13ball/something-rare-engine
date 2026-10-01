@@ -1,0 +1,14 @@
+{
+  "@type": "Dataset",
+  "identifier": "https://doi.org/10.1594/PANGAEA.964012",
+  "url": "https://doi.pangaea.de/10.1594/PANGAEA.964012",
+  "name": "A global database of dissolved organic matter (DOM) concentration measurements in coastal waters (CoastDOM v.1)",
+  "datePublished": "2023-12-12",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "size": {
+    "@type": "QuantitativeValue",
+    "value": 1286555.0,
+    "unitText": "data points"
+  },
+  "temporalCoverage": "1978-05-25T00:00:00/2022-03-02T00:00:00"
+}

@@ -327,7 +327,7 @@ export function MiningPanel({ id }: { id: string }) {
               })}
             </ul>
           )}
-          <p className="text-white/55 text-[13px] mt-1.5">Source: OceanSITES / NDBC — CC BY</p>
+          <p className="text-white/55 text-[13px] mt-1.5">Source: OceanSITES via OceanOPS (© OceanOPS, non-commercial use with attribution) / NDBC</p>
         </div>
       )}
 

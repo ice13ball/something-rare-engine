@@ -9,6 +9,7 @@ import { useMapStore } from "../store/mapStore";
 import type { LayerId } from "../types/layers";
 import type { AssertComplete, LayerIdOf } from "../types/layerRegistry";
 import { TemporalFrame } from "./panels/shared/TemporalFrame";
+import { PangaeaVersionNote } from "./panels/shared/PangaeaVersionNote";
 import { useTemporalCoverage } from "../utils/useTemporalCoverage";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -115,6 +116,11 @@ const LAYER_STRUCT = [
   { id: "offshoreActivities",  layerId: "offshore-activities",  color: "#dc2626", symbol: "polygon", syncKey: "offshore_activities" },
   { id: "hydrophone-stations",  layerId: "hydrophone-stations", color: "#22d3ee", symbol: "dot",     syncKey: "acoustic-stations" },
   { id: "marhys",               layerId: "marhys",              color: "#fb923c", symbol: "dot",     syncKey: "marhys" },
+  { id: "coastdom",             layerId: "coastdom",             color: "#2dd4bf", symbol: "dot",     syncKey: "coastdom",
+    colorRampHex: ["#99f6e4", "#2dd4bf", "#0d9488", "#134e4a"] },
+  { id: "greenland-primary-production", layerId: "greenland-primary-production", color: "#84cc16", symbol: "dot", syncKey: "greenland-pp" },
+  { id: "greenland-sea-poc-aoc2025", layerId: "greenland-sea-poc-aoc2025", color: "#f59e0b", symbol: "dot", syncKey: "aoc2025-poc" },
+  { id: "svalbard-fjords-primary-production", layerId: "svalbard-fjords-primary-production", color: "#6366f1", symbol: "dot", syncKey: "svalbard-fjords-pp" },
   { id: "woa-climatology",      layerId: "woa-climatology",     color: "#50aac8", symbol: "polygon" },
   { id: "wod-oxygen",           layerId: "wod-oxygen",           color: "#0891b2", symbol: "dot",     syncKey: "wod-oxygen",
     colorRampHex: WOD_DECADE_HEX,
@@ -182,7 +188,7 @@ const LAYER_STRUCT = [
 // LayerIdOf distributes over the union instead. See its docstring.
 type LegendCovered = LayerIdOf<(typeof LAYER_STRUCT)[number]>;
 
-// LAYER_STRUCT covers all 57 layers today. Nothing is opted out: a layer with
+// LAYER_STRUCT covers all 60 layers today. Nothing is opted out: a layer with
 // no legend entry is undocumented in the Reference tab, which is never correct.
 export const _legendIsComplete: AssertComplete<LegendCovered, never> = true;
 
@@ -425,6 +431,9 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                       whose frame has not been established at the source yet; absent is
                       honest, a guessed range would not be. */}
                   <TemporalFrame coverage={coverage[s.layerId ?? s.id]} />
+                  {(s.layerId === "coastdom" || s.layerId === "greenland-primary-production") && (
+                    <PangaeaVersionNote layerId={s.layerId} />
+                  )}
                   {lt("selectionCriteria") !== `layers.${s.id}.selectionCriteria` && lt("selectionCriteria") ? (
                     <p className="text-white/80 text-[15px] leading-[1.6] mb-2">
                       <span className="text-white/75 font-mono text-[13px] uppercase tracking-wider">What's included → </span>{lt("selectionCriteria")}
@@ -833,6 +842,8 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li><span className="text-white/90">Arctic Catchments (ARCADE)</span> — Static (ARCADE v1 release){syncDates["arcade"] && <span className="text-white/75 font-mono ml-1">({syncDates["arcade"]})</span>}</li>
                   <li><span className="text-white/90">MEMENTO (Marine CH₄/N₂O)</span> — Static (frozen archive, last update ~2020){syncDates["memento"] && <span className="text-white/75 font-mono ml-1">({syncDates["memento"]})</span>}</li>
                   <li><span className="text-white/90">Vent Fluid Chemistry (MARHYS)</span> — Static (MARHYS 4.0, published 2024-10-14; frozen behind its DOI and not updated). Samples collected 1977–2023{syncDates["marhys"] && <span className="text-white/75 font-mono ml-1">({syncDates["marhys"]})</span>}</li>
+                  <li><span className="text-white/90">Coastal Dissolved Organic Matter (CoastDOM v1)</span> — Checked monthly against PANGAEA; a new published version is added beside the old one. Samples 1978–2022{syncDates["coastdom"] && <span className="text-white/75 font-mono ml-1">({syncDates["coastdom"]})</span>}</li>
+                  <li><span className="text-white/90">Greenland Sea Primary Production</span> — Checked monthly against PANGAEA. Stations sampled August 2021 and August 2022{syncDates["greenland-pp"] && <span className="text-white/75 font-mono ml-1">({syncDates["greenland-pp"]})</span>}</li>
                   <li><span className="text-white/90">GEOTRACES Trace Metals</span> — Static (GEOTRACES IDP2025 release){syncDates["geotraces"] && <span className="text-white/75 font-mono ml-1">({syncDates["geotraces"]})</span>}</li>
                   <li><span className="text-white/90">Marine Sediment Carbon</span> — Static (MOSAIC v1 release; cores 1900–2022), synced from ETH Zürich{syncDates["mosaic"] && <span className="text-white/75 font-mono ml-1">({syncDates["mosaic"]})</span>}</li>
                   <li><span className="text-white/90">Methane Seeps (SEAFLEA)</span> — Static (SEAFLEA observed database, Feb 2019){syncDates["seaflea"] && <span className="text-white/75 font-mono ml-1">({syncDates["seaflea"]})</span>}</li>
@@ -958,7 +969,7 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                     <ul className="mt-1 ml-3 space-y-0.5 text-white/75 text-[13px] font-mono">
                       <li>{t("verify.sources.argoFloats")} → <span className="text-cyan-400">argovis.colorado.edu</span></li>
                       <li>{t("verify.sources.chemosynthenticSites")} → <span className="text-cyan-400">gbif.org/dataset/dc5abc9f-84d5-4046-a3ef-9ab24ae53756</span></li>
-                      <li>{t("verify.sources.oceansitesMoorings")} → <span className="text-cyan-400">oceanops.org</span></li>
+                      <li>{t("verify.sources.oceansitesMoorings")} → <span className="text-cyan-400">ocean-ops.org</span></li>
                       <li>{t("verify.sources.oncInstruments")} → <span className="text-cyan-400">data.oceannetworks.ca</span></li>
                       <li>{t("verify.sources.obisSpecies")} → <span className="text-cyan-400">obis.org</span></li>
                       <li>{t("verify.sources.wod")} → <span className="text-cyan-400">ncei.noaa.gov/products/world-ocean-database</span></li>
@@ -979,6 +990,8 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                       </li>
                       <li>{t("verify.sources.seabedSubstrate")} → <span className="text-cyan-400">earthbyte.org/seafloor-lithology-of-the-ocean-basins</span></li>
                       <li>{t("verify.sources.arcticSedimentCarbon")}</li>
+                      <li>{t("verify.sources.coastdom")}</li>
+                      <li>{t("verify.sources.greenlandPrimaryProduction")}</li>
                     </ul>
                   </li>
                   <li>

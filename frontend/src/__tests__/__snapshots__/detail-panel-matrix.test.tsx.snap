@@ -7,8 +7,8 @@ exports[`DetailPanel dispatch matrix > renders air-quality without throwing and 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -525,8 +525,8 @@ exports[`DetailPanel dispatch matrix > renders ais-live without throwing and mat
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -664,8 +664,8 @@ exports[`DetailPanel dispatch matrix > renders apeis without throwing and matche
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -776,8 +776,8 @@ exports[`DetailPanel dispatch matrix > renders arctic-catchments after data load
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -1371,8 +1371,8 @@ exports[`DetailPanel dispatch matrix > renders arctic-catchments without throwin
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -1410,8 +1410,8 @@ exports[`DetailPanel dispatch matrix > renders arctic-rivers without throwing an
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -1561,8 +1561,8 @@ exports[`DetailPanel dispatch matrix > renders arctic-sediment-carbon without th
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -1631,8 +1631,8 @@ exports[`DetailPanel dispatch matrix > renders arctic-sediment-carbon-stations w
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -1811,8 +1811,8 @@ exports[`DetailPanel dispatch matrix > renders argo-floats-3d without throwing a
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -2093,8 +2093,8 @@ exports[`DetailPanel dispatch matrix > renders argo-trail-dot without throwing a
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -2352,8 +2352,8 @@ exports[`DetailPanel dispatch matrix > renders au-cables without throwing and ma
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -2440,8 +2440,8 @@ exports[`DetailPanel dispatch matrix > renders biodiversity-hotspots without thr
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -2660,8 +2660,8 @@ exports[`DetailPanel dispatch matrix > renders biodiversity-hotspots-grid-coarse
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -2804,8 +2804,8 @@ exports[`DetailPanel dispatch matrix > renders biodiversity-hotspots-grid-fine w
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -2948,8 +2948,8 @@ exports[`DetailPanel dispatch matrix > renders chess without throwing and matche
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -3095,6 +3095,317 @@ exports[`DetailPanel dispatch matrix > renders chess without throwing and matche
 </div>
 `;
 
+exports[`DetailPanel dispatch matrix > renders coastdom after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Coastal DOM Position
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST estuary
+          </h2>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            2 samples at this position
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              2017-04-15 · Depth water [m]: 0
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Sample ID
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST-1
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOC [µmol/l]
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                100
+                 · QF DOC 2
+                 · TEST method
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Reference
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                doi:TEST
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                PI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST PI — TEST Institution
+              </span>
+            </div>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              no date in source · Depth water [m]: 4
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Sample ID
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST-2
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOC [µmol/l]
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                120
+                 · QF DOC 6
+                 · TEST method
+              </span>
+            </div>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              TEST citation [dataset]. PANGAEA
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Related publication
+              : 
+              TEST related
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.1594/PANGAEA.964012"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.1594/PANGAEA.964012
+                </a>
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Licence
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://creativecommons.org/licenses/by/4.0/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  https://creativecommons.org/licenses/by/4.0/
+                </a>
+              </span>
+            </div>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Version published 2023-12-12 · SHA-256 0123456789ab
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Dates are the sampling dates published by the source, never the date this platform synced.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders coastdom without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Coastal DOM Position
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST estuary
+          </h2>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            2 samples at this position
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Loading samples…
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.1594/PANGAEA.964012"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.1594/PANGAEA.964012
+                </a>
+              </span>
+            </div>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Dates are the sampling dates published by the source, never the date this platform synced.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`DetailPanel dispatch matrix > renders coral-acid-exposure after data loads 1`] = `
 <div>
   <div
@@ -3102,8 +3413,8 @@ exports[`DetailPanel dispatch matrix > renders coral-acid-exposure after data lo
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -3457,8 +3768,8 @@ exports[`DetailPanel dispatch matrix > renders coral-acid-exposure without throw
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -3551,8 +3862,8 @@ exports[`DetailPanel dispatch matrix > renders cumulative-human-impact after dat
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -3679,8 +3990,8 @@ exports[`DetailPanel dispatch matrix > renders cumulative-human-impact without t
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -3718,8 +4029,8 @@ exports[`DetailPanel dispatch matrix > renders dams without throwing and matches
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -3924,8 +4235,8 @@ exports[`DetailPanel dispatch matrix > renders deepdata-stations without throwin
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -4253,8 +4564,8 @@ exports[`DetailPanel dispatch matrix > renders eez without throwing and matches 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -4374,8 +4685,8 @@ exports[`DetailPanel dispatch matrix > renders fires without throwing and matche
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -4521,8 +4832,8 @@ exports[`DetailPanel dispatch matrix > renders geotraces after data loads 1`] = 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -5112,8 +5423,8 @@ exports[`DetailPanel dispatch matrix > renders geotraces without throwing and ma
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -5151,8 +5462,8 @@ exports[`DetailPanel dispatch matrix > renders geotraces-hexes without throwing 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -5229,6 +5540,628 @@ exports[`DetailPanel dispatch matrix > renders geotraces-hexes without throwing 
 </div>
 `;
 
+exports[`DetailPanel dispatch matrix > renders greenland-primary-production after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Primary Production Station
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST_01
+          </h2>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              GPP
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Date
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                2021-08-02
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                GPP C [mg/m**2/day]
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                1234.5
+              </span>
+            </div>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Areal rate — carbon fixed under one square metre of sea surface per day.
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              TEST citation [dataset]. PANGAEA
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.1594/PANGAEA.965985"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.1594/PANGAEA.965985
+                </a>
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Licence
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://creativecommons.org/licenses/by/4.0/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  https://creativecommons.org/licenses/by/4.0/
+                </a>
+              </span>
+            </div>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Version published 2025-04-07 · SHA-256 fedcba987654
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Dates are the sampling dates published by the source, never the date this platform synced.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders greenland-primary-production without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Primary Production Station
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST_01
+          </h2>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              GPP
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Date
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                2021-08-02
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                GPP C [mg/m**2/day]
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                1234.5
+              </span>
+            </div>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Areal rate — carbon fixed under one square metre of sea surface per day.
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.1594/PANGAEA.965985"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.1594/PANGAEA.965985
+                </a>
+              </span>
+            </div>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Dates are the sampling dates published by the source, never the date this platform synced.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders greenland-sea-poc-aoc2025 after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          AOC2025 POC Station
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST
+          </h2>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Data kind: measurements
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Observation window
+            : 
+            2025-05-19 00:00 UTC – 2025-05-19 00:00 UTC
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              TEST-1 · 2025-05-19 04:30 UTC
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Depth, nominal (dbar)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                5
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Pressure (dbar)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                4.652
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Temperature (°C)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                0.4349
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Salinity (PSU)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                34.5031
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                δ¹³C (‰)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                -22.321
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                δ¹⁵N (‰)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                3.421
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                POC (mg dm⁻³)*
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                0.500199883
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                PN (mg dm⁻³)*
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                0.085944997
+              </span>
+            </div>
+          </div>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            * Unit from the dataset abstract; the data file does not state it.
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Units of depth, δ¹³C and δ¹⁵N follow the SeaDataNet P01 codes PRESPR01, D13CMOP11, D15NEAM1.
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            The source's own metadata states a temporal extent (2024-07-24 to 2024-08-09) that does not match this dataset's title or its data (19–31 May 2025). This platform uses the dates in the data.
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Kowalczuk, P. (2026). Particulate organic carbon concentrations in water samples collected in the Greenland Sea, during Atlantic-Arctic Ocean Change cruise (AOC2025) between 19-31 May 2025. Institute of Oceanology Polish Academy of Sciences. https://doi.org/10.48457/IOPAN.2026.571
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.48457/IOPAN.2026.571"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.48457/IOPAN.2026.571
+                </a>
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Licence
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                CC-BY 4.0
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders greenland-sea-poc-aoc2025 without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          AOC2025 POC Station
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST
+          </h2>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Data kind: measurements
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Observation window
+            : 
+            2025-05-19 00:00 UTC – 2025-05-19 00:00 UTC
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Loading samples…
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            * Unit from the dataset abstract; the data file does not state it.
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Units of depth, δ¹³C and δ¹⁵N follow the SeaDataNet P01 codes PRESPR01, D13CMOP11, D15NEAM1.
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            The source's own metadata states a temporal extent (2024-07-24 to 2024-08-09) that does not match this dataset's title or its data (19–31 May 2025). This platform uses the dates in the data.
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.48457/IOPAN.2026.571"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.48457/IOPAN.2026.571
+                </a>
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Licence
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                CC-BY 4.0
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`DetailPanel dispatch matrix > renders hydrophone-stations after data loads 1`] = `
 <div>
   <div
@@ -5236,8 +6169,8 @@ exports[`DetailPanel dispatch matrix > renders hydrophone-stations after data lo
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -5572,8 +6505,8 @@ exports[`DetailPanel dispatch matrix > renders hydrophone-stations without throw
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -5749,8 +6682,8 @@ exports[`DetailPanel dispatch matrix > renders hydrothermal-vents-active after d
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -5984,8 +6917,8 @@ exports[`DetailPanel dispatch matrix > renders hydrothermal-vents-active without
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -6023,8 +6956,8 @@ exports[`DetailPanel dispatch matrix > renders hydrothermal-vents-inactive after
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -6222,8 +7155,8 @@ exports[`DetailPanel dispatch matrix > renders hydrothermal-vents-inactive witho
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -6261,8 +7194,8 @@ exports[`DetailPanel dispatch matrix > renders landslides without throwing and m
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -6431,8 +7364,8 @@ exports[`DetailPanel dispatch matrix > renders marhys without throwing and match
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -6778,8 +7711,8 @@ exports[`DetailPanel dispatch matrix > renders marine-carbon after data loads 1`
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -6939,7 +7872,21 @@ exports[`DetailPanel dispatch matrix > renders marine-carbon after data loads 1`
                      km
                   </td>
                   <td
-                    class="px-2 py-0.5 text-white/70"
+                    class="px-2 py-0.5 text-white/70 whitespace-nowrap"
+                  >
+                    <span
+                      class="text-white/40 italic"
+                    >
+                      no date in source
+                    </span>
+                  </td>
+                </tr>
+                <tr
+                  class="odd:bg-white/[0.025]"
+                >
+                  <td
+                    class="px-2 pb-1 pt-0 text-[10px] text-white/55 whitespace-normal break-words"
+                    colspan="3"
                   >
                     TEST summary
                   </td>
@@ -6980,8 +7927,8 @@ exports[`DetailPanel dispatch matrix > renders marine-carbon without throwing an
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -7019,8 +7966,8 @@ exports[`DetailPanel dispatch matrix > renders memento after data loads 1`] = `
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -7635,8 +8582,8 @@ exports[`DetailPanel dispatch matrix > renders memento without throwing and matc
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -7674,8 +8621,8 @@ exports[`DetailPanel dispatch matrix > renders memento-hexes without throwing an
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -7759,8 +8706,8 @@ exports[`DetailPanel dispatch matrix > renders methane-seeps without throwing an
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -7945,8 +8892,8 @@ exports[`DetailPanel dispatch matrix > renders mining-contracts-mvt after data l
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -8174,8 +9121,8 @@ exports[`DetailPanel dispatch matrix > renders mining-contracts-mvt without thro
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -8213,8 +9160,8 @@ exports[`DetailPanel dispatch matrix > renders mining-footprints without throwin
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -8391,8 +9338,8 @@ exports[`DetailPanel dispatch matrix > renders mining-footprints-mvt without thr
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -8569,8 +9516,8 @@ exports[`DetailPanel dispatch matrix > renders monitoring-density after data loa
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -8844,8 +9791,8 @@ exports[`DetailPanel dispatch matrix > renders monitoring-density without throwi
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -8985,8 +9932,8 @@ exports[`DetailPanel dispatch matrix > renders mosaic-hexes without throwing and
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -9079,8 +10026,8 @@ exports[`DetailPanel dispatch matrix > renders mosaic-sediment after data loads 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -9631,8 +10578,8 @@ exports[`DetailPanel dispatch matrix > renders mosaic-sediment without throwing 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -9670,8 +10617,8 @@ exports[`DetailPanel dispatch matrix > renders noaa-cables without throwing and 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -9804,8 +10751,8 @@ exports[`DetailPanel dispatch matrix > renders noise-risk without throwing and m
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -9991,8 +10938,8 @@ exports[`DetailPanel dispatch matrix > renders nz-cables without throwing and ma
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -10172,8 +11119,8 @@ exports[`DetailPanel dispatch matrix > renders ocean-acidification after data lo
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -10362,8 +11309,8 @@ exports[`DetailPanel dispatch matrix > renders ocean-acidification without throw
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -10401,8 +11348,8 @@ exports[`DetailPanel dispatch matrix > renders ocean-carbon after data loads 1`]
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -10604,8 +11551,8 @@ exports[`DetailPanel dispatch matrix > renders ocean-carbon without throwing and
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -10643,8 +11590,8 @@ exports[`DetailPanel dispatch matrix > renders ocean-co2-surface after data load
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -10828,8 +11775,8 @@ exports[`DetailPanel dispatch matrix > renders ocean-co2-surface without throwin
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -10867,8 +11814,8 @@ exports[`DetailPanel dispatch matrix > renders oceansites without throwing and m
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -11031,8 +11978,8 @@ exports[`DetailPanel dispatch matrix > renders offshore-activities without throw
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -11320,8 +12267,8 @@ exports[`DetailPanel dispatch matrix > renders offshore-activities-mvt without t
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -11609,8 +12556,8 @@ exports[`DetailPanel dispatch matrix > renders offshore-zones-mvt without throwi
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -11810,8 +12757,8 @@ exports[`DetailPanel dispatch matrix > renders onc after data loads 1`] = `
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -12306,8 +13253,8 @@ exports[`DetailPanel dispatch matrix > renders onc without throwing and matches 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -12436,8 +13383,8 @@ exports[`DetailPanel dispatch matrix > renders onc-cables without throwing and m
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -12552,8 +13499,8 @@ exports[`DetailPanel dispatch matrix > renders onc-instruments without throwing 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -12801,8 +13748,8 @@ exports[`DetailPanel dispatch matrix > renders ooi-cables without throwing and m
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -12959,8 +13906,8 @@ exports[`DetailPanel dispatch matrix > renders oxygen-deox after data loads 1`] 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13088,8 +14035,8 @@ exports[`DetailPanel dispatch matrix > renders oxygen-deox without throwing and 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13127,8 +14074,8 @@ exports[`DetailPanel dispatch matrix > renders permafrost-thaw after data loads 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13300,8 +14247,8 @@ exports[`DetailPanel dispatch matrix > renders permafrost-thaw without throwing 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13423,8 +14370,8 @@ exports[`DetailPanel dispatch matrix > renders plume-origin without throwing and
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13604,8 +14551,8 @@ exports[`DetailPanel dispatch matrix > renders ports without throwing and matche
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13692,8 +14639,8 @@ exports[`DetailPanel dispatch matrix > renders protected-marine-sites without th
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13799,8 +14746,8 @@ exports[`DetailPanel dispatch matrix > renders relinquished-areas without throwi
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -13939,8 +14886,8 @@ exports[`DetailPanel dispatch matrix > renders reserved-areas without throwing a
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -14065,8 +15012,8 @@ exports[`DetailPanel dispatch matrix > renders seabed-substrate without throwing
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -14156,8 +15103,8 @@ exports[`DetailPanel dispatch matrix > renders seamounts without throwing and ma
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -14356,8 +15303,8 @@ exports[`DetailPanel dispatch matrix > renders sios-svalbard without throwing an
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -14601,8 +15548,8 @@ exports[`DetailPanel dispatch matrix > renders submarine-cables without throwing
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -14787,8 +15734,8 @@ exports[`DetailPanel dispatch matrix > renders surface-water without throwing an
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -14859,6 +15806,461 @@ exports[`DetailPanel dispatch matrix > renders surface-water without throwing an
 </div>
 `;
 
+exports[`DetailPanel dispatch matrix > renders svalbard-fjords-primary-production after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Svalbard Fjords Primary Production Station
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <div
+            class="mb-3 px-2 py-1.5 rounded-lg bg-orange-500/10 border-orange-500/20 border"
+          >
+            <p
+              class="text-orange-400 text-[14px] font-sans"
+            >
+              © Institute of Oceanology PAS (IO PAN). Used with permission; the source publishes no open licence.
+            </p>
+          </div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST
+          </h2>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Fjord
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              Kongsfjorden
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Fjord part
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              Inner
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Coordinates
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              78.97, 11.74
+            </span>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Metadata vs. data
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Metadata says: 348 incubation levels (137 Hornsund + 232 Kongsfjorden) — Data shows: 369 rows (137 Hornsund + 232 Kongsfjorden)
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Metadata says: 28 measurement stations in Kongsfjorden and 17 in Hornsund — Data shows: those numbers equal the per-fjord exposition (station-visit) counts (28 Kongsfjorden + 17 Hornsund), while named stations are 22 Kongsfjorden + 7 Hornsund (29 total) and distinct positions 43
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Metadata says: west bound 11.0308°E — Data shows: positions west of it (EB2-13bis 2.50°E, EB2-GL 9.45°E; 20 rows)
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Data shows: K2 (2 positions)
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              2010-07-01 · Inner
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Daily integrated production: 123.4 mgC m⁻² d⁻¹
+            </p>
+            <div
+              class="overflow-x-auto"
+            >
+              <table
+                class="w-full border-collapse text-left"
+              >
+                <thead>
+                  <tr
+                    class="border-b border-white/10 text-[11px] text-white/60 leading-tight align-bottom"
+                  >
+                    <th
+                      class="py-1 pr-2 font-normal"
+                    >
+                      Depth
+                      <br />
+                      m
+                    </th>
+                    <th
+                      class="py-1 pr-2 font-normal"
+                    >
+                      Temp.
+                      <br />
+                      °C
+                    </th>
+                    <th
+                      class="py-1 pr-2 font-normal"
+                    >
+                      Salinity
+                    </th>
+                    <th
+                      class="py-1 pr-2 font-normal"
+                    >
+                      Ca
+                      <br />
+                      mg m⁻³
+                    </th>
+                    <th
+                      class="py-1 pr-2 font-normal"
+                    >
+                      Pe
+                      <br />
+                      mgC m⁻³ h⁻¹
+                    </th>
+                    <th
+                      class="py-1 pr-2 font-normal"
+                    >
+                      Water mass
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  class="text-[13px] text-white/90 tabular-nums"
+                >
+                  <tr
+                    class="border-b border-white/5 last:border-0"
+                  >
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      0
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      2.1
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      33.5
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      1.2
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      0.5
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                      title="Surface Water (Cottier et al. 2005, standard Svalbard fjord classification)"
+                    >
+                      SW
+                      <span
+                        class="ml-1 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-white/25 text-white/70 text-[9px] leading-none cursor-help align-middle"
+                        title="Surface Water — Cottier et al. 2005, standard Svalbard fjord classification"
+                      >
+                        i
+                      </span>
+                    </td>
+                  </tr>
+                  <tr
+                    class="border-b border-white/5 last:border-0"
+                  >
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      10
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      1.4
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      34.1
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      —
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                    >
+                      0.3
+                    </td>
+                    <td
+                      class="py-1 pr-2 whitespace-nowrap"
+                      title="Atlantic Water (Cottier et al. 2005, standard Svalbard fjord classification)"
+                    >
+                      AW
+                      <span
+                        class="ml-1 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-white/25 text-white/70 text-[9px] leading-none cursor-help align-middle"
+                        title="Atlantic Water — Cottier et al. 2005, standard Svalbard fjord classification"
+                      >
+                        i
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Ca (mg m⁻³): not defined in the source record; in primary-production data this usually denotes chlorophyll a.
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Salinity is published without a unit in the source.
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <p
+              class="text-white/70 text-[14px] leading-relaxed "
+            >
+              Institute of Oceanology Polish Academy of Sciences (2024). In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994-2019. https://doi.org/10.48457/iopan-2024-198
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.48457/iopan-2024-198"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.48457/iopan-2024-198
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders svalbard-fjords-primary-production without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Svalbard Fjords Primary Production Station
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div>
+          <div
+            class="mb-3 px-2 py-1.5 rounded-lg bg-orange-500/10 border-orange-500/20 border"
+          >
+            <p
+              class="text-orange-400 text-[14px] font-sans"
+            >
+              © Institute of Oceanology PAS (IO PAN). Used with permission; the source publishes no open licence.
+            </p>
+          </div>
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            TEST
+          </h2>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Fjord
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              Kongsfjorden
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Fjord part
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              Inner
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Coordinates
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              78.97, 11.74
+            </span>
+          </div>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Loading samples…
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Ca (mg m⁻³): not defined in the source record; in primary-production data this usually denotes chlorophyll a.
+          </p>
+          <p
+            class="text-white/70 text-[14px] leading-relaxed "
+          >
+            Salinity is published without a unit in the source.
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Dataset citation
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                DOI
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-400"
+                  href="https://doi.org/10.48457/iopan-2024-198"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  10.48457/iopan-2024-198
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`DetailPanel dispatch matrix > renders tailings without throwing and matches its snapshot 1`] = `
 <div>
   <div
@@ -14866,8 +16268,8 @@ exports[`DetailPanel dispatch matrix > renders tailings without throwing and mat
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -15056,8 +16458,8 @@ exports[`DetailPanel dispatch matrix > renders tectonic-plates-boundaries withou
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -15186,8 +16588,8 @@ exports[`DetailPanel dispatch matrix > renders tectonic-plates-fill without thro
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -15316,8 +16718,8 @@ exports[`DetailPanel dispatch matrix > renders vessel-events without throwing an
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -15487,8 +16889,8 @@ exports[`DetailPanel dispatch matrix > renders vessel-track-point without throwi
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -15607,8 +17009,8 @@ exports[`DetailPanel dispatch matrix > renders vme-suitability after data loads 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -15797,8 +17199,8 @@ exports[`DetailPanel dispatch matrix > renders vme-suitability without throwing 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -15858,8 +17260,8 @@ exports[`DetailPanel dispatch matrix > renders water-risk without throwing and m
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -16091,8 +17493,8 @@ exports[`DetailPanel dispatch matrix > renders water-risk-mvt without throwing a
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -16324,8 +17726,8 @@ exports[`DetailPanel dispatch matrix > renders woa-climatology after data loads 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -16515,8 +17917,8 @@ exports[`DetailPanel dispatch matrix > renders woa-climatology without throwing 
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -16554,8 +17956,8 @@ exports[`DetailPanel dispatch matrix > renders wod-oxygen after data loads 1`] =
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
@@ -17129,8 +18531,8 @@ exports[`DetailPanel dispatch matrix > renders wod-oxygen without throwing and m
     aria-live="polite"
   >
     <div
-      class="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style="left: 688px; top: 60px;"
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
     >
       <div
         class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"

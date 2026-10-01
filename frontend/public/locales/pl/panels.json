@@ -328,6 +328,25 @@
         "setting": "Środowisko",
         "rock": "Skała macierzysta"
       }
+    },
+    "coastdom": {
+      "toggle": "Rozpuszczona materia organiczna w strefie przybrzeżnej (CoastDOM)",
+      "yearFilter": {
+        "title": "Rok pobrania",
+        "from": "Od roku",
+        "to": "Do roku",
+        "undatedNote": "Zawężenie zakresu ukrywa próbki bez daty w źródle; pełny zakres pokazuje wszystko.",
+        "unavailable": "Filtr roku wymaga załadowanych (lub przeładowanych) danych warstwy. Włącz warstwę, aby go uaktywnić."
+      }
+    },
+    "greenlandPrimaryProduction": {
+      "toggle": "Produkcja pierwotna – Morze Grenlandzkie"
+    },
+    "greenlandSeaPocAoc2025": {
+      "toggle": "Greenland Sea POC — AOC2025"
+    },
+    "svalbardFjordsPrimaryProduction": {
+      "toggle": "Produkcja pierwotna in situ — Fiordy Svalbardu"
     }
   },
   "filters": {
@@ -510,7 +529,11 @@
       "ais-live": "Pozycje statków na żywo z transponderów AIS, przekazywane przez AISStream. Pokazuje, gdzie statki są teraz, a nie gdzie były — kliknij jednostkę, aby wczytać jej trasę z 30 dni. Zasięg zależy od odbiorników naziemnych i satelitarnych, więc otwarty ocean jest pokryty gorzej niż wody przybrzeżne.",
       "bathymetry": "Głębokość dna morskiego jako cieniowana rzeźba, z globalnej siatki GEBCO. To jest teren bazowy, na którym leżą pozostałe warstwy oceaniczne. GEBCO łączy bezpośrednie sondowania z szacunkami satelitarnymi, więc gładkie obszary to zwykle interpolacja, a nie zmierzona płaskość.",
       "vessel-events": "Wykrywanie statków bez AIS metodą SAR×AIS: kontakty radarowe bez odpowiadającego sygnału AIS. Tylko przybrzeżne strefy obserwacyjne.",
-      "marhys": "Zmierzony skład płynów hydrotermalnych — MARHYS 4.0 (Diehl & Bach 2024). Każdy punkt to jedna próbka, w miejscu podanym przez źródło. Kolor oznacza typ próbki: pomarańczowy to płyn zmierzony przy kominie, czerwony to skład krańcowy ekstrapolowany z niego, niebieski to woda morska tła pobrana jako odniesienie — nie wypływ. Widok gęstości rysuje te same punkty jako skupiska; niczego nie przesuwa i niczego nie uśrednia. Zastrzeżenie: 883 z 6 788 próbek nie ma użytecznej pozycji i nigdy nie pojawiają się na mapie, w tym 39, dla których źródło podaje szerokość geograficzną 111°."
+      "marhys": "Zmierzony skład płynów hydrotermalnych — MARHYS 4.0 (Diehl & Bach 2024). Każdy punkt to jedna próbka, w miejscu podanym przez źródło. Kolor oznacza typ próbki: pomarańczowy to płyn zmierzony przy kominie, czerwony to skład krańcowy ekstrapolowany z niego, niebieski to woda morska tła pobrana jako odniesienie — nie wypływ. Widok gęstości rysuje te same punkty jako skupiska; niczego nie przesuwa i niczego nie uśrednia. Zastrzeżenie: 883 z 6 788 próbek nie ma użytecznej pozycji i nigdy nie pojawiają się na mapie, w tym 39, dla których źródło podaje szerokość geograficzną 111°.",
+      "coastdom": "Zmierzony rozpuszczony węgiel, azot i fosfor organiczny (DOC, DON, DOP) oraz powiązane parametry kolumny wody w wodach przybrzeżnych na całym świecie, 1978–2022 — CoastDOM v1, kompilacja opublikowana w PANGAEA. Jeden znacznik na opróbowaną pozycję; kolor to liczba próbek w tym miejscu, nigdy wartość.",
+      "greenland-primary-production": "Produkcja pierwotna brutto węgla zmierzona metodą wydzielania tlenu na 12 stacjach Morza Grenlandzkiego w sierpniu 2021 i sierpniu 2022 (PANGAEA). Tempo na jednostkę powierzchni w mg C na metr kwadratowy na dobę — rozmiar znacznika odpowiada temu tempu.",
+      "greenland-sea-poc-aoc2025": "Węgiel organiczny w postaci cząstek na 32 stacjach, rejs Atlantic-Arctic Ocean Change (AOC2025), Morze Grenlandzkie, 19–31 maja 2025 (Instytut Oceanologii PAN, CC-BY 4.0). Metadane źródła podają zakres czasowy, który nie zgadza się z tytułem ani danymi — pokazane, nie poprawione.",
+      "svalbard-fjords-primary-production": "Produkcja pierwotna in situ, Kongsfjorden i Hornsund (Svalbard), 1994–2019 (Instytut Oceanologii PAN). © IO PAN, użyte za zgodą — źródło nie publikuje otwartej licencji. Metadane źródła podają liczby stacji i inkubacji różne od danych — pokazane, nie poprawione."
     },
     "densityScaleLabel": "Rekordy na komórkę",
     "argoReadingHeading": "Jak odczytywać pomiary",
@@ -1414,12 +1437,86 @@
       "title": "Najbliższe pomiary",
       "caption": "Najbliższy rzeczywisty pomiar in situ z każdego źródła — niekoniecznie reprezentatywny dla tego dokładnego miejsca.",
       "unavailable": "Pomiary niedostępne.",
-      "none": "Brak pomiaru in situ w promieniu wyszukiwania."
+      "none": "Brak pomiaru in situ w promieniu wyszukiwania.",
+      "discovered": "odkryto {{year}}",
+      "noDate": "brak daty w źródle"
+    },
+    "belowSeafloor": "Wybrana głębokość {{depth}} m jest poniżej dna w tym miejscu ({{seafloor}} m, GEBCO). Obowiązują tylko wartości powierzchniowe i stałe.",
+    "belowSeafloorCell": "poniżej dna",
+    "status": {
+      "columnSupersaturated": "głębiej niż dno — cała kolumna przesycona (ΩA > 1)",
+      "noHorizon": "nieokreślone — brak horyzontu w tej kolumnie"
     }
   },
   "share": {
     "opener": "Udostępnij widok",
     "copied": "Skopiowano link",
     "failed": "Nie udało się skopiować"
+  },
+  "pangaeaWater": {
+    "samplesInRange": "{{inRange}} z {{total}} próbek w latach {{from}}–{{to}}",
+    "noDateInSource": "brak daty w źródle",
+    "samplesHere_one": "Próbki w tym miejscu: {{count}}",
+    "samplesHere_other": "Próbki w tym miejscu: {{count}}",
+    "loading": "Wczytywanie próbek…",
+    "loadFailed": "Nie udało się wczytać próbek.",
+    "sampleId": "ID próbki",
+    "reference": "Publikacja",
+    "comment": "Komentarz",
+    "pi": "PI",
+    "citation": "Cytowanie zbioru danych",
+    "related": "Powiązana publikacja",
+    "licence": "Licencja",
+    "version": "Wersja opublikowana {{date}} · SHA-256 {{sha}}",
+    "unmappable": "Wiersze źródła bez współrzędnych, niepokazane na mapie: {{count}}.",
+    "dataAge": "Daty to daty poboru opublikowane przez źródło, nigdy data synchronizacji tej platformy.",
+    "gppRate": "Tempo na jednostkę powierzchni — węgiel wiązany pod jednym metrem kwadratowym powierzchni morza na dobę.",
+    "date": "Data",
+    "unnamedLocation": "Miejsce bez nazwy"
+  },
+  "aocPoc": {
+    "station": "Stacja",
+    "date": "Data",
+    "depth": "Głębokość nominalna (dbar)",
+    "pressure": "Ciśnienie (dbar)",
+    "poc": "POC (mg dm⁻³)*",
+    "pn": "PN (mg dm⁻³)*",
+    "d13c": "δ¹³C (‰)",
+    "d15n": "δ¹⁵N (‰)",
+    "temperature": "Temperatura (°C)",
+    "salinity": "Zasolenie (PSU)",
+    "citation": "Cytowanie zbioru danych",
+    "licence": "Licencja",
+    "dataKind": "Rodzaj danych: pomiary",
+    "window": "Okres obserwacji",
+    "metadataDiscrepancy": "Metadane źródła podają zakres czasowy (2024-07-24 do 2024-08-09), który nie zgadza się z tytułem ani danymi tego zbioru (19–31 maja 2025). Platforma używa dat z danych.",
+    "unitNote": "* Jednostka ze streszczenia zbioru danych; nie występuje w samym pliku danych.",
+    "p01Note": "Jednostki głębokości, δ¹³C i δ¹⁵N są zgodne z kodami SeaDataNet P01: PRESPR01, D13CMOP11, D15NEAM1.",
+    "loading": "Wczytywanie próbek…",
+    "loadFailed": "Nie udało się wczytać próbek.",
+    "samplesHere_one": "{{count}} próbka na tej stacji",
+    "samplesHere_few": "{{count}} próbki na tej stacji",
+    "samplesHere_many": "{{count}} próbek na tej stacji",
+    "samplesHere_other": "{{count}} próbki na tej stacji"
+  },
+  "svalbardFjordsPp": {
+    "licenceFallback": "© Instytut Oceanologii PAN (IO PAN). Użyte za zgodą; źródło nie publikuje otwartej licencji.",
+    "fjord": "Fiord",
+    "fjordPart": "Część fiordu",
+    "coordinates": "Współrzędne",
+    "discrepancies": "Metadane a dane",
+    "metadataSays": "Metadane podają",
+    "dataShows": "Dane pokazują",
+    "loading": "Wczytywanie próbek…",
+    "loadFailed": "Nie udało się wczytać próbek.",
+    "piLabel": "Dobowa produkcja zintegrowana",
+    "piNotReported": "Nie podano dla tej wizyty",
+    "caNote": "Ca (mg m⁻³): niezdefiniowane w rekordzie źródłowym; w danych produkcji pierwotnej zwykle oznacza chlorofil a.",
+    "salinityNote": "Zasolenie w źródle podane bez jednostki.",
+    "citation": "Cytowanie zbioru danych",
+    "colDepth": "Głęb.",
+    "colTemperature": "Temp.",
+    "colSalinity": "Zasolenie",
+    "colWaterMass": "Masa wodna"
   }
 }

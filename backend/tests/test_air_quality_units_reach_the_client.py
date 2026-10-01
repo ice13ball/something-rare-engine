@@ -100,7 +100,7 @@ def test_the_aqi_refuses_a_unit_it_cannot_map():
 def test_the_sync_still_stores_the_unit_verbatim():
     # ⛔ The 1:1 rule. If the sync ever starts normalising units, the honest
     # record of what OpenAQ published is gone and this whole fix is undone.
-    assert 'unit = param.get("units")' in _SRC, (
+    assert 'p.get("units")' in _SRC, (
         "the sync no longer reads OpenAQ's own unit field"
     )
-    assert "units[param_name] = unit" in _SRC
+    assert "unit = EXCLUDED.unit" in _SRC

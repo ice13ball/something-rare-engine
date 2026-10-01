@@ -23,6 +23,8 @@ import db
 from domains.blog import seed_blog_if_empty
 
 from schema.acoustic import ensure_acoustic_stations
+from schema.aoc2025_poc import ensure_aoc2025_poc
+from schema.svalbard_fjords_pp import ensure_svalbard_fjords_pp
 from schema.arctic import ensure_mosaic, ensure_cascade, ensure_sios, ensure_arctic_catchments
 from schema.biodiversity import ensure_biodiversity_enrichment, ensure_hotspot_grid, ensure_noise_cetacean_grids, ensure_vents_and_chess, ensure_sio_bic, ensure_deepdata, ensure_mbari, ensure_noaa_corals, ensure_worms
 from schema.blog import ensure_blog
@@ -32,7 +34,9 @@ from schema.fields import ensure_vme
 from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea, ensure_marhys
 from schema.isa import ensure_mining_contracts_columns, ensure_isa_seed, ISA_CONTRACT_SEED
 from schema.offshore import ensure_ports, ensure_offshore_activities
+from schema.openaq_budget import ensure_openaq_request_budget
 from schema.onc import ensure_onc_core, ensure_onc_ctd_series, ensure_usgs_earthquakes
+from schema.pangaea_water import ensure_pangaea_water
 from schema.reports import ensure_reports
 from schema.seafloor import ensure_bathymetry_cache, ensure_bathymetry_stats
 from schema.sensors import ensure_plume_paths, ensure_wod_oxygen, ensure_oceansites
@@ -58,6 +62,7 @@ async def ensure_schema() -> None:
         await ensure_seaflea(conn)  # seaflea_seeps
         await ensure_marhys(conn)  # marhys_samples, marhys_meta
         await ensure_cascade(conn)  # cascade_stations
+        await ensure_pangaea_water(conn)  # pangaea_dataset_version, coastdom_samples, greenland_pp_stations, *_current views
         await ensure_sios(conn)  # sios_datasets
         await ensure_reports(conn)  # report_cache, report_cache_v2, report_jobs_v2, report_cache_v2_concession, report_jobs_v2_concession
         await ensure_biodiversity_enrichment(conn)  # biodiversity_hotspots iucn/enrichment + obis_species_check
@@ -87,5 +92,8 @@ async def ensure_schema() -> None:
         # Appended last, deliberately: these two tables depend on nothing above
         # them, so the load-bearing order of every existing step is untouched.
         await ensure_sync_queue(conn)  # sync_requests, running_syncs (web/worker sync hand-off)
+        await ensure_aoc2025_poc(conn)  # aoc2025_poc_version, aoc2025_poc_samples, *_current view (dev-only preview layer)
+        await ensure_svalbard_fjords_pp(conn)  # svalbard_fjords_pp_version, svalbard_fjords_pp_samples, *_current view (dev-only preview layer)
+        await ensure_openaq_request_budget(conn)  # openaq_request_budget (per-UTC-day OpenAQ request counter)
 
     log.info("Schema ready")

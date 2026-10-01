@@ -86,6 +86,14 @@ LAYER_DEFAULTS_PY = [
     {"id": "arctic-sediment-carbon", "order_idx": 2085, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "marhys",                 "order_idx": 2087, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "mosaic-sediment", "order_idx": 2088, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "coastdom",               "order_idx": 2089, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "greenland-primary-production", "order_idx": 2090, "default_on": False, "modes": ["ocean","continue"]},
+    # Preview layer, dev-only (owner decision 2026-09-25) — not on the production
+    # frontend build. default_on false: seeds a layer_config row on the live DB.
+    {"id": "greenland-sea-poc-aoc2025", "order_idx": 2091, "default_on": False, "modes": ["ocean","continue"]},
+    # Preview layer, dev-only (owner decision 2026-09-26) — not on the production
+    # frontend build. default_on false: seeds a layer_config row on the live DB.
+    {"id": "svalbard-fjords-primary-production", "order_idx": 2092, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "vme-suitability",        "order_idx": 68,   "default_on": False, "modes": ["ocean","continue"]},
     {"id": "ocean-acidification",    "order_idx": 69,   "default_on": False, "modes": ["ocean","continue"]},
     {"id": "coral-acid-exposure",    "order_idx": 71,   "default_on": False, "modes": ["ocean","continue"]},

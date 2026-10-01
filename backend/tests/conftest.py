@@ -37,6 +37,17 @@ def _lock_connection_dsn():
     _db.dsn = previous
 
 
+@pytest.fixture(autouse=True)
+def _fast_openaq_pacer(monkeypatch):
+    """The OpenAQ call sites share ONE per-process pacer (~5 req/min in
+    production). Tests must never wait 12 s between mocked requests, so every
+    test gets a fresh pacer with no interval; tests of the pacing itself build
+    their own RateLimitPacer with an injected clock/sleep."""
+    import openaq_guard
+    monkeypatch.setattr(
+        openaq_guard, "_process_pacer", openaq_guard.RateLimitPacer(min_interval_s=0.0))
+
+
 @pytest.fixture
 async def export_client():
     from httpx import AsyncClient, ASGITransport

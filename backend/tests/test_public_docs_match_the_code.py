@@ -148,7 +148,8 @@ def test_every_gebco_vintage_in_the_code_appears_in_the_public_licence_map():
 
 def test_the_air_quality_unit_gap_is_not_claimed_while_the_code_fills_it():
     hazards = _strip_py((ROOT / "backend" / "domains" / "land" / "hazards.py").read_text())
-    reads_units = 'param.get("units")' in hazards or "param.get('units')" in hazards
+    reads_units = any(f'{v}.get("units")' in hazards or f"{v}.get('units')" in hazards
+                      for v in ("param", "p"))
 
     passthrough = (ROOT / "docs" / "methods" / "data-passthrough.md").read_text()
     claims_gap = "does not currently request that field" in passthrough

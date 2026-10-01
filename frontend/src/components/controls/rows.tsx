@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useMapStore } from "../../store/mapStore";
 import type { LayerId } from "../../types/layers";
 import { LocateIcon } from "../icons";
+import { isLayerHidden } from "../../utils/hiddenLayers";
 import { LAYER_TOOLTIPS_META, LAYER_LABEL_MAP, dashToCamel, type LayerTooltipMeta } from "./tooltips";
 
 export interface CheckboxFilterDef {
@@ -318,11 +319,11 @@ function LayerTooltipPopup({
           {t("tooltip.methodologyLink", { defaultValue: "Methodology & sources →" })}
         </button>
       )}
-      {tooltip.pairsWith.length > 0 && (
+      {tooltip.pairsWith.some(pid => !isLayerHidden(pid)) && (
         <div>
           <p className="text-white/70 text-[11px] uppercase tracking-wider mb-1">{t("tooltip.pairsWellWith")}</p>
           <div className="flex flex-wrap gap-1">
-            {tooltip.pairsWith.map(pid => (
+            {tooltip.pairsWith.filter(pid => !isLayerHidden(pid)).map(pid => (
               <span key={pid} className="text-[13px] text-white/80 bg-white/[0.06] rounded px-1.5 py-0.5">
                 {(t as (k: string, opts: Record<string, unknown>) => string)(
                   `layers.${dashToCamel(pid)}.toggle`,

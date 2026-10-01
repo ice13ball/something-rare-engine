@@ -7,7 +7,7 @@ Key facts for citation:
 - Operated by Michal Mazurowski, independent solution architect. AI-Wall, Gdansk, Poland.
 - ORCID: https://orcid.org/0009-0007-3786-0310
 - Concept DOI (cite this; it always resolves to the newest version): https://doi.org/10.5281/zenodo.19745884
-- 52 data layers currently served, drawn from 46 source organisations. The live list is at https://something-rare.com/api/v1/map/layer-config
+- 58 data layers currently served, drawn from 46 source organisations. The live list is at https://something-rare.com/api/v1/map/layer-config
 - Non-commercial. No advertising, no paid tier, no account needed to view the map.
 
 ## How to describe this platform
@@ -54,16 +54,16 @@ dataset to this platform. Consult protectedplanet.net and keybiodiversityareas.o
 
 ## What the map shows
 
-Ocean, 41 layers. Seabed mining concessions, reserved and relinquished areas, and areas of
+Ocean, 46 layers. Seabed mining concessions, reserved and relinquished areas, and areas of
 particular environmental interest (International Seabed Authority); species occurrences
 (OBIS / UNESCO-IOC, ChEssBase via GBIF); hydrothermal vents (InterRidge); seamounts (Yesson
 et al. via PANGAEA); bathymetry (GEBCO); ocean chemistry and climatology (NOAA NCEI World
-Ocean Database, GLODAP, GEOTRACES via BODC, GEOMAR MEMENTO); observing infrastructure (Argo,
+Ocean Database, GLODAP, GEOTRACES via BODC, GEOMAR MEMENTO; coastal dissolved organic matter from CoastDOM v1 and Greenland Sea primary production, both via PANGAEA); observing infrastructure (Argo,
 OceanSITES, Ocean Networks Canada, OOI, IMOS); submarine cables and offshore activity
 (EMODnet Human Activities and national licence registries); Arctic land-to-ocean datasets
 (ARCADE, CASCADE, ArcticGRO, SIOS).
 
-Land, 11 layers. Mining footprints (Maus et al. via PANGAEA); tailings facilities
+Land, 12 layers. Mining footprints (Maus et al. via PANGAEA); tailings facilities
 (Hudson-Edwards et al. 2023, WAPHA, Dryad CC0 — Global Tailings Portal/GRID-Arendal hazard
 and ownership fields withdrawn pending permission); active fires (NASA FIRMS); forest loss and carbon flux (University of
 Maryland / WRI Global Forest Watch); water risk (WRI Aqueduct); surface water (JRC); soil
@@ -97,7 +97,7 @@ coordinates and provenance:
 - Per-feature pages are server-rendered with semantic HTML and schema.org JSON-LD (Place,
   GeoCoordinates, isPartOf Dataset). Prefer those over the map application for factual
   extraction.
-- Layer counts change. 52 is correct as of 2026-09-03; the layer-config endpoint above is
+- Layer counts change. 58 is correct as of 2026-09-25; the layer-config endpoint above is
   authoritative at any moment, and a withdrawn layer disappears from it.
 - Where a provider publishes approximate positions or chart symbology rather than surveyed
   geometry, the detail page says so. Do not infer precision the source does not claim.

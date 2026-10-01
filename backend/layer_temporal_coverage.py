@@ -259,6 +259,25 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-09-23",
     ),
     Coverage(
+        layer_id="coastdom",
+        start_year=1978, end_year=2022,
+        kind="compilation",
+        wording="publisher's temporal coverage 1978-05-25 to 2022-03-02 (PANGAEA JSON-LD, "
+                "CoastDOM v1 published 2023-12-12). A compilation of many programmes' "
+                "measurements; 531 of 70,823 source rows carry no date and no coordinates.",
+        source_url="https://doi.org/10.1594/PANGAEA.964012",
+        verified_on="2026-09-25",
+    ),
+    Coverage(
+        layer_id="greenland-primary-production",
+        start_year=2021, end_year=2022,
+        kind="observations",
+        wording="publisher's temporal coverage 2021-08-02 to 2022-08-22 (PANGAEA JSON-LD, "
+                "published 2025-04-07): four stations in August 2021, eight in August 2022.",
+        source_url="https://doi.org/10.1594/PANGAEA.965985",
+        verified_on="2026-09-25",
+    ),
+    Coverage(
         layer_id="geotraces",
         start_year=2005, end_year=2023,
         kind="compilation",

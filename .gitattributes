@@ -68,3 +68,4 @@
 # Nothing breaks by keeping them: Python's text mode translates CRLF to LF on
 # read, and `csv` handles either ending, so the parsers never see the difference.
 backend/tests/fixtures/**/*.csv -text
+backend/tests/fixtures/**/*.tsv -text

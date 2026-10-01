@@ -13,6 +13,7 @@ import {
   layerIdForRoutingKey,
   openObjectsFor,
   openTargetFor,
+  clickIdFor,
   OPENABLE,
   OPENABLE_LAYER_IDS,
 } from "../components/map3d/openFromLink";
@@ -134,6 +135,99 @@ describe("what the write side puts in a link", () => {
       { id: "abc", layer: "memento-hexes" },
     ]);
     expect(out).toEqual([["contracts", "ISA-002"]]);
+  });
+});
+
+describe("the click handler's id chain matches what a link can reopen", () => {
+  // ⛔ coastdom and greenland-primary-production carry none of
+  // isa_id/id/platform_id, so before this branch existed the click handler
+  // fell through to `String(info.index)` — a deck.gl pick index that a share
+  // link cannot reliably match back to a feature.
+  const coastdomProps = {
+    site_id: "54.32,10.11", lat: 54.32, lon: 10.11, location: "Kiel Bight",
+    n_samples: 12, n_undated: 2, depth_min_m: 0, depth_max_m: 4,
+    date_min: "1998-04-01", date_max: "2001-09-30",
+  };
+  const greenlandProps = {
+    version_id: "v1", row_no: 7, event: "FS21_06E", event_2: "FS21_06E-2",
+    lat: 76.1, lon: -20.4, sample_date: "2021-06-15", gpp_c_mg_m2_day: 133.4,
+  };
+
+  it("keys coastdom on site_id, not the pick index", () => {
+    expect(clickIdFor("coastdom", coastdomProps, 11365)).toBe("54.32,10.11");
+  });
+
+  it("keys greenland-primary-production on event, not the pick index", () => {
+    expect(clickIdFor("greenland-primary-production", greenlandProps, 10)).toBe("FS21_06E");
+  });
+
+  it("falls back to the pick index when a coastdom feature carries no site_id", () => {
+    expect(clickIdFor("coastdom", { location: "unknown" }, 3)).toBe("3");
+  });
+
+  it("round-trips: the id the click handler writes reopens the same coastdom feature", async () => {
+    const data = fc([{ site_id: "1,1" }, coastdomProps, { site_id: "2,2" }]);
+    const clickedId = String(clickIdFor("coastdom", coastdomProps, 1));
+    const t = await openTargetFor("coastdom", clickedId, data, "");
+    expect(t).not.toBeNull();
+    expect(t!.properties.location).toBe("Kiel Bight");
+  });
+
+  it("round-trips: the id the click handler writes reopens the same greenland station", async () => {
+    const data = fc([{ event: "FS21_01" }, greenlandProps, { event: "FS21_09" }]);
+    const clickedId = String(clickIdFor("greenland-primary-production", greenlandProps, 0));
+    const t = await openTargetFor("greenland-primary-production", clickedId, data, "");
+    expect(t).not.toBeNull();
+    expect(t!.properties.gpp_c_mg_m2_day).toBe(133.4);
+  });
+
+  // AOC2025 POC (preview, dev-only) carries none of isa_id/id/platform_id/site_id/
+  // event either — same fallback-to-pick-index failure mode as coastdom/greenland
+  // above, guarded the same way.
+  const aocPocProps = {
+    station: "AOC2025-2", n_samples: 3, depth_min_db: 5, depth_max_db: 40,
+    date_min: "2025-05-19", date_max: "2025-05-19",
+  };
+
+  it("keys greenland-sea-poc-aoc2025 on station, not the pick index", () => {
+    expect(clickIdFor("greenland-sea-poc-aoc2025", aocPocProps, 42)).toBe("AOC2025-2");
+  });
+
+  it("falls back to the pick index when an AOC2025 POC feature carries no station", () => {
+    expect(clickIdFor("greenland-sea-poc-aoc2025", { n_samples: 1 }, 5)).toBe("5");
+  });
+
+  it("round-trips: the id the click handler writes reopens the same AOC2025 POC station", async () => {
+    const data = fc([{ station: "AOC2025-1" }, aocPocProps, { station: "AOC2025-9" }]);
+    const clickedId = String(clickIdFor("greenland-sea-poc-aoc2025", aocPocProps, 1));
+    const t = await openTargetFor("greenland-sea-poc-aoc2025", clickedId, data, "");
+    expect(t).not.toBeNull();
+    expect(t!.properties.depth_max_db).toBe(40);
+  });
+
+  // Svalbard Fjords PP (preview, dev-only): the SAME station name is sampled
+  // at more than one position, so this layer must key on position_id, never
+  // on station — a station-keyed link would reopen the wrong position.
+  const svalbardFjordsPpProps = {
+    position_id: "K:K2:78.97:11.74", station: "K2", region_code: "K",
+    fjord_part: "Inner", n_expositions: 2, first_date: "1994-07-05", last_date: "2019-08-11",
+  };
+
+  it("keys svalbard-fjords-primary-production on position_id, not station", () => {
+    expect(clickIdFor("svalbard-fjords-primary-production", svalbardFjordsPpProps, 42)).toBe("K:K2:78.97:11.74");
+  });
+
+  it("falls back to the pick index when a Svalbard Fjords PP feature carries no position_id", () => {
+    expect(clickIdFor("svalbard-fjords-primary-production", { station: "K2" }, 5)).toBe("5");
+  });
+
+  it("round-trips: the id the click handler writes reopens the same Svalbard Fjords PP position, even with a reused station name", async () => {
+    const otherPositionSameStation = { position_id: "K:K2:78.88:12.48", station: "K2", region_code: "K" };
+    const data = fc([otherPositionSameStation, svalbardFjordsPpProps]);
+    const clickedId = String(clickIdFor("svalbard-fjords-primary-production", svalbardFjordsPpProps, 1));
+    const t = await openTargetFor("svalbard-fjords-primary-production", clickedId, data, "");
+    expect(t).not.toBeNull();
+    expect(t!.properties.position_id).toBe("K:K2:78.97:11.74");
   });
 });
 

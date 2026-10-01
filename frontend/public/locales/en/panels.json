@@ -328,6 +328,25 @@
         "setting": "Setting",
         "rock": "Host rock"
       }
+    },
+    "coastdom": {
+      "toggle": "Coastal Dissolved Organic Matter (CoastDOM)",
+      "yearFilter": {
+        "title": "Sampling year",
+        "from": "From year",
+        "to": "To year",
+        "undatedNote": "Narrowing the range hides samples with no date in the source; the full range shows everything.",
+        "unavailable": "The year filter needs the layer data to be loaded (or reloaded). Turn the layer on to enable it."
+      }
+    },
+    "greenlandPrimaryProduction": {
+      "toggle": "Greenland Sea Primary Production"
+    },
+    "greenlandSeaPocAoc2025": {
+      "toggle": "Greenland Sea POC — AOC2025"
+    },
+    "svalbardFjordsPrimaryProduction": {
+      "toggle": "In situ Primary Production — Svalbard Fjords"
     }
   },
   "filters": {
@@ -510,7 +529,11 @@
       "ais-live": "Live vessel positions from AIS transponders, relayed by AISStream. Shows where ships are now, not where they have been — click a vessel to load its 30-day track. Coverage depends on terrestrial and satellite receiver reach, so open ocean is patchier than coastal water.",
       "bathymetry": "Seafloor depth as shaded relief, from the GEBCO global grid. This is the base terrain the other ocean layers sit on. GEBCO merges direct soundings with satellite-derived estimates, so smooth areas are usually interpolation, not measured flatness.",
       "vessel-events": "SAR×AIS dark-vessel detection: radar contacts with no matching AIS. Coastal watchboxes only.",
-      "marhys": "Measured compositions of hydrothermal vent fluids — MARHYS 4.0 (Diehl & Bach 2024). Each point is one sample, at the coordinates the source published. Colour is the sample type: orange is fluid measured at a vent, red is an end-member composition extrapolated from it, blue is background seawater collected for reference — not discharge. The density view redraws the same points as clusters; it moves nothing and averages nothing. Caveat: 883 of 6,788 samples carry no usable position and never appear on the map, including 39 whose latitude the source gives as 111°."
+      "marhys": "Measured compositions of hydrothermal vent fluids — MARHYS 4.0 (Diehl & Bach 2024). Each point is one sample, at the coordinates the source published. Colour is the sample type: orange is fluid measured at a vent, red is an end-member composition extrapolated from it, blue is background seawater collected for reference — not discharge. The density view redraws the same points as clusters; it moves nothing and averages nothing. Caveat: 883 of 6,788 samples carry no usable position and never appear on the map, including 39 whose latitude the source gives as 111°.",
+      "coastdom": "Measured dissolved organic carbon, nitrogen and phosphorus (DOC, DON, DOP) and related water-column parameters in coastal waters worldwide, 1978–2022 — CoastDOM v1, a compilation published on PANGAEA. One marker per sampled position; its colour is the number of samples there, never a value.",
+      "greenland-primary-production": "Gross primary production of carbon measured by oxygen evolution at 12 Greenland Sea stations in August 2021 and August 2022 (PANGAEA). An areal rate in mg C per square metre per day — marker size follows the rate.",
+      "greenland-sea-poc-aoc2025": "Particulate organic carbon at 32 stations, Atlantic-Arctic Ocean Change cruise (AOC2025), Greenland Sea, 19–31 May 2025 (Institute of Oceanology Polish Academy of Sciences, CC-BY 4.0). The source's own metadata states a temporal extent that does not match its title or its data — shown, not corrected.",
+      "svalbard-fjords-primary-production": "In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, used with permission — the source publishes no open licence. The source's own metadata states station and incubation counts that differ from the data — shown, not corrected."
     },
     "densityScaleLabel": "Records per cell",
     "argoReadingHeading": "How to read the readings",
@@ -1410,12 +1433,84 @@
       "title": "Nearest measurements",
       "caption": "Nearest real in-situ measurement per source — not necessarily representative of this exact point.",
       "unavailable": "Measurements unavailable.",
-      "none": "No in-situ measurement within the search radius."
+      "none": "No in-situ measurement within the search radius.",
+      "discovered": "discovered {{year}}",
+      "noDate": "no date in source"
+    },
+    "belowSeafloor": "Selected depth {{depth}} m is below the seafloor here ({{seafloor}} m, GEBCO). Only surface and fixed values apply.",
+    "belowSeafloorCell": "below seafloor",
+    "status": {
+      "columnSupersaturated": "deeper than the seafloor — column supersaturated (ΩA > 1)",
+      "noHorizon": "not defined — no horizon in this column"
     }
   },
   "share": {
     "opener": "Share view",
     "copied": "Link copied",
     "failed": "Could not copy"
+  },
+  "pangaeaWater": {
+    "samplesInRange": "{{inRange}} of {{total}} samples in {{from}}–{{to}}",
+    "noDateInSource": "no date in source",
+    "samplesHere_one": "{{count}} sample at this position",
+    "samplesHere_other": "{{count}} samples at this position",
+    "loading": "Loading samples…",
+    "loadFailed": "The samples could not be loaded.",
+    "sampleId": "Sample ID",
+    "reference": "Reference",
+    "comment": "Comment",
+    "pi": "PI",
+    "citation": "Dataset citation",
+    "related": "Related publication",
+    "licence": "Licence",
+    "version": "Version published {{date}} · SHA-256 {{sha}}",
+    "unmappable": "{{count}} source rows carry no coordinates and are not drawn.",
+    "dataAge": "Dates are the sampling dates published by the source, never the date this platform synced.",
+    "gppRate": "Areal rate — carbon fixed under one square metre of sea surface per day.",
+    "date": "Date",
+    "unnamedLocation": "Unnamed location"
+  },
+  "aocPoc": {
+    "station": "Station",
+    "date": "Date",
+    "depth": "Depth, nominal (dbar)",
+    "pressure": "Pressure (dbar)",
+    "poc": "POC (mg dm⁻³)*",
+    "pn": "PN (mg dm⁻³)*",
+    "d13c": "δ¹³C (‰)",
+    "d15n": "δ¹⁵N (‰)",
+    "temperature": "Temperature (°C)",
+    "salinity": "Salinity (PSU)",
+    "citation": "Dataset citation",
+    "licence": "Licence",
+    "dataKind": "Data kind: measurements",
+    "window": "Observation window",
+    "metadataDiscrepancy": "The source's own metadata states a temporal extent (2024-07-24 to 2024-08-09) that does not match this dataset's title or its data (19–31 May 2025). This platform uses the dates in the data.",
+    "unitNote": "* Unit from the dataset abstract; the data file does not state it.",
+    "p01Note": "Units of depth, δ¹³C and δ¹⁵N follow the SeaDataNet P01 codes PRESPR01, D13CMOP11, D15NEAM1.",
+    "loading": "Loading samples…",
+    "loadFailed": "The samples could not be loaded.",
+    "samplesHere_one": "{{count}} sample at this station",
+    "samplesHere_other": "{{count}} samples at this station"
+  },
+  "svalbardFjordsPp": {
+    "licenceFallback": "© Institute of Oceanology PAS (IO PAN). Used with permission; the source publishes no open licence.",
+    "fjord": "Fjord",
+    "fjordPart": "Fjord part",
+    "coordinates": "Coordinates",
+    "discrepancies": "Metadata vs. data",
+    "metadataSays": "Metadata says",
+    "dataShows": "Data shows",
+    "loading": "Loading samples…",
+    "loadFailed": "The samples could not be loaded.",
+    "piLabel": "Daily integrated production",
+    "piNotReported": "Not reported for this visit",
+    "caNote": "Ca (mg m⁻³): not defined in the source record; in primary-production data this usually denotes chlorophyll a.",
+    "salinityNote": "Salinity is published without a unit in the source.",
+    "citation": "Dataset citation",
+    "colDepth": "Depth",
+    "colTemperature": "Temp.",
+    "colSalinity": "Salinity",
+    "colWaterMass": "Water mass"
   }
 }

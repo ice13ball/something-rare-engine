@@ -29,6 +29,13 @@ COPY . .
 # crawl surfaced the literal doubled URL and its extra proxy hop timed out as
 # a 504 during a slow backend (2026-09-18 incident). Leaving this unset makes
 # `import.meta.env.VITE_API_BASE_URL ?? ""` resolve to "", matching dev.
+#
+# Heap for the build only. Node's default in this image is 1505 MB, and
+# `vite build` no longer fits in it: it died with "JavaScript heap out of
+# memory" twice on 2026-09-26 in Docker Desktop's 3 GB VM, and the same limit
+# reproduced the failure on the Mac. With 2304 MB it passes at ~1.8 GB peak RSS,
+# which still leaves room for Docker itself inside that 3 GB VM.
+ENV NODE_OPTIONS=--max-old-space-size=2304
 RUN npm run build
 
 # Prune devDependencies so the runtime stage gets a lean node_modules

@@ -76,7 +76,9 @@ from ingestion.cadence import should_sync
 from sync_log import is_sync_paused, log_sync as _log_sync
 
 from domains import acoustic, arctic, biodiversity, cables, fields
-from domains import geo_context, geochem, isa, offshore, onc, seafloor, sensors
+from domains import aoc2025_poc
+from domains import svalbard_fjords_pp
+from domains import geo_context, geochem, isa, offshore, onc, pangaea_water, seafloor, sensors
 
 from land_layers import (
     _sync_air_quality_readings,
@@ -142,7 +144,7 @@ MONITORING_DENSITY_REFRESH_INTERVAL_SECONDS = 12 * 3600
 SIO_BIC_SYNC_INTERVAL_SECONDS = 7 * 24 * 3600  # weekly
 ONC_SENSOR_SYNC_INTERVAL_SECONDS = 24 * 3600  # daily
 OCEANSITES_OBS_SYNC_INTERVAL_SECONDS = 24 * 3600  # daily
-AIR_QUALITY_READINGS_INTERVAL_SECONDS = 2 * 3600  # every 2 hours
+AIR_QUALITY_READINGS_INTERVAL_SECONDS = 6 * 3600  # every 6 hours (OpenAQ key is shared with downWindGlobal)
 OFFSHORE_ACTIVITIES_INTERVAL = 7 * 24 * 3600  # weekly
 
 # ── Staggered startup delays for the heavy field-layer bakes ─────────────────
@@ -895,6 +897,70 @@ async def _cascade_startup_bake():
         log.warning("cascade startup bake failed: %s", e)
 
 
+# PANGAEA water-column layers (CoastDOM v1, Greenland Sea GPP). Monthly. The first
+# pass waits 15 min: the CoastDOM TSV is 24 MB and 70,823 rows, which should not
+# compete with the cold start. A restart re-checks only the JSON-LD (0.4 MB); the
+# TSV is fetched only when datePublished changed.
+_PANGAEA_WATER_STARTUP_DELAY_S = 900
+_PANGAEA_WATER_INTERVAL_S = 30 * 24 * 3600
+
+
+async def _pangaea_water_monthly_task():
+    await asyncio.sleep(_PANGAEA_WATER_STARTUP_DELAY_S)
+    while True:
+        for action, fn in (("coastdom", pangaea_water.sync_coastdom),
+                           ("greenland-pp", pangaea_water.sync_greenland_pp)):
+            try:
+                await _run_unless_paused(action, fn, action)
+            except Exception:
+                log.exception("%s monthly sync failed", action)
+        await asyncio.sleep(_PANGAEA_WATER_INTERVAL_S)
+
+
+# IO PAN preview layers (dev-only): AOC2025 POC (13 KB CSV) and Svalbard fjords
+# primary production (27 KB CSV). Daily, because IO PAN is publishing fixes we
+# proposed (Michal, 2026-09-29). External-API tier: the minimum 5-min startup
+# delay applies rather than the 15-min heavy tier.
+_IOPAN_PREVIEW_STARTUP_DELAY_S = 300
+_IOPAN_PREVIEW_INTERVAL_S = 24 * 3600
+
+
+def _seconds_until_due(last: datetime | None, now: datetime, interval_s: float) -> float:
+    """0 when a sync is due; otherwise the seconds left until it is. Measured from
+    sync_log.last_synced_at, not from process start: an in-memory sleep restarts
+    with every deploy (2-3 a day), which made the old "monthly" sync run on every
+    restart instead."""
+    if last is None:
+        return 0.0
+    return max(0.0, interval_s - (now - last).total_seconds())
+
+
+async def _iopan_preview_daily_task(action: str, fn):
+    await asyncio.sleep(_IOPAN_PREVIEW_STARTUP_DELAY_S)
+    while True:
+        wait = _IOPAN_PREVIEW_INTERVAL_S
+        try:
+            async with db.pool.acquire() as conn:
+                last = await conn.fetchval(
+                    "SELECT last_synced_at FROM sync_log WHERE source = $1", action)
+            due_in = _seconds_until_due(last, datetime.now(timezone.utc), _IOPAN_PREVIEW_INTERVAL_S)
+            if due_in > 0:
+                wait = due_in
+            else:
+                await _run_unless_paused(action, fn, action)
+        except Exception:
+            log.exception("%s daily sync failed", action)
+        await asyncio.sleep(wait)
+
+
+async def _aoc2025_poc_daily_task():
+    await _iopan_preview_daily_task("aoc2025-poc", aoc2025_poc.sync_aoc2025_poc)
+
+
+async def _svalbard_fjords_pp_daily_task():
+    await _iopan_preview_daily_task("svalbard-fjords-pp", svalbard_fjords_pp.sync_svalbard_fjords_pp)
+
+
 async def _bathymetry_grid_bake_task():
     """One-shot GEBCO_2024 downsample bake for the bathymetry field-export sampler.
     External-API tier; skip-if-present makes restarts cheap. Runs LAST in the
@@ -1021,16 +1087,30 @@ async def _oceansites_obs_sync_task():
 
 
 async def _air_quality_readings_task():
-    """Drip-fill air quality readings from OpenAQ v3 — 500 stations per run,
-    sequential 1 req/1.2s to respect rate limits. Runs independently of
-    the 6h land sync to populate all ~24k stations in ~4 days."""
+    """Drip-fill air quality readings from OpenAQ v3 — paced by openaq_guard
+    (~5 req/min, shared key, daily budget), one bounded run every 6 h. Runs
+    independently of the 6h land sync.
+
+    Due time comes from sync_log (last completed OR skipped run), not from
+    process start: the API restarts 2-3 times a day on deploys, and an
+    in-memory sleep re-fired the sweep on every one of them."""
     await asyncio.sleep(900)
     while True:
+        wait = AIR_QUALITY_READINGS_INTERVAL_SECONDS
         try:
-            await _run_unless_paused("air-quality-readings", _sync_air_quality_readings, "air_quality_readings_2h")
+            async with db.pool.acquire() as conn:
+                last = await conn.fetchval(
+                    "SELECT GREATEST(last_synced_at, skipped_at) FROM sync_log "
+                    "WHERE source = 'air_quality_readings'")
+            due_in = _seconds_until_due(
+                last, datetime.now(timezone.utc), AIR_QUALITY_READINGS_INTERVAL_SECONDS)
+            if due_in > 0:
+                wait = due_in
+            else:
+                await _run_unless_paused("air-quality-readings", _sync_air_quality_readings, "air_quality_readings_6h")
         except Exception:
             log.exception("Air quality readings sync failed")
-        await asyncio.sleep(AIR_QUALITY_READINGS_INTERVAL_SECONDS)
+        await asyncio.sleep(wait)
 
 
 async def _acoustic_stations_task() -> None:
@@ -1400,6 +1480,22 @@ TASK_REGISTRY: list[TaskSpec] = [
     TaskSpec(
         "cascade-startup-bake", ROLE_WORKER, "Static-dataset holdings check.",
         _f(_cascade_startup_bake),
+    ),
+    TaskSpec(
+        "pangaea-water-monthly-sync", ROLE_WORKER,
+        "Monthly JSON-LD check, TSV only on change; one 24 MB download at most. "
+        "Serialized through _run_unless_paused.",
+        _f(_pangaea_water_monthly_task),
+    ),
+    TaskSpec(
+        "aoc2025-poc-daily-sync", ROLE_WORKER,
+        "Dev-only preview layer. 13 KB CSV, SHA-256 guard; due 24 h after sync_log.last_synced_at. Serialized through _run_unless_paused.",
+        _f(_aoc2025_poc_daily_task),
+    ),
+    TaskSpec(
+        "svalbard-fjords-pp-daily-sync", ROLE_WORKER,
+        "Dev-only preview layer. 27 KB CSV, SHA-256 guard; due 24 h after sync_log.last_synced_at. Serialized through _run_unless_paused.",
+        _f(_svalbard_fjords_pp_daily_task),
     ),
     TaskSpec(
         "bathymetry-grid-startup-bake", ROLE_WORKER,

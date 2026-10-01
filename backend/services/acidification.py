@@ -9,12 +9,13 @@ Heavy deps (xarray/PIL) imported lazily so this stays importable in test envs.
 """
 from __future__ import annotations
 import glob as _glob
-import math, os, pathlib
+import math, os, pathlib, time
 import numpy as np
 from services import glodap_carbon  # reuse holdings + normalize_lon
 
 CACHE_DIR = pathlib.Path(os.getenv("ACID_CACHE_DIR", "/var/cache/abyssal-acidification"))
 BAKE_DIR  = CACHE_DIR / "baked"
+SHIFT_NPY = BAKE_DIR / "horizon_shift.npy"
 
 CITATION = (
     "Ω fields: GLODAPv2.2016b Mapped Climatology — Lauvset et al. 2016 "
@@ -227,6 +228,12 @@ _OPT_K_CARBONIC = 10
 _OMEGA_CACHE: dict = {}
 _HSHIFT_CACHE: dict = {}
 
+# In-process cache for the on-disk horizon-shift grid (served by load_shift_grid, never
+# recomputed on a request — see load_shift_grid's docstring).
+_SHIFT_DISK_CACHE: dict = {"arr": None, "mtime": None, "checked_at": None}
+_SHIFT_MISSING_WARNED = False
+_SHIFT_RESTAT_INTERVAL_S = 60.0
+
 
 def _aux_grid(fn: str, var: str):
     """Load one auxiliary GLODAP field as a raw ndarray on the shared grid."""
@@ -276,19 +283,29 @@ def omega_grid(epoch: str):
 
     import PyCO2SYS as pyco2  # lazy — heavy
     nd, ny, nx = dic.shape
-    pres = np.repeat(np.asarray(base.depths, dtype="float64"), ny * nx).reshape(nd, ny, nx)
     ok = (np.isfinite(dic) & np.isfinite(talk) & np.isfinite(temp)
           & np.isfinite(sal) & np.isfinite(po4) & np.isfinite(si))
     out = np.full((nd, ny, nx), np.nan, dtype="float32")
-    if ok.any():
+    depths = np.asarray(base.depths, dtype="float64")
+    # ONE pyco2.sys() call per depth level, not one call over the whole 3-D grid. PyCO2SYS's
+    # peak memory is dominated by its own intermediate arrays, which scale with the number of
+    # points passed to a single call — a process running horizon_shift_grid() (two omega_grid
+    # calls, "pi" and "today") was OOM-killed at a 5 GB cgroup cap after 12 s when the call
+    # spanned all ~33*180*360 cells at once (measured on production, 2026-09-29). Looping per
+    # level bounds each call to at most ny*nx points instead.
+    for di in range(nd):
+        ok_di = ok[di]
+        if not ok_di.any():
+            continue
+        pres_di = np.full(int(ok_di.sum()), depths[di], dtype="float64")
         res = pyco2.sys(
-            par1=talk[ok], par1_type=1,      # 1 = total alkalinity
-            par2=dic[ok],  par2_type=2,      # 2 = dissolved inorganic carbon
-            temperature=temp[ok], salinity=sal[ok], pressure=pres[ok],
-            total_phosphate=po4[ok], total_silicate=si[ok],
+            par1=talk[di][ok_di], par1_type=1,      # 1 = total alkalinity
+            par2=dic[di][ok_di],  par2_type=2,      # 2 = dissolved inorganic carbon
+            temperature=temp[di][ok_di], salinity=sal[di][ok_di], pressure=pres_di,
+            total_phosphate=po4[di][ok_di], total_silicate=si[di][ok_di],
             opt_k_carbonic=_OPT_K_CARBONIC,
         )
-        out[ok] = np.asarray(res["saturation_aragonite"], dtype="float32")
+        out[di][ok_di] = np.asarray(res["saturation_aragonite"], dtype="float32")
     g = glodap_carbon._Grid(base.lats, base.lons, base.depths, out)
     _OMEGA_CACHE[epoch] = g
     return g
@@ -315,7 +332,12 @@ def horizon_recon_grid(epoch: str):
 
 
 def horizon_shift_grid():
-    """Metres of shoaling: horizon_PI - horizon_today, both RECONSTRUCTED (same method)."""
+    """Metres of shoaling: horizon_PI - horizon_today, both RECONSTRUCTED (same method).
+
+    Heavy (full PyCO2SYS reconstruction over the whole 3-D grid, then a Python loop per
+    column) — measured >2 GB RSS on a cold cache. Called ONLY from bake_all(), which saves
+    the result to SHIFT_NPY; `sample("horizon-shift", ...)` never calls this — it reads
+    load_shift_grid() instead. Do not call this from a request path."""
     if "shift" in _HSHIFT_CACHE:
         return _HSHIFT_CACHE["shift"]
     hp = horizon_recon_grid("pi")
@@ -357,6 +379,66 @@ def qc_omega_vs_published(n: int = 3000) -> dict:
             "max_abs": float(np.max(np.abs(d)))}
 
 
+def _save_npy_atomic(arr, path: pathlib.Path):
+    """Write `arr` to `path` as .npy without ever exposing a partial file: np.save() to a
+    temp file in the SAME directory (so os.replace() is an atomic rename, not a cross-device
+    copy), then replace. A reader (load_shift_grid) can run concurrently with a bake and will
+    only ever see the old file or the new one, never a half-written one."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, suffix=".npy.tmp", delete=False) as tmp:
+        tmp_path = pathlib.Path(tmp.name)
+        # np.save() silently APPENDS ".npy" to a bare path/str that doesn't already end in
+        # ".npy" — passing tmp_path (suffix ".npy.tmp") would actually write to
+        # "<tmp_path>.npy" and leave tmp_path itself empty, so os.replace() below would
+        # rename an empty file into place. Writing through the open file handle instead
+        # sidesteps that rewrite entirely.
+        np.save(tmp, arr)
+    os.replace(tmp_path, path)
+
+
+def load_shift_grid():
+    """Serve the horizon-shift grid from BAKE_DIR/horizon_shift.npy — the ONLY place this
+    value is computed is bake_all() (via horizon_shift_grid()), which is not on any request
+    path. This function never calls horizon_shift_grid()/horizon_recon_grid()/omega_grid();
+    until the first bake writes SHIFT_NPY it returns None (horizon-shift answers None, not an
+    error).
+
+    Cached in-process; re-stats the file at most once every 60 s (time.monotonic-gated) so a
+    fresh bake is picked up without an API restart, without stat()-ing the file on every one
+    of the ~64,800 hex-grid lookups a single request can make.
+    """
+    global _SHIFT_MISSING_WARNED
+    now = time.monotonic()
+    checked_at = _SHIFT_DISK_CACHE["checked_at"]
+    if checked_at is not None and (now - checked_at) < _SHIFT_RESTAT_INTERVAL_S:
+        return _SHIFT_DISK_CACHE["arr"]
+    _SHIFT_DISK_CACHE["checked_at"] = now
+    try:
+        mtime = SHIFT_NPY.stat().st_mtime
+    except OSError:
+        _SHIFT_DISK_CACHE["arr"] = None
+        _SHIFT_DISK_CACHE["mtime"] = None
+        if not _SHIFT_MISSING_WARNED:
+            log.warning("acidification: %s not baked yet — horizon-shift will answer None", SHIFT_NPY)
+            _SHIFT_MISSING_WARNED = True
+        return None
+    if _SHIFT_DISK_CACHE["arr"] is not None and _SHIFT_DISK_CACHE["mtime"] == mtime:
+        return _SHIFT_DISK_CACHE["arr"]
+    arr = np.load(SHIFT_NPY, mmap_mode="r")
+    base = _load_grid("aragonite")
+    expected = (len(base.lats), len(base.lons)) if base is not None else None
+    if expected is None or arr.shape != expected:
+        log.warning("acidification: %s shape %s != grid shape %s — ignoring",
+                    SHIFT_NPY, getattr(arr, "shape", None), expected)
+        _SHIFT_DISK_CACHE["arr"] = None
+        _SHIFT_DISK_CACHE["mtime"] = None
+        return None
+    _SHIFT_DISK_CACHE["arr"] = arr
+    _SHIFT_DISK_CACHE["mtime"] = mtime
+    _SHIFT_MISSING_WARNED = False
+    return arr
+
+
 def sample(var, lat, lon, depth):
     if var == "horizon_shift":
         var = "horizon-shift"
@@ -364,7 +446,7 @@ def sample(var, lat, lon, depth):
         g = _load_grid("aragonite")
         if g is None:
             return None
-        sg = horizon_shift_grid()
+        sg = load_shift_grid()
         if sg is None:
             return None
         yi = glodap_carbon._nearest_idx(g.lats, lat)
@@ -436,6 +518,9 @@ def bake_all() -> int:
         return 0
     _GRID_CACHE.clear(); _HORIZON_CACHE.clear()
     _OMEGA_CACHE.clear(); _HSHIFT_CACHE.clear()
+    _SHIFT_DISK_CACHE["arr"] = None
+    _SHIFT_DISK_CACHE["mtime"] = None
+    _SHIFT_DISK_CACHE["checked_at"] = None
     n = 0
     for var in ("aragonite", "calcite"):
         g = _load_grid(var)
@@ -455,4 +540,8 @@ def bake_all() -> int:
     if sg is not None:
         rgba = encode_shift_to_rgba(np.flipud(sg), 0.0, 400.0)
         _save_png(rgba, BAKE_DIR / "horizon_shift.png"); n += 1
+        # sg is NOT flipped here — load_shift_grid() indexes with the same lat/lon axes as
+        # every other sampler (glodap_carbon._nearest_idx over g.lats/g.lons), unlike the PNG
+        # above which is flipud'd for north-up raster display only.
+        _save_npy_atomic(sg.astype("float32"), SHIFT_NPY)
     return n

@@ -195,6 +195,26 @@ export const LAYER_TOOLTIPS_META = {
     sourceUrl: "https://doi.org/10.1594/PANGAEA.972999",
     pairsWith: ["hydrothermal-vents", "chess", "methane-seeps"],
   },
+  "coastdom": {
+    source: "CoastDOM v1 — PANGAEA (CC-BY-4.0)",
+    sourceUrl: "https://doi.org/10.1594/PANGAEA.964012",
+    pairsWith: ["ocean-carbon", "arctic-rivers", "wod-oxygen"],
+  },
+  "greenland-primary-production": {
+    source: "Greenland Sea primary production 2021–2022 — PANGAEA (CC-BY-4.0)",
+    sourceUrl: "https://doi.org/10.1594/PANGAEA.965985",
+    pairsWith: ["sios-svalbard", "ocean-co2-surface", "woa-climatology"],
+  },
+  "greenland-sea-poc-aoc2025": {
+    source: "AOC2025 POC — Institute of Oceanology Polish Academy of Sciences (CC-BY 4.0)",
+    sourceUrl: "https://doi.org/10.48457/IOPAN.2026.571",
+    pairsWith: ["greenland-primary-production", "coastdom", "woa-climatology"],
+  },
+  "svalbard-fjords-primary-production": {
+    source: "In situ Primary Production, Kongsfjorden & Hornsund — Institute of Oceanology Polish Academy of Sciences. © IO PAN, used with permission; the source publishes no open licence.",
+    sourceUrl: "https://doi.org/10.48457/iopan-2024-198",
+    pairsWith: ["greenland-primary-production", "sios-svalbard", "coastdom"],
+  },
   "ports": {
     source: "EMODnet Human Activities — Port locations (EC DG MARE, CC BY 4.0)",
     sourceUrl: "https://emodnet.ec.europa.eu/en/human-activities",

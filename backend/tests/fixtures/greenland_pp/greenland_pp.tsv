@@ -1,0 +1,51 @@
+/* DATA DESCRIPTION:
+Citation:	Cherkasheva, Alexandra; Manurov, Rustam; Kowalczuk, Piotr (2025): Greenland Sea primary production for 2021-2022 from oxygen evolution [dataset]. PANGAEA, https://doi.org/10.1594/PANGAEA.965985
+Abstract:	Gross Primary Production (GPP) measurements from oxygen evaluation for four stations in August 2021 and eight stations in August 2022 are presented in this dataset. The samples were collected from surface, 15 m and 25 m in case of 2021 cruise and surface, 40 m and 60 m in case of 2022 cruise. GPP estimation from optode oxygen measurements was derived with the method adapted from Campbell et al (2016), and also described in section 6 of IOCCG Protocol Series (2022). Determination of the gross primary production by oxygen modification was carried out with an Optical oxygen sensor, Fixbox4, PreSens HMbH, which noninvasively utilizes optical oxygen sensor spots installed into the 250 ml white glass bottles. Oxygen respiration was determined in foil-wrapped bottles of the same volume with the same optical sensor. These samples were collected in the Greenland Sea during RV "Kronprinz Haakon" 2021 Fram Strait cruise and RV "Maria S Merian" 2022 Greenland Fjords cruise. The data was collected to validate the satellite primary production model that the authors are developing for the Greenland Sea. We measured oxygen concentration [mg/l] with Optical oxygen sensor, Fixbox4, PreSens HMbH at times T=0, 6, 12, 18, 24, 30 and 36 h. Each depth has one light and one dark bottle, with three replicates, and within each of these 6 readings the measurements were repeated 10 times.
+Keyword(s):	Greenland Sea; oxygen evolution; Primary production
+Supplement to:	Cherkasheva, Aleksandra; Manurov, Rustam; Kowalczuk, Piotr; Loginova, Alexandra N; Zabłocka, Monika; Bracher, Astrid (2025): Adaptation of global primary production model to the Greenland Sea conditions: parameterization and monitoring for 1998-2022. Frontiers in Marine Science, 11, 1491180, https://doi.org/10.3389/fmars.2024.1491180
+References:	Campbell, Karley; Mundy, Christopher John; Landy, J C; Delaforge, A; Michel, C; Rysgaard, Søren (2016): Community dynamics of bottom-ice algae in Dease Strait of the Canadian Arctic. Progress in Oceanography, 149, 27-39, https://doi.org/10.1016/j.pocean.2016.10.005
+	IOCCG (2015): Ocean Colour Remote Sensing in Polar Seas. Babin, M., Arrigo, K., Bélanger, S. and Forget, M-H. (eds.), International Ocean Colour Coordinating Group, Dartmouth, Canada, 16, https://www.ioccg.org/reports/IOCCG_Report_16_2015.pdf
+Funding:	EEA and Norway Grants (URI: https://eeagrants.org/), grant/award no. 2020/37/K/ST10/03254: Monitoring and parameterization of phytoplankton dynamics in the European Sector of the Arctic Ocean (MOPAR) (URI: https://www.iopan.gda.pl/projects/MOPAR/)
+	European Research Executive Agency (URI: https://rea.ec.europa.eu), grant/award no. 101136748: BioEcoOcean
+	Horizon 2020 of the European Commission (H2020) (URI: https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-2020_en), grant/award no. 730965: Arctic Research Icebreaker Consortium: A strategy for meeting the needs for marine-based research in the Arctic (ARICE) (URI: doi:10.3030/730965)
+	Horizon 2020 of the European Commission (H2020) (URI: https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-2020_en), grant/award no. 869383: Arctic biodiversity change and its consequences: Assessing, monitoring and predicting the effects of ecosystem tipping cascades on marine ecosystem services and dependent human systems (ECOTIP) (URI: https://doi.org/10.3030/869383)
+	National Science Centre Poland (NCN) (URI: https://www.ncn.gov.pl/en), grant/award no. 2023/51/B/ST10/01344: Narodowe Centrum Nauki
+Coverage:	MEDIAN LATITUDE: 77.501333 * MEDIAN LONGITUDE: -9.111417 * SOUTH-BOUND LATITUDE: 72.433000 * WEST-BOUND LONGITUDE: -24.250000 * NORTH-BOUND LATITUDE: 79.305000 * EAST-BOUND LONGITUDE: 6.000000
+	DATE/TIME START: 2021-08-02T00:00:00 * DATE/TIME END: 2022-08-22T00:00:00
+Event(s):	ARF_3 (Ardencaple Fjord 3) * LATITUDE: 75.170000 * LONGITUDE: -20.290000 * DATE/TIME: 2022-08-15T00:00:00
+	ARS_1 (Ardencaple Shelf 1) * LATITUDE: 74.706000 * LONGITUDE: -17.437000 * DATE/TIME: 2022-08-12T00:00:00
+	DB1 (Dove Bay 1) * LATITUDE: 76.594000 * LONGITUDE: -19.631000 * DATE/TIME: 2022-08-17T00:00:00
+	FS21_00 * LATITUDE: 78.833000 * LONGITUDE: 0.000000 * DATE/TIME: 2021-08-17T00:00:00
+	FS21_01W * LATITUDE: 78.833000 * LONGITUDE: -1.000000 * DATE/TIME: 2021-08-03T00:00:00
+	FS21_04E * LATITUDE: 78.832000 * LONGITUDE: 4.009000 * DATE/TIME: 2021-08-18T00:00:00
+	FS21_04W * LATITUDE: 78.818000 * LONGITUDE: -3.979000 * DATE/TIME: 2021-08-04T00:00:00
+	FS21_05W * LATITUDE: 78.823000 * LONGITUDE: -5.080000 * DATE/TIME: 2021-08-06T00:00:00
+	FS21_06E * LATITUDE: 78.833000 * LONGITUDE: 6.000000 * DATE/TIME: 2021-08-02T00:00:00
+	FS21_10W * LATITUDE: 78.836000 * LONGITUDE: -10.133000 * DATE/TIME: 2021-08-07T00:00:00
+	FS21_1745W * LATITUDE: 79.305000 * LONGITUDE: -17.546000 * DATE/TIME: 2021-08-10T00:00:00
+	KO2 (Kong Oskar Fjord 2) * LATITUDE: 72.433000 * LONGITUDE: -24.250000 * DATE/TIME: 2022-08-22T00:00:00
+Comment:	Further fundings: 
+	NoTAC-ARICE project was funded by the European Union H2020 as part of the EU Project ARICE grant agreement n° 730965.
+Parameter(s):	Event label (Event) * PI: Cherkasheva, Alexandra (https://orcid.org/0000-0003-0717-361X)
+	Optional event label (Event 2) * PI: Cherkasheva, Alexandra (https://orcid.org/0000-0003-0717-361X)
+	Latitude of event (Latitude) * PI: Cherkasheva, Alexandra (https://orcid.org/0000-0003-0717-361X)
+	Longitude of event (Longitude) * PI: Cherkasheva, Alexandra (https://orcid.org/0000-0003-0717-361X)
+	Date/Time of event (Date/Time) * PI: Cherkasheva, Alexandra (https://orcid.org/0000-0003-0717-361X)
+	Gross primary production of carbon [mg/m**2/day] (GPP C) * PI: Cherkasheva, Alexandra (https://orcid.org/0000-0003-0717-361X) * METHOD/DEVICE: Fiber optic oxygen meter, Fibox 4, Presens, Germany
+License:	Creative Commons Attribution 4.0 International (CC-BY-4.0) (URI: https://creativecommons.org/licenses/by/4.0/)
+Status:	Curation Level: Enhanced curation (URI: https://wiki.pangaea.de/wiki/Curation_levels)
+Size:	12 data points
+*/
+Event	Event 2	Latitude	Longitude	Date/Time	GPP C [mg/m**2/day]
+FS21_06E		78.8330	6.0000	2021-08-02	2234.38
+FS21_01W		78.8330	-1.0000	2021-08-03	959.38
+FS21_04W		78.8180	-3.9790	2021-08-04	2710.94
+FS21_05W		78.8230	-5.0800	2021-08-06	1306.25
+FS21_10W		78.8360	-10.1330	2021-08-07	335.00
+FS21_1745W		79.3050	-17.5460	2021-08-10	392.81
+FS21_00		78.8330	0.0000	2021-08-17	691.25
+FS21_04E		78.8320	4.0090	2021-08-18	765.63
+ARS_1	Ardencaple Shelf 1	74.7060	-17.4370	2022-08-12	423.13
+ARF_3	Ardencaple Fjord 3	75.1700	-20.2900	2022-08-15	414.34
+DB1	Dove Bay 1	76.5940	-19.6310	2022-08-17	1710.50
+KO2	Kong Oskar Fjord 2	72.4330	-24.2500	2022-08-22	665.35

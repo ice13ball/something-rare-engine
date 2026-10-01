@@ -86,6 +86,18 @@ export const ID_CHAIN = [
   // so it must never enter this chain. Last in the list: the chain is
   // first-match-wins, and a late, uniquely-named key cannot shadow anything.
   "source_row",
+  // Greenland Sea GPP keys on the source's Event label ("FS21_06E"), unique per
+  // station. Last, for the same first-match-wins reason as source_row.
+  "event",
+  // Svalbard Fjords PP keys on position_id
+  // ("K:K2:78.97:11.74") — the SAME station name was sampled at more than one
+  // position across years, so it is checked BEFORE "station" below (that
+  // chain entry stays first-match-wins for every layer with a unique station
+  // name; this one just never reaches it).
+  "position_id",
+  // AOC2025 POC keys on the source's Station label
+  // ("AOC2025-2"), unique per station. Last, same first-match-wins reason.
+  "station",
 ] as const;
 
 export const OPENABLE = {
@@ -186,6 +198,41 @@ export const OPENABLE = {
     // version 5.0 would be a different DOI and a different ingest.
     idStability: "stable",
     dataKey: "marhys",
+  },
+  coastdom: {
+    source: "client", idProps: ID_CHAIN,
+    routingKeys: ["coastdom"], routingKey: () => "coastdom",
+    zoom: 8,
+    // site_id is "<lat>,<lon>" of the source's own coordinates. A new PANGAEA
+    // version may move a position, so stability across versions is not established.
+    idStability: "nieustalone",
+    dataKey: "coastdom",
+  },
+  "greenland-primary-production": {
+    source: "client", idProps: ID_CHAIN,
+    routingKeys: ["greenland-primary-production"], routingKey: () => "greenland-primary-production",
+    zoom: 7,
+    idStability: "nieustalone",
+    dataKey: "greenlandPp",
+  },
+  "greenland-sea-poc-aoc2025": {
+    source: "client", idProps: ID_CHAIN,
+    routingKeys: ["greenland-sea-poc-aoc2025"], routingKey: () => "greenland-sea-poc-aoc2025",
+    zoom: 7,
+    // station keys on the source's own Station label ("AOC2025-2"); stable
+    // across a re-sync only if IO PAN never renames a station, which is not
+    // established either way.
+    idStability: "nieustalone",
+    dataKey: "aocPoc",
+  },
+  "svalbard-fjords-primary-production": {
+    source: "client", idProps: ID_CHAIN,
+    routingKeys: ["svalbard-fjords-primary-production"], routingKey: () => "svalbard-fjords-primary-production",
+    zoom: 7,
+    // position_id keys on region + station + the source's own raw lat/lon
+    // strings; stable across a re-sync unless IO PAN changes those fields.
+    idStability: "nieustalone",
+    dataKey: "svalbardFjordsPp",
   },
   "hydrophone-stations": {
     source: "client", idProps: ID_CHAIN,

@@ -97,7 +97,7 @@
     },
     "oceansitesMoorings": {
       "label": "OceanSITES-Verankerungen",
-      "source": "OceanOPS REST API (oceanops.org, CC-BY) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
+      "source": "OceanOPS-API (ocean-ops.org; © OceanOPS, nichtkommerzielle Nutzung mit Quellenangabe) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
       "updateFreq": "Stationspositionen wöchentlich von OceanOPS synchronisiert; Beobachtungen täglich aktualisiert, und nur für Stationen, die OceanOPS derzeit als in Betrieb führt",
       "description": "Feste Tiefsee-Verankerungen des internationalen OceanSITES-Netzes. Sie messen Temperatur, Salzgehalt, Strömungen und Biogeochemie über viele Jahre — das Rückgrat der Tiefsee-Klimaüberwachung. Die Karte zeigt das gesamte OceanOPS-Register mit rund 1.070 Stationen, von denen nur etwa 60 derzeit in Betrieb sind; die übrigen sind geschlossen, inaktiv oder lediglich registriert und bleiben erhalten, weil eine stillgelegte Verankerung weiterhin der Ort ist, an dem eine lange Referenzreihe gemessen wurde. Messwerte werden ausschließlich für Stationen in Betrieb abgerufen, daher tragen die meisten Ringe Position und Metadaten, aber keine Messung. Verankerungen im Umkreis von 500 km einer Bergbaukonzession erscheinen im Claim-Popup.",
       "reading": "Cyanfarbener Ring = eine Verankerung im OceanSITES/OceanOPS-Register. Klicken für Stationskennung, Netzwerk, Auslegedatum und, sofern ein Datenstrom existiert, zwischengespeicherte Messwerte samt der Quelle, die sie geliefert hat — NDBC, PMEL ERDDAP oder das OceanSITES GDAC. Ein Ring ohne Messwerte ist kein Fehler: Wir fragen nur Verankerungen in Betrieb ab, und in der Praxis stammen die Messwerte von PMEL und vom GDAC, nicht von NDBC. Die Nähe zu Bergbau-Claims bedeutet, dass langjährige wissenschaftliche Referenzreihen durch Sedimentfahnen oder seismischen Lärm gestört werden könnten."
@@ -744,6 +744,20 @@
       "reading": "Punkte = einzelne Proben, Farbe = Probentyp (Orange = Quellflüssigkeit, Rot = Endglied, Blau = Hintergrund-Meerwasser); auf einen Punkt klicken für die vollständige Zusammensetzung, Entnahme-Metadaten und die dünn besetzten selteneren Parameter; zur Dichteansicht wechseln, um Probenahme-Schwerpunkte zu sehen. ⚠️ Ein Magnesiumwert von 0 ist ein echter Wert, keine Lücke — eine Endglied-Zusammensetzung ist per Definition auf Magnesium null extrapoliert.",
       "limitations": "883 der 6.788 Proben können nicht auf der Karte platziert werden und fehlen dort: 844 haben keine verwertbare Koordinate, und 39 Proben aus Guaymas Basin tragen einen Breitengrad von 111.4°, was kein Breitengrad sein kann — die Quelle hat ihre beiden Achsen vertauscht und das Minuszeichen des Längengrads verloren. Diese Zeilen sind mit den eigenen Werten der Quelle und ohne Geometrie gespeichert; nichts wird korrigiert. Eine weitere Probe ist falsch platziert, wird aber trotzdem angezeigt: MARHYS setzt das Saldanha Hydrothermal Field auf 36.567 / +33.6, was GEBCO 2020 417 m über dem Meeresspiegel in der Türkei verortet, während InterRidge 36.567 / −33.433 angibt. Es ist die einzige von 811 MARHYS-Positionen, die auf trockenem Land landet. Das Entnahmedatum ist Freitext in acht verschiedenen Formaten (nur Jahr, Monat und Jahr, Zeitspannen, Listen) und wird genau so angezeigt, wie geschrieben, statt als Datum interpretiert zu werden. Die Abdeckung folgt der veröffentlichten Literatur und ist daher an lange untersuchten Feldern dicht (Ostpazifischer Rücken, Mittelatlantischer Rücken) und andernorts dünn — das Fehlen einer Probe bedeutet nicht das Fehlen einer Quelle. Der Datensatz ist bei Version 4.0 hinter seiner DOI eingefroren und wird nicht aktualisiert.",
       "sources": "MARHYS Database 4.0 — Diehl, Alexander; Bach, Wolfgang (2024), PANGAEA, doi:10.1594/PANGAEA.972999, CC-BY-4.0 (download.pangaea.de/dataset/972999). Die Nutzungsbedingungen des Datensatzes verlangen, zusätzlich die Basispublikation zu zitieren: Diehl, A. & Bach, W. (2020), MARHYS (MARine HYdrothermal Solutions) Database: A Global Compilation of Marine Hydrothermal Vent Fluid, End-Member, and Seawater Compositions, Geochemistry, Geophysics, Geosystems, doi:10.1029/2020GC009385. Zusammengestellt am MARUM, University of Bremen."
+    },
+    "coastdom": {
+      "label": "Gelöste organische Substanz in Küstengewässern (CoastDOM v1)",
+      "description": "Gemessener gelöster organischer Kohlenstoff, Stickstoff und Phosphor (DOC, DON, DOP), wo geliefert auch partikulärer Kohlenstoff, Stickstoff und Phosphor, gelöster anorganischer Kohlenstoff, Alkalinität, Nährstoffe, Chlorophyll a, Temperatur und Salzgehalt — eine globale Kompilation von Küstenwasserproben, 1978–2022. Jeder Wert erscheint mit der Einheit der Quelle.",
+      "reading": "Ein Marker pro beprobter Position. Farbe = Zahl der Proben dort (1 · 2–9 · 10–99 · ≥100), nie ein Messwert — keine Farbe suggeriert einen Mittelwert. Ein Klick zeigt alle Proben dieser Position nach Datum und Tiefe, mit Qualitätsflag, Methode und Referenzen.",
+      "limitations": "Eine Kompilation vieler Programme und Methoden: Werte nur zusammen mit Methode und Qualitätsflag (WOCE-Skala 1–9) vergleichen. Quellzeilen ohne Koordinaten werden im Versionshinweis gezählt und nicht gezeichnet. Keine Interpolation: eine leere Fläche bedeutet keine Probe in dieser Datenbank, keinen niedrigen Wert.",
+      "sources": "CoastDOM v1, PANGAEA, doi:10.1594/PANGAEA.964012 (CC-BY-4.0). Zugehöriges Datenpapier: ESSD 16, 1107 (2024), doi:10.5194/essd-16-1107-2024. Das vollständige Datensatz-Zitat steht in jedem Probenpanel genau so, wie PANGAEA es veröffentlicht."
+    },
+    "greenland-primary-production": {
+      "label": "Primärproduktion der Grönlandsee (2021–2022)",
+      "description": "Bruttoprimärproduktion von Kohlenstoff (GPP C) aus der Sauerstoffentwicklung an 12 Stationen der Grönlandsee: vier im August 2021 und acht im August 2022.",
+      "reading": "Die Markergröße folgt GPP, einer flächenbezogenen Rate in mg C pro Quadratmeter und Tag ('GPP C [mg/m**2/day]' in der Quelle). Nicht vergleichbar mit Werten pro Liter anderer Ebenen.",
+      "limitations": "Zwölf Stationen mit je einem Wert aus zwei Sommerfahrten. Kein Tiefenprofil und kein Qualitätsflag veröffentlicht. Keine saisonale oder jährliche Schätzung.",
+      "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Zugehöriger Artikel: Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
     }
   },
   "header": {
@@ -1023,7 +1037,7 @@
     "unesco_title": "UNESCO-Meereserbstätten",
     "unesco": "Stättengrenzen aus dem UNESCO-Welterbe-Meeresprogramm-Layer auf MarineRegions WFS.",
     "oceansites_title": "OceanSITES-Verankerungen",
-    "oceansites": "Die Stationsmetadaten stammen von OceanOPS — suchen Sie die im Popup gezeigte Referenzkennung auf oceanops.org. Einen Messwert prüfen Sie bei der Quelle, die das Popup dafür nennt: NDBC unter ndbc.noaa.gov/station_page.php?station=REF, PMEL unter data.pmel.noaa.gov/pmel/erddap oder das OceanSITES GDAC unter data-oceansites.ifremer.fr. Eine Station ohne Messwert lässt sich an keiner dieser Stellen gegenprüfen — sie steht im Register, wird aber nicht abgefragt, und das ist etwas anderes als ein fehlgeschlagener Datenstrom.",
+    "oceansites": "Die Stationsmetadaten stammen von OceanOPS — suchen Sie die im Popup gezeigte Referenzkennung auf ocean-ops.org. Einen Messwert prüfen Sie bei der Quelle, die das Popup dafür nennt: NDBC unter ndbc.noaa.gov/station_page.php?station=REF, PMEL unter data.pmel.noaa.gov/pmel/erddap oder das OceanSITES GDAC unter data-oceansites.ifremer.fr. Eine Station ohne Messwert lässt sich an keiner dieser Stellen gegenprüfen — sie steht im Register, wird aber nicht abgefragt, und das ist etwas anderes als ein fehlgeschlagener Datenstrom.",
     "currents_title": "Meeresströmungen",
     "currents": "Überprüfen Sie Strömungsgeschwindigkeit und -richtung im Copernicus Marine Viewer (Produkt GLOBAL_ANALYSISFORECAST_PHY_001_024, Datensatz cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, Variablen uo/vo). Die Quell-netCDF-Dateien können über die Copernicus Marine Toolbox heruntergeladen werden:",
     "onc_title": "ONC-Observatorien",
@@ -1115,7 +1129,9 @@
       "sioBenthic": "SIO Benthische Wirbellose Sammlung",
       "wod": "Weltmeer-Datenbank (WOD)",
       "seabedSubstrate": "Meeresbodensubstrat (Dutkiewicz 2015)",
-      "arcticSedimentCarbon": "Arktischer Sedimentkohlenstoff: Stationswerte im Bolin-Centre-CASCADE-Repositorium (doi.org/10.17043/cascade-2) anhand des Stationsnamens überprüfen."
+      "arcticSedimentCarbon": "Arktischer Sedimentkohlenstoff: Stationswerte im Bolin-Centre-CASCADE-Repositorium (doi.org/10.17043/cascade-2) anhand des Stationsnamens überprüfen.",
+      "coastdom": "CoastDOM: die Quelltabelle unter doi.org/10.1594/PANGAEA.964012 herunterladen und eine Probe über Ort, Datum und Tiefe aus dem Klickpanel finden; Werte werden unverändert mit den Einheiten der Quelle ausgeliefert.",
+      "greenlandPrimaryProduction": "Primärproduktion der Grönlandsee: eine Station über ihre Event-Bezeichnung unter doi.org/10.1594/PANGAEA.965985 vergleichen."
     }
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",

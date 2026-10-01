@@ -342,6 +342,38 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     // see rules/layers/nc-licence-lineage.md before any paid tier.
     citation: "Dutkiewicz, A. et al. 2015, Geology, doi:10.1130/G36883.1 — CC-BY-NC 4.0",
   },
+  {
+    id: "coastdom",
+    label: "Coastal DOM (CoastDOM v1)",
+    kind: "vector",
+    geomKind: "point",
+    family: "Arctic & carbon",
+    source: "CoastDOM v1 via PANGAEA",
+    sourceUrl: "https://doi.org/10.1594/PANGAEA.964012",
+    citation: "CC-BY 4.0",
+  },
+  {
+    id: "greenland-primary-production",
+    label: "Greenland Sea Primary Production",
+    kind: "vector",
+    geomKind: "point",
+    family: "Arctic & carbon",
+    source: "PANGAEA",
+    sourceUrl: "https://doi.org/10.1594/PANGAEA.965985",
+    citation: "CC-BY 4.0",
+  },
+  // ⛔ The IO PAN Svalbard fjords primary-production layer is deliberately NOT
+  // exportable: no open licence, display by permission only, bulk export = redistribution.
+  {
+    id: "greenland-sea-poc-aoc2025",
+    label: "Greenland Sea POC, AOC2025 (preview)",
+    kind: "vector",
+    geomKind: "point",
+    family: "Arctic & carbon",
+    source: "IO PAN, AOC2025 cruise (dev-only preview)",
+    sourceUrl: "https://doi.org/10.48457/IOPAN.2026.571",
+    citation: "CC-BY 4.0",
+  },
   // --- Task 7: Infrastructure — cable composite ---
   {
     id: "submarine-cables",

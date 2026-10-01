@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
 import db
+import openaq_guard
 import sync_log
 from auth import get_api_key
 from domains.land.common import _log_land_sync, _pg_conn_string
@@ -313,12 +314,22 @@ async def _sync_air_quality(force: bool = False) -> int:
     all_locations: list[dict] = []
     page = 1
     headers = {"X-API-Key": OPENAQ_API_KEY}
+    pacer = openaq_guard.process_pacer()  # shared with the readings drip
+    budget = openaq_guard.DailyBudget()
     async with httpx.AsyncClient(timeout=60, headers=headers) as client:
         while True:
-            resp = await client.get(
-                "https://api.openaq.org/v3/locations",
-                params={"limit": 1000, "page": page, "order_by": "id"},
-            )
+            try:
+                resp = await openaq_guard.guarded_get(
+                    client, "https://api.openaq.org/v3/locations",
+                    pacer=pacer, budget=budget,
+                    params={"limit": 1000, "page": page, "order_by": "id"},
+                )
+            except openaq_guard.OpenAQStop as stop:
+                # A truncated station list is not a sync: write nothing, and say
+                # why (log_sync_skipped keeps last_synced_at ageing on purpose).
+                log.warning("air_quality: stopped on page %d: %s", page, stop.reason)
+                await sync_log.log_sync_skipped("air_quality", stop.reason)
+                return 0
             resp.raise_for_status()
             data = resp.json()
             results = data.get("results", [])
@@ -333,7 +344,6 @@ async def _sync_air_quality(force: bool = False) -> int:
                     50, len(all_locations),
                 )
                 break
-            await asyncio.sleep(0.5)
 
     if not all_locations:
         log.warning("air_quality: no locations returned")
@@ -411,41 +421,72 @@ async def _sync_air_quality(force: bool = False) -> int:
 
 
 
-# Wall-clock budget for one _sync_air_quality_readings() run. The sweep is
-# incremental and resumable (stations already covered drop out of the
-# candidate query below), so a run does not need to finish the whole
-# 25,814-station backlog — it only needs to make forward progress and stop
-# before it starves the event loop or a cron overlap. 8 minutes keeps this
-# comfortably inside a 15-minute cron cadence with room for the next run's
-# station-list sync.
-_READINGS_MAX_RUNTIME_S = 8 * 60
-# A hard request ceiling as a second, independent guard — if the API ever
-# started answering instantly (no throttling), the time budget alone could
-# still allow an unbounded number of requests.
-_READINGS_MAX_REQUESTS = 2000
-_MAX_BACKOFF_S = 120
-# Abort the sweep after this many CONSECUTIVE upstream 5xx responses —
-# consecutive, never cumulative. Cumulative would abort a perfectly healthy
-# run: verified against the live API 2026-09-09, ~4% of OpenAQ locations
-# answer /sensors with a 500 that is THEIR fault, not ours (see the
-# ORDER BY readings_attempted_at comment above), and those are scattered
-# across the whole station list, not clustered. At that rate, 20 5xx IN A ROW
-# is astronomically unlikely from scattered breakage but happens immediately
-# during a real upstream outage — e.g. 2026-09-18 06:20 UTC, when every call
-# to /v3/locations/<id>/sensors answered 500 and the sweep never stopped,
-# pegging the single uvicorn process at 100% CPU while it kept hammering a
-# dead endpoint and Googlebot got 503s. 20 catches that outage within
-# seconds instead of grinding through a full 500-station batch.
-_CONSECUTIVE_5XX_ABORT = 20
+# ── Air-quality readings: bulk /v3/parameters/{id}/latest ────────────────────
+# One request returns the latest value of ONE parameter for up to 1,000 sensors,
+# so a full refresh is ~one request per 1,000 sensors instead of one per
+# station (26,078 stations at ~5 req/min was ~160 days). Approach ported from
+# downWindGlobal's `_fetch_measurements` (agents/l6_openaq.py), with two
+# deliberate differences:
+#   * downwind hardcodes parameter ids AND the unit ("µg/m³") for them. We read
+#     both from `GET /v3/parameters` once per run: a `/latest` row carries no
+#     unit, so a guessed one would silently mislabel ppm/ppb readings (the
+#     unit bug fixed 2026-09-10), and one parameter NAME has several ids (one per
+#     unit) — every id of a name must be fetched or its stations are missed.
+#   * the set is the 16 pollutants/meteo values this platform stores in named
+#     columns (downwind: 6 EAQI ones only).
+_READINGS_PAGE_LIMIT = 1000
+_READINGS_MAX_PAGES_PER_PARAM = 200        # runaway-pagination guard
+# Second, independent ceilings next to the pacer and the daily budget.
+_READINGS_MAX_RUNTIME_S = 60 * 60
+_READINGS_MAX_REQUESTS = 400
+# Consecutive upstream failures (5xx / network) before the run gives up.
+# Requests are ~12 s apart, so 3 is ~36 s of hammering a dead endpoint.
+_CONSECUTIVE_5XX_ABORT = 3
+
+# OpenAQ parameter name -> (air_quality_stations column, is_concentration).
+# Concentrations go through _concentration_or_none (OpenAQ ships -9999, -999 ...
+# as fill values); humidity/temperature through _score_or_none (a real -55 C).
+_READINGS_COLUMNS: dict[str, tuple[str, bool]] = {
+    "pm25": ("pm25", True), "so2": ("so2", True), "no2": ("no2", True),
+    "o3": ("o3", True), "co": ("co", True), "pm10": ("pm10", True),
+    "bc": ("bc", True), "no": ("no", True), "nox": ("nox", True),
+    "relativehumidity": ("humidity", False), "temperature": ("temperature", False),
+    "co2": ("co2", True), "pm1": ("pm1", True), "pm4": ("pm4", True),
+    "ch4": ("ch4", True), "ufp": ("ufp", True),
+}
+_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+
+_READINGS_PARAM_UPSERT = """
+    INSERT INTO air_quality_params
+        (location_id, sensor_id, parameter, value, unit, last_updated, datetime_last)
+    VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+    ON CONFLICT (location_id, sensor_id, parameter) DO UPDATE
+    SET value = EXCLUDED.value, unit = EXCLUDED.unit, last_updated = NOW(),
+        datetime_last = EXCLUDED.datetime_last
+"""
 
 
 async def _sync_air_quality_readings() -> int:
-    """
-    Fetch latest readings for air quality stations missing measurement data.
-    Uses /v3/locations/{id}/sensors sequentially, resuming oldest-station-first
-    across runs. Rate limiting is handled by respecting Retry-After / backing
-    off, never by abandoning the sweep — a throttled run simply covers fewer
-    stations and the next run picks up where this one left off.
+    """Refresh station readings from OpenAQ's bulk `/v3/parameters/{id}/latest`.
+
+    Writes the SAME tables/columns the old per-station path wrote:
+    `air_quality_params` (key location + sensor + parameter, OpenAQ's own unit,
+    the reading's OWN datetime in `datetime_last`) and the 16 named columns on
+    `air_quality_stations` (newest sensor wins when several report a name).
+    The per-sensor aggregates a `/sensors` call provided (datetime_first,
+    min/max/sd, counts, coverage) are not in `/latest`, so an upsert leaves
+    them untouched — never overwritten with NULL.
+
+    Match key: `locationsId` -> station, `sensorsId` -> sensor. A row for a
+    location we do not hold is dropped. `readings_attempted_at` is stamped for
+    every station that appeared in a result page (stamped page by page, so a
+    stopped or killed run keeps its progress). There is no queue any more: a
+    run starts from page 1, parameters ordered by least recently refreshed, so
+    a run that stops early does not starve the same parameters every time.
+
+    Every request goes through openaq_guard (pacer, daily budget, 401/403/429
+    stop). Any stop or upstream failure goes to sync_log via log_sync_skipped,
+    never as a completed sweep.
     """
     if not OPENAQ_API_KEY:
         log.warning("air_quality_readings: OPENAQ_API_KEY not set, skipping")
@@ -453,340 +494,180 @@ async def _sync_air_quality_readings() -> int:
         return 0
 
     async with db.pool.acquire() as conn:
-        rows = await conn.fetch(
-            # ⛔ Ordered by LAST ATTEMPT, not by "has no readings yet".
-            # Verified against the live API 2026-09-09: ~4% of OpenAQ locations
-            # answer /v3/locations/{id}/sensors with HTTP 500 — their fault, not
-            # ours, and they never produce a params row. Under the previous
-            # `NOT EXISTS (... params ...) ORDER BY location_id` they therefore
-            # stayed candidates FOREVER and sat at the head of every future run,
-            # so the sweep would grind on the same ~1,000 broken stations and
-            # never reach the rest. Recording the attempt is what lets a station
-            # rotate out of the queue whatever the outcome.
-            "SELECT s.location_id FROM air_quality_stations s "
-            "ORDER BY s.readings_attempted_at ASC NULLS FIRST, s.location_id "
-            "LIMIT 500"
-        )
-        total_remaining_before = await conn.fetchval(
-            "SELECT COUNT(*) FROM air_quality_stations s "
-            "WHERE s.readings_attempted_at IS NULL"
-        )
-
-    if not rows:
-        log.info("air_quality_readings: all stations have readings, skipping")
+        known = {r["location_id"] for r in await conn.fetch(
+            "SELECT location_id FROM air_quality_stations")}
+        last_by_name = {r["parameter"]: r["m"] for r in await conn.fetch(
+            "SELECT parameter, MAX(last_updated) AS m FROM air_quality_params "
+            "WHERE parameter = ANY($1::text[]) GROUP BY parameter",
+            list(_READINGS_COLUMNS))}
+    if not known:
+        log.info("air_quality_readings: no stations, skipping")
         await _log_land_sync("air_quality_readings", 0, 0)
         return 0
 
-    location_ids = [r["location_id"] for r in rows]
-    log.info("air_quality_readings: fetching latest for %d stations (%d total still uncovered)",
-              len(location_ids), total_remaining_before)
-
+    pacer = openaq_guard.process_pacer()  # shared with the station sync
+    budget = openaq_guard.DailyBudget()
     headers = {"X-API-Key": OPENAQ_API_KEY}
-    updated = 0
-    skipped = 0
-    rate_limited_events = 0
-    requests_made = 0
+    base = "https://api.openaq.org/v3"
     started = asyncio.get_event_loop().time()
-    stopped_early_reason: str | None = None
-    # location_id -> HTTP status or exception name. Kept apart from `skipped`
-    # so an upstream outage is never recorded as an absence of measurements.
-    upstream_errors: dict[int, object] = {}
-    attempted: list[int] = []
-    # Consecutive-5xx circuit breaker state — see _CONSECUTIVE_5XX_ABORT.
-    consecutive_5xx = 0
-    last_5xx_status: int | None = None
-    last_5xx_url: str | None = None
-    consecutive_5xx_abort = False
+    requests_made = 0
+    guard_stop: str | None = None
+    abort_reason: str | None = None
+    failed: list[str] = []            # parameter ids we could not read fully
+    touched: set[int] = set()         # stations with a value written
+    consecutive_fail = 0
+    last_fail: object = None
 
-    async def _stamp(lid: int) -> None:
-        # ⛔ Stamp per station, inside the loop, NOT in one batch at the end.
-        # readings_attempted_at is the queue order, and this backend restarts
-        # on every dev push (git poll, 60 s). Observed 2026-09-09: two
-        # consecutive 8-minute sweeps wrote readings for ~600 stations and
-        # then died to a deploy restart before the end-of-run UPDATE, so the
-        # queue never moved — left_before was identical (24,877) on both runs
-        # and the next sweep re-fetched the same stations. One small UPDATE
-        # per station is free next to the 1.2 s pacing sleep it sits beside.
-        async with db.pool.acquire() as conn:
-            await conn.execute(
-                "UPDATE air_quality_stations "
-                "SET readings_attempted_at = NOW(), readings_error = $2 "
-                "WHERE location_id = $1",
-                lid,
-                str(upstream_errors[lid]) if lid in upstream_errors else None,
-            )
+    class _Halt(Exception):
+        pass
+
+    async def _get(client, path, params):
+        """One guarded request. Returns parsed JSON, or None for a failure that
+        only affects this parameter. Raises _Halt when the run must end."""
+        nonlocal requests_made, guard_stop, abort_reason, consecutive_fail, last_fail
+        if asyncio.get_event_loop().time() - started >= _READINGS_MAX_RUNTIME_S:
+            abort_reason = f"wall-clock budget ({_READINGS_MAX_RUNTIME_S}s) reached"
+            raise _Halt
+        if requests_made >= _READINGS_MAX_REQUESTS:
+            abort_reason = f"request ceiling ({_READINGS_MAX_REQUESTS}) reached"
+            raise _Halt
+        try:
+            resp = await openaq_guard.guarded_get(
+                client, f"{base}{path}", pacer=pacer, budget=budget, params=params)
+        except openaq_guard.OpenAQStop as stop:
+            guard_stop = stop.reason
+            raise _Halt
+        except Exception as exc:  # network error: an upstream failure, not "no data"
+            resp, last_fail = None, type(exc).__name__
+        requests_made += 1
+        if resp is not None and resp.status_code == 200:
+            consecutive_fail = 0
+            return resp.json()
+        if resp is not None:
+            last_fail = resp.status_code
+        # ⛔ missing and broken never share a path: a failure is recorded as a
+        # failure (sync_log), never as an empty result.
+        if resp is None or resp.status_code >= 500:
+            consecutive_fail += 1
+            if consecutive_fail >= _CONSECUTIVE_5XX_ABORT:
+                abort_reason = (f"aborted after {consecutive_fail} consecutive upstream "
+                                f"failures from OpenAQ (last: {last_fail}; "
+                                f"{requests_made} calls this run)")
+                raise _Halt
+        return None
 
     async with httpx.AsyncClient(timeout=30, headers=headers) as client:
-        idx = 0
-        for idx, loc_id in enumerate(location_ids):
-            elapsed = asyncio.get_event_loop().time() - started
-            if elapsed >= _READINGS_MAX_RUNTIME_S:
-                stopped_early_reason = f"wall-clock budget ({_READINGS_MAX_RUNTIME_S}s) reached"
-                break
-            if requests_made >= _READINGS_MAX_REQUESTS:
-                stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
-                break
-            # ⛔ AFTER the budget check, never before. `attempted` is what
-            # stamps readings_attempted_at, and a stamp says "we asked OpenAQ
-            # about this station". Appending first meant the one station the
-            # budget stops on was stamped as attempted with readings_error
-            # NULL — indistinguishable from "asked, station reports nothing" —
-            # while no request was ever sent. It then rotated to the BACK of
-            # the queue, so a station skipped this way would not be retried
-            # until the whole 25,824-station sweep came round again.
-            attempted.append(loc_id)
+        try:
+            catalogue = await _get(client, "/parameters", {"limit": _READINGS_PAGE_LIMIT})
+            if catalogue is None:
+                abort_reason = f"OpenAQ /parameters unavailable ({last_fail}); nothing fetched"
+                raise _Halt
+            # name -> [(parameter id, OpenAQ's own unit)]
+            by_name: dict[str, list[tuple[int, str | None]]] = {}
+            for p in catalogue.get("results") or []:
+                if p.get("name") in _READINGS_COLUMNS and p.get("id") is not None:
+                    by_name.setdefault(p["name"], []).append((p["id"], p.get("units")))
+            missing = [n for n in _READINGS_COLUMNS if n not in by_name]
+            if missing:
+                log.warning("air_quality_readings: /parameters lists no id for %s", missing)
 
-            backoff = 2.0
-            attempt = 0
-            data: dict | None = None
-            while True:
-                attempt += 1
-                requests_made += 1
-                url = f"https://api.openaq.org/v3/locations/{loc_id}/sensors"
-                try:
-                    resp = await client.get(url)
-                except Exception as exc:
-                    upstream_errors[loc_id] = type(exc).__name__
-                    skipped += 1
-                    break
-
-                if resp.status_code == 429:
-                    rate_limited_events += 1
-                    retry_after = resp.headers.get("Retry-After")
-                    if retry_after is not None:
-                        try:
-                            wait_s = float(retry_after)
-                        except ValueError:
-                            wait_s = backoff
-                    else:
-                        wait_s = backoff
-                    wait_s = min(wait_s, _MAX_BACKOFF_S)
-                    if attempt >= 6:
-                        # Give up on THIS station only — never on the sweep.
-                        skipped += 1
-                        break
-                    # DEBUG, not INFO: this can fire on every retry attempt
-                    # (up to 6) for every rate-limited station in a 500-station
-                    # batch — thousands of lines during a sustained 429 spell.
-                    # The run-end summary below already reports the total
-                    # rate_limited_events count.
-                    log.debug("air_quality_readings: 429 for station %s, waiting %.0fs (attempt %d)",
-                              loc_id, wait_s, attempt)
-                    await asyncio.sleep(wait_s)
-                    backoff = min(backoff * 2, _MAX_BACKOFF_S)
-                    continue
-
-                if resp.status_code != 200:
-                    # ⛔ missing and broken must not share a code path. A 500 is
-                    # OpenAQ failing, NOT a station without measurements; storing
-                    # it as "no data" would quietly turn their outage into our
-                    # fact. Record the reason so the two stay distinguishable.
-                    upstream_errors[loc_id] = resp.status_code
-                    skipped += 1
-                    if resp.status_code >= 500:
-                        consecutive_5xx += 1
-                        last_5xx_status = resp.status_code
-                        # Safe to log verbatim: OPENAQ_API_KEY travels in the
-                        # X-API-Key HEADER for this endpoint (see `headers`
-                        # above) — this call passes no `params=`, so the URL
-                        # itself never carries the credential. If that ever
-                        # changes, log loc_id instead, never the URL.
-                        last_5xx_url = url
-                    break
-
-                data = resp.json()
-                consecutive_5xx = 0  # a success resets the streak, never a partial one
-                break
-
-            if data is None:
-                await _stamp(loc_id)
-                if consecutive_5xx >= _CONSECUTIVE_5XX_ABORT:
-                    consecutive_5xx_abort = True
-                    break
-                if requests_made >= _READINGS_MAX_REQUESTS:
-                    stopped_early_reason = f"request budget ({_READINGS_MAX_REQUESTS}) reached"
-                    break
-                await asyncio.sleep(1.0)
-                continue
-
-            # Station-level aggregate (16 named columns on air_quality_stations,
-            # unchanged behaviour): last sensor reporting a parameter wins when
-            # several sensors share it. `sensor_rows` below is the honest,
-            # per-sensor record — nothing is collapsed there.
-            values: dict[str, float | None] = {}
-            units: dict[str, str | None] = {}
-            sensor_rows: list[dict] = []
-            for sensor in data.get("results", []):
-                param = sensor.get("parameter") or {}
-                param_name = param.get("name", "")
-                if not param_name:
-                    continue
-                sensor_id = sensor.get("id")
-                unit = param.get("units")
-                units[param_name] = unit
-                latest = sensor.get("latest")
-                summary = sensor.get("summary") or {}
-                coverage = sensor.get("coverage") or {}
-
-                value: float | None = None
-                if latest and latest.get("value") is not None:
-                    value = latest["value"]
-                elif summary.get("avg") is not None:
-                    value = round(summary["avg"], 2)
-                if value is not None:
-                    values[param_name] = value
-
-                sensor_rows.append({
-                    # 0 is the same "unknown/unattributed sensor" sentinel the
-                    # schema migration backfills for pre-fix rows — OpenAQ
-                    # always sends an id in practice, but a response that
-                    # somehow omits it still lands (own row per parameter,
-                    # not silently dropped) rather than being skipped.
-                    "sensor_id": sensor_id if sensor_id is not None else 0,
-                    "parameter": param_name,
-                    "unit": unit,
-                    "value": value,
-                    "datetime_first": _parse_openaq_dt(sensor.get("datetimeFirst")),
-                    "datetime_last": _parse_openaq_dt(sensor.get("datetimeLast")),
-                    "value_min": summary.get("min"),
-                    "value_max": summary.get("max"),
-                    "value_sd": summary.get("sd"),
-                    "expected_count": summary.get("expectedCount"),
-                    "observed_count": summary.get("observedCount"),
-                    "coverage_pct": coverage.get("percentComplete"),
-                })
-
-            # Station-level coverage_pct: prefer PM2.5 sensor, else first available
-            coverage_pct: float | None = None
-            for sensor in data.get("results", []):
-                cov = sensor.get("coverage")
-                if cov and cov.get("percentComplete") is not None:
-                    pname = (sensor.get("parameter") or {}).get("name", "")
-                    if coverage_pct is None or pname == "pm25":
-                        coverage_pct = cov["percentComplete"]
-                        if pname == "pm25":
+            # Least recently refreshed first (NULLS = never = first).
+            names = sorted(by_name, key=lambda n: (last_by_name.get(n) is not None,
+                                                    last_by_name.get(n) or _EPOCH))
+            for name in names:
+                column, is_conc = _READINGS_COLUMNS[name]
+                guard = _concentration_or_none if is_conc else _score_or_none
+                best: dict[int, tuple[datetime, float]] = {}
+                for param_id, unit in by_name[name]:
+                    page = 1
+                    while page <= _READINGS_MAX_PAGES_PER_PARAM:
+                        data = await _get(client, f"/parameters/{param_id}/latest",
+                                          {"limit": _READINGS_PAGE_LIMIT, "page": page})
+                        if data is None:
+                            failed.append(f"{name}#{param_id}")
                             break
-
-            if values:
-                async with db.pool.acquire() as conn:
-                    await conn.execute("""
-                        UPDATE air_quality_stations
-                        SET pm25 = $2,  so2 = $3,  no2 = $4,  o3 = $5,  co = $6,
-                            pm10 = $7,  bc = $8,   no = $9,   nox = $10,
-                            humidity = $11, temperature = $12, co2 = $13,
-                            pm1 = $14,  pm4 = $15, ch4 = $16, ufp = $17,
-                            coverage_pct = $18,
-                            last_updated = NOW()
-                        WHERE location_id = $1
-                    """,
-                        loc_id,
-                        _concentration_or_none(values.get("pm25")),   _concentration_or_none(values.get("so2")),
-                        _concentration_or_none(values.get("no2")),    _concentration_or_none(values.get("o3")),
-                        _concentration_or_none(values.get("co")),
-                        _concentration_or_none(values.get("pm10")),   _concentration_or_none(values.get("bc")),
-                        _concentration_or_none(values.get("no")),     _concentration_or_none(values.get("nox")),
-                        _score_or_none(values.get("relativehumidity")),
-                        _score_or_none(values.get("temperature")),
-                        _concentration_or_none(values.get("co2")),
-                        _concentration_or_none(values.get("pm1")),    _concentration_or_none(values.get("pm4")),
-                        _concentration_or_none(values.get("ch4")),    _concentration_or_none(values.get("ufp")),
-                        coverage_pct,
-                    )
-                    # Store every SENSOR the location reported (44 possible
-                    # parameters, and several sensors can share one parameter
-                    # — reference-grade + low-cost monitoring the same thing
-                    # is the ordinary case, so sensor_id is part of the key,
-                    # not just parameter). Verbatim unit, no conversion, no
-                    # unit ever assumed; a missing unit stores NULL.
-                    for row in sensor_rows:
-                        await conn.execute("""
-                            INSERT INTO air_quality_params
-                                (location_id, sensor_id, parameter, value, unit, last_updated,
-                                 datetime_first, datetime_last, value_min, value_max, value_sd,
-                                 expected_count, observed_count, coverage_pct)
-                            VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12, $13)
-                            ON CONFLICT (location_id, sensor_id, parameter) DO UPDATE
-                            SET value = EXCLUDED.value, unit = EXCLUDED.unit, last_updated = NOW(),
-                                datetime_first = EXCLUDED.datetime_first,
-                                datetime_last = EXCLUDED.datetime_last,
-                                value_min = EXCLUDED.value_min, value_max = EXCLUDED.value_max,
-                                value_sd = EXCLUDED.value_sd,
-                                expected_count = EXCLUDED.expected_count,
-                                observed_count = EXCLUDED.observed_count,
-                                coverage_pct = EXCLUDED.coverage_pct
-                        """,
-                            loc_id, row["sensor_id"], row["parameter"],
-                            _score_or_none(row["value"]), row["unit"],
-                            row["datetime_first"], row["datetime_last"],
-                            row["value_min"], row["value_max"], row["value_sd"],
-                            row["expected_count"], row["observed_count"], row["coverage_pct"],
-                        )
-                    updated += 1
-            else:
-                skipped += 1
-
-            await _stamp(loc_id)
-
-            # Log progress every 50 stations
-            if (idx + 1) % 50 == 0:
-                log.info("air_quality_readings: %d/%d processed, %d updated, %d skipped, %d rate-limit events",
-                         idx + 1, len(location_ids), updated, skipped, rate_limited_events)
-
-            await asyncio.sleep(1.2)  # ~50 req/min baseline pace between stations
+                        results = data.get("results") or []
+                        if not results:
+                            break
+                        param_rows, page_best, seen = [], {}, set()
+                        for r in results:
+                            loc = r.get("locationsId")
+                            if loc not in known:
+                                continue
+                            seen.add(loc)
+                            value = _score_or_none(r.get("value"))
+                            if value is None:
+                                continue
+                            # The reading's OWN time; None stays None. Never NOW().
+                            dt = _parse_openaq_dt(r.get("datetime"))
+                            sensor_id = r.get("sensorsId")
+                            param_rows.append((
+                                loc, sensor_id if sensor_id is not None else 0,
+                                name, value, unit, dt))
+                            gv = guard(value)
+                            if gv is None:
+                                continue
+                            key = dt or _EPOCH
+                            cur = page_best.get(loc) or best.get(loc)
+                            if cur is None or key >= cur[0]:
+                                page_best[loc] = (key, gv)
+                        best.update(page_best)
+                        async with db.pool.acquire() as conn:
+                            if param_rows:
+                                await conn.executemany(_READINGS_PARAM_UPSERT, param_rows)
+                            if page_best:
+                                # `column` comes from the fixed whitelist above.
+                                await conn.executemany(
+                                    f"UPDATE air_quality_stations SET {column} = $2, "
+                                    "last_updated = NOW() WHERE location_id = $1",
+                                    [(loc, v) for loc, (_, v) in page_best.items()])
+                            if seen:
+                                await conn.execute(
+                                    "UPDATE air_quality_stations "
+                                    "SET readings_attempted_at = NOW(), readings_error = NULL "
+                                    "WHERE location_id = ANY($1::int[])", list(seen))
+                        touched.update(seen)
+                        if len(results) < _READINGS_PAGE_LIMIT:
+                            break
+                        found = str((data.get("meta") or {}).get("found") or "0")
+                        if not found.startswith(">"):
+                            digits = "".join(c for c in found if c.isdigit())
+                            if page * _READINGS_PAGE_LIMIT >= int(digits or 0):
+                                break
+                        page += 1
+                    else:
+                        failed.append(f"{name}#{param_id}:page-cap")
+                log.info("air_quality_readings: %s done, %d stations with a value", name, len(best))
+        except _Halt:
+            pass
 
     global _air_quality_cache
     _air_quality_cache = None
+    updated = len(touched)
 
-    if consecutive_5xx_abort:
-        # ⛔ Record through log_sync_skipped, NEVER _log_land_sync/log_sync —
-        # this run did NOT complete a sweep, and log_sync(source, 0, 0) or
-        # equivalent stamps last_synced_at = NOW(), which would read as
-        # freshly synced while the run actually gave up after seconds. One
-        # summary line replaces what used to be one log line per failed
-        # call (the 2026-09-18 06:20 UTC incident: thousands of them, while
-        # the same process was trying to serve Googlebot).
-        reason = (
-            f"aborted after {consecutive_5xx} consecutive HTTP {last_5xx_status} "
-            f"from OpenAQ ({requests_made} calls attempted this run; "
-            f"last call: {last_5xx_url})"
-        )
-        log.warning("air_quality_readings: %s", reason)
+    reason = guard_stop or abort_reason
+    if reason is None and failed:
+        reason = f"incomplete: could not read {', '.join(failed[:10])} ({last_fail})"
+    if reason:
+        # ⛔ log_sync_skipped, never log_sync: this run did not complete a
+        # refresh, and log_sync stamps last_synced_at = NOW().
+        log.warning("air_quality_readings: %s — %d requests, %d stations written",
+                    reason, requests_made, updated)
         await sync_log.log_sync_skipped("air_quality_readings", reason)
         return updated
 
+    # total_records = stations still without ANY reading (no headline value and
+    # no params row) — unchanged meaning; a station OpenAQ has no latest for
+    # stays here, so this is not expected to reach 0.
     async with db.pool.acquire() as conn:
-        total_remaining_after = await conn.fetchval(
+        remaining = await conn.fetchval(
             "SELECT COUNT(*) FROM air_quality_stations s "
             "WHERE s.pm25 IS NULL AND s.no2 IS NULL AND s.o3 IS NULL "
             "  AND NOT EXISTS (SELECT 1 FROM air_quality_params p WHERE p.location_id = s.location_id)"
         )
-
-    # total_records = stations still uncovered after this run. 0 means this
-    # run finished the whole backlog (a complete sweep); >0 means it stopped
-    # early (throttled or budget-bound) and the next run must resume — the
-    # sync log itself carries that distinction, no separate status column.
-    # Every station this run touched was already stamped by _stamp() as its
-    # outcome became known, so a restart mid-sweep keeps the progress made so
-    # far instead of discarding the whole run's queue movement.
-    if upstream_errors:
-        log.warning(
-            "air_quality_readings: %d stations failed UPSTREAM (not empty) — sample: %s",
-            len(upstream_errors),
-            ", ".join(f"{k}:{v}" for k, v in list(upstream_errors.items())[:5]),
-        )
-
-    await _log_land_sync("air_quality_readings", updated, total_remaining_after)
-    if stopped_early_reason:
-        log.warning(
-            "air_quality_readings: INCOMPLETE run — stopped early (%s) after %d/%d stations, "
-            "%d updated, %d skipped, %d rate-limit events, %d requests; %d stations still uncovered",
-            stopped_early_reason, idx + 1, len(location_ids), updated, skipped,
-            rate_limited_events, requests_made, total_remaining_after,
-        )
-    else:
-        log.info("air_quality_readings: done — %d updated, %d skipped, %d rate-limit events out of %d; "
-                  "%d stations still uncovered",
-                  updated, skipped, rate_limited_events, len(location_ids), total_remaining_after)
+    await _log_land_sync("air_quality_readings", updated, remaining)
+    log.info("air_quality_readings: done — %d stations written, %d requests, %d without any reading",
+             updated, requests_made, remaining)
     return updated
 
 

@@ -137,3 +137,21 @@ def test_the_map_endpoint_filters_nothing_but_unpositioned_rows():
             f"unexpected WHERE on /v1/map/oceansites: {where.strip()!r} — only the "
             "NaN-coordinate exclusion is allowed here"
         )
+
+
+# OceanOPS data is "All rights reserved", free for non-commercial use with
+# attribution (ocean-ops.org/api/help) - not CC-BY. `oceanops.org` (no hyphen)
+# is an unrelated US charity; the registry is `ocean-ops.org`.
+_BARE_OCEANOPS_HOST = re.compile(r"(?<![\w-])oceanops\.org", re.I)
+_CC_BY = re.compile(r"CC[ -]?BY", re.I)
+
+
+def test_no_locale_calls_oceanops_open_or_points_at_the_wrong_domain():
+    for loc in _locales():
+        d = json.loads((loc / "legend.json").read_text(encoding="utf-8"))
+        source = d["layers"]["oceansitesMoorings"]["source"]
+        hint = d["verify"]["oceansites"]
+        assert "OceanOPS" in source and "ocean-ops.org" in source, (loc.name, source)
+        assert not _CC_BY.search(source), f"{loc.name}: source claims a CC-BY licence: {source!r}"
+        assert not _BARE_OCEANOPS_HOST.search(source), f"{loc.name}: source names oceanops.org: {source!r}"
+        assert not _BARE_OCEANOPS_HOST.search(hint), f"{loc.name}: hint names oceanops.org: {hint!r}"

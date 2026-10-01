@@ -162,12 +162,14 @@ def test_sample_accepts_underscore_alias_for_horizon_shift(monkeypatch):
     # the underscore variant must be aliased to the hyphenated "horizon-shift" key so it
     # hits the same branch, not the generic _load_grid(var) fallback (which would KeyError:
     # "horizon_shift" is not a key in ACID_VARS).
+    # sample() now reads the baked grid via load_shift_grid() (never horizon_shift_grid()
+    # itself — see test_acidification_shift_from_disk.py), so that's what this test stubs.
     fake = glodap_carbon._Grid(
         np.array([0.0, 10.0]), np.array([0.0, 10.0]),
         np.array([0.0, 100.0]), np.zeros((2, 2, 2), dtype="float32"))
     acid._GRID_CACHE.clear()
     acid._GRID_CACHE["aragonite"] = fake
-    monkeypatch.setattr(acid, "horizon_shift_grid", lambda: np.array([[42.0, np.nan], [np.nan, np.nan]]))
+    monkeypatch.setattr(acid, "load_shift_grid", lambda: np.array([[42.0, np.nan], [np.nan, np.nan]]))
     try:
         assert acid.sample("horizon_shift", 0.0, 0.0, None) == pytest.approx(42.0)
         assert acid.sample("horizon_shift", 0.0, 0.0, None) == acid.sample("horizon-shift", 0.0, 0.0, None)

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useMapStore } from "../../../store/mapStore";
 import { useTranslation } from "react-i18next";
 import { API } from "../shared/tokens";
@@ -12,6 +12,7 @@ export interface UnifiedGroup {
   variables: {
     key: string; label: string; units: string; value: number | null;
     value_label?: string | null; depth_invariant?: boolean;
+    status?: string | null;
   }[];
 }
 export interface UnifiedCarbonData { lat: number; lon: number; depth_m: number; decade: number; groups: UnifiedGroup[]; citations: string[]; }
@@ -22,6 +23,8 @@ export interface NearestObsRow {
   id: string | number;
   distance_km: number;
   summary: string;
+  date: string | null;
+  date_kind: "sampled" | "discovered" | "sampled_range";
   lat: number;
   lon: number;
   deck_layer_id: string;
@@ -63,6 +66,28 @@ export function UnifiedCarbonPanel({ props: p }: { props: Record<string, unknown
 
   const allNull = data.groups.every(g => g.variables.every(v => v.value == null));
 
+  const seafloorVar = data.groups
+    .flatMap(g => g.variables)
+    .find(v => v.key === "seafloor_depth");
+  const seafloorDepth = typeof seafloorVar?.value === "number" && Number.isFinite(seafloorVar.value)
+    ? seafloorVar.value
+    : null;
+  const belowSeafloor = seafloorDepth != null && depth > seafloorDepth;
+
+  const statusText = (status: string | null | undefined): string | null => {
+    if (status === "column_supersaturated") {
+      return t("unifiedCarbon.status.columnSupersaturated", {
+        defaultValue: "deeper than the seafloor — column supersaturated (ΩA > 1)",
+      });
+    }
+    if (status === "no_horizon") {
+      return t("unifiedCarbon.status.noHorizon", {
+        defaultValue: "not defined — no horizon in this column",
+      });
+    }
+    return null;
+  };
+
   return (
     <>
       <Badge label="Marine Carbon (co-located)" color="text-emerald-300 border-emerald-500/40" />
@@ -76,6 +101,18 @@ export function UnifiedCarbonPanel({ props: p }: { props: Record<string, unknown
           CO₂ is always sampled at the surface (latest decade) regardless of the depth shown.
         </p>
       </div>
+
+      {belowSeafloor && (
+        <div className="mb-3 rounded border border-sky-500/30 bg-sky-500/10 px-2 py-1.5">
+          <p className="text-[11px] text-white/75 leading-relaxed">
+            {t("unifiedCarbon.belowSeafloor", {
+              defaultValue: "Selected depth {{depth}} m is below the seafloor here ({{seafloor}} m, GEBCO). Only surface and fixed values apply.",
+              depth,
+              seafloor: seafloorDepth,
+            })}
+          </p>
+        </div>
+      )}
 
       {allNull ? (
         <p className="text-white/65 text-xs">No data here (land or unsampled).</p>
@@ -91,13 +128,21 @@ export function UnifiedCarbonPanel({ props: p }: { props: Record<string, unknown
                 <tbody>
                   {g.variables.map(v => {
                     const hasLabel = typeof v.value_label === "string" && v.value_label.trim().length > 0;
+                    const status = statusText(v.status);
+                    const showBelowSeafloor = !hasLabel && v.value == null && !status
+                      && belowSeafloor && !v.depth_invariant;
+                    let cell: string;
+                    let isNumeric = false;
+                    if (hasLabel) cell = v.value_label as string;
+                    else if (status) cell = status;
+                    else if (v.value != null) { cell = v.value.toFixed(3); isNumeric = true; }
+                    else if (showBelowSeafloor) cell = t("unifiedCarbon.belowSeafloorCell", { defaultValue: "below seafloor" });
+                    else cell = "no data here";
                     return (
                       <tr key={v.key} className="odd:bg-white/[0.025]">
                         <td className="px-2 py-0.5 text-white/85">{v.label}</td>
-                        <td className="px-2 py-0.5 text-right text-emerald-300">
-                          {hasLabel ? v.value_label : (v.value != null ? v.value.toFixed(3) : "no data here")}
-                        </td>
-                        <td className="px-2 py-0.5 text-right text-white/70">{hasLabel ? "" : v.units}</td>
+                        <td className="px-2 py-0.5 text-right text-emerald-300">{cell}</td>
+                        <td className="px-2 py-0.5 text-right text-white/70">{isNumeric ? v.units : ""}</td>
                       </tr>
                     );
                   })}
@@ -144,24 +189,44 @@ export function UnifiedCarbonPanel({ props: p }: { props: Record<string, unknown
             <table className="w-full text-[11px] font-mono">
               <tbody>
                 {nearestObs.map(o => (
-                  <tr key={o.source} className="odd:bg-white/[0.025]">
-                    <td className="px-2 py-0.5">
-                      {flyTo ? (
-                        <button
-                          onClick={() => flyTo(o.lon, o.lat)}
-                          className="text-emerald-300/90 hover:text-emerald-200 underline decoration-dotted text-left"
-                        >
-                          {o.label}
-                        </button>
-                      ) : (
-                        <span className="text-white/85">{o.label}</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-0.5 text-right text-white/90 font-semibold whitespace-nowrap">
-                      {o.distance_km} km
-                    </td>
-                    <td className="px-2 py-0.5 text-white/70">{o.summary}</td>
-                  </tr>
+                  <Fragment key={o.source}>
+                    <tr className="odd:bg-white/[0.025]">
+                      <td className="px-2 py-0.5">
+                        {flyTo ? (
+                          <button
+                            onClick={() => flyTo(o.lon, o.lat)}
+                            className="text-emerald-300/90 hover:text-emerald-200 underline decoration-dotted text-left"
+                          >
+                            {o.label}
+                          </button>
+                        ) : (
+                          <span className="text-white/85">{o.label}</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-0.5 text-right text-white/90 font-semibold whitespace-nowrap">
+                        {o.distance_km} km
+                      </td>
+                      <td className="px-2 py-0.5 text-white/70 whitespace-nowrap">
+                        {o.date_kind === "discovered" && o.date ? (
+                          t("unifiedCarbon.nearestObs.discovered", {
+                            defaultValue: "discovered {{year}}",
+                            year: o.date,
+                          })
+                        ) : o.date ? (
+                          o.date
+                        ) : (
+                          <span className="text-white/40 italic">
+                            {t("unifiedCarbon.nearestObs.noDate", { defaultValue: "no date in source" })}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                    <tr className="odd:bg-white/[0.025]">
+                      <td colSpan={3} className="px-2 pb-1 pt-0 text-[10px] text-white/55 whitespace-normal break-words">
+                        {o.summary}
+                      </td>
+                    </tr>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

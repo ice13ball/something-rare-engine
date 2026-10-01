@@ -87,6 +87,9 @@ SENSORS_LAYERS = (
     "ocean-currents",       # Ocean Currents — modelled, not measured
 )
 
+#: PANGAEA water-column point layers, added 2026-09-25.
+WATER_COLUMN_LAYERS = ("coastdom", "greenland-primary-production")
+
 BY_ID = {c.layer_id: c for c in COVERAGE}
 
 
@@ -128,6 +131,18 @@ def test_every_sensors_layer_is_anchored():
         f"{len(missing)} of {len(SENSORS_LAYERS)} Sensors & Monitoring layers "
         f"carry no temporal anchor: {missing}"
     )
+
+
+def test_every_water_column_layer_is_anchored():
+    missing = [lid for lid in WATER_COLUMN_LAYERS if lid not in BY_ID]
+    assert not missing, f"no temporal anchor: {missing}"
+
+
+def test_water_column_kinds_say_what_the_data_is():
+    """CoastDOM is many programmes' measurements compiled; the GPP set is one
+    group's own station measurements. The kind is what a reader filters on."""
+    assert BY_ID["coastdom"].kind == "compilation"
+    assert BY_ID["greenland-primary-production"].kind == "observations"
 
 
 def test_a_modelled_sensor_layer_is_not_called_an_observation():

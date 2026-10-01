@@ -29,32 +29,20 @@ def test_score_or_none_rejects_a_non_numeric_string():
 
 
 def test_air_quality_update_coerces_every_pollutant():
-    """Every pollutant argument in the readings UPDATE must pass through the
-    concentration guard. OpenAQ ships at least -9999, -999, -1111, -995 and -9
-    as fill values in these fields, and the readings sync has no coerce
-    helper of its own."""
-    import inspect
+    """Every pollutant column written by the readings sync must be routed
+    through the concentration guard (OpenAQ ships -9999, -999, -1111, -995 and
+    -9 as fill values); only humidity/temperature may use the score guard.
+    Behaviour is executed in test_openaq_readings_bulk.py; this pins the
+    routing table so a new pollutant cannot be added unguarded."""
     from backend.domains.land import hazards
 
-    src = inspect.getsource(hazards._sync_air_quality_readings)
-
-    # ⛔ Anchor on the statement that WRITES POLLUTANTS, not on "the first
-    # UPDATE air_quality_stations". The function contains a second one — the
-    # per-station queue stamp — and it is written first. Splitting on the bare
-    # table name pointed this test at the stamp on 2026-09-09 and turned it red
-    # against production code that was entirely correct.
-    updates = [seg for seg in src.split("UPDATE air_quality_stations")[1:]
-               if "SET pm25" in seg.split('"""')[0]]
-    assert len(updates) == 1, (
-        f"expected exactly one pollutant UPDATE, found {len(updates)}. If the "
-        "write was split across statements this test now covers only part of it."
-    )
-    update_call = updates[0]
-    for param in ("pm25", "so2", "no2", "o3", "co", "pm10",
-                  "bc", "no", "nox", "co2", "pm1", "pm4", "ch4", "ufp"):
-        assert f'_concentration_or_none(values.get("{param}"))' in update_call, (
-            f"pollutant {param!r} reaches the UPDATE without the concentration guard"
-        )
+    table = hazards._READINGS_COLUMNS
+    assert {c for c, _ in table.values()} == {
+        "pm25", "so2", "no2", "o3", "co", "pm10", "bc", "no", "nox", "humidity",
+        "temperature", "co2", "pm1", "pm4", "ch4", "ufp"}
+    for name, (column, is_conc) in table.items():
+        assert is_conc == (column not in ("humidity", "temperature")), (
+            f"{name!r} -> {column!r} is routed through the wrong guard")
 
 
 @pytest.mark.parametrize("fill_value", [-9999, -999, -1111, -995, -9, -0.01, -50])

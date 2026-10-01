@@ -97,7 +97,7 @@
     },
     "oceansitesMoorings": {
       "label": "OceanSITES Moorings",
-      "source": "OceanOPS REST API (oceanops.org, CC-BY) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
+      "source": "OceanOPS API (ocean-ops.org; © OceanOPS, non-commercial use with attribution) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
       "updateFreq": "Station positions synced weekly from OceanOPS; observations refreshed daily, and only for stations OceanOPS currently lists as operational",
       "description": "Fixed deep-ocean mooring stations from the international OceanSITES network. Moorings measure temperature, salinity, currents and biogeochemistry over multi-year timescales — the backbone of deep-sea climate monitoring. The map shows the whole OceanOPS register, roughly 1,070 stations, of which only about 60 are currently operational; the rest are closed, inactive or merely registered and are kept because a decommissioned mooring is still where a long baseline was measured. Live readings are fetched for operational stations only, so most rings carry position and metadata but no measurement. Moorings within 500 km of a mining concession appear in the claim popup.",
       "reading": "Cyan ring = a mooring in the OceanSITES/OceanOPS register. Click for station code, network, deployment date and, where a feed exists, cached readings together with the source that supplied them — NDBC, PMEL ERDDAP or the OceanSITES GDAC. A ring with no readings is not a failure: we only poll currently operational moorings, and in practice the readings come from PMEL and the GDAC rather than NDBC. Proximity to mining claims indicates that long-term scientific baselines could be disrupted by sediment plumes or seismic noise."
@@ -744,6 +744,20 @@
       "reading": "points = individual samples, colour = sample type (orange = vent fluid, red = end-member, blue = background seawater); click one for its full composition, collection metadata and the sparse tail of rarer parameters; switch to Density to see where sampling clusters. ⚠️ A magnesium reading of 0 is a real value, not a gap — an end-member composition is defined by extrapolation to zero magnesium.",
       "limitations": "883 of the 6,788 samples cannot be placed on the map and are absent from it: 844 carry no usable coordinate, and 39 Guaymas Basin samples carry a latitude of 111.4°, which no latitude can be — the source transposed its two axes and lost the longitude's minus sign. Those rows are stored with the source's own numbers and no geometry; nothing is repaired. One further sample is misplaced but renders anyway: MARHYS puts the Saldanha Hydrothermal Field at 36.567 / +33.6, which GEBCO 2020 places 417 m above sea level in Turkey, where InterRidge has 36.567 / −33.433. It is the only one of 811 MARHYS positions that lands on dry ground. The collection date is free text in eight different formats (year only, month and year, ranges, lists) and is shown exactly as written rather than parsed into a date. Coverage follows the published literature, so it is dense at long-studied fields (East Pacific Rise, Mid-Atlantic Ridge) and thin elsewhere — absence of a sample is not absence of a vent. The dataset is frozen at version 4.0 behind its DOI and is not updated.",
       "sources": "MARHYS Database 4.0 — Diehl, Alexander; Bach, Wolfgang (2024), PANGAEA, doi:10.1594/PANGAEA.972999, CC-BY-4.0 (download.pangaea.de/dataset/972999). The dataset's own terms require the base publication to be cited alongside it: Diehl, A. & Bach, W. (2020), MARHYS (MARine HYdrothermal Solutions) Database: A Global Compilation of Marine Hydrothermal Vent Fluid, End-Member, and Seawater Compositions, Geochemistry, Geophysics, Geosystems, doi:10.1029/2020GC009385. Compiled at MARUM, University of Bremen."
+    },
+    "coastdom": {
+      "label": "Coastal Dissolved Organic Matter (CoastDOM v1)",
+      "description": "Measured dissolved organic carbon, nitrogen and phosphorus (DOC, DON, DOP), with particulate carbon, nitrogen and phosphorus, dissolved inorganic carbon, alkalinity, nutrients, chlorophyll a, temperature and salinity where contributors supplied them — a global compilation of coastal water samples, 1978–2022. Every value is shown with the source's own unit.",
+      "reading": "One marker per sampled position. Colour = how many samples the source holds there (1 · 2–9 · 10–99 · ≥100), never a measured value, so no colour implies an average. Click a marker for every sample at that position, by date and depth, with its quality flag, method and references.",
+      "limitations": "A compilation of many programmes and methods: compare values only with their method and quality flag (WOCE scale 1–9) in view. Source rows without coordinates are counted in the version note and not drawn. No interpolation: an empty area means no sample in this database, not a low value.",
+      "sources": "CoastDOM v1, PANGAEA, doi:10.1594/PANGAEA.964012 (CC-BY-4.0). Related data paper: ESSD 16, 1107 (2024), doi:10.5194/essd-16-1107-2024. The full dataset citation is shown in each sample panel exactly as PANGAEA publishes it."
+    },
+    "greenland-primary-production": {
+      "label": "Greenland Sea Primary Production (2021–2022)",
+      "description": "Gross primary production of carbon (GPP C) from oxygen evolution at 12 Greenland Sea stations: four in August 2021 and eight in August 2022.",
+      "reading": "Marker size follows GPP, an areal rate in mg C per square metre per day (the source's 'GPP C [mg/m**2/day]'). It is not comparable with the per-litre values of other layers.",
+      "limitations": "Twelve stations, one value each, from two summer cruises. No depth profile and no quality flag are published. Not a seasonal or annual estimate.",
+      "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Related article: Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
     }
   },
   "header": {
@@ -1023,7 +1037,7 @@
     "unesco_title": "UNESCO Marine Heritage",
     "unesco": "Site boundaries sourced from the UNESCO World Heritage Marine Programme layer on MarineRegions WFS. The authoritative list of all World Heritage marine sites is at whc.unesco.org/en/marine-programme/. Site polygons represent the inscribed property boundary as submitted by the nominating state.",
     "oceansites_title": "OceanSITES Moorings",
-    "oceansites": "Station metadata comes from OceanOPS — search the reference code shown in the popup at oceanops.org. For a reading, check the source the popup names for it: NDBC at ndbc.noaa.gov/station_page.php?station=REF, PMEL at data.pmel.noaa.gov/pmel/erddap, or the OceanSITES GDAC at data-oceansites.ifremer.fr. A station showing no reading cannot be cross-checked at any of those — it is in the register but not currently polled, which is a different thing from a feed that failed.",
+    "oceansites": "Station metadata comes from OceanOPS — search the reference code shown in the popup at ocean-ops.org. For a reading, check the source the popup names for it: NDBC at ndbc.noaa.gov/station_page.php?station=REF, PMEL at data.pmel.noaa.gov/pmel/erddap, or the OceanSITES GDAC at data-oceansites.ifremer.fr. A station showing no reading cannot be cross-checked at any of those — it is in the register but not currently polled, which is a different thing from a feed that failed.",
     "currents_title": "Ocean Currents",
     "currents": "Cross-check current speed and direction against the Copernicus Marine viewer (product GLOBAL_ANALYSISFORECAST_PHY_001_024, dataset cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, variables uo/vo). The source netCDF files are available for download via the Copernicus Marine Toolbox:",
     "onc_title": "ONC Observatories",
@@ -1115,7 +1129,9 @@
       "sioBenthic": "SIO Benthic Invertebrate Collection",
       "wod": "World Ocean Database (WOD)",
       "seabedSubstrate": "Seabed Substrate (Dutkiewicz 2015)",
-      "arcticSedimentCarbon": "Arctic Sediment Carbon: cross-check station values at the Bolin Centre CASCADE repository (doi.org/10.17043/cascade-2) using the station name."
+      "arcticSedimentCarbon": "Arctic Sediment Carbon: cross-check station values at the Bolin Centre CASCADE repository (doi.org/10.17043/cascade-2) using the station name.",
+      "coastdom": "CoastDOM: download the source table at doi.org/10.1594/PANGAEA.964012 and find a sample by the location, date and depth shown in the click panel; values are served verbatim with the source's units.",
+      "greenlandPrimaryProduction": "Greenland Sea primary production: compare a station by its event label at doi.org/10.1594/PANGAEA.965985."
     }
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",

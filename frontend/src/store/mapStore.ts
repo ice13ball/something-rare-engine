@@ -7,6 +7,8 @@ import { VENT_STATUS_VALUES } from "../types/layers";
 import type { FeatureCollection } from "geojson";
 import type { DatasetStats } from "../utils/argoAlarms";
 import type { AoiSelection } from "../utils/aoiGeometry";
+import { initialEnabledIds } from "../utils/layerConfig";
+import type { YearRange, YearBounds } from "../utils/coastdomYearFilter";
 
 // Arctic Catchments — variable selector type (display state, not a filter)
 export type ArcticCatchmentVariable = "ocs_mean" | "oc_tot" | "runoff_mean" | "pf_frac" | "t_2m_mean";
@@ -342,6 +344,15 @@ export interface MapStore {
   cascadeDecadeFilters: Set<string>;
   toggleCascadeDecadeFilter: (d: string) => void;
 
+  // CoastDOM year-range filter (real filter, IS reset by resetAllFilters).
+  // null = full range = no filtering (undated samples included). Shared via `f`.
+  coastdomYearRange: YearRange | null;
+  setCoastdomYearRange: (r: YearRange | null) => void;
+  // Min/max year present in the loaded CoastDOM data (derived, NOT a filter; not
+  // reset, not shared). null until loaded, or when the payload has no year_counts.
+  coastdomYearBounds: YearBounds | null;
+  setCoastdomYearBounds: (b: YearBounds | null) => void;
+
   // Ocean currents — display mode (NOT a filter; not reset by resetAllFilters)
   currentsDepth: "surface" | "1000m";
   setCurrentsDepth: (d: "surface" | "1000m") => void;
@@ -466,8 +477,9 @@ export const useMapStore = create<MapStore>((set) => ({
       selectedFeatures: s.selectedFeatures.filter(x => !(x.id === id && x.layer === layer)),
     })),
 
-  activeLayers: new Set(DEFAULT_ACTIVE),
-  enabledLayerIds: null,
+  // Gated too: an environment that hides a default-on layer must not start with it on.
+  activeLayers: _gateActive(initialEnabledIds(), new Set(DEFAULT_ACTIVE)),
+  enabledLayerIds: initialEnabledIds(),
   setEnabledLayerIds: (ids) =>
     set((s) => ({
       enabledLayerIds: ids,
@@ -653,6 +665,10 @@ export const useMapStore = create<MapStore>((set) => ({
   setCascadeDisplayMode: (m) => set({ cascadeDisplayMode: m }),
   cascadeDecadeFilters: new Set<string>(),
   toggleCascadeDecadeFilter: _makeToggle(set, "cascadeDecadeFilters"),
+  coastdomYearRange: null,
+  setCoastdomYearRange: (r) => set({ coastdomYearRange: r }),
+  coastdomYearBounds: null,
+  setCoastdomYearBounds: (b) => set({ coastdomYearBounds: b }),
 
   currentsDepth: "surface",
   setCurrentsDepth: (d) => set({ currentsDepth: d }),
@@ -777,6 +793,7 @@ export const useMapStore = create<MapStore>((set) => ({
     geotracesDecadeFilters: new Set<string>(),
     cascadeDecadeFilters: new Set<string>(),
     mosaicDecadeFilters: new Set<string>(),
+    coastdomYearRange: null,
   }),
 
   layerProgress: new Map(),

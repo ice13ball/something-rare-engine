@@ -22,6 +22,7 @@ export function FeedbackModal({ onClose, initialKind = "suggestion" }: { onClose
   const [contact, setContact] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
   const [state, setState]     = useState<State>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const textareaRef           = useRef<HTMLTextAreaElement>(null);
   const modalOpenedAt         = useRef(Date.now());
 
@@ -51,8 +52,22 @@ export function FeedbackModal({ onClose, initialKind = "suggestion" }: { onClose
           dwell_ms: Date.now() - modalOpenedAt.current,
         }),
       });
-      setState(res.ok ? "done" : "error");
+      if (res.ok) {
+        setErrorMessage(null);
+        setState("done");
+      } else {
+        let detail: string | null = null;
+        try {
+          const body = await res.json();
+          if (typeof body?.detail === "string") detail = body.detail;
+        } catch {
+          // non-JSON body — fall through to generic error
+        }
+        setErrorMessage(detail);
+        setState("error");
+      }
     } catch {
+      setErrorMessage(null);
       setState("error");
     }
   }
@@ -161,7 +176,11 @@ export function FeedbackModal({ onClose, initialKind = "suggestion" }: { onClose
               />
 
               {state === "error" && (
-                <p className="text-red-400/70 text-xs">Something went wrong — please try again.</p>
+                <p className="text-red-400/70 text-xs">
+                  {errorMessage
+                    ? `Couldn't send: ${errorMessage} — please adjust and try again.`
+                    : "Something went wrong — please try again."}
+                </p>
               )}
 
               <button

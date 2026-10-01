@@ -52,6 +52,9 @@ from domains import cables
 from domains import fields
 from domains import geo_context
 from domains import geochem
+from domains import aoc2025_poc, pangaea_water
+from domains import svalbard_fjords_pp
+from domains import game
 from domains import isa
 from domains import offshore
 from domains import onc
@@ -191,6 +194,7 @@ ALLOWED_ORIGINS = [
     "https://something-rare.com",
     "https://www.something-rare.com",
     "https://something-rare-frontend-dev-3w2whlwtbq-ew.a.run.app",
+    "https://game.something-rare.com",
 ]
 
 API_KEY_NAME = "X-API-Key"
@@ -395,7 +399,11 @@ app.include_router(acoustic.router)
 app.include_router(arctic.router)
 app.include_router(biodiversity.router)
 app.include_router(geochem.router)
+app.include_router(pangaea_water.router)
+app.include_router(aoc2025_poc.router)
+app.include_router(svalbard_fjords_pp.router)
 app.include_router(isa.router)
+app.include_router(game.router)
 app.include_router(onc.router)
 app.include_router(seafloor.router)
 app.include_router(sensors.router)
@@ -1031,6 +1039,10 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "arcade":                 "arcade",
     "bathymetry-stats":       "bathymetry-stats",
     "cascade":                "cascade",
+    "coastdom":               "coastdom",
+    "greenland-pp":           "greenland-pp",
+    "aoc2025-poc":            "aoc2025-poc",
+    "svalbard-fjords-pp":     "svalbard-fjords-pp",
     "mosaic":                 "mosaic",
     "vme-sdm":                "vme-sdm",
     "coral-acid-exposure":    "coral-acid-exposure",
@@ -1363,6 +1375,8 @@ _INVENTORY: list[tuple[str, str, str, str, str | None, str, str]] = [
     ("geotraces",       "Trace metals (GEOTRACES IDP2025)",  "ocean-bio", "geotraces_stations",      "geotraces",       "GEOTRACES IDP2025 via BODC",                      "https://www.bodc.ac.uk/geotraces/"),
     ("wod-oxygen",      "Historical oxygen profiles (WOD)",  "ocean-bio", "wod_oxygen_profiles",     "wod-oxygen",      "NOAA NCEI — World Ocean Database 2023",           "https://www.ncei.noaa.gov/products/world-ocean-database"),
     ("cascade",         "Arctic sediment carbon (CASCADE)",  "ocean-bio", "cascade_stations",        "cascade",         "CASCADE v2 — Bolin Centre (Martens et al. 2021)", "https://doi.org/10.17043/cascade-2"),
+    ("coastdom",        "Coastal dissolved organic matter (CoastDOM v1)", "ocean-bio", "coastdom_samples_current", "coastdom", "CoastDOM v1 (PANGAEA)", "https://doi.org/10.1594/PANGAEA.964012"),
+    ("greenland-pp",    "Greenland Sea primary production",  "ocean-bio", "greenland_pp_stations_current", "greenland-pp", "Greenland Sea GPP 2021–2022 (PANGAEA)", "https://doi.org/10.1594/PANGAEA.965985"),
     ("sios",            "SIOS Svalbard observing datasets",  "ocean-bio", "sios_datasets",           "sios",            "SIOS METSIS catalogue",                           "https://sios-svalbard.org/"),
     ("mosaic",          "Marine sediment carbon (MOSAIC)",   "ocean-bio", "mosaic_cores",            "mosaic",          "MOSAIC — ETH Zürich (Van der Voort et al. 2021)", "https://doi.org/10.5168/mosaic019.1"),
     ("arctic-rivers",   "Arctic river inputs",               "land",      "arctic_river_stations",   "arctic-rivers",   "ArcticGRO + PANGAEA",                             "https://arcticgreatrivers.org/data/"),

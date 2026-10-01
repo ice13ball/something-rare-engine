@@ -41,6 +41,10 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const [deepdataStationsData, setDeepdataStationsData] = useState<FeatureCollection | null>(null);
   const [hydrophoneData, setHydrophoneData] = useState<FeatureCollection | null>(null);
   const [marhysData, setMarhysData] = useState<FeatureCollection | null>(null);
+  const [coastdomData, setCoastdomData] = useState<FeatureCollection | null>(null);
+  const [greenlandPpData, setGreenlandPpData] = useState<FeatureCollection | null>(null);
+  const [aocPocData, setAocPocData] = useState<FeatureCollection | null>(null);
+  const [svalbardFjordsPpData, setSvalbardFjordsPpData] = useState<FeatureCollection | null>(null);
   const [portsData, setPortsData] = useState<FeatureCollection | null>(null);
   const [miningFootprintsData, setMiningFootprintsData] = useState<FeatureCollection | null>(null);
   const [tailingsData, setTailingsData] = useState<FeatureCollection | null>(null);
@@ -74,6 +78,10 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const deepdataStationsFetchedRef = useRef(false);
   const hydrophoneFetchedRef = useRef(false);
   const marhysFetchedRef = useRef(false);
+  const coastdomFetchedRef = useRef(false);
+  const greenlandPpFetchedRef = useRef(false);
+  const aocPocFetchedRef = useRef(false);
+  const svalbardFjordsPpFetchedRef = useRef(false);
   const portsFetchedRef = useRef(false);
   const miningFootprintsFetchedRef = useRef(false);
   const tailingsFetchedRef = useRef(false);
@@ -124,6 +132,14 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
       fetchGuarded(hydrophoneFetchedRef, "/api/v1/map/hydrophones", setHydrophoneData, "Hydrophone Stations");
     if (activeLayers.has("marhys"))
       fetchGuarded(marhysFetchedRef, "/api/v1/map/marhys", setMarhysData, "Vent Fluid Chemistry");
+    if (activeLayers.has("coastdom"))
+      fetchGuarded(coastdomFetchedRef, "/api/v1/map/coastdom/locations", setCoastdomData, "Coastal Dissolved Organic Matter");
+    if (activeLayers.has("greenland-primary-production"))
+      fetchGuarded(greenlandPpFetchedRef, "/api/v1/map/greenland-pp/stations", setGreenlandPpData, "Greenland Sea Primary Production");
+    if (activeLayers.has("greenland-sea-poc-aoc2025"))
+      fetchGuarded(aocPocFetchedRef, "/api/v1/map/aoc2025-poc/stations", setAocPocData, "Greenland Sea POC — AOC2025");
+    if (activeLayers.has("svalbard-fjords-primary-production"))
+      fetchGuarded(svalbardFjordsPpFetchedRef, "/api/v1/map/svalbard-fjords-pp/stations", setSvalbardFjordsPpData, "In situ Primary Production — Svalbard Fjords");
     if (activeLayers.has("ports"))
       fetchGuarded(portsFetchedRef, "/api/v1/map/ports", setPortsData, "Port Locations");
 
@@ -167,7 +183,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   return {
     eezData, protectedSitesData, seamountsData, oceansitesData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
-    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, portsData,
+    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
     damsData, vesselEventsData, aisLiveData, arcticRiversData, siosData,
     methaneSeepsData, permafrostThawData, cascadeStationsData, monitoringDensityData,

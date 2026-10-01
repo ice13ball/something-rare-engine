@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from domains import aoc2025_poc as _aoc
+from domains.pangaea_water import COASTDOM_SERVED_FIELDS, GREENLAND_PP_SERVED_FIELDS
+from ingestion import aoc2025_poc as _aoc_parser
+
 
 @dataclass(frozen=True)
 class Provenance:
@@ -291,6 +295,66 @@ _VECTORS: dict[str, VectorExport] = {
             note="Raw sediment-core station values (surface OC/TN/isotopes). The interpolated "
                  "raster field (baked from separate ESRI-ASCII polar-stereographic grids) is not "
                  "exportable in v1 — only the raw station table is.",
+        ),
+    ),
+    "coastdom": VectorExport(
+        id="coastdom", label="Coastal dissolved organic matter (CoastDOM v1)",
+        table="coastdom_samples_current",
+        geom_col="t.geom", id_col="row_no", geom_kind="point", cap=75_000,
+        # ⛔ The SAME tuple the API serves (domains/pangaea_water.py). pi_email is
+        # stored and hidden there, so it cannot appear here.
+        fields=COASTDOM_SERVED_FIELDS,
+        prov=Provenance(
+            source="CoastDOM v1 — global compilation of coastal DOC/DON/DOP measurements, via PANGAEA",
+            source_url="https://doi.org/10.1594/PANGAEA.964012",
+            license="CC-BY 4.0",
+            citation="CoastDOM v1, PANGAEA, doi:10.1594/PANGAEA.964012. The full citation, "
+                     "verbatim from the source file, is served at /v1/pangaea-water/meta.",
+            note="Values verbatim, each field named with its unit; quality flags on the "
+                 "WOCE scale as published; an empty cell is null, never 0. The current "
+                 "published version only. Rows the source publishes without coordinates "
+                 "(532 in v1) cannot be reached by an area export. The cap (75,000) is "
+                 "above the whole v1 table.",
+        ),
+    ),
+    "greenland-primary-production": VectorExport(
+        id="greenland-primary-production", label="Greenland Sea primary production 2021-2022",
+        table="greenland_pp_stations_current",
+        geom_col="t.geom", id_col="row_no", geom_kind="point", cap=1_000,
+        fields=GREENLAND_PP_SERVED_FIELDS,
+        prov=Provenance(
+            source="Greenland Sea gross primary production from oxygen evolution, via PANGAEA",
+            source_url="https://doi.org/10.1594/PANGAEA.965985",
+            license="CC-BY 4.0",
+            citation="PANGAEA, doi:10.1594/PANGAEA.965985. The full citation, verbatim from "
+                     "the source file, is served at /v1/pangaea-water/meta.",
+            note="gpp_c_mg_m2_day is GPP C [mg/m**2/day]: an areal rate, not a concentration.",
+        ),
+    ),
+    # ⛔ The sibling IO PAN preview layer `svalbard-fjords-primary-production`
+    # (svalbard_fjords_pp) is DELIBERATELY NOT exportable (owner decision): its
+    # source publishes no open licence, display is by IO PAN's permission only,
+    # and a bulk export is redistribution. Guarded by
+    # tests/test_export_registry.py::test_svalbard_fjords_is_never_exportable.
+    "greenland-sea-poc-aoc2025": VectorExport(
+        id="greenland-sea-poc-aoc2025", label="Greenland Sea particulate organic carbon, AOC2025 (preview)",
+        table="aoc2025_poc_samples_current",
+        # Point geometry is stored on the samples themselves (no stations join);
+        # (version_id, row_no) is the key and the _current view holds one version,
+        # so row_no is unique per exported row.
+        geom_col="t.geom", id_col="row_no", geom_kind="point", cap=1_000,
+        # ⛔ The SAME tuple the API serves (domains/aoc2025_poc.py); raw/geom are hidden there.
+        fields=_aoc.AOC_POC_SERVED_FIELDS,
+        prov=Provenance(
+            source="Particulate organic carbon, Greenland Sea, AOC2025 cruise (IO PAN) — "
+                   "dev-only preview layer",
+            source_url=f"https://doi.org/{_aoc_parser.DOI}",
+            license=_aoc.LICENSE,
+            citation=_aoc.CITATION,
+            note="Dev-only preview layer. Values verbatim from the source CSV, units as in "
+                 "the column names; an empty cell is null, never 0. Current version only. "
+                 "Known source defect: " + _aoc.METADATA_TEMPORAL_EXTENT_DISCREPANCY +
+                 " The cap (1,000) is above the whole table (94 rows in the 2026-09-25 download).",
         ),
     ),
     # "noise-risk" removed 2026-09-04. The grid blends OBIS-SEAMAP cetacean

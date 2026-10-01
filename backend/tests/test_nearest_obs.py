@@ -41,6 +41,26 @@ def test_geography_sources_flagged_for_geometry_cast():
     assert by["argo"]["geog"] is False
 
 
+def test_every_source_declares_date_sql_and_date_kind():
+    for s in no.OBS_SOURCES:
+        assert s.get("date_sql"), f"{s['key']} missing date_sql"
+        assert s.get("date_kind") in ("sampled", "discovered", "sampled_range"), s["key"]
+    by = {s["key"]: s for s in no.OBS_SOURCES}
+    assert by["vents"]["date_kind"] == "discovered"
+    assert by["deepdata-stations"]["date_kind"] == "sampled_range"
+    for k in ("argo", "geotraces", "memento", "wod-oxygen", "cascade", "methane-seeps"):
+        assert by[k]["date_kind"] == "sampled"
+
+
+def test_date_columns_dropped_from_summary_cols():
+    """The date now has its own column — a date/year column left in summary_cols would
+    show the same date twice."""
+    date_like = {"profile_date", "sample_time", "year", "obs_year", "discovery_year_num",
+                 "first_event_date", "last_event_date"}
+    for s in no.OBS_SOURCES:
+        assert not (set(s["summary_cols"]) & date_like), s["key"]
+
+
 def test_shape_rows_keeps_zero_and_none_distance_and_orders_them():
     """A real id with distance_km 0.0 (click exactly on a feature) must not be dropped by a
     falsy-value check, and must sort first. A real id with distance_km None (anomalous null

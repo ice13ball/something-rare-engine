@@ -97,7 +97,7 @@
     },
     "oceansitesMoorings": {
       "label": "Mouillages OceanSITES",
-      "source": "API REST OceanOPS (oceanops.org, CC-BY) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
+      "source": "API OceanOPS (ocean-ops.org ; © OceanOPS, usage non commercial avec mention de la source) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
       "updateFreq": "Positions des stations synchronisées hebdomadairement depuis OceanOPS ; observations rafraîchies quotidiennement, et uniquement pour les stations qu'OceanOPS déclare actuellement opérationnelles",
       "description": "Mouillages fixes de grand fond du réseau international OceanSITES. Ils mesurent température, salinité, courants et biogéochimie sur plusieurs années — la colonne vertébrale de la surveillance climatique des grands fonds. La carte affiche l'ensemble du registre OceanOPS, environ 1 070 stations, dont une soixantaine seulement sont opérationnelles ; les autres sont fermées, inactives ou simplement enregistrées, et sont conservées parce qu'un mouillage démantelé reste le lieu où une longue série de référence a été mesurée. Les relevés ne sont récupérés que pour les stations opérationnelles : la plupart des anneaux portent donc une position et des métadonnées, mais aucune mesure. Les mouillages situés à moins de 500 km d'une concession minière apparaissent dans la fiche de la revendication.",
       "reading": "Anneau cyan = un mouillage du registre OceanSITES/OceanOPS. Cliquez pour le code de station, le réseau, la date de déploiement et, lorsqu'un flux existe, les relevés en cache accompagnés de la source qui les a fournis — NDBC, PMEL ERDDAP ou le GDAC OceanSITES. Un anneau sans relevé n'est pas une panne : nous n'interrogeons que les mouillages opérationnels, et en pratique les relevés viennent de PMEL et du GDAC, pas de NDBC. La proximité d'une revendication minière indique que des séries scientifiques de long terme pourraient être perturbées par des panaches sédimentaires ou du bruit sismique."
@@ -744,6 +744,20 @@
       "reading": "points = échantillons individuels, couleur = type d'échantillon (orange = fluide de cheminée, rouge = pôle extrême, bleu = eau de mer de fond) ; cliquez sur un point pour sa composition complète, ses métadonnées de prélèvement et la longue liste des paramètres plus rares ; passez en vue Densité pour repérer les zones de forte concentration d'échantillonnage. ⚠️ Une teneur en magnésium de 0 est une valeur réelle, pas une lacune — un pôle extrême est par définition extrapolé à une teneur en magnésium nulle.",
       "limitations": "883 des 6 788 échantillons ne peuvent pas être placés sur la carte et en sont absents : 844 n'ont pas de coordonnée exploitable, et 39 échantillons de Guaymas Basin portent une latitude de 111.4°, ce qu'aucune latitude ne peut être — la source a interverti ses deux axes et perdu le signe moins de la longitude. Ces lignes sont conservées avec les valeurs propres de la source et sans géométrie ; rien n'est corrigé. Un échantillon supplémentaire est mal placé mais s'affiche quand même : MARHYS situe le Saldanha Hydrothermal Field à 36.567 / +33.6, que GEBCO 2020 place à 417 m au-dessus du niveau de la mer en Turquie, alors qu'InterRidge indique 36.567 / −33.433. C'est la seule des 811 positions MARHYS qui tombe sur la terre ferme. La date de prélèvement est un texte libre en huit formats différents (année seule, mois et année, plages, listes) et elle est affichée exactement telle qu'écrite plutôt qu'interprétée comme une date. La couverture suit la littérature publiée : elle est dense sur les champs étudiés de longue date (dorsale Est-Pacifique, dorsale médio-atlantique) et clairsemée ailleurs — l'absence d'un échantillon n'est pas l'absence d'une cheminée. Le jeu de données est figé à la version 4.0 sous son DOI et n'est pas mis à jour.",
       "sources": "MARHYS Database 4.0 — Diehl, Alexander; Bach, Wolfgang (2024), PANGAEA, doi:10.1594/PANGAEA.972999, CC-BY-4.0 (download.pangaea.de/dataset/972999). Les conditions d'utilisation du jeu de données exigent de citer également la publication de référence : Diehl, A. & Bach, W. (2020), MARHYS (MARine HYdrothermal Solutions) Database: A Global Compilation of Marine Hydrothermal Vent Fluid, End-Member, and Seawater Compositions, Geochemistry, Geophysics, Geosystems, doi:10.1029/2020GC009385. Compilé au MARUM, University of Bremen."
+    },
+    "coastdom": {
+      "label": "Matière organique dissoute côtière (CoastDOM v1)",
+      "description": "Carbone, azote et phosphore organiques dissous mesurés (DOC, DON, DOP), avec, lorsque les contributeurs les ont fournis, carbone, azote et phosphore particulaires, carbone inorganique dissous, alcalinité, nutriments, chlorophylle a, température et salinité — une compilation mondiale d'échantillons d'eaux côtières, 1978–2022. Chaque valeur est affichée avec l'unité de la source.",
+      "reading": "Un marqueur par position échantillonnée. Couleur = nombre d'échantillons à cet endroit (1 · 2–9 · 10–99 · ≥100), jamais une valeur mesurée : aucune couleur ne suggère une moyenne. Un clic montre tous les échantillons de la position, par date et profondeur, avec indicateur de qualité, méthode et références.",
+      "limitations": "Une compilation de nombreux programmes et méthodes : ne comparer les valeurs qu'avec leur méthode et leur indicateur de qualité (échelle WOCE 1–9). Les lignes de la source sans coordonnées sont comptées dans la note de version et ne sont pas affichées. Aucune interpolation : une zone vide signifie aucun échantillon dans cette base, pas une valeur faible.",
+      "sources": "CoastDOM v1, PANGAEA, doi:10.1594/PANGAEA.964012 (CC-BY-4.0). Article de données associé : ESSD 16, 1107 (2024), doi:10.5194/essd-16-1107-2024. La citation complète du jeu de données figure dans chaque panneau d'échantillon, exactement telle que PANGAEA la publie."
+    },
+    "greenland-primary-production": {
+      "label": "Production primaire de la mer du Groenland (2021–2022)",
+      "description": "Production primaire brute de carbone (GPP C) par dégagement d'oxygène à 12 stations de la mer du Groenland : quatre en août 2021 et huit en août 2022.",
+      "reading": "La taille du marqueur suit la GPP, un taux surfacique en mg C par mètre carré et par jour ('GPP C [mg/m**2/day]' dans la source). Non comparable aux valeurs par litre des autres couches.",
+      "limitations": "Douze stations, une valeur chacune, issues de deux campagnes estivales. Aucun profil de profondeur ni indicateur de qualité publié. Pas une estimation saisonnière ou annuelle.",
+      "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Article associé : Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
     }
   },
   "header": {
@@ -1023,7 +1037,7 @@
     "unesco_title": "Patrimoine marin UNESCO",
     "unesco": "Limites des sites provenant de la couche du Programme du patrimoine marin mondial de l'UNESCO sur MarineRegions WFS. La liste faisant autorité de tous les sites marins du patrimoine mondial se trouve sur whc.unesco.org/en/marine-programme/",
     "oceansites_title": "Mouillages OceanSITES",
-    "oceansites": "Les métadonnées de station proviennent d'OceanOPS — cherchez sur oceanops.org le code de référence affiché dans la fiche. Pour un relevé, consultez la source que la fiche lui associe : NDBC sur ndbc.noaa.gov/station_page.php?station=REF, PMEL sur data.pmel.noaa.gov/pmel/erddap, ou le GDAC OceanSITES sur data-oceansites.ifremer.fr. Une station sans relevé ne peut être recoupée nulle part — elle figure au registre mais n'est pas interrogée, ce qui est différent d'un flux en échec.",
+    "oceansites": "Les métadonnées de station proviennent d'OceanOPS — cherchez sur ocean-ops.org le code de référence affiché dans la fiche. Pour un relevé, consultez la source que la fiche lui associe : NDBC sur ndbc.noaa.gov/station_page.php?station=REF, PMEL sur data.pmel.noaa.gov/pmel/erddap, ou le GDAC OceanSITES sur data-oceansites.ifremer.fr. Une station sans relevé ne peut être recoupée nulle part — elle figure au registre mais n'est pas interrogée, ce qui est différent d'un flux en échec.",
     "currents_title": "Courants océaniques",
     "currents": "Vérifiez la vitesse et la direction des courants dans la visionneuse Copernicus Marine (produit GLOBAL_ANALYSISFORECAST_PHY_001_024, jeu de données cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, variables uo/vo). Les fichiers netCDF sources sont téléchargeables via le Copernicus Marine Toolbox :",
     "onc_title": "Observatoires ONC",
@@ -1115,7 +1129,9 @@
       "sioBenthic": "Collection d'invertébrés benthiques SIO",
       "wod": "Base de données mondiale des océans (WOD)",
       "seabedSubstrate": "Substrat du fond marin (Dutkiewicz 2015)",
-      "arcticSedimentCarbon": "Carbone des sédiments arctiques : vérifiez les valeurs des stations dans le dépôt Bolin Centre CASCADE (doi.org/10.17043/cascade-2) à l'aide du nom de la station."
+      "arcticSedimentCarbon": "Carbone des sédiments arctiques : vérifiez les valeurs des stations dans le dépôt Bolin Centre CASCADE (doi.org/10.17043/cascade-2) à l'aide du nom de la station.",
+      "coastdom": "CoastDOM : télécharger la table source sur doi.org/10.1594/PANGAEA.964012 et retrouver un échantillon par le lieu, la date et la profondeur affichés dans le panneau ; les valeurs sont servies telles quelles, avec les unités de la source.",
+      "greenlandPrimaryProduction": "Production primaire de la mer du Groenland : comparer une station par son étiquette d'événement sur doi.org/10.1594/PANGAEA.965985."
     }
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",

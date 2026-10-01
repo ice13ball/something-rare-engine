@@ -54,6 +54,10 @@ import { OceansitesPanel } from "./panels/ocean/OceansitesPanel";
 import { OncPanel } from "./panels/ocean/OncPanel";
 import { HydrophoneStationPanel } from "./panels/ocean/HydrophoneStationPanel";
 import { MarhysPanel } from "./panels/ocean/MarhysPanel";
+import { CoastdomPanel } from "./panels/ocean/CoastdomPanel";
+import { GreenlandPrimaryProductionPanel } from "./panels/ocean/GreenlandPrimaryProductionPanel";
+import { AocPocPanel } from "./panels/ocean/AocPocPanel";
+import { SvalbardFjordsPpPanel } from "./panels/ocean/SvalbardFjordsPpPanel";
 import { ChessPanel } from "./panels/ocean/ChessPanel";
 import { CablePanel } from "./panels/ocean/CablePanel";
 import { OncCablePanel } from "./panels/ocean/OncCablePanel";
@@ -125,6 +129,10 @@ function PanelContent({ feature }: { feature: SelectedFeature }) {
   if (layer === "onc")                        return <OncPanel properties={properties} />;
   if (layer === "hydrophone-stations")        return <HydrophoneStationPanel properties={properties} />;
   if (layer === "marhys")                     return <MarhysPanel properties={properties} />;
+  if (layer === "coastdom")                   return <CoastdomPanel properties={properties} />;
+  if (layer === "greenland-primary-production") return <GreenlandPrimaryProductionPanel properties={properties} />;
+  if (layer === "greenland-sea-poc-aoc2025")    return <AocPocPanel properties={properties} />;
+  if (layer === "svalbard-fjords-primary-production") return <SvalbardFjordsPpPanel properties={properties} />;
   if (layer === "chess")                      return <ChessPanel properties={properties} />;
   if (layer === "submarine-cables")           return <CablePanel properties={properties} />;
   if (layer === "onc-cables")                 return <OncCablePanel properties={properties} />;
@@ -191,6 +199,10 @@ const LAYER_TITLE: Record<string, string> = {
   "deepdata-stations": "DeepData Station",
   "hydrophone-stations": "Hydrophone Station",
   "marhys": "Vent Fluid Sample",
+  "coastdom": "Coastal DOM Position",
+  "greenland-primary-production": "Primary Production Station",
+  "greenland-sea-poc-aoc2025": "AOC2025 POC Station",
+  "svalbard-fjords-primary-production": "Svalbard Fjords Primary Production Station",
   "oceansites": "OceanSITES Mooring",
   "onc": "ONC Observatory",
   "seamounts": "Seamount",
@@ -253,6 +265,19 @@ function prettyLayerLabel(layerId: string): string {
   return LAYER_TITLE[base] ?? base.replace(/-/g, " ");
 }
 
+// ── Responsive panel width ─────────────────────────────────────────────────────
+
+/**
+ * Detail-panel width for a given viewport width: ~26% of the viewport,
+ * clamped to [320, 460] px, but never wider than the viewport minus a 32px
+ * margin (so it can't sit partly off the right edge on narrow screens).
+ */
+export function detailPanelWidth(viewportWidth: number): number {
+  const pct = Math.round(0.26 * viewportWidth);
+  const clamped = Math.min(Math.max(pct, 320), 460);
+  return Math.min(clamped, viewportWidth - 32);
+}
+
 // ── Draggable panel wrapper ────────────────────────────────────────────────────
 
 function DraggablePanel({
@@ -265,14 +290,14 @@ function DraggablePanel({
   const { t } = useTranslation(["panels", "common"]);
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [panelWidth] = useState(() => detailPanelWidth(window.innerWidth));
   const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
 
   // Use feature.slot (stable, assigned at creation) so panels don't jump when
   // other panels are added or removed from the selectedFeatures array.
   useEffect(() => {
-    const pw = 320; // panel width (w-80 = 320px)
     const cascade = 24;
-    const x = window.innerWidth - pw - 16 - feature.slot * cascade;
+    const x = window.innerWidth - panelWidth - 16 - feature.slot * cascade;
     setPos({ x: Math.max(0, x), y: 60 + feature.slot * cascade });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -320,8 +345,8 @@ function DraggablePanel({
   return (
     <div
       ref={panelRef}
-      className="fixed z-overlay w-80 max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
-      style={{ left: pos.x, top: pos.y }}
+      className="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style={{ left: pos.x, top: pos.y, width: panelWidth }}
     >
       <div
         className="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"

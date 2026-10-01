@@ -24,7 +24,9 @@ export const SEA_LAYER_IDS = [
   "ocean-carbon", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
   "seabed-substrate", "arctic-sediment-carbon", "mosaic-sediment", "vme-suitability",
   "ocean-acidification", "coral-acid-exposure", "cumulative-human-impact",
-  "marhys",
+  "marhys", "coastdom", "greenland-primary-production",
+  "greenland-sea-poc-aoc2025",
+  "svalbard-fjords-primary-production",
 ] as const;
 
 export type SeaLayerId = (typeof SEA_LAYER_IDS)[number];
@@ -283,6 +285,45 @@ export const LAYER_CONFIGS = [
     fillRgba: [251, 146, 60, 200],
     lineRgba: [251, 146, 60, 255],
     description: "Measured compositions of hydrothermal vent fluids — MARHYS 4.0 (Diehl & Bach 2024). Each point is one sample, shown with the source's own coordinates. 883 of 6,788 samples carry no usable position and are absent from the map.",
+  },
+  {
+    id: "coastdom",
+    label: "Coastal Dissolved Organic Matter",
+    // Teal, graded by the NUMBER of samples at a position (map3d/colors.ts
+    // COASTDOM_COUNT_BINS) — never by a measured value.
+    color: "#2dd4bf",
+    fillRgba: [45, 212, 191, 200],
+    lineRgba: [45, 212, 191, 255],
+    description: "CoastDOM v1 (PANGAEA): measured dissolved organic carbon, nitrogen and phosphorus and related water-column parameters in coastal waters, 1978–2022. One marker per sampled position; colour is the number of samples there, never a value.",
+  },
+  {
+    id: "greenland-primary-production",
+    label: "Greenland Sea Primary Production",
+    color: "#84cc16",
+    fillRgba: [132, 204, 22, 210],
+    lineRgba: [132, 204, 22, 255],
+    description: "Gross primary production of carbon at 12 Greenland Sea stations, August 2021 and 2022 (PANGAEA). An areal rate in mg C per square metre per day; marker size follows the rate.",
+  },
+  {
+    id: "greenland-sea-poc-aoc2025",
+    label: "Greenland Sea POC — AOC2025",
+    // Amber, distinct from every other Ocean Climatology point layer here — a
+    // fixed identifying colour, not a value ramp.
+    color: "#f59e0b",
+    fillRgba: [245, 158, 11, 210],
+    lineRgba: [245, 158, 11, 255],
+    description: "Particulate organic carbon at 32 stations, Atlantic-Arctic Ocean Change cruise (AOC2025), Greenland Sea, 19–31 May 2025 (Institute of Oceanology Polish Academy of Sciences, CC-BY 4.0). The source's own metadata states a temporal extent that does not match its title or its data — shown, not corrected.",
+  },
+  {
+    id: "svalbard-fjords-primary-production",
+    label: "In situ Primary Production — Svalbard Fjords",
+    // Indigo, distinct from every other Ocean Climatology point layer here
+    // (lime, amber, teal already taken) — a fixed identifying colour, not a
+    // value ramp.
+    color: "#6366f1",
+    fillRgba: [99, 102, 241, 210],
+    lineRgba: [99, 102, 241, 255],
+    description: "In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, used with permission — the source publishes no open licence. The source's own metadata states station and incubation counts that differ from the data — shown, not corrected.",
   },
   {
     id: "ocean-currents",

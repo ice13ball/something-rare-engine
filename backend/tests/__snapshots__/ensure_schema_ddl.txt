@@ -171,6 +171,23 @@ CREATE TABLE IF NOT EXISTS cascade_stations ( id INTEGER PRIMARY KEY, station TE
 CREATE INDEX IF NOT EXISTS cascade_stations_geom_gix ON cascade_stations USING GIST(geom)
 CREATE INDEX IF NOT EXISTS cascade_stations_decade_idx ON cascade_stations(decade)
 ALTER TABLE cascade_stations OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS pangaea_dataset_version ( version_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, layer_id TEXT NOT NULL, is_current BOOLEAN NOT NULL DEFAULT false, doi TEXT NOT NULL, date_published DATE, sha256 TEXT NOT NULL, rows_in_source INTEGER NOT NULL, rows_unmappable INTEGER NOT NULL, data_points INTEGER NOT NULL, header TEXT[] NOT NULL, citation TEXT, related_citation TEXT, license TEXT, ingested_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE (layer_id, sha256) )
+CREATE UNIQUE INDEX IF NOT EXISTS pangaea_dataset_version_one_current ON pangaea_dataset_version (layer_id) WHERE is_current
+CREATE TABLE IF NOT EXISTS coastdom_samples ( version_id BIGINT NOT NULL REFERENCES pangaea_dataset_version (version_id), row_no INTEGER NOT NULL, location TEXT, sample_id TEXT, sample_date DATE, lat DOUBLE PRECISION, lon DOUBLE PRECISION, elevation_m DOUBLE PRECISION, depth_m DOUBLE PRECISION, temp_c DOUBLE PRECISION, sal DOUBLE PRECISION, tss_mg_l DOUBLE PRECISION, chl_a_ug_l DOUBLE PRECISION, qf_chl_a SMALLINT, no3_no2_umol_l DOUBLE PRECISION, qf_no3_no2 SMALLINT, nh4_umol_l DOUBLE PRECISION, qf_nh4 SMALLINT, hpo4_umol_l DOUBLE PRECISION, qf_hpo4 SMALLINT, doc_umol_l DOUBLE PRECISION, doc_method TEXT, qf_doc SMALLINT, don_umol_l DOUBLE PRECISION, tdn_umol_l DOUBLE PRECISION, tdn_method TEXT, qf_tdn SMALLINT, dop_umol_l DOUBLE PRECISION, tdp_umol_l DOUBLE PRECISION, tdp_method TEXT, qf_tdp SMALLINT, poc_umol_l DOUBLE PRECISION, poc_method TEXT, qf_poc SMALLINT, pn_umol_l DOUBLE PRECISION, pn_method TEXT, qf_tpn SMALLINT, pp_umol_l DOUBLE PRECISION, pp_method TEXT, qf_pp SMALLINT, dic_umol_kg DOUBLE PRECISION, qf_dic SMALLINT, at_umol_kg DOUBLE PRECISION, qf_at SMALLINT, pi TEXT, institution TEXT, pi_email TEXT, ref_1 TEXT, ref_2 TEXT, ref_3 TEXT, comment TEXT, raw TEXT[] NOT NULL, geom geometry(Point, 4326), PRIMARY KEY (version_id, row_no) )
+COMMENT ON COLUMN coastdom_samples.pi_email IS 'Stored because storage is 1:1 with the source. Never served: HIDDEN_FIELDS in domains/pangaea_water.py.'
+COMMENT ON COLUMN coastdom_samples.raw IS 'All 49 source cells verbatim, in source order. Contains the pi_email cell, so never served.'
+CREATE INDEX IF NOT EXISTS coastdom_samples_geom_gix ON coastdom_samples USING GIST (geom)
+CREATE INDEX IF NOT EXISTS coastdom_samples_pos_idx ON coastdom_samples (version_id, lat, lon)
+CREATE TABLE IF NOT EXISTS greenland_pp_stations ( version_id BIGINT NOT NULL REFERENCES pangaea_dataset_version (version_id), row_no INTEGER NOT NULL, event TEXT, event_2 TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, sample_date DATE, gpp_c_mg_m2_day DOUBLE PRECISION, raw TEXT[] NOT NULL, geom geometry(Point, 4326), PRIMARY KEY (version_id, row_no) )
+COMMENT ON COLUMN greenland_pp_stations.gpp_c_mg_m2_day IS 'GPP C [mg/m**2/day] — an areal rate, never a concentration.'
+CREATE INDEX IF NOT EXISTS greenland_pp_stations_geom_gix ON greenland_pp_stations USING GIST (geom)
+CREATE OR REPLACE VIEW coastdom_samples_current AS SELECT s.* FROM coastdom_samples s JOIN pangaea_dataset_version v ON v.version_id = s.version_id WHERE v.is_current AND v.layer_id = 'coastdom'
+CREATE OR REPLACE VIEW greenland_pp_stations_current AS SELECT s.* FROM greenland_pp_stations s JOIN pangaea_dataset_version v ON v.version_id = s.version_id WHERE v.is_current AND v.layer_id = 'greenland-primary-production'
+ALTER TABLE pangaea_dataset_version OWNER TO abyssal_user
+ALTER TABLE coastdom_samples OWNER TO abyssal_user
+ALTER TABLE greenland_pp_stations OWNER TO abyssal_user
+ALTER VIEW coastdom_samples_current OWNER TO abyssal_user
+ALTER VIEW greenland_pp_stations_current OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS sios_datasets ( id SERIAL PRIMARY KEY, metadata_id TEXT UNIQUE NOT NULL, title TEXT, abstract TEXT, is_core_data BOOLEAN NOT NULL DEFAULT FALSE, collections TEXT[], activity_type TEXT, iso_topic TEXT, keywords TEXT[], platform_short TEXT, platform_long TEXT, platform_url TEXT, institution TEXT, pi_name TEXT, time_start TIMESTAMPTZ, time_end TIMESTAMPTZ, license TEXT, license_url TEXT, url_http TEXT, url_opendap TEXT, url_wms TEXT, url_landing TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, geom geometry(Point, 4326), synced_at TIMESTAMPTZ DEFAULT now(), series JSONB, series_var TEXT, series_units TEXT, series_long_name TEXT )
 CREATE INDEX IF NOT EXISTS sios_datasets_geom_gix ON sios_datasets USING GIST (geom)
 CREATE INDEX IF NOT EXISTS sios_datasets_core_idx ON sios_datasets (is_core_data)
@@ -445,3 +462,25 @@ ALTER TABLE sync_requests OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS running_syncs ( id BIGSERIAL PRIMARY KEY, source TEXT NOT NULL, started_at TIMESTAMPTZ NOT NULL DEFAULT now(), heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT now(), role TEXT NOT NULL, pid INTEGER NOT NULL, host TEXT NOT NULL )
 CREATE INDEX IF NOT EXISTS running_syncs_source_idx ON running_syncs (source)
 ALTER TABLE running_syncs OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS aoc2025_poc_version ( version_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, is_current BOOLEAN NOT NULL DEFAULT false, doi TEXT NOT NULL, source_url TEXT NOT NULL, sha256 TEXT NOT NULL UNIQUE, rows_in_source INTEGER NOT NULL, citation TEXT NOT NULL, license TEXT NOT NULL, fetched_at TIMESTAMPTZ NOT NULL DEFAULT now() )
+CREATE UNIQUE INDEX IF NOT EXISTS aoc2025_poc_version_one_current ON aoc2025_poc_version (is_current) WHERE is_current
+CREATE TABLE IF NOT EXISTS aoc2025_poc_samples ( version_id BIGINT NOT NULL REFERENCES aoc2025_poc_version (version_id), row_no INTEGER NOT NULL, cruise_id TEXT, station TEXT, sample_date TIMESTAMPTZ, lat DOUBLE PRECISION, lon DOUBLE PRECISION, prespr01_db DOUBLE PRECISION, pressure_db DOUBLE PRECISION, activity TEXT, sample_id TEXT, salinity DOUBLE PRECISION, temp_c DOUBLE PRECISION, d15n_permil DOUBLE PRECISION, d13c_permil DOUBLE PRECISION, poc_mg_dm3 DOUBLE PRECISION, pn_mg_dm3 DOUBLE PRECISION, raw TEXT[] NOT NULL, geom geometry(Point, 4326), PRIMARY KEY (version_id, row_no) )
+COMMENT ON COLUMN aoc2025_poc_samples.raw IS 'All 15 source CSV cells verbatim, in source order. Storage is 1:1 with the source.'
+CREATE INDEX IF NOT EXISTS aoc2025_poc_samples_geom_gix ON aoc2025_poc_samples USING GIST (geom)
+CREATE INDEX IF NOT EXISTS aoc2025_poc_samples_station_idx ON aoc2025_poc_samples (version_id, station)
+CREATE OR REPLACE VIEW aoc2025_poc_samples_current AS SELECT s.* FROM aoc2025_poc_samples s JOIN aoc2025_poc_version v ON v.version_id = s.version_id WHERE v.is_current
+ALTER TABLE aoc2025_poc_version OWNER TO abyssal_user
+ALTER TABLE aoc2025_poc_samples OWNER TO abyssal_user
+ALTER VIEW aoc2025_poc_samples_current OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS svalbard_fjords_pp_version ( version_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, is_current BOOLEAN NOT NULL DEFAULT false, doi TEXT NOT NULL, source_url TEXT NOT NULL, sha256 TEXT NOT NULL UNIQUE, rows_in_source INTEGER NOT NULL, citation TEXT NOT NULL, licence TEXT NOT NULL, fetched_at TIMESTAMPTZ NOT NULL DEFAULT now() )
+CREATE UNIQUE INDEX IF NOT EXISTS svalbard_fjords_pp_version_one_current ON svalbard_fjords_pp_version (is_current) WHERE is_current
+CREATE TABLE IF NOT EXISTS svalbard_fjords_pp_samples ( version_id BIGINT NOT NULL REFERENCES svalbard_fjords_pp_version (version_id), row_no INTEGER NOT NULL, exposition_no TEXT, sample_date DATE, region_code TEXT, fjord_part TEXT, station TEXT, lat DOUBLE PRECISION, lon DOUBLE PRECISION, depth_m DOUBLE PRECISION, temperature_degc DOUBLE PRECISION, salinity DOUBLE PRECISION, ca_mg_m3 DOUBLE PRECISION, pe_mgc_m3_h DOUBLE PRECISION, pi_mgc_m2_day DOUBLE PRECISION, water_mass TEXT, raw TEXT[] NOT NULL, geom geometry(Point, 4326), PRIMARY KEY (version_id, row_no) )
+COMMENT ON COLUMN svalbard_fjords_pp_samples.raw IS 'All 14 source CSV cells verbatim, in source order. Storage is 1:1 with the source.'
+CREATE INDEX IF NOT EXISTS svalbard_fjords_pp_samples_geom_gix ON svalbard_fjords_pp_samples USING GIST (geom)
+CREATE INDEX IF NOT EXISTS svalbard_fjords_pp_samples_expo_idx ON svalbard_fjords_pp_samples (version_id, exposition_no)
+CREATE OR REPLACE VIEW svalbard_fjords_pp_samples_current AS SELECT s.* FROM svalbard_fjords_pp_samples s JOIN svalbard_fjords_pp_version v ON v.version_id = s.version_id WHERE v.is_current
+ALTER TABLE svalbard_fjords_pp_version OWNER TO abyssal_user
+ALTER TABLE svalbard_fjords_pp_samples OWNER TO abyssal_user
+ALTER VIEW svalbard_fjords_pp_samples_current OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS openaq_request_budget ( utc_day DATE PRIMARY KEY, requests INTEGER NOT NULL DEFAULT 0, updated_at TIMESTAMPTZ NOT NULL DEFAULT now() )
+ALTER TABLE openaq_request_budget OWNER TO abyssal_user

@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './urls.js';
 import { fetchUpstream, BackendUnavailable } from './upstream-fetch.js';
 import { CONSENT_BANNER_HTML } from './consent-banner.js';
+import { injectHiddenLayersMeta } from './hidden-layers.js';
 
 // Fallback repointed 2026-08-24 — see the note in server.js. The old default
 // named a host that no longer exists.
@@ -356,7 +357,7 @@ function renderOceansites(data) {
       ` : '<p>No active mining concessions within 500 km of this station.</p>'}
 
       <p><a href="https://something-rare.com/">View on interactive 3D map →</a></p>
-      <p style="color:#666;font-size:0.8em">Data: OceanSITES network / NDBC (NOAA) — public domain</p>
+      <p style="color:#666;font-size:0.8em">Data: OceanSITES station register via OceanOPS (© OceanOPS, non-commercial use with attribution) / NDBC (NOAA)</p>
     </main>
   `;
 }
@@ -515,7 +516,7 @@ function wrapHtml(headContent, bodyContent, opts) {
     Based on Abyssal Claims — &copy; 2026 Michal Mazurowski.
   </footer>`;
 
-  return `<!DOCTYPE html>
+  const page = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -531,6 +532,8 @@ ${CONSENT_BANNER_HTML}
 ${clientAssets}
 </body>
 </html>`;
+  // Only pages that boot the SPA need to know which layers this environment hides.
+  return opts.hydrate ? injectHiddenLayersMeta(page) : page;
 }
 
 async function fetchClaimReportSeoData(isaId) {

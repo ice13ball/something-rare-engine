@@ -28,7 +28,9 @@ from typing import Any, Awaitable, Callable
 
 import db
 from domains import acoustic, arctic, biodiversity, cables, fields
-from domains import geo_context, geochem, isa, offshore, onc, seafloor, sensors
+from domains import aoc2025_poc
+from domains import svalbard_fjords_pp
+from domains import geo_context, geochem, isa, offshore, onc, pangaea_water, seafloor, sensors
 from land_layers import (
     sync_all_land_sources,
     _sync_air_quality_readings, _sync_mining_footprints, _sync_kbas, _sync_wdpa,
@@ -174,6 +176,10 @@ SYNC_SOURCES: dict[str, Callable[[], Awaitable[Any]]] = {
     "permafrost-thaw": lambda: arctic.sync_permafrost_thaw_logged(force=True),
     "seaflea": lambda: geochem.sync_seaflea(force=True),
     "marhys": lambda: geochem.sync_marhys(force=True),
+    "coastdom": lambda: pangaea_water.sync_coastdom(force=True),
+    "greenland-pp": lambda: pangaea_water.sync_greenland_pp(force=True),
+    "aoc2025-poc": lambda: aoc2025_poc.sync_aoc2025_poc(force=True),
+    "svalbard-fjords-pp": lambda: svalbard_fjords_pp.sync_svalbard_fjords_pp(force=True),
     "sios":    lambda: arctic.sync_sios(force=True),
     "arcade":  lambda: arctic.sync_arcade(force=True),
     "bathymetry-stats": lambda: seafloor.sync_bathymetry_stats(force=True),

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config } from 'dotenv';
 import { SPA_PATHS, hydrates } from './seo/route-categories.js';
+import { HIDDEN_LAYER_IDS, injectHiddenLayersMeta } from './seo/hidden-layers.js';
 import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './seo/urls.js';
 import { forceHttpsMiddleware, wwwRedirectMiddleware } from './seo/canonical-hosts.js';
 import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, wrapHtml, siteCitation, renderHubPage, hubNavHtml, BackendUnavailable, EntityGone } from './seo/render-page.js';
@@ -1307,11 +1308,37 @@ app.get('/embed/concession/:id', async (req, res) => {
 const HOME_CANONICAL = 'https://something-rare.com';
 let homeShellForBots;
 
+// ── Per-environment hidden layers (HIDDEN_LAYERS) ─────────────────────────
+// With the env var unset this is inert: hiddenShell() is never consulted and the
+// static handler / sendFile serve dist/index.html exactly as before. With it set,
+// every response that boots the SPA must carry the meta tag, so the shell is
+// served from memory with the tag injected (express-static-gzip would otherwise
+// hand out the pre-compressed index.html.br without it).
+let hiddenShellCache;
+function hiddenShell() {
+  if (hiddenShellCache === undefined) {
+    hiddenShellCache = injectHiddenLayersMeta(
+      readFileSync(join(__dirname, 'dist', 'index.html'), 'utf8'));
+  }
+  return hiddenShellCache;
+}
+const hasHiddenLayers = HIDDEN_LAYER_IDS.length > 0;
+
 app.get('/', async (req, res, next) => {
-  if (!isBot(req)) return next();
+  if (!isBot(req)) {
+    if (!hasHiddenLayers) return next();
+    try {
+      // Same header express.static would have set on the file it replaces.
+      res.set('Cache-Control', 'public, max-age=0');
+      return res.type('html').send(hiddenShell());
+    } catch (err) {
+      console.error('hidden-layers shell failed:', err);
+      return next();
+    }
+  }
   try {
     if (homeShellForBots === undefined) {
-      const raw = readFileSync(join(__dirname, 'dist', 'index.html'), 'utf8');
+      const raw = injectHiddenLayersMeta(readFileSync(join(__dirname, 'dist', 'index.html'), 'utf8'));
       if (/rel=["']canonical["']/i.test(raw)) {
         // A static canonical is back in the shell — injecting a second one
         // would be worse than doing nothing. Serve as-is and make the noise
@@ -1374,6 +1401,14 @@ app.get('*', (req, res) => {
   //    the /blog/:slug pattern against the literal segment "index.html".
   const path = req.path.replace(/\/index\.html$/, '').replace(/\/+$/, '') || '/';
   if (SPA_PATHS.some(re => re.test(path))) {
+    if (hasHiddenLayers) {
+      try {
+        res.set('Cache-Control', 'public, max-age=0');
+        return res.type('html').send(hiddenShell());
+      } catch (err) {
+        console.error('hidden-layers shell failed:', err);
+      }
+    }
     return res.sendFile(join(__dirname, 'dist', 'index.html'));
   }
   res.status(404).type('html').send(

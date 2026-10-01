@@ -97,7 +97,7 @@
     },
     "oceansitesMoorings": {
       "label": "Kotwiczenia OceanSITES",
-      "source": "OceanOPS REST API (oceanops.org, CC-BY) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
+      "source": "API OceanOPS (ocean-ops.org; © OceanOPS, użycie niekomercyjne z podaniem źródła) · NOAA NDBC · NOAA PMEL ERDDAP (TAO/TRITON/PIRATA/RAMA) · OceanSITES GDAC (IFREMER)",
       "updateFreq": "Pozycje stacji synchronizowane tygodniowo z OceanOPS; obserwacje odświeżane codziennie i tylko dla stacji, które OceanOPS uznaje obecnie za czynne",
       "description": "Stałe cumy głębinowe międzynarodowej sieci OceanSITES. Mierzą temperaturę, zasolenie, prądy i biogeochemię w skali wielu lat — to szkielet monitoringu klimatu głębin. Mapa pokazuje cały rejestr OceanOPS, około 1070 stacji, z czego czynnych jest jedynie około 60; reszta jest zamknięta, nieaktywna albo tylko zarejestrowana i zostaje na mapie, bo wycofana cuma to nadal miejsce, w którym zmierzono długi szereg odniesienia. Odczyty pobieramy wyłącznie dla stacji czynnych, więc większość pierścieni niesie pozycję i metadane, ale żadnego pomiaru. Cumy w promieniu 500 km od koncesji górniczej pojawiają się w oknie roszczenia.",
       "reading": "Turkusowy pierścień = cuma w rejestrze OceanSITES/OceanOPS. Kliknij, aby zobaczyć kod stacji, sieć, datę rozstawienia oraz — jeśli istnieje strumień danych — zbuforowane odczyty wraz ze źródłem, które ich dostarczyło: NDBC, PMEL ERDDAP albo OceanSITES GDAC. Pierścień bez odczytów to nie awaria: odpytujemy tylko cumy czynne, a w praktyce odczyty pochodzą z PMEL i GDAC, nie z NDBC. Bliskość roszczeń górniczych oznacza, że długoletnie szeregi naukowe mogą zostać zaburzone przez pióropusze osadu albo hałas sejsmiczny."
@@ -744,6 +744,20 @@
       "reading": "punkty = pojedyncze próbki, kolor = typ próbki (pomarańczowy = płyn z komina, czerwony = skład krańcowy, niebieski = woda morska tła); kliknij, aby zobaczyć pełny skład, metadane pobrania i rzadziej występujące parametry; przełącz na Gęstość, aby zobaczyć skupiska pobrań. ⚠️ Odczyt magnezu równy 0 to prawdziwa wartość, a nie luka — skład krańcowy jest zdefiniowany jako ekstrapolacja do zerowego stężenia magnezu.",
       "limitations": "883 z 6 788 próbek nie można umieścić na mapie i są z niej nieobecne: 844 nie ma użytecznej współrzędnej, a 39 próbek z Guaymas Basin ma szerokość geograficzną 111.4°, co nie może być szerokością geograficzną — źródło zamieniło miejscami swoje dwie osie i zgubiło znak minus długości geograficznej. Te wiersze są zapisane z oryginalnymi wartościami źródła i bez geometrii; nic nie zostało poprawione. Jedna kolejna próbka jest błędnie umieszczona, ale mimo to się wyświetla: MARHYS umieszcza Saldanha Hydrothermal Field na 36.567 / +33.6, co GEBCO 2020 lokalizuje 417 m nad poziomem morza w Turcji, podczas gdy InterRidge podaje 36.567 / −33.433. To jedyna z 811 pozycji MARHYS, która ląduje na lądzie stałym. Data pobrania jest wolnym tekstem w ośmiu różnych formatach (sam rok, miesiąc i rok, przedziały, listy) i jest pokazana dokładnie tak, jak zapisano, a nie sparsowana na datę. Pokrycie podąża za opublikowaną literaturą, więc jest gęste w długo badanych polach (Wschodnie Wyniesienie Pacyfiku, Grzbiet Śródatlantycki) i rzadkie gdzie indziej — brak próbki nie oznacza braku komina. Zbiór danych jest zamrożony na wersji 4.0 pod swoim DOI i nie jest aktualizowany.",
       "sources": "MARHYS Database 4.0 — Diehl, Alexander; Bach, Wolfgang (2024), PANGAEA, doi:10.1594/PANGAEA.972999, CC-BY-4.0 (download.pangaea.de/dataset/972999). Warunki zbioru danych wymagają cytowania obok niego również publikacji źródłowej: Diehl, A. & Bach, W. (2020), MARHYS (MARine HYdrothermal Solutions) Database: A Global Compilation of Marine Hydrothermal Vent Fluid, End-Member, and Seawater Compositions, Geochemistry, Geophysics, Geosystems, doi:10.1029/2020GC009385. Opracowane w MARUM, University of Bremen."
+    },
+    "coastdom": {
+      "label": "Rozpuszczona materia organiczna w strefie przybrzeżnej (CoastDOM v1)",
+      "description": "Zmierzony rozpuszczony węgiel, azot i fosfor organiczny (DOC, DON, DOP), a tam, gdzie autorzy je podali, także węgiel, azot i fosfor w zawiesinie, rozpuszczony węgiel nieorganiczny, zasadowość, biogeny, chlorofil a, temperatura i zasolenie — globalna kompilacja próbek wód przybrzeżnych, 1978–2022. Każda wartość jest pokazana z jednostką podaną przez źródło.",
+      "reading": "Jeden znacznik na opróbowaną pozycję. Kolor = liczba próbek w tym miejscu (1 · 2–9 · 10–99 · ≥100), nigdy zmierzona wartość, więc żaden kolor nie sugeruje średniej. Kliknij znacznik, aby zobaczyć wszystkie próbki z tej pozycji według daty i głębokości, z flagą jakości, metodą i publikacjami.",
+      "limitations": "Kompilacja wielu programów i metod: porównuj wartości tylko razem z metodą i flagą jakości (skala WOCE 1–9). Wiersze źródła bez współrzędnych są policzone w nocie o wersji i nie są rysowane. Bez interpolacji: pusty obszar oznacza brak próbki w tej bazie, a nie niską wartość.",
+      "sources": "CoastDOM v1, PANGAEA, doi:10.1594/PANGAEA.964012 (CC-BY-4.0). Powiązana publikacja danych: ESSD 16, 1107 (2024), doi:10.5194/essd-16-1107-2024. Pełne cytowanie zbioru jest pokazane w panelu każdej próbki dokładnie tak, jak publikuje je PANGAEA."
+    },
+    "greenland-primary-production": {
+      "label": "Produkcja pierwotna – Morze Grenlandzkie (2021–2022)",
+      "description": "Produkcja pierwotna brutto węgla (GPP C) mierzona metodą wydzielania tlenu na 12 stacjach Morza Grenlandzkiego: czterech w sierpniu 2021 i ośmiu w sierpniu 2022.",
+      "reading": "Rozmiar znacznika odpowiada GPP — tempu na jednostkę powierzchni w mg C na metr kwadratowy na dobę (w źródle 'GPP C [mg/m**2/day]'). Nie jest porównywalne z wartościami na litr z innych warstw.",
+      "limitations": "Dwanaście stacji, po jednej wartości, z dwóch letnich rejsów. Źródło nie publikuje profilu głębokości ani flagi jakości. To nie jest szacunek sezonowy ani roczny.",
+      "sources": "PANGAEA doi:10.1594/PANGAEA.965985 (CC-BY-4.0). Powiązany artykuł: Front. Mar. Sci. 11, 1491180, doi:10.3389/fmars.2024.1491180."
     }
   },
   "header": {
@@ -1023,7 +1037,7 @@
     "unesco_title": "Morskie dziedzictwo UNESCO",
     "unesco": "Granice obszarów pochodzą z warstwy UNESCO World Heritage Marine Programme na MarineRegions WFS. Autorytatywna lista wszystkich morskich obszarów Dziedzictwa Światowego dostępna na whc.unesco.org/en/marine-programme/.",
     "oceansites_title": "Kotwiczenia OceanSITES",
-    "oceansites": "Metadane stacji pochodzą z OceanOPS — wyszukaj kod referencyjny z okna na oceanops.org. Odczyt sprawdzaj u źródła, które okno przy nim wskazuje: NDBC pod ndbc.noaa.gov/station_page.php?station=REF, PMEL pod data.pmel.noaa.gov/pmel/erddap, albo OceanSITES GDAC pod data-oceansites.ifremer.fr. Stacji bez odczytu nie da się sprawdzić w żadnym z tych miejsc — jest w rejestrze, ale nie jest odpytywana, a to co innego niż strumień, który zawiódł.",
+    "oceansites": "Metadane stacji pochodzą z OceanOPS — wyszukaj kod referencyjny z okna na ocean-ops.org. Odczyt sprawdzaj u źródła, które okno przy nim wskazuje: NDBC pod ndbc.noaa.gov/station_page.php?station=REF, PMEL pod data.pmel.noaa.gov/pmel/erddap, albo OceanSITES GDAC pod data-oceansites.ifremer.fr. Stacji bez odczytu nie da się sprawdzić w żadnym z tych miejsc — jest w rejestrze, ale nie jest odpytywana, a to co innego niż strumień, który zawiódł.",
     "currents_title": "Prądy oceaniczne",
     "currents": "Zweryfikuj prędkość i kierunek prądów w przeglądarce Copernicus Marine (produkt GLOBAL_ANALYSISFORECAST_PHY_001_024, zbiór danych cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m, zmienne uo/vo). Źródłowe pliki netCDF można pobrać za pomocą Copernicus Marine Toolbox:",
     "onc_title": "Obserwatoria ONC",
@@ -1115,7 +1129,9 @@
       "sioBenthic": "Kolekcja bezkręgowców bentonicznych SIO",
       "wod": "Światowa baza danych oceanograficznych (WOD)",
       "seabedSubstrate": "Podłoże dna morskiego (Dutkiewicz 2015)",
-      "arcticSedimentCarbon": "Węgiel w osadach arktycznych: zweryfikuj wartości stacji w repozytorium Bolin Centre CASCADE (doi.org/10.17043/cascade-2), posługując się nazwą stacji."
+      "arcticSedimentCarbon": "Węgiel w osadach arktycznych: zweryfikuj wartości stacji w repozytorium Bolin Centre CASCADE (doi.org/10.17043/cascade-2), posługując się nazwą stacji.",
+      "coastdom": "CoastDOM: pobierz tabelę źródłową z doi.org/10.1594/PANGAEA.964012 i znajdź próbkę po miejscu, dacie i głębokości pokazanych w panelu; wartości są serwowane dosłownie, z jednostkami źródła.",
+      "greenlandPrimaryProduction": "Produkcja pierwotna Morza Grenlandzkiego: porównaj stację po etykiecie zdarzenia na doi.org/10.1594/PANGAEA.965985."
     }
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",

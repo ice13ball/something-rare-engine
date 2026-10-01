@@ -328,6 +328,25 @@
         "setting": "Contexte",
         "rock": "Roche encaissante"
       }
+    },
+    "coastdom": {
+      "toggle": "Matière organique dissoute côtière (CoastDOM)",
+      "yearFilter": {
+        "title": "Année d'échantillonnage",
+        "from": "De l'année",
+        "to": "À l'année",
+        "undatedNote": "Restreindre la période masque les échantillons sans date dans la source ; la période complète affiche tout.",
+        "unavailable": "Le filtre d'année nécessite que les données de la couche soient chargées (ou rechargées). Activez la couche pour l'utiliser."
+      }
+    },
+    "greenlandPrimaryProduction": {
+      "toggle": "Production primaire de la mer du Groenland"
+    },
+    "greenlandSeaPocAoc2025": {
+      "toggle": "Greenland Sea POC — AOC2025"
+    },
+    "svalbardFjordsPrimaryProduction": {
+      "toggle": "Production primaire in situ — Fjords du Svalbard"
     }
   },
   "filters": {
@@ -510,7 +529,11 @@
       "ais-live": "Positions de navires en direct depuis les transpondeurs AIS, relayées par AISStream. Montre où les navires se trouvent maintenant, pas où ils sont passés — cliquez sur un navire pour charger sa trace sur 30 jours. La couverture dépend de la portée des récepteurs terrestres et satellitaires, donc le large est moins bien couvert que les eaux côtières.",
       "bathymetry": "Profondeur des fonds marins en relief ombré, issue de la grille mondiale GEBCO. C'est le terrain de base sur lequel reposent les autres couches océaniques. GEBCO combine des sondages directs et des estimations satellitaires : les zones lisses relèvent donc généralement de l'interpolation, non d'une planéité mesurée.",
       "vessel-events": "Détection de navires furtifs par SAR×AIS : contacts radar sans AIS correspondant. Zones de surveillance côtières uniquement.",
-      "marhys": "Compositions mesurées de fluides de cheminées hydrothermales — MARHYS 4.0 (Diehl & Bach 2024). Chaque point représente un échantillon, aux coordonnées publiées par la source. La couleur indique le type d'échantillon : orange pour le fluide mesuré à la cheminée, rouge pour un pôle extrême extrapolé à partir de celui-ci, bleu pour l'eau de mer de fond prélevée comme référence — et non un rejet. La vue Densité redessine les mêmes points sous forme d'agrégats ; elle ne déplace ni ne moyenne rien. Remarque : 883 des 6 788 échantillons n'ont pas de position exploitable et n'apparaissent jamais sur la carte, dont 39 pour lesquels la source indique une latitude de 111°."
+      "marhys": "Compositions mesurées de fluides de cheminées hydrothermales — MARHYS 4.0 (Diehl & Bach 2024). Chaque point représente un échantillon, aux coordonnées publiées par la source. La couleur indique le type d'échantillon : orange pour le fluide mesuré à la cheminée, rouge pour un pôle extrême extrapolé à partir de celui-ci, bleu pour l'eau de mer de fond prélevée comme référence — et non un rejet. La vue Densité redessine les mêmes points sous forme d'agrégats ; elle ne déplace ni ne moyenne rien. Remarque : 883 des 6 788 échantillons n'ont pas de position exploitable et n'apparaissent jamais sur la carte, dont 39 pour lesquels la source indique une latitude de 111°.",
+      "coastdom": "Carbone, azote et phosphore organiques dissous mesurés (DOC, DON, DOP) et paramètres associés de la colonne d'eau dans les eaux côtières du monde entier, 1978–2022 — CoastDOM v1, une compilation publiée sur PANGAEA. Un marqueur par position échantillonnée ; sa couleur indique le nombre d'échantillons, jamais une valeur.",
+      "greenland-primary-production": "Production primaire brute de carbone mesurée par dégagement d'oxygène à 12 stations de la mer du Groenland en août 2021 et août 2022 (PANGAEA). Un taux surfacique en mg C par mètre carré et par jour — la taille du marqueur suit ce taux.",
+      "greenland-sea-poc-aoc2025": "Carbone organique particulaire à 32 stations, campagne Atlantic-Arctic Ocean Change (AOC2025), mer du Groenland, 19–31 mai 2025 (Institut d'océanologie de l'Académie polonaise des sciences, CC-BY 4.0). Les métadonnées de la source indiquent une étendue temporelle qui ne correspond ni au titre ni aux données — montrée, non corrigée.",
+      "svalbard-fjords-primary-production": "Production primaire in situ, Kongsfjorden et Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, utilisé avec permission — la source ne publie aucune licence ouverte. Les métadonnées de la source indiquent des nombres de stations et d'incubations différents des données — montrés, non corrigés."
     },
     "densityScaleLabel": "Enregistrements par cellule",
     "argoReadingHeading": "Comment lire les mesures",
@@ -1410,12 +1433,84 @@
       "title": "Mesures les plus proches",
       "caption": "Mesure in situ réelle la plus proche pour chaque source — pas nécessairement représentative de ce point exact.",
       "unavailable": "Mesures indisponibles.",
-      "none": "Aucune mesure in situ dans le rayon de recherche."
+      "none": "Aucune mesure in situ dans le rayon de recherche.",
+      "discovered": "découvert en {{year}}",
+      "noDate": "aucune date dans la source"
+    },
+    "belowSeafloor": "La profondeur sélectionnée {{depth}} m est sous le fond marin ici ({{seafloor}} m, GEBCO). Seules les valeurs de surface et fixes s'appliquent.",
+    "belowSeafloorCell": "sous le fond marin",
+    "status": {
+      "columnSupersaturated": "plus profond que le fond marin — colonne sursaturée (ΩA > 1)",
+      "noHorizon": "non défini — aucun horizon dans cette colonne"
     }
   },
   "share": {
     "opener": "Partager la vue",
     "copied": "Lien copié",
     "failed": "Copie impossible"
+  },
+  "pangaeaWater": {
+    "samplesInRange": "{{inRange}} échantillons sur {{total}} en {{from}}–{{to}}",
+    "noDateInSource": "pas de date dans la source",
+    "samplesHere_one": "{{count}} échantillon à cette position",
+    "samplesHere_other": "{{count}} échantillons à cette position",
+    "loading": "Chargement des échantillons…",
+    "loadFailed": "Les échantillons n'ont pas pu être chargés.",
+    "sampleId": "ID d'échantillon",
+    "reference": "Référence",
+    "comment": "Commentaire",
+    "pi": "PI",
+    "citation": "Citation du jeu de données",
+    "related": "Publication associée",
+    "licence": "Licence",
+    "version": "Version publiée le {{date}} · SHA-256 {{sha}}",
+    "unmappable": "{{count}} lignes de la source n'ont pas de coordonnées et ne sont pas affichées.",
+    "dataAge": "Les dates sont les dates d'échantillonnage publiées par la source, jamais la date de synchronisation de cette plateforme.",
+    "gppRate": "Taux surfacique — carbone fixé sous un mètre carré de surface marine par jour.",
+    "date": "Date",
+    "unnamedLocation": "Lieu sans nom"
+  },
+  "aocPoc": {
+    "station": "Station",
+    "date": "Date",
+    "depth": "Profondeur nominale (dbar)",
+    "pressure": "Pression (dbar)",
+    "poc": "POC (mg dm⁻³)*",
+    "pn": "PN (mg dm⁻³)*",
+    "d13c": "δ¹³C (‰)",
+    "d15n": "δ¹⁵N (‰)",
+    "temperature": "Température (°C)",
+    "salinity": "Salinité (PSU)",
+    "citation": "Citation du jeu de données",
+    "licence": "Licence",
+    "dataKind": "Type de données : mesures",
+    "window": "Période d'observation",
+    "metadataDiscrepancy": "Les métadonnées de la source indiquent une étendue temporelle (24/07/2024 au 09/08/2024) qui ne correspond ni au titre ni aux données de ce jeu de données (19-31 mai 2025). Cette plateforme utilise les dates des données.",
+    "unitNote": "* Unité indiquée dans le résumé du jeu de données ; elle n'apparaît pas dans le fichier de données.",
+    "p01Note": "Les unités de profondeur, δ¹³C et δ¹⁵N suivent les codes SeaDataNet P01 : PRESPR01, D13CMOP11, D15NEAM1.",
+    "loading": "Chargement des échantillons…",
+    "loadFailed": "Les échantillons n'ont pas pu être chargés.",
+    "samplesHere_one": "{{count}} échantillon à cette station",
+    "samplesHere_other": "{{count}} échantillons à cette station"
+  },
+  "svalbardFjordsPp": {
+    "licenceFallback": "© Institute of Oceanology PAS (IO PAN). Utilisé avec permission ; la source ne publie aucune licence ouverte.",
+    "fjord": "Fjord",
+    "fjordPart": "Partie du fjord",
+    "coordinates": "Coordonnées",
+    "discrepancies": "Métadonnées vs données",
+    "metadataSays": "Les métadonnées indiquent",
+    "dataShows": "Les données montrent",
+    "loading": "Chargement des échantillons…",
+    "loadFailed": "Les échantillons n'ont pas pu être chargés.",
+    "piLabel": "Production intégrée journalière",
+    "piNotReported": "Non signalé pour cette visite",
+    "caNote": "Ca (mg m⁻³) : non défini dans l'enregistrement source ; dans les données de production primaire, cela désigne généralement la chlorophylle a.",
+    "salinityNote": "La salinité est publiée sans unité dans la source.",
+    "citation": "Citation du jeu de données",
+    "colDepth": "Prof.",
+    "colTemperature": "Temp.",
+    "colSalinity": "Salinité",
+    "colWaterMass": "Masse d'eau"
   }
 }

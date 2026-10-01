@@ -328,6 +328,25 @@
         "setting": "Umgebung",
         "rock": "Wirtsgestein"
       }
+    },
+    "coastdom": {
+      "toggle": "Gelöste organische Substanz in Küstengewässern (CoastDOM)",
+      "yearFilter": {
+        "title": "Probenjahr",
+        "from": "Von Jahr",
+        "to": "Bis Jahr",
+        "undatedNote": "Ein eingeschränkter Zeitraum blendet Proben ohne Datum in der Quelle aus; der volle Zeitraum zeigt alles.",
+        "unavailable": "Der Jahresfilter benötigt geladene (oder neu geladene) Ebenendaten. Schalten Sie die Ebene ein, um ihn zu aktivieren."
+      }
+    },
+    "greenlandPrimaryProduction": {
+      "toggle": "Primärproduktion der Grönlandsee"
+    },
+    "greenlandSeaPocAoc2025": {
+      "toggle": "Greenland Sea POC — AOC2025"
+    },
+    "svalbardFjordsPrimaryProduction": {
+      "toggle": "In-situ-Primärproduktion — Svalbard-Fjorde"
     }
   },
   "filters": {
@@ -510,7 +529,11 @@
       "ais-live": "Live-Schiffspositionen von AIS-Transpondern, weitergeleitet über AISStream. Zeigt, wo Schiffe jetzt sind, nicht wo sie waren — klicken Sie ein Schiff an, um seine 30-Tage-Spur zu laden. Die Abdeckung hängt von der Reichweite terrestrischer und satellitengestützter Empfänger ab, offene See ist daher lückenhafter als Küstengewässer.",
       "bathymetry": "Meeresbodentiefe als Schummerungsrelief aus dem globalen GEBCO-Gitter. Dies ist das Basisgelände, auf dem die übrigen Ozeanschichten liegen. GEBCO verbindet direkte Lotungen mit satellitengestützten Schätzungen — glatte Bereiche sind daher meist Interpolation, keine gemessene Ebenheit.",
       "vessel-events": "SAR×AIS-Erkennung dunkler Schiffe: Radarkontakte ohne passendes AIS-Signal. Nur küstennahe Beobachtungszonen.",
-      "marhys": "Gemessene Zusammensetzungen hydrothermaler Quellflüssigkeiten — MARHYS 4.0 (Diehl & Bach 2024). Jeder Punkt ist eine Probe, an den von der Quelle veröffentlichten Koordinaten. Die Farbe zeigt den Probentyp: Orange ist die an einer Quelle gemessene Flüssigkeit, Rot ist eine daraus extrapolierte Endglied-Zusammensetzung, Blau ist Hintergrund-Meerwasser, das als Referenz entnommen wurde — kein Austritt. Die Dichteansicht zeichnet dieselben Punkte als Cluster neu; dabei wird nichts verschoben und nichts gemittelt. Hinweis: 883 von 6.788 Proben haben keine verwertbare Position und erscheinen nie auf der Karte, darunter 39, für die die Quelle einen Breitengrad von 111° angibt."
+      "marhys": "Gemessene Zusammensetzungen hydrothermaler Quellflüssigkeiten — MARHYS 4.0 (Diehl & Bach 2024). Jeder Punkt ist eine Probe, an den von der Quelle veröffentlichten Koordinaten. Die Farbe zeigt den Probentyp: Orange ist die an einer Quelle gemessene Flüssigkeit, Rot ist eine daraus extrapolierte Endglied-Zusammensetzung, Blau ist Hintergrund-Meerwasser, das als Referenz entnommen wurde — kein Austritt. Die Dichteansicht zeichnet dieselben Punkte als Cluster neu; dabei wird nichts verschoben und nichts gemittelt. Hinweis: 883 von 6.788 Proben haben keine verwertbare Position und erscheinen nie auf der Karte, darunter 39, für die die Quelle einen Breitengrad von 111° angibt.",
+      "coastdom": "Gemessener gelöster organischer Kohlenstoff, Stickstoff und Phosphor (DOC, DON, DOP) sowie weitere Wassersäulenparameter in Küstengewässern weltweit, 1978–2022 — CoastDOM v1, eine auf PANGAEA veröffentlichte Kompilation. Ein Marker pro beprobter Position; die Farbe zeigt die Zahl der Proben dort, nie einen Messwert.",
+      "greenland-primary-production": "Bruttoprimärproduktion von Kohlenstoff, gemessen über die Sauerstoffentwicklung an 12 Stationen der Grönlandsee im August 2021 und August 2022 (PANGAEA). Eine flächenbezogene Rate in mg C pro Quadratmeter und Tag — die Markergröße folgt der Rate.",
+      "greenland-sea-poc-aoc2025": "Partikulärer organischer Kohlenstoff an 32 Stationen, Fahrt Atlantic-Arctic Ocean Change (AOC2025), Grönlandsee, 19.–31. Mai 2025 (Institut für Ozeanologie der Polnischen Akademie der Wissenschaften, CC-BY 4.0). Die Metadaten der Quelle geben einen zeitlichen Umfang an, der nicht mit dem Titel oder den Daten übereinstimmt — gezeigt, nicht korrigiert.",
+      "svalbard-fjords-primary-production": "In-situ-Primärproduktion, Kongsfjorden & Hornsund (Spitzbergen), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, mit Genehmigung verwendet — die Quelle veröffentlicht keine offene Lizenz. Die Metadaten der Quelle nennen Stations- und Inkubationszahlen, die von den Daten abweichen — gezeigt, nicht korrigiert."
     },
     "densityScaleLabel": "Datensätze pro Zelle",
     "argoReadingHeading": "So liest man die Messwerte",
@@ -1410,12 +1433,84 @@
       "title": "Nächstgelegene Messungen",
       "caption": "Nächstgelegene reale In-situ-Messung je Quelle — nicht zwangsläufig repräsentativ für diesen genauen Punkt.",
       "unavailable": "Messungen nicht verfügbar.",
-      "none": "Keine In-situ-Messung im Suchradius."
+      "none": "Keine In-situ-Messung im Suchradius.",
+      "discovered": "entdeckt {{year}}",
+      "noDate": "keine Angabe in der Quelle"
+    },
+    "belowSeafloor": "Die gewählte Tiefe {{depth}} m liegt hier unter dem Meeresboden ({{seafloor}} m, GEBCO). Es gelten nur Oberflächen- und feste Werte.",
+    "belowSeafloorCell": "unter dem Meeresboden",
+    "status": {
+      "columnSupersaturated": "tiefer als der Meeresboden — Wassersäule übersättigt (ΩA > 1)",
+      "noHorizon": "nicht definiert — kein Horizont in dieser Wassersäule"
     }
   },
   "share": {
     "opener": "Ansicht teilen",
     "copied": "Link kopiert",
     "failed": "Kopieren fehlgeschlagen"
+  },
+  "pangaeaWater": {
+    "samplesInRange": "{{inRange}} von {{total}} Proben in {{from}}–{{to}}",
+    "noDateInSource": "kein Datum in der Quelle",
+    "samplesHere_one": "{{count}} Probe an dieser Position",
+    "samplesHere_other": "{{count}} Proben an dieser Position",
+    "loading": "Proben werden geladen…",
+    "loadFailed": "Die Proben konnten nicht geladen werden.",
+    "sampleId": "Proben-ID",
+    "reference": "Referenz",
+    "comment": "Kommentar",
+    "pi": "PI",
+    "citation": "Datensatz-Zitat",
+    "related": "Zugehörige Publikation",
+    "licence": "Lizenz",
+    "version": "Version veröffentlicht am {{date}} · SHA-256 {{sha}}",
+    "unmappable": "{{count}} Quellzeilen haben keine Koordinaten und werden nicht gezeichnet.",
+    "dataAge": "Die Daten sind die von der Quelle veröffentlichten Probenahmedaten, nie das Synchronisationsdatum dieser Plattform.",
+    "gppRate": "Flächenbezogene Rate — Kohlenstoff, der unter einem Quadratmeter Meeresoberfläche pro Tag fixiert wird.",
+    "date": "Datum",
+    "unnamedLocation": "Unbenannter Ort"
+  },
+  "aocPoc": {
+    "station": "Station",
+    "date": "Datum",
+    "depth": "Tiefe, nominal (dbar)",
+    "pressure": "Druck (dbar)",
+    "poc": "POC (mg dm⁻³)*",
+    "pn": "PN (mg dm⁻³)*",
+    "d13c": "δ¹³C (‰)",
+    "d15n": "δ¹⁵N (‰)",
+    "temperature": "Temperatur (°C)",
+    "salinity": "Salzgehalt (PSU)",
+    "citation": "Zitat des Datensatzes",
+    "licence": "Lizenz",
+    "dataKind": "Datenart: Messungen",
+    "window": "Beobachtungszeitraum",
+    "metadataDiscrepancy": "Die Metadaten der Quelle geben einen zeitlichen Umfang (24.07.2024 bis 09.08.2024) an, der nicht mit dem Titel oder den Daten dieses Datensatzes (19.–31. Mai 2025) übereinstimmt. Diese Plattform verwendet die Daten im Datensatz selbst.",
+    "unitNote": "* Einheit aus dem Abstract des Datensatzes; sie ist in der Datendatei nicht angegeben.",
+    "p01Note": "Die Einheiten von Tiefe, δ¹³C und δ¹⁵N folgen den SeaDataNet-P01-Codes PRESPR01, D13CMOP11, D15NEAM1.",
+    "loading": "Proben werden geladen…",
+    "loadFailed": "Die Proben konnten nicht geladen werden.",
+    "samplesHere_one": "{{count}} Probe an dieser Station",
+    "samplesHere_other": "{{count}} Proben an dieser Station"
+  },
+  "svalbardFjordsPp": {
+    "licenceFallback": "© Institute of Oceanology PAS (IO PAN). Mit Genehmigung verwendet; die Quelle veröffentlicht keine offene Lizenz.",
+    "fjord": "Fjord",
+    "fjordPart": "Fjordteil",
+    "coordinates": "Koordinaten",
+    "discrepancies": "Metadaten vs. Daten",
+    "metadataSays": "Metadaten besagen",
+    "dataShows": "Daten zeigen",
+    "loading": "Proben werden geladen…",
+    "loadFailed": "Die Proben konnten nicht geladen werden.",
+    "piLabel": "Tägliche integrierte Produktion",
+    "piNotReported": "Für diesen Besuch nicht gemeldet",
+    "caNote": "Ca (mg m⁻³): im Quelldatensatz nicht definiert; in Primärproduktionsdaten bezeichnet dies meist Chlorophyll a.",
+    "salinityNote": "Der Salzgehalt wird in der Quelle ohne Einheit veröffentlicht.",
+    "citation": "Zitat des Datensatzes",
+    "colDepth": "Tiefe",
+    "colTemperature": "Temp.",
+    "colSalinity": "Salzgehalt",
+    "colWaterMass": "Wassermasse"
   }
 }

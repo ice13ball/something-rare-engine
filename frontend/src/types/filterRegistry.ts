@@ -6,6 +6,7 @@ import { useMapStore } from "../store/mapStore";
 import { AssertComplete, AssertDisjoint } from "./layerRegistry";
 import { VENT_STATUS_VALUES, CLAIM_RISK_VALUES, MARHYS_SAMPLE_TYPE_VALUES } from "./layers";
 import { TAILINGS_HAZARD_VALUES } from "./landLayers";
+import { COASTDOM_YEAR_RANGE_KEY, decodeYearRange, encodeYearRange } from "../utils/coastdomYearFilter";
 
 /**
  * Every `Set<string>` store field a share link is allowed to carry.
@@ -119,6 +120,9 @@ export function collectShareableFilters(state: MapStore): Record<string, string[
     const value = state[key] as Set<string>;
     if (value.size > 0) out[key] = [...value];
   }
+  // Not a Set, so outside SHAREABLE_FILTER_FIELDS: a two-string range, only when narrowed.
+  const yr = encodeYearRange(state.coastdomYearRange);
+  if (yr) out[COASTDOM_YEAR_RANGE_KEY] = yr;
   return out;
 }
 
@@ -137,6 +141,11 @@ export function collectShareableFilters(state: MapStore): Record<string, string[
 export function applyShareableFilters(payload: Record<string, unknown>): void {
   const patch: Partial<MapStore> = {};
   for (const [key, value] of Object.entries(payload)) {
+    if (key === COASTDOM_YEAR_RANGE_KEY) {
+      const r = decodeYearRange(value);
+      if (r) patch.coastdomYearRange = r;
+      continue;
+    }
     if (!isShareableFilterField(key)) continue;
     if (!Array.isArray(value) || !value.every((v) => typeof v === "string")) continue;
     let values = value as string[];

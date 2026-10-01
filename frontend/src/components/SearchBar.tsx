@@ -284,6 +284,24 @@ const SEARCH_CONFIGS = [
     color: "#fb923c",
   },
   {
+    key: "coastdom", layerId: "coastdom", label: "Coastal DOM (CoastDOM)",
+    fields: ["location"],
+    display: p => ({
+      primary: String(p.location ?? ""),
+      secondary: `${String(p.n_samples ?? "")} samples · ${String(p.date_min ?? "")}–${String(p.date_max ?? "")}`,
+    }),
+    color: "#2dd4bf",
+  },
+  {
+    key: "greenlandPp", layerId: "greenland-primary-production", label: "Greenland Sea Primary Production",
+    fields: ["event", "event_2"],
+    display: p => ({
+      primary: String(p.event ?? ""),
+      secondary: [p.event_2, p.sample_date].filter(Boolean).join(" · "),
+    }),
+    color: "#84cc16",
+  },
+  {
     key: "arcticRivers", layerId: "arctic-rivers", label: "Arctic Rivers",
     fields: ["river_name", "site_label", "source"],
     display: p => ({
@@ -349,6 +367,28 @@ const SEARCH_CONFIGS = [
     display: p => ({ primary: `Station ${String(p.station ?? p.station_id ?? "")}`,
                      secondary: String(p.expedition ?? "") }),
     color: "#d4a373",
+  },
+  {
+    key: "aocPoc", layerId: "greenland-sea-poc-aoc2025", label: "Greenland Sea POC — AOC2025",
+    fields: ["station"],
+    display: p => ({ primary: `Station ${String(p.station ?? "")}`,
+                     secondary: String(p.n_samples ? `${p.n_samples} samples` : "") }),
+    color: "#f59e0b",
+  },
+  {
+    key: "svalbardFjordsPp", layerId: "svalbard-fjords-primary-production",
+    label: "In situ Primary Production — Svalbard Fjords",
+    fields: ["station", "region_code"],
+    // One station name can sit at several positions (K2 has two), so the
+    // secondary line carries the coordinates and years that tell them apart.
+    display: p => ({ primary: `Station ${String(p.station ?? "")}`,
+                     secondary: [
+                       String(p.region_name ?? p.region_code ?? ""),
+                       String(p.position_id ?? "").split(":").slice(-2).join(", "),
+                       [p.first_date, p.last_date].map(d => String(d ?? "").slice(0, 4))
+                         .filter((y, i, a) => y && a.indexOf(y) === i).join("–"),
+                     ].filter(Boolean).join(" · ") }),
+    color: "#6366f1",
   },
 ] as const satisfies readonly SearchConfig[];
 
@@ -419,7 +459,7 @@ function getCoords(feature: Feature): [number, number] | null {
  * wrong until someone follows the link. Keep the two lists in the same order.
  */
 export function featureId(p: Record<string, unknown>): string | number {
-  return (p.mmsi ?? p.vessel_id ?? p.event_id ?? p.isa_id ?? p.id ?? p.platform_id ?? p.peak_id ?? p.mrgid ?? p.site_id ?? p.device_id ?? p.device_code ?? p.city ?? p.dam_name ?? p.site_name ?? p.station_id ?? p.cast_id ?? p.ext_id ?? p.metadata_id ?? p.unique_id ?? p.source_row ?? "") as string | number;
+  return (p.mmsi ?? p.vessel_id ?? p.event_id ?? p.isa_id ?? p.id ?? p.platform_id ?? p.peak_id ?? p.mrgid ?? p.site_id ?? p.device_id ?? p.device_code ?? p.city ?? p.dam_name ?? p.site_name ?? p.station_id ?? p.cast_id ?? p.ext_id ?? p.metadata_id ?? p.unique_id ?? p.source_row ?? p.event ?? p.position_id ?? p.station ?? "") as string | number;
 }
 
 /**

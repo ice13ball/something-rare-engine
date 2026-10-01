@@ -219,3 +219,30 @@ const MARHYS_TYPE_COLOR_DEFAULT: [number, number, number, number] = [148, 163, 1
 export function marhysTypeColor(sampleType: unknown): [number, number, number, number] {
   return MARHYS_TYPE_COLOR[String(sampleType)] ?? MARHYS_TYPE_COLOR_DEFAULT;
 }
+
+// ── CoastDOM / Greenland Sea primary production ───────────────────────────
+/** CoastDOM: colour = how many samples the source holds at a position.
+ *  ⛔ Never a measured value — one position holds up to 1,415 samples over 44
+ *  years and many depths; a colour from their values would be an average
+ *  nobody measured. */
+export const COASTDOM_COUNT_BINS = [
+  { min: 1,   hex: "#99f6e4", label: "1" },
+  { min: 2,   hex: "#2dd4bf", label: "2–9" },
+  { min: 10,  hex: "#0d9488", label: "10–99" },
+  { min: 100, hex: "#134e4a", label: "≥100" },
+] as const;
+
+export function coastdomCountColor(n: unknown): [number, number, number, number] {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
+  let hex: string = COASTDOM_COUNT_BINS[0].hex;
+  for (const b of COASTDOM_COUNT_BINS) if (v >= b.min) hex = b.hex;
+  const [r, g, bl] = hexToRgbTriple(hex);
+  return [r, g, bl, 220];
+}
+
+/** Greenland Sea GPP: radius grows with the square root of the areal rate, so
+ *  the marker AREA is proportional to it. Missing value → smallest marker. */
+export function gppRadiusPx(gpp: unknown, max: number): number {
+  if (typeof gpp !== "number" || !Number.isFinite(gpp) || gpp <= 0 || max <= 0) return 4;
+  return 4 + 12 * Math.sqrt(Math.min(gpp, max) / max);
+}

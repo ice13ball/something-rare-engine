@@ -2,6 +2,9 @@
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
 import { useState, useEffect } from "react";
+import { SEA_LAYER_IDS } from "../types/layers";
+import { LAND_LAYER_IDS } from "../types/landLayers";
+import { applyHiddenLayers } from "./hiddenLayers";
 
 export interface LayerConfig {
   id: string;
@@ -10,8 +13,8 @@ export interface LayerConfig {
   modes: string[];
 }
 
-// Mirrors backend/main.py LAYER_DEFAULTS_PY — one-time DB seed + runtime fallback.
-// KEEP IN SYNC WITH backend/main.py LAYER_DEFAULTS_PY.
+// Mirrors backend/startup_seeds.py LAYER_DEFAULTS_PY — one-time DB seed + runtime fallback.
+// KEEP IN SYNC WITH backend/startup_seeds.py LAYER_DEFAULTS_PY.
 export const LAYER_DEFAULTS: LayerConfig[] = [
   // Bathymetry MUST stay at the lowest order_idx so it always renders behind
   // everything else (concessions, vents, Argo, etc.). Layers missing from this
@@ -71,6 +74,14 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "marhys",                 order_idx: 2087, default_on: false, modes: ["ocean","continue"] },
   { id: "permafrost-thaw",        order_idx: 2086, default_on: false, modes: ["ocean","continue"] },
   { id: "mosaic-sediment",        order_idx: 2088, default_on: false, modes: ["ocean","continue"] },
+  { id: "coastdom",               order_idx: 2089, default_on: false, modes: ["ocean","continue"] },
+  { id: "greenland-primary-production", order_idx: 2090, default_on: false, modes: ["ocean","continue"] },
+  // Forced into this registry by the FE↔BE parity test; not added to the
+  // export registry, DATA-LICENCES inventory counts, llms.txt or SEO.
+  { id: "greenland-sea-poc-aoc2025", order_idx: 2091, default_on: false, modes: ["ocean","continue"] },
+  // Not added to the export registry, DATA-LICENCES inventory counts,
+  // llms.txt, sitemap or public API docs — same as its sibling above.
+  { id: "svalbard-fjords-primary-production", order_idx: 2092, default_on: false, modes: ["ocean","continue"] },
   { id: "vme-suitability",        order_idx: 68,   default_on: false, modes: ["ocean","continue"] },
   { id: "ocean-acidification",    order_idx: 69,   default_on: false, modes: ["ocean","continue"] },
   { id: "coral-acid-exposure",    order_idx: 71,   default_on: false, modes: ["ocean","continue"] },
@@ -147,7 +158,19 @@ function mergeDefaults(apiData: LayerConfig[]): LayerConfig[] {
 /** The enabled-layer id set from a successful API response (which returns only
  *  status='enabled' rows). null means "unknown / fetch failed" → callers allow all. */
 export function deriveEnabledIds(apiData: LayerConfig[] | null): Set<string> | null {
-  return apiData ? new Set(apiData.map(d => d.id)) : null;
+  return applyHiddenLayers(apiData ? new Set(apiData.map(d => d.id)) : null, knownLayerIds());
+}
+
+/** Every layer id the app can render — what "allow-all" means once some ids are
+ *  hidden per environment (HIDDEN_LAYERS) and null can no longer express it. */
+function knownLayerIds(): Set<string> {
+  return new Set<string>([...LAYER_DEFAULTS.map(d => d.id), ...SEA_LAYER_IDS, ...LAND_LAYER_IDS]);
+}
+
+/** The enabled set before /layer-config has answered: null (allow-all) unless the
+ *  environment hides layers, in which case they must be hidden from the first paint. */
+export function initialEnabledIds(): Set<string> | null {
+  return applyHiddenLayers(null, knownLayerIds());
 }
 
 export async function fetchLayerConfig(): Promise<{ config: LayerConfig[]; enabledIds: Set<string> | null }> {
@@ -177,12 +200,12 @@ export async function fetchLayerConfig(): Promise<{ config: LayerConfig[]; enabl
 
   // 3. Hardcoded fallback — allow-all (enabledIds null) so a backend outage NEVER blanks the map.
   console.warn("[layerConfig] using hardcoded LAYER_DEFAULTS fallback (allow-all)");
-  return { config: LAYER_DEFAULTS, enabledIds: null };
+  return { config: LAYER_DEFAULTS, enabledIds: initialEnabledIds() };
 }
 
 export function useLayerConfig(): [LayerConfig[], boolean, Set<string> | null] {
   const [config, setConfig] = useState<LayerConfig[]>(LAYER_DEFAULTS);
-  const [enabledIds, setEnabledIds] = useState<Set<string> | null>(null);
+  const [enabledIds, setEnabledIds] = useState<Set<string> | null>(initialEnabledIds);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

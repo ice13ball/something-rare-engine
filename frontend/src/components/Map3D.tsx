@@ -29,11 +29,14 @@ import type { DatasetStats } from "../utils/argoAlarms";
 import { loadMapState, saveMapState, consumeReturnFly, saveReturnFlyFromViewState } from "../utils/mapState";
 import { setLiveMapState } from "../utils/liveMapState";
 import { useLiveShareUrl } from "./map3d/useLiveShareUrl";
-import { openTargetFor, isOpenableLayer, OPENABLE_LOOKUP } from "./map3d/openFromLink";
+import { openTargetFor, isOpenableLayer, OPENABLE_LOOKUP, clickIdFor } from "./map3d/openFromLink";
 import { pointTargetFor, isPointLayer } from "./map3d/pointFromLink";
 import { FocusUnavailableNotice } from "./FocusUnavailableNotice";
 import { decodeShareState } from "../utils/shareState";
 import { applyShareableFilters } from "../types/filterRegistry";
+import {
+  coastdomYearBounds, effectiveCoastdomRange, coastdomInRangeCount, coastdomPassesYearRange,
+} from "../utils/coastdomYearFilter";
 import { applyShareableDisplay } from "../types/displayRegistry";
 import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam, linkCarriesView } from "./map3d/shareBootstrap";
 import { nextActiveForLink, NO_CLIENT_COPY } from "./map3d/linkLayerActivation";
@@ -62,6 +65,7 @@ import { stationAqi, AQI_NO_DATA_COLOR } from "../styles/aqi";
 import { ONC_EOV_CATEGORIES, ONC_ALL_KNOWN_CATEGORIES } from "../types/onc";
 import type { OncEov } from "../types/onc";
 import { useLayerConfig, DECK_TO_TOGGLE } from "../utils/layerConfig";
+import { isLayerHidden } from "../utils/hiddenLayers";
 import { gebcoTileUrl } from "../utils/gebcoTiles";
 import { wodDecadeColor } from "../utils/wodDecades";
 import { seepTypeColorRgba } from "../utils/seepTypes";
@@ -78,6 +82,7 @@ import {
   MINING_FOOTPRINTS_FILL, MINING_FOOTPRINTS_STROKE,
   hydrophoneSourceColor,
   marhysTypeColor,
+  coastdomCountColor, gppRadiusPx,
 } from "./map3d/colors";
 import {
   type Box, expandBox, walkCoords, bboxToView, getBBoxCenter,
@@ -397,6 +402,8 @@ export function Map3D() {
   const cascadeVariable      = useMapStore(s => s.cascadeVariable);
   const cascadeDisplayMode   = useMapStore(s => s.cascadeDisplayMode);
   const cascadeDecadeFilters = useMapStore(s => s.cascadeDecadeFilters);
+  const coastdomYearRange = useMapStore(s => s.coastdomYearRange);
+  const setCoastdomYearBounds = useMapStore(s => s.setCoastdomYearBounds);
   const currentsDepth      = useMapStore((s) => s.currentsDepth);
   const currentsDate       = useMapStore((s) => s.currentsDate);
   const setCurrentsDate    = useMapStore((s) => s.setCurrentsDate);
@@ -578,11 +585,20 @@ export function Map3D() {
   const {
     eezData, protectedSitesData, seamountsData, oceansitesData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
-    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, portsData,
+    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
     damsData, vesselEventsData, aisLiveData, arcticRiversData, siosData,
     methaneSeepsData, permafrostThawData, cascadeStationsData, monitoringDensityData,
   } = useLayerData(activeLayers, fetchGuarded);
+
+  const greenlandPpMax = useMemo(() => {
+    let m = 0;
+    for (const f of greenlandPpData?.features ?? []) {
+      const v = (f.properties ?? {}).gpp_c_mg_m2_day;
+      if (typeof v === "number" && v > m) m = v;
+    }
+    return m;
+  }, [greenlandPpData]);
 
   // Ref that always points to current layer data — read by SearchBar on each keystroke
   const searchDataRef = useRef<Record<string, FeatureCollection | null>>({});
@@ -597,6 +613,10 @@ export function Map3D() {
       deepdataStations: deepdataStationsData,
       hydrophones: hydrophoneData,
       marhys: marhysData,
+      coastdom: coastdomData,
+      greenlandPp: greenlandPpData,
+      aocPoc: aocPocData,
+      svalbardFjordsPp: svalbardFjordsPpData,
       tectonic: tectonicData?.boundaries ?? null,
       tailings: tailingsData, fires: firesData, airQuality: airQualityData,
       landslides: landslidesData, dams: damsData, arcticRivers: arcticRiversData,
@@ -612,7 +632,7 @@ export function Map3D() {
       permafrostThaw: permafrostThawData,
     };
     setSearchDataVersion(v => v + 1);
-  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
+  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
 
   const mapRef = useRef<any>(null);
 
@@ -1808,6 +1828,22 @@ export function Map3D() {
     });
   }, [cascadeStationsData, cascadeDecadeFilters]);
 
+  // CoastDOM year range. ⛔ `coastdomRange` is null (= identity: every position, colour
+  // by total n_samples incl. undated) unless the user has narrowed it AND the payload
+  // carries year_counts. The useMemo, the flyConfigs predicate and the colour accessor
+  // all go through the same helpers in utils/coastdomYearFilter.ts.
+  const coastdomBounds = useMemo(() => coastdomYearBounds(coastdomData?.features as any), [coastdomData]);
+  useEffect(() => { setCoastdomYearBounds(coastdomBounds); }, [coastdomBounds, setCoastdomYearBounds]);
+  const coastdomRange = useMemo(
+    () => effectiveCoastdomRange(coastdomYearRange, coastdomBounds),
+    [coastdomYearRange, coastdomBounds],
+  );
+  const filteredCoastdomFeatures = useMemo(() => {
+    const feats = coastdomData?.features ?? [];
+    if (!coastdomRange) return feats;
+    return feats.filter((f: any) => coastdomPassesYearRange(f.properties, coastdomRange));
+  }, [coastdomData, coastdomRange]);
+
   const _oncEovAllowed = useMemo(() => {
     if (oncEovFilters.size === 0) return null;
     return new Set(
@@ -1924,13 +1960,16 @@ export function Map3D() {
   }, []);
   useEffect(() => {
     if (linkObjectsDoneRef.current) return;
-    const wanted = _urlShare?.openObjects ?? [];
+    // A layer this environment hides (HIDDEN_LAYERS) cannot be switched on, so a
+    // link naming one must be dropped here — not reported as "gone", and not left
+    // to re-request activation on every render.
+    const wanted = (_urlShare?.openObjects ?? []).filter(([layerId]) => !isLayerHidden(layerId));
     // Spots on a continuous field, carried as coordinates rather than ids.
     // ⛔ Handled in THIS effect, not a second one: both kinds compete for the
     // same three panel slots and both may need their layer switched on, and
     // two effects racing to do that would turn a layer on twice and open the
     // fourth panel of three.
-    const wantedPoints = _urlShare?.points ?? [];
+    const wantedPoints = (_urlShare?.points ?? []).filter(([layerId]) => !isLayerHidden(layerId));
     if (wanted.length === 0 && wantedPoints.length === 0) { linkObjectsDoneRef.current = true; return; }
 
     // ⭐ One lookup for every openable layer, through the map the search bar
@@ -2367,6 +2406,11 @@ export function Map3D() {
         ? (f: any) => marhysTypeFilters.has(String((f.properties ?? {}).sample_type))
         : undefined,
     },
+    coastdom: { deckLayerId: "coastdom", idProp: "site_id",
+                filter: (f: any) => coastdomPassesYearRange(f.properties, coastdomRange) },
+    "greenland-primary-production": { deckLayerId: "greenland-primary-production", idProp: "event" },
+    "greenland-sea-poc-aoc2025": { deckLayerId: "greenland-sea-poc-aoc2025", idProp: "station" },
+    "svalbard-fjords-primary-production": { deckLayerId: "svalbard-fjords-primary-production", idProp: "position_id" },
     "ports":               { deckLayerId: "ports" },
     "monitoring-density":  { deckLayerId: "monitoring-density" },
     "tectonic-plates":  { deckLayerId: "tectonic-plates-boundaries" },
@@ -2487,7 +2531,7 @@ export function Map3D() {
         return cascadeDecadeFilters.has(String(d));
       },
     },
-  }) as const satisfies Record<string, FlyConfig>, [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses, datasetStats, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
+  }) as const satisfies Record<string, FlyConfig>, [claimPassesFilter, iucnFilters, argoAlarmFilters, ventStatusFilters, noiseRiskFilters, oceansitesNetworkFilters, oceansitesStatusFilters, oceansitesPasses, datasetStats, chessPhylumFilters, filteredChessFeatures, fireConfidenceFilters, firesNearMiningOnly, firesNearMiningSet, tailingsRiskFilters, aisShipTypeFilters, aisFlagFilters, _oncEovAllowed, offshoreActivityFilters, offshoreActivityCountryFilters, deepdataStationContractorFilters, hydrophoneSourceFilters, hydrophoneStatusFilters, hydrophoneDepthFilters, wodDecadeFilters, arcticRiverSourceFilters, mementoGasFilters, mementoDecadeFilters, methaneSeepsFeatureTypeFilters, geotracesElement, geotracesDecadeFilters, mosaicVariable, mosaicDecadeFilters, cascadeDecadeFilters, coastdomRange, thawTypeFilters, thawCategoryFilters, permafrostSourceFilters]);
 
   // Completeness guard. Cheap at runtime (one boolean); the work is at compile
   // time. `void` rather than `export` because this sits inside a component.
@@ -2522,6 +2566,10 @@ export function Map3D() {
       "deepdata-stations":  deepdataStationsData,
       "hydrophone-stations": hydrophoneData,
       "marhys": marhysData,
+      "coastdom": coastdomData,
+      "greenland-primary-production": greenlandPpData,
+      "greenland-sea-poc-aoc2025": aocPocData,
+      "svalbard-fjords-primary-production": svalbardFjordsPpData,
       "monitoring-density": monitoringDensityData,
       "ports":              portsData,
       "tectonic-plates": tectonicData?.boundaries ?? null,
@@ -2686,7 +2734,7 @@ export function Map3D() {
       setTimeout(() => setSelectedFeature({ id: featureId, layer: deckId, properties: props }), 1300);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claimsData, reservedData, apeisData, hotspotsData, seamountsData, relinquishedData, argoData, ventsData, eezData, protectedSitesData, noiseRiskData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, hydrophoneData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, arcticRiversData, siosData, miningFootprintsData, methaneSeepsData, cascadeStationsData, permafrostThawData, cableSourceFilters, offshoreActivityFilters, offshoreActivityCountryFilters, flyConfigs]);
+  }, [claimsData, reservedData, apeisData, hotspotsData, seamountsData, relinquishedData, argoData, ventsData, eezData, protectedSitesData, noiseRiskData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, hydrophoneData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, arcticRiversData, siosData, miningFootprintsData, methaneSeepsData, cascadeStationsData, permafrostThawData, cableSourceFilters, offshoreActivityFilters, offshoreActivityCountryFilters, flyConfigs, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData]);
   useEffect(() => { setFlyToLayer(flyToLayer); }, [flyToLayer, setFlyToLayer]);
 
   // ── Search-by-ID callback ────────────────────────────────────────────────
@@ -3287,23 +3335,7 @@ export function Map3D() {
     const layerId = info.layer?.id === "arctic-catchments-mvt"
       ? "arctic-catchments"
       : (info.layer?.id ?? "unknown");
-    const id = layerId === "chess"
-      ? (props.locality ?? String(info.index))
-      : layerId === "deepdata-stations"
-        ? (props.station_id ?? String(info.index))
-        : layerId === "hydrophone-stations"
-          ? (props.station_id ?? String(info.index))
-          : layerId === "arctic-rivers"
-            ? (props.station_id ?? String(info.index))
-            : layerId === "sios-svalbard"
-              ? (props.metadata_id ?? props.station_key ?? String(info.index))
-              : layerId === "memento"
-                ? (props.cast_id ?? String(info.index))
-                : layerId === "geotraces"
-                  ? (props.station_id ?? String(info.index))
-                  : layerId === "arctic-catchments"
-                    ? (props.gid ?? String(info.index))
-                    : (props.isa_id ?? props.id ?? props.platform_id ?? String(info.index));
+    const id = clickIdFor(layerId, props, info.index);
     const shift = !!(event?.srcEvent as MouseEvent)?.shiftKey;
 
     // Inject click coordinates so panels can build Google Earth links for any layer
@@ -4253,9 +4285,11 @@ export function Map3D() {
       stroked: true,
       filled: true,
       radiusUnits: "pixels",
+      // 7 px, billboarded: at 4 px lying flat on a pitched map the samples
+      // shrank to slivers that were hard to see and harder to click.
+      billboard: true,
       getPosition: (f: any) => f.geometry.coordinates,
-      getRadius: 4,
-      radiusMinPixels: 2,
+      getRadius: 7,
       lineWidthMinPixels: 1,
       getFillColor: (f: any) => marhysTypeColor(f.properties?.sample_type),
       getLineColor: [255, 255, 255, 180],
@@ -4288,6 +4322,10 @@ export function Map3D() {
       radiusPixels: 30,
       intensity: 1,
       threshold: 0.05,
+      // ⛔ Keep at 512. The default 2048 rebuilds a 2048×2048 weight texture
+      // on every pan step (4.2M-vertex max pass) — measured 9 fps while
+      // dragging vs 60 fps at 512, with a pixel-identical render at z2.
+      weightsTextureSize: 512,
       updateTriggers: {
         getPosition: [Array.from(marhysTypeFilters)],
       },
@@ -4954,6 +4992,91 @@ export function Map3D() {
         getFillColor: [thawTypeFilters, thawCategoryFilters, permafrostSourceFilters],
         getLineColor: [thawTypeFilters, thawCategoryFilters, permafrostSourceFilters],
       },
+      onClick: handleClick,
+    }),
+
+    // CoastDOM v1 — one marker per sampled POSITION, coloured by how many
+    // samples the source holds there. ⛔ Never by a value: a position holds up
+    // to 1,415 samples across 44 years and many depths, and one colour from
+    // their values would be an average nobody measured.
+    activeLayers.has("coastdom") && coastdomData && new ScatterplotLayer({
+      id: "coastdom",
+      data: filteredCoastdomFeatures,
+      pickable: true,
+      stroked: true,
+      filled: true,
+      radiusUnits: "pixels",
+      billboard: true,
+      getPosition: (f: any) => f.geometry.coordinates,
+      getRadius: 5,
+      lineWidthMinPixels: 1,
+      getFillColor: (f: any) => coastdomCountColor(coastdomInRangeCount(f.properties, coastdomRange)),
+      updateTriggers: { getFillColor: [coastdomRange] },
+      getLineColor: [255, 255, 255, 160],
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 80],
+      onClick: handleClick,
+    }),
+
+    // Greenland Sea primary production — one colour; SIZE follows GPP, an
+    // areal rate (mg C m⁻² d⁻¹). ⛔ Not a concentration ramp.
+    activeLayers.has("greenland-primary-production") && greenlandPpData && new ScatterplotLayer({
+      id: "greenland-primary-production",
+      data: greenlandPpData.features,
+      pickable: true,
+      stroked: true,
+      filled: true,
+      radiusUnits: "pixels",
+      billboard: true,
+      getPosition: (f: any) => f.geometry.coordinates,
+      getRadius: (f: any) => gppRadiusPx(f.properties?.gpp_c_mg_m2_day, greenlandPpMax),
+      getFillColor: [132, 204, 22, 210],
+      getLineColor: [255, 255, 255, 200],
+      lineWidthMinPixels: 1,
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 80],
+      onClick: handleClick,
+      updateTriggers: { getRadius: [greenlandPpMax] },
+    }),
+
+    // AOC2025 POC. One marker per station, fixed amber so it never reads as
+    // a value ramp; distinct from every other point layer here.
+    activeLayers.has("greenland-sea-poc-aoc2025") && aocPocData && new ScatterplotLayer({
+      id: "greenland-sea-poc-aoc2025",
+      data: aocPocData.features,
+      pickable: true,
+      stroked: true,
+      filled: true,
+      radiusUnits: "pixels",
+      billboard: true,
+      getPosition: (f: any) => f.geometry.coordinates,
+      getRadius: 5,
+      lineWidthMinPixels: 1,
+      getFillColor: [245, 158, 11, 210],
+      getLineColor: [255, 255, 255, 200],
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 80],
+      onClick: handleClick,
+    }),
+
+    // Svalbard Fjords Primary Production. One marker per position, fixed
+    // indigo so it never reads as a value ramp; distinct from every other
+    // point layer here (incl. its amber sibling above).
+    activeLayers.has("svalbard-fjords-primary-production") && svalbardFjordsPpData && new ScatterplotLayer({
+      id: "svalbard-fjords-primary-production",
+      data: svalbardFjordsPpData.features,
+      pickable: true,
+      stroked: true,
+      filled: true,
+      radiusUnits: "pixels",
+      billboard: true,
+      getPosition: (f: any) => f.geometry.coordinates,
+      getRadius: 5,
+      lineWidthMinPixels: 1,
+      getFillColor: [99, 102, 241, 210],
+      getLineColor: [255, 255, 255, 200],
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 80],
       onClick: handleClick,
     }),
 

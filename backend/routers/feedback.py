@@ -28,8 +28,11 @@ _ALLOWED_ORIGINS = (
     "http://localhost:5173",
 )
 _MIN_DWELL_MS = 3_000
-_MAX_URLS = 3
-_URL_RE = re.compile(r"https?://|www\.", re.IGNORECASE)
+_MAX_URLS = 3  # positive/bug/suggestion
+_MAX_URLS_API_KEY = 10  # api_key requests routinely name several project URLs
+# Matches a whole link once (scheme or "www." through to the next whitespace/quote/bracket),
+# so "https://www.example.cz" counts as ONE link, not two.
+_URL_RE = re.compile(r"(?:https?://|www\.)[^\s<>\"']+", re.IGNORECASE)
 _RATE_MAX_PER_HOUR = 5
 
 KIND_EMOJI = {"positive": "✅", "bug": "🐛", "suggestion": "💡", "api_key": "🔑"}
@@ -112,8 +115,10 @@ async def submit_feedback(
         log.info("feedback rejected: dwell %dms", body.dwell_ms)
         raise HTTPException(status_code=400, detail="Please take a moment to review")
 
-    # URL-count heuristic — link spam tell
-    if len(_URL_RE.findall(body.message)) > _MAX_URLS:
+    # URL-count heuristic — link spam tell. api_key requests legitimately name
+    # several project URLs, so they get a higher ceiling than other kinds.
+    max_urls = _MAX_URLS_API_KEY if body.kind == "api_key" else _MAX_URLS
+    if len(_URL_RE.findall(body.message)) > max_urls:
         log.info("feedback rejected: url count")
         raise HTTPException(status_code=400, detail="Too many links")
 

@@ -188,8 +188,8 @@ frontend/.env.local
 backend/.env
 .claude/
 
-# Local AI assistant config — kept locally only
-CLAUDE.md
+# Local AI assistant config — kept locally only. CLAUDE.md itself IS tracked
+# (private repo only); scripts/export-public.sh withholds it from the mirror.
 docs/superpowers/
 
 # AI agent / IDE tool directories (local only)

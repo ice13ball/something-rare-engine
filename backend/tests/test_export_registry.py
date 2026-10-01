@@ -606,3 +606,49 @@ def test_every_registry_entry_the_menu_can_reach_is_actually_in_the_menu():
         "registered on the backend, absent from EXPORT_LAYERS_FE, therefore "
         "invisible in the ExportPanel: " + ", ".join(missing)
     )
+
+
+def test_pangaea_exports_use_the_serving_allowlist():
+    """The export is the same door as the API: the SAME tuple, so a field hidden
+    from the API (pi_email) cannot leave through a download."""
+    from domains import pangaea_water as pw
+    c = EXPORT_LAYERS["coastdom"]
+    g = EXPORT_LAYERS["greenland-primary-production"]
+    assert c.fields == pw.COASTDOM_SERVED_FIELDS
+    assert g.fields == pw.GREENLAND_PP_SERVED_FIELDS
+    assert "pi_email" not in c.fields and "raw" not in c.fields
+    assert (c.table, g.table) == ("coastdom_samples_current", "greenland_pp_stations_current")
+    assert c.prov.license == g.prov.license == "CC-BY 4.0"
+
+
+def test_aoc2025_poc_export_uses_the_serving_allowlist_and_domain_provenance():
+    from domains import aoc2025_poc as dm
+    from ingestion import aoc2025_poc as parser
+    e = EXPORT_LAYERS["greenland-sea-poc-aoc2025"]
+    assert e.fields == dm.AOC_POC_SERVED_FIELDS
+    assert not {"raw", "geom"} & set(e.fields)
+    assert e.table == "aoc2025_poc_samples_current"          # current version only
+    assert e.prov.license == dm.LICENSE and e.prov.citation == dm.CITATION
+    assert parser.DOI in e.prov.source_url
+    assert dm.METADATA_TEMPORAL_EXTENT_DISCREPANCY in e.prov.note
+    assert "preview" in e.prov.note
+    assert e.cap > 94                                        # above the whole table
+
+
+def test_svalbard_fjords_is_never_exportable():
+    """Owner decision: the IO PAN svalbard-fjords layer publishes no open licence
+    (display by permission only), so a bulk export would be redistribution."""
+    import re
+    from pathlib import Path
+    fe = (Path(__file__).resolve().parents[2] / "frontend" / "src" / "utils"
+          / "exportLayers.ts").read_text()
+    why = ("svalbard-fjords-primary-production must stay NOT exportable: its source (IO PAN) "
+           "publishes no open licence, display is by permission only, bulk export = "
+           "redistribution (see DATA-LICENCES.md).")
+    pat = re.compile(r"svalbard[-_]fjords", re.I)
+    bad = [k for k, e in EXPORT_LAYERS.items()
+           if pat.search(k) or pat.search(getattr(e, "table", "") or "")]
+    assert not bad, why + " Found: " + ", ".join(bad)
+    fe_ids = re.findall(r'\bid:\s*"([^"]+)"', fe)
+    assert len(fe_ids) > 20, "fixture problem: exportLayers.ts ids did not parse"
+    assert not [i for i in fe_ids if pat.search(i)], why

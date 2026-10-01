@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 import db as _db
 from api_access import admin_auth, admin_crud
+from api_access.geoip import geoip_status
 
 router = APIRouter(prefix="/admin/api")
 
@@ -239,7 +240,7 @@ async def overview(_=Depends(require_super_admin)):
         keys = await conn.fetchval("SELECT COUNT(*) FROM api_access.api_keys WHERE status='active'")
         last24 = await conn.fetchval(
             "SELECT COUNT(*) FROM api_access.request_log WHERE ts > NOW() - INTERVAL '24 hours'")
-    return {"orgs": orgs, "active_keys": keys, "requests_24h": last24}
+    return {"orgs": orgs, "active_keys": keys, "requests_24h": last24, "geoip": geoip_status()}
 
 
 @router.get("/usage-series")

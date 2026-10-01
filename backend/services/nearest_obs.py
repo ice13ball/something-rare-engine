@@ -17,14 +17,22 @@ from __future__ import annotations
 # column (needs ::geometry for the <-> KNN operator). `deck_layer_id` is the map layer the
 # panel flies to on row click (fly-to, not open-panel — see plan Task 5 click-through note).
 OBS_SOURCES: list[dict] = [
-    {"key": "argo",             "label": "Argo float",          "table": "argo_profiles",       "geom_col": "geom", "id_col": "profile_id",  "geog": False, "summary_cols": ["platform_id", "profile_date", "max_depth_m"],              "deck_layer_id": "argo-floats-3d"},
-    {"key": "geotraces",        "label": "GEOTRACES station",   "table": "geotraces_stations",  "geom_col": "geom", "id_col": "station_id",  "geog": False, "summary_cols": ["cruise", "station", "max_depth_m"],                        "deck_layer_id": "geotraces"},
-    {"key": "memento",          "label": "MEMENTO cast",        "table": "memento_casts",       "geom_col": "geom", "id_col": "cast_id",     "geog": False, "summary_cols": ["set_name", "station", "sample_time"],                      "deck_layer_id": "memento"},
-    {"key": "wod-oxygen",       "label": "WOD O₂ profile",      "table": "wod_oxygen_profiles", "geom_col": "geom", "id_col": "wod_cast_id", "geog": False, "summary_cols": ["dataset", "profile_date", "max_depth_m"],                  "deck_layer_id": "wod-oxygen"},
-    {"key": "cascade",          "label": "CASCADE sediment",    "table": "cascade_stations",    "geom_col": "geom", "id_col": "id",          "geog": False, "summary_cols": ["station", "expedition", "year", "oc_pct"],                "deck_layer_id": "arctic-sediment-carbon-stations"},
-    {"key": "methane-seeps",    "label": "Methane seep",        "table": "seaflea_seeps",       "geom_col": "geom", "id_col": "ext_id",      "geog": False, "summary_cols": ["primary_type", "depth_m", "obs_year"],                     "deck_layer_id": "methane-seeps"},
-    {"key": "vents",            "label": "Hydrothermal vent",   "table": "hydrothermal_vents",  "geom_col": "geom", "id_col": "id",          "geog": True,  "summary_cols": ["name", "status", "depth_m", "region"],                    "deck_layer_id": "hydrothermal-vents-active"},
-    {"key": "deepdata-stations","label": "ISA DeepData station","table": "deepdata_stations",   "geom_col": "geom", "id_col": "station_id",  "geog": True,  "summary_cols": ["contractor_code", "occurrence_count", "species_count"],     "deck_layer_id": "deepdata-stations"},
+    {"key": "argo",             "label": "Argo float",          "table": "argo_profiles",       "geom_col": "geom", "id_col": "profile_id",  "geog": False, "summary_cols": ["platform_id", "max_depth_m"],              "deck_layer_id": "argo-floats-3d",
+     "date_sql": "to_char(profile_date AT TIME ZONE 'UTC', 'YYYY-MM-DD')", "date_kind": "sampled"},
+    {"key": "geotraces",        "label": "GEOTRACES station",   "table": "geotraces_stations",  "geom_col": "geom", "id_col": "station_id",  "geog": False, "summary_cols": ["cruise", "station", "max_depth_m"],        "deck_layer_id": "geotraces",
+     "date_sql": "to_char(sample_time AT TIME ZONE 'UTC', 'YYYY-MM-DD')", "date_kind": "sampled"},
+    {"key": "memento",          "label": "MEMENTO cast",        "table": "memento_casts",       "geom_col": "geom", "id_col": "cast_id",     "geog": False, "summary_cols": ["set_name", "station"],                     "deck_layer_id": "memento",
+     "date_sql": "CASE time_precision WHEN 'month' THEN to_char(sample_time AT TIME ZONE 'UTC', 'YYYY-MM') ELSE to_char(sample_time AT TIME ZONE 'UTC', 'YYYY-MM-DD') END", "date_kind": "sampled"},
+    {"key": "wod-oxygen",       "label": "WOD O₂ profile",      "table": "wod_oxygen_profiles", "geom_col": "geom", "id_col": "wod_cast_id", "geog": False, "summary_cols": ["dataset", "max_depth_m"],                  "deck_layer_id": "wod-oxygen",
+     "date_sql": "to_char(profile_date, 'YYYY-MM-DD')", "date_kind": "sampled"},
+    {"key": "cascade",          "label": "CASCADE sediment",    "table": "cascade_stations",    "geom_col": "geom", "id_col": "id",          "geog": False, "summary_cols": ["station", "expedition", "oc_pct"],         "deck_layer_id": "arctic-sediment-carbon-stations",
+     "date_sql": "year::text", "date_kind": "sampled"},
+    {"key": "methane-seeps",    "label": "Methane seep",        "table": "seaflea_seeps",       "geom_col": "geom", "id_col": "ext_id",      "geog": False, "summary_cols": ["primary_type", "depth_m"],                 "deck_layer_id": "methane-seeps",
+     "date_sql": "obs_year::text", "date_kind": "sampled"},
+    {"key": "vents",            "label": "Hydrothermal vent",   "table": "hydrothermal_vents",  "geom_col": "geom", "id_col": "id",          "geog": True,  "summary_cols": ["name", "status", "depth_m", "region"],    "deck_layer_id": "hydrothermal-vents-active",
+     "date_sql": "CASE WHEN date_precision <> 'none' THEN discovery_year_num::text ELSE NULL END", "date_kind": "discovered"},
+    {"key": "deepdata-stations","label": "ISA DeepData station","table": "deepdata_stations",   "geom_col": "geom", "id_col": "station_id",  "geog": True,  "summary_cols": ["contractor_code", "occurrence_count", "species_count"], "deck_layer_id": "deepdata-stations",
+     "date_sql": "CASE WHEN (first_event_date AT TIME ZONE 'UTC')::date = (last_event_date AT TIME ZONE 'UTC')::date THEN to_char(first_event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD') ELSE to_char(first_event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD') || ' – ' || to_char(last_event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD') END", "date_kind": "sampled_range"},
 ]
 
 

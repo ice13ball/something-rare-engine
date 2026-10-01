@@ -34,7 +34,7 @@ export const LAYER_TO_SUBGROUP: Record<string, string> = {
   "oxygen-deox": "sea_woa", "arctic-rivers": "sea_woa",
   "arctic-catchments": "sea_woa", "arctic-sediment-carbon": "sea_woa",
   "permafrost-thaw": "sea_woa", "sios-svalbard": "sea_woa",
-  "seabed-substrate": "sea_woa",
+  "seabed-substrate": "sea_woa", "coastdom": "sea_woa", "greenland-primary-production": "sea_woa",
   // sea_infra
   "submarine-cables": "sea_infra", "ports": "sea_infra",
   // sea_vessels

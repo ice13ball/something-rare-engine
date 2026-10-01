@@ -23,7 +23,9 @@ import {
   MOSAIC_RESPONSE, ARCTIC_CATCHMENT_DETAIL, WOA_POINT, CARBON_POINT,
   ACIDIFICATION_POINT, CHI_POINT, UNIFIED_CARBON_POINT, UNIFIED_CARBON_NEAREST_OBS,
   VME_POINT, CORAL_EXPOSURE_POINT, CORAL_EXPOSURE_SUMMARY, CO2_POINT, OXYGEN_POINT,
-  PERMAFROST_THAW_DETAIL,
+  PERMAFROST_THAW_DETAIL, COASTDOM_SAMPLES, PANGAEA_WATER_META,
+  AOC_POC_SAMPLES, AOC_POC_META,
+  SVALBARD_FJORDS_PP_SAMPLES, SVALBARD_FJORDS_PP_META,
 } from "./detailPanelFetchFixtures";
 
 // Every panel that fetches does so in a useEffect; the FIRST snapshot per
@@ -79,6 +81,12 @@ const ROUTES: Array<[RegExp, unknown]> = [
   [/\/v1\/coral-exposure\/summary(?:$|\?)/, CORAL_EXPOSURE_SUMMARY],
   [/\/v1\/co2\/point(?:$|\?)/, CO2_POINT],
   [/\/v1\/oxygen\/point(?:$|\?)/, OXYGEN_POINT],
+  [/\/v1\/map\/coastdom\/samples/, COASTDOM_SAMPLES],
+  [/\/v1\/pangaea-water\/meta/, PANGAEA_WATER_META],
+  [/\/v1\/map\/aoc2025-poc\/samples/, AOC_POC_SAMPLES],
+  [/\/v1\/map\/aoc2025-poc\/meta/, AOC_POC_META],
+  [/\/v1\/map\/svalbard-fjords-pp\/samples/, SVALBARD_FJORDS_PP_SAMPLES],
+  [/\/v1\/map\/svalbard-fjords-pp\/meta/, SVALBARD_FJORDS_PP_META],
 ];
 
 // Intentionally unmatched (reject, never {}):
@@ -148,7 +156,8 @@ const FETCHING_LAYERS = new Set([
   "wod-oxygen", "memento", "geotraces", "mosaic-sediment", "arctic-catchments",
   "woa-climatology", "ocean-carbon", "ocean-acidification", "cumulative-human-impact",
   "marine-carbon", "vme-suitability", "coral-acid-exposure", "ocean-co2-surface",
-  "oxygen-deox", "permafrost-thaw",
+  "oxygen-deox", "permafrost-thaw", "coastdom", "greenland-primary-production",
+  "greenland-sea-poc-aoc2025", "svalbard-fjords-primary-production",
 ]);
 
 describe("DetailPanel dispatch matrix", () => {

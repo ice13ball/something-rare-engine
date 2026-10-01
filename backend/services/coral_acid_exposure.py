@@ -15,6 +15,7 @@ Pure helpers only — no DB, no numpy, no I/O. The bake orchestration lives in
 """
 from __future__ import annotations
 
+import asyncio
 import math
 
 # Priority order is meaningful for legends: most-alarming state first.
@@ -136,56 +137,30 @@ def seafloor_from_elevation(elevation_m):
     return None if e >= 0.0 else -e
 
 
-async def bake_exposure(pool) -> dict:
-    """Join vme_cells to the hex grid, sample seafloor depth and both horizons, classify,
-    and write vme_exposure_cells. Heavy imports are lazy so the pure helpers above stay
-    testable without them.
-
-    Prerequisites are checked rather than assumed: this needs vme_cells populated AND the
-    acidification horizon reconstructions AND the baked GEBCO grid. Any missing one is a
-    graceful skip, not a crash — on a cold environment the GEBCO grid is produced by a
-    startup task that may not have run yet.
-    """
+def _load_inputs():
+    """Load the GEBCO depth grid and both reconstructed horizons. Blocking and
+    memory-heavy (~4 GB RSS measured on the VPS, 2026-09-26) — run in a thread.
+    Returns (skip_reason, None) or (None, (h_today, h_pi, axes))."""
     from services import acidification as acid            # runtime import: bare, not backend.*
     from services import bathymetry_grid_export as bg
-    from services import glodap_carbon
-    from services import vme_sdm
 
-    async with pool.acquire() as conn:
-        n_vme = await conn.fetchval(
-            "SELECT count(*) FROM vme_cells WHERE taxon_set=$1", vme_sdm.TAXON_SET
-        )
-    if not n_vme:
-        return {"cells": 0, "skipped": "vme_cells is empty", "summary": {}}
     if bg._load_grid("depth") is None:
-        return {"cells": 0, "skipped": "baked GEBCO grid absent", "summary": {}}
+        return "baked GEBCO grid absent", None
     h_today = acid.horizon_recon_grid("today")
     h_pi = acid.horizon_recon_grid("pi")
     if h_today is None or h_pi is None:
-        return {"cells": 0, "skipped": "GLODAP holdings absent", "summary": {}}
-    axes = acid._load_grid("aragonite")
+        return "GLODAP holdings absent", None
+    return None, (h_today, h_pi, acid._load_grid("aragonite"))
 
-    async with pool.acquire() as conn:
-        # vme_cells' primary key is (taxon_set, cell_id) — several taxon sets can share a
-        # cell_id. vme_exposure_cells is keyed on cell_id ALONE (one row per hex, matching
-        # its API/frontend/export contract), so an unfiltered join would return one row per
-        # taxon_set per cell and the INSERT below would violate that single-column PK the
-        # moment a second taxon set is published. Filter here, exactly like the established
-        # /v1/vme/hexes consumer in domains/fields/habitat.py (`WHERE v.taxon_set=$1` with
-        # vme_sdm.TAXON_SET).
-        rows = await conn.fetch(
-            """
-            SELECT v.cell_id, v.taxon_set, v.suitability, v.uncertainty,
-                   ST_Y(ST_Centroid(d.geom)) AS lat,
-                   ST_X(ST_Centroid(d.geom)) AS lon,
-                   ST_AsText(d.geom)         AS wkt
-            FROM vme_cells v
-            JOIN density_hex_cells d USING (cell_id)
-            WHERE v.taxon_set=$1
-            """,
-            vme_sdm.TAXON_SET,
-        )
 
+def _classify_rows(rows, grids):
+    """Sample seafloor depth and both horizons for every VME cell and classify it.
+    Pure CPU over ~3,800 cells — run in a thread. Returns (out rows, (suitability,
+    state) pairs)."""
+    from services import bathymetry_grid_export as bg
+    from services import glodap_carbon
+
+    h_today, h_pi, axes = grids
     out = []
     pairs = []
     for r in rows:
@@ -208,6 +183,57 @@ async def bake_exposure(pool) -> dict:
                     None if ht is None or math.isinf(ht) else ht,
                     None if hp is None or math.isinf(hp) else hp,
                     state, r["wkt"]))
+    return out, pairs
+
+
+async def bake_exposure(pool) -> dict:
+    """Join vme_cells to the hex grid, sample seafloor depth and both horizons, classify,
+    and write vme_exposure_cells. Heavy imports are lazy so the pure helpers above stay
+    testable without them.
+
+    Prerequisites are checked rather than assumed: this needs vme_cells populated AND the
+    acidification horizon reconstructions AND the baked GEBCO grid. Any missing one is a
+    graceful skip, not a crash — on a cold environment the GEBCO grid is produced by a
+    startup task that may not have run yet.
+
+    ⛔ The grid loading and the per-cell loop run in a thread. Run inline, they froze the
+    whole API for ~3 minutes 41 minutes after every restart (2026-09-26, 11:22 and 21:24:
+    every endpoint answered 499/503 while the event loop was busy here).
+    """
+    from services import vme_sdm                            # runtime import: bare, not backend.*
+
+    async with pool.acquire() as conn:
+        n_vme = await conn.fetchval(
+            "SELECT count(*) FROM vme_cells WHERE taxon_set=$1", vme_sdm.TAXON_SET
+        )
+    if not n_vme:
+        return {"cells": 0, "skipped": "vme_cells is empty", "summary": {}}
+    skipped, grids = await asyncio.to_thread(_load_inputs)
+    if skipped:
+        return {"cells": 0, "skipped": skipped, "summary": {}}
+
+    async with pool.acquire() as conn:
+        # vme_cells' primary key is (taxon_set, cell_id) — several taxon sets can share a
+        # cell_id. vme_exposure_cells is keyed on cell_id ALONE (one row per hex, matching
+        # its API/frontend/export contract), so an unfiltered join would return one row per
+        # taxon_set per cell and the INSERT below would violate that single-column PK the
+        # moment a second taxon set is published. Filter here, exactly like the established
+        # /v1/vme/hexes consumer in domains/fields/habitat.py (`WHERE v.taxon_set=$1` with
+        # vme_sdm.TAXON_SET).
+        rows = await conn.fetch(
+            """
+            SELECT v.cell_id, v.taxon_set, v.suitability, v.uncertainty,
+                   ST_Y(ST_Centroid(d.geom)) AS lat,
+                   ST_X(ST_Centroid(d.geom)) AS lon,
+                   ST_AsText(d.geom)         AS wkt
+            FROM vme_cells v
+            JOIN density_hex_cells d USING (cell_id)
+            WHERE v.taxon_set=$1
+            """,
+            vme_sdm.TAXON_SET,
+        )
+
+    out, pairs = await asyncio.to_thread(_classify_rows, rows, grids)
 
     async with pool.acquire() as conn:
         async with conn.transaction():

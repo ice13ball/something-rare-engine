@@ -483,3 +483,119 @@ export const PERMAFROST_THAW_DETAIL = {
   obs_start: "1985-06-01",
   obs_end: "2015-08-15",
 };
+
+// ---- CoastdomPanel — /v1/map/coastdom/samples ------------------------------
+export const COASTDOM_SAMPLES = {
+  lat: 1.23, lon: 4.56, n_samples: 2,
+  samples: [
+    { version_id: 1, row_no: 1, location: "TEST estuary", sample_id: "TEST-1", sample_date: "2017-04-15",
+      depth_m: 0, doc_umol_l: 100, doc_method: "TEST method", qf_doc: 2, ref_1: "doi:TEST", pi: "TEST PI",
+      institution: "TEST Institution" },
+    { version_id: 1, row_no: 2, location: "TEST estuary", sample_id: "TEST-2", sample_date: null,
+      depth_m: 4, doc_umol_l: 120, doc_method: "TEST method", qf_doc: 6 },
+  ],
+};
+
+// ---- CoastdomPanel / GreenlandPrimaryProductionPanel — /v1/pangaea-water/meta
+export const PANGAEA_WATER_META = {
+  versions: [
+    { version_id: 1, layer_id: "coastdom", is_current: true, doi: "10.1594/PANGAEA.964012",
+      date_published: "2023-12-12", sha256: "0123456789abcdef0123", rows_in_source: 3, rows_unmappable: 1,
+      data_points: 30, citation: "TEST citation [dataset]. PANGAEA", related_citation: "TEST related",
+      license: "https://creativecommons.org/licenses/by/4.0/", ingested_at: "2026-09-25T00:00:00Z",
+      units: { doc_umol_l: "DOC [µmol/l]", qf_doc: "QF DOC", depth_m: "Depth water [m]" } },
+    { version_id: 2, layer_id: "greenland-primary-production", is_current: true, doi: "10.1594/PANGAEA.965985",
+      date_published: "2025-04-07", sha256: "fedcba9876543210fedc", rows_in_source: 12, rows_unmappable: 0,
+      data_points: 12, citation: "TEST citation [dataset]. PANGAEA", related_citation: null,
+      license: "https://creativecommons.org/licenses/by/4.0/", ingested_at: "2026-09-25T00:00:00Z",
+      units: { gpp_c_mg_m2_day: "GPP C [mg/m**2/day]" } },
+  ],
+};
+
+// ---- AocPocPanel — /v1/map/aoc2025-poc/samples -----------------------------
+export const AOC_POC_SAMPLES = {
+  station: "TEST", n_samples: 1,
+  samples: [
+    { version_id: 1, row_no: 1, cruise_id: "AOC2025", station: "TEST", sample_date: "2025-05-19T04:30:00Z",
+      lat: 73.02205, lon: -5.362583333, prespr01_db: 5, pressure_db: 4.652, activity: "9", sample_id: "TEST-1",
+      salinity: 34.5031, temp_c: 0.4349, d15n_permil: 3.421, d13c_permil: -22.321,
+      poc_mg_dm3: 0.500199883, pn_mg_dm3: 0.085944997 },
+  ],
+  units: {
+    prespr01_db: "db (SeaDataNet P01 PRESPR01, profiling pressure sensor)", pressure_db: "db",
+    salinity: "PSU", temp_c: "°C",
+    d15n_permil: "‰ (SeaDataNet P01 D15NEAM1)", d13c_permil: "‰ (SeaDataNet P01 D13CMOP11)",
+    poc_mg_dm3: "mg dm-3 (from the dataset abstract; not in the data file)",
+    pn_mg_dm3: "mg dm-3 (from the dataset abstract; not in the data file)",
+  },
+};
+
+// ---- AocPocPanel — /v1/map/aoc2025-poc/meta --------------------------------
+export const AOC_POC_META = {
+  version: {
+    version_id: 1, doi: "10.48457/IOPAN.2026.571",
+    source_url: "https://opendap.iopan.pl/opendap/data/csv/SeaQuester/AOC2025/2025_AOC_POC.csv",
+    sha256: "0123456789abcdef0123", rows_in_source: 94,
+    citation: "Kowalczuk, P. (2026). Particulate organic carbon concentrations in water samples collected in the Greenland Sea, during Atlantic-Arctic Ocean Change cruise (AOC2025) between 19-31 May 2025. Institute of Oceanology Polish Academy of Sciences. https://doi.org/10.48457/IOPAN.2026.571",
+    license: "CC-BY 4.0", fetched_at: "2026-09-25T00:00:00Z",
+    units: {
+      prespr01_db: "db (SeaDataNet P01 PRESPR01, profiling pressure sensor)", pressure_db: "db",
+      salinity: "PSU", temp_c: "°C",
+      d15n_permil: "‰ (SeaDataNet P01 D15NEAM1)", d13c_permil: "‰ (SeaDataNet P01 D13CMOP11)",
+      poc_mg_dm3: "mg dm-3 (from the dataset abstract; not in the data file)",
+      pn_mg_dm3: "mg dm-3 (from the dataset abstract; not in the data file)",
+    },
+    metadata_url: "https://geonetwork.iopan.pl/geonetwork/srv/eng/catalog.search#/metadata/a5efb78a-cc02-4839-9c94-18730e470eb4",
+    temporal_extent_discrepancy: "The dataset's ISO metadata states a temporal extent of 2024-07-24..2024-08-09; the title and every sample date in the data itself are 19-31 May 2025. This platform uses the dates in the data.",
+  },
+};
+
+// ---- SvalbardFjordsPpPanel — /v1/map/svalbard-fjords-pp/samples ------------
+export const SVALBARD_FJORDS_PP_SAMPLES = {
+  position_id: "K:TEST:78.97:11.74", station: "TEST", region_code: "K", region_name: "Kongsfjorden",
+  expositions: [
+    { exposition_no: "1", date: "2010-07-01", fjord_part: "Inner", pi_mgc_m2_day: 123.4,
+      samples: [
+        { depth_m: 0, temperature_degc: 2.1, salinity: 33.5, ca_mg_m3: 1.2, pe_mgc_m3_h: 0.5, water_mass: "SW" },
+        { depth_m: 10, temperature_degc: 1.4, salinity: 34.1, ca_mg_m3: null, pe_mgc_m3_h: 0.3, water_mass: "AW" },
+      ] },
+  ],
+};
+
+// ---- SvalbardFjordsPpPanel — /v1/map/svalbard-fjords-pp/meta ---------------
+export const SVALBARD_FJORDS_PP_META = {
+  version: {
+    version_id: 1, doi: "10.48457/iopan-2024-198",
+    source_url: "https://opendap.iopan.pl/opendap/data/csv/Primary_production_in_Kongsfjorden_and_Hornsund_in_the_period_1994-2019.csv",
+    metadata_url: "https://geonetwork.iopan.pl/geonetwork/srv/api/records/5a2ef3d9-02ea-4b9c-acef-10e9b1968458/formatters/xml",
+    sha256: "0123456789abcdef0123", rows_in_source: 369,
+    citation: "Institute of Oceanology Polish Academy of Sciences (2024). In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994-2019. https://doi.org/10.48457/iopan-2024-198",
+    licence: "© Institute of Oceanology PAS (IO PAN). Used with permission; the source publishes no open licence.",
+    fetched_at: "2026-09-26T00:00:00Z",
+    units: {
+      depth_m: "m", temperature_degc: "°C", salinity: "no unit stated in the source",
+      ca_mg_m3: "mg m⁻³ (Not defined in the source record; in primary-production data this usually denotes chlorophyll a.)",
+      pe_mgc_m3_h: "mgC m⁻³ h⁻¹",
+      pi_mgc_m2_day: "mgC m⁻² day⁻¹ (daily water-column-integrated production of the whole profile)",
+    },
+    counts: {
+      rows: 369, expositions: 45, positions: 43, named_stations: 29,
+      per_region: { K: { rows: 232, expositions: 28 }, H: { rows: 137, expositions: 17 } },
+    },
+    date_range: { first_date: "1994-07-05", last_date: "2019-08-11" },
+    column_notes: {
+      ca_mg_m3: "Not defined in the source record; in primary-production data this usually denotes chlorophyll a.",
+      water_mass: {
+        expansions: { AW: "Atlantic Water", TAW: "Transformed Atlantic Water", IW: "Intermediate Water", SW: "Surface Water", LW: "Local Water" },
+        attribution: "Cottier et al. 2005, standard Svalbard fjord classification",
+      },
+      salinity: "unit not stated in the source",
+    },
+    discrepancies: [
+      { key: "incubation_total", metadata_says: "348 incubation levels (137 Hornsund + 232 Kongsfjorden)", data_shows: "369 rows (137 Hornsund + 232 Kongsfjorden)" },
+      { key: "station_counts", metadata_says: "28 measurement stations in Kongsfjorden and 17 in Hornsund", data_shows: "those numbers equal the per-fjord exposition (station-visit) counts (28 Kongsfjorden + 17 Hornsund), while named stations are 22 Kongsfjorden + 7 Hornsund (29 total) and distinct positions 43" },
+      { key: "bbox_west", metadata_says: "west bound 11.0308°E", data_shows: "positions west of it (EB2-13bis 2.50°E, EB2-GL 9.45°E; 20 rows)" },
+      { key: "station_name_reuse", metadata_says: null, data_shows: "K2 (2 positions)" },
+    ],
+  },
+};

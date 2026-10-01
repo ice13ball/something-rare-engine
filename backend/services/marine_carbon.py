@@ -53,15 +53,20 @@ COLOR_VARS: list[str] = ["co2_fco2", "dic", "o2_recent", "woa_temp", "omega_arag
 
 
 def group_point(sampled: dict[str, float | None],
-                labels: dict[str, str] | None = None) -> list[dict]:
+                labels: dict[str, str] | None = None,
+                statuses: dict[str, str | None] | None = None) -> list[dict]:
     """Group sampled values by section, preserving MARINE_CARBON_VARS order.
 
     `sampled` maps variable key -> value (or None). `labels` optionally maps a key to a
     display STRING (for categorical variables like substrate, whose numeric code is not a
     magnitude). A variable with a label carries `value_label`; the raw `value` is still
-    included for provenance. Never fuse across variables — this only groups.
+    included for provenance. `statuses` optionally maps a key to a machine status code
+    (e.g. "column_supersaturated", "no_horizon") for the unified-point caller only — hexes
+    never pass this, so every `status` there stays `None` (additive, never required). Never
+    fuse across variables — this only groups.
     """
     labels = labels or {}
+    statuses = statuses or {}
     out: list[dict] = []
     index: dict[str, dict] = {}
     for key, cfg in MARINE_CARBON_VARS.items():
@@ -75,5 +80,6 @@ def group_point(sampled: dict[str, float | None],
             "value": sampled.get(key),
             "value_label": labels.get(key),
             "depth_invariant": bool(cfg.get("depth_invariant")),
+            "status": statuses.get(key),
         })
     return out

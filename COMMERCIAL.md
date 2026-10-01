@@ -34,12 +34,12 @@ Copyright is **not** for sale — this is licensing, not assignment.
    any right to upstream data.
 
    One exception, stated plainly because a buyer would otherwise rely on the sentence above:
-   `backend/tests/fixtures/` holds ~1.1 MB of **real** upstream excerpts across 14 sources —
+   `backend/tests/fixtures/` holds ~1.3 MB of **real** upstream excerpts across 17 sources —
    GEOTRACES seawater rows, ONC ADCP profiles, GLODAP and SOCAT NetCDF slices among
    them. They are there so the parsers are tested against the shapes they actually meet, and
    they travel under their own upstream terms like everything else. They are not mine to
-   sublicense either. Four further fixture sets (MEMENTO, seabed lithology, MOSAiC sediment,
-   Arctic rivers) are withheld from this package because their terms forbid redistribution or
+   sublicense either. Five further fixture sets (MEMENTO, seabed lithology, MOSAiC sediment,
+   Arctic rivers, Svalbard fjords primary production) are withheld from this package because their terms forbid redistribution or
    are silent — see `DATA-LICENCES.md`.
 
 2. **One dependency is GPL-3.0.** `PyCO2SYS`, used in a single lazily-imported function

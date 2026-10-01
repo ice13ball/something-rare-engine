@@ -115,6 +115,7 @@ from services import (
     woa_climatology,
 )
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 from ._common import _HEX_CELLS_SQL
 
@@ -176,16 +177,46 @@ async def sync_acidification(force: bool = False) -> int:
     return n
 
 
+#: The syncs whose output the coral-exposure bake reads. A newer run of either one
+#: makes the stored exposure stale. The GEBCO grid has no sync_log row (a holding
+#: baked once); after a GEBCO re-bake, use admin Force Sync.
+_CORAL_EXPOSURE_UPSTREAM = ("vme-sdm", "acidification")
+
+
 async def sync_coral_exposure(force: bool = False):
+    """Re-bake vme_exposure_cells, unless the stored bake is newer than both upstream
+    syncs. The startup task calls this after every restart; without the guard each
+    restart repeated the full bake (~4 GB RSS) for an unchanged answer."""
     from services import coral_acid_exposure as cae
+    if not force:
+        async with db.pool.acquire() as conn:
+            fresh = await conn.fetchval(
+                """
+                SELECT EXISTS (SELECT 1 FROM vme_exposure_cells)
+                   AND c.last_synced_at >= COALESCE(
+                         (SELECT max(u.last_synced_at) FROM sync_log u
+                           WHERE u.source = ANY($1::text[])), '-infinity')
+                FROM sync_log c WHERE c.source = 'coral-acid-exposure'
+                """,
+                list(_CORAL_EXPOSURE_UPSTREAM),
+            )
+        if fresh:
+            log.info("coral-acid-exposure: newer than %s — skipping bake",
+                     ", ".join(_CORAL_EXPOSURE_UPSTREAM))
+            await _log_sync_skipped("coral-acid-exposure", "stored bake is newer than its inputs")
+            return
     try:
         res = await cae.bake_exposure(db.pool)
-    except Exception:
+    except Exception as exc:
         log.exception("coral-acid-exposure bake failed")
-        await _log_sync("coral-acid-exposure", 0, 0)
+        # Not _log_sync(0, 0): that stamps last_synced_at, and the guard above would
+        # then treat a failed bake as fresh and never retry it.
+        await _log_sync_skipped("coral-acid-exposure", f"bake failed: {type(exc).__name__}")
         return
     if res["skipped"]:
         log.warning("coral-acid-exposure: skipped — %s", res["skipped"])
+        await _log_sync_skipped("coral-acid-exposure", res["skipped"])
+        return
     global _coral_exposure_cache
     _coral_exposure_cache = None
     await _log_sync("coral-acid-exposure", res["cells"], res["cells"])
@@ -623,7 +654,18 @@ async def carbon_unified_point(lat: float, lon: float, depth: float = 0.0):
         code = sampled.get("substrate")
         if code is not None:
             labels["substrate"] = seabed_lithology.LITHOLOGY_CLASSES.get(int(code))
-        return marine_carbon.group_point(sampled, labels=labels)
+        # mc_sample() already coerced a non-finite horizon to None (unified-hexes needs
+        # that). unified-point additionally discloses WHY it's null: sample the raw
+        # horizon here (present-day, depth-independent) to detect the two non-finite
+        # cases before coercion — never touches unified-hexes or mc_sample's own
+        # return type.
+        raw_horizon = acidification.sample("horizon", float(lat), float(lon), float(depth))
+        horizon_is_inf = isinstance(raw_horizon, float) and math.isinf(raw_horizon)
+        statuses: dict[str, str | None] = {}
+        if horizon_is_inf:
+            statuses["arag_horizon"] = "column_supersaturated"
+            statuses["arag_horizon_shift"] = "no_horizon"
+        return marine_carbon.group_point(sampled, labels=labels, statuses=statuses)
 
     groups = await asyncio.to_thread(_build)
     return Response(content=json.dumps({"lat": lat, "lon": lon, "depth_m": depth,
@@ -647,7 +689,10 @@ async def carbon_nearest_obs(lat: float, lon: float):
 
     One KNN query per source (all 8 tables are GIST-indexed). Co-location, not fusion:
     each row is that source's single nearest feature, with its true distance in km. A
-    source with no rows is omitted by shape_rows (never shown as 0 km).
+    source with no rows is omitted by shape_rows (never shown as 0 km). Every kept row
+    also carries "date" (text, or None when the source publishes no date) and "date_kind"
+    ("sampled" | "discovered" | "sampled_range") so the panel never has to guess what a
+    date means for a given source.
     """
     raw = []
     async with db.pool.acquire() as conn:
@@ -656,8 +701,10 @@ async def carbon_nearest_obs(lat: float, lon: float):
             pt = "ST_SetSRID(ST_MakePoint($1, $2), 4326)"
             order_pt = f"{pt}::geography" if s["geog"] else pt
             summ = ", ".join(f'"{c}"' for c in s["summary_cols"])
+            summ_prefix = f'{summ}, ' if summ else ''
             sql = f'''
-                SELECT "{s["id_col"]}"::text AS id, {summ},
+                SELECT "{s["id_col"]}"::text AS id, {summ_prefix}
+                       ({s["date_sql"]}) AS obs_date,
                        ST_Y({gcol}) AS lat, ST_X({gcol}) AS lon,
                        ST_Distance({s["geom_col"]}::geography,
                                    {pt}::geography)/1000.0 AS distance_km
@@ -678,6 +725,8 @@ async def carbon_nearest_obs(lat: float, lon: float):
                 "id": row["id"] if row else None,
                 "distance_km": float(row["distance_km"]) if row and row["distance_km"] is not None else None,
                 "summary": summary,
+                "date": row["obs_date"] if row and row["obs_date"] is not None else None,
+                "date_kind": s["date_kind"],
                 "lat": float(row["lat"]) if row and row["lat"] is not None else None,
                 "lon": float(row["lon"]) if row and row["lon"] is not None else None,
                 "deck_layer_id": s["deck_layer_id"],

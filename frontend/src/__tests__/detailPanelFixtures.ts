@@ -230,6 +230,39 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     },
   },
   {
+    layer: "coastdom",
+    id: "TEST",
+    properties: {
+      site_id: "1.23,4.56", lat: 1.23, lon: 4.56, location: "TEST estuary", n_samples: 2, n_undated: 1,
+      depth_min_m: 0, depth_max_m: 4, date_min: "2017-04-15", date_max: "2017-04-15",
+    },
+  },
+  {
+    layer: "greenland-primary-production",
+    id: "TEST",
+    properties: {
+      version_id: 1, row_no: 1, event: "TEST_01", event_2: null, lat: 78.833, lon: 6.0,
+      sample_date: "2021-08-02", gpp_c_mg_m2_day: 1234.5,
+    },
+  },
+  {
+    layer: "greenland-sea-poc-aoc2025",
+    id: "TEST",
+    properties: {
+      station: "TEST", n_samples: 1, depth_min_db: 5, depth_max_db: 5,
+      date_min: "2025-05-19", date_max: "2025-05-19",
+    },
+  },
+  {
+    layer: "svalbard-fjords-primary-production",
+    id: "TEST",
+    properties: {
+      position_id: "K:TEST:78.97:11.74", station: "TEST", region_code: "K", fjord_part: "Inner",
+      n_expositions: 1, first_date: "2010-07-01", last_date: "2010-07-01",
+      _lat: 78.97, _lon: 11.74,
+    },
+  },
+  {
     layer: "chess",
     id: "TEST",
     properties: {
@@ -596,4 +629,4 @@ export const LAYER_FIXTURES: LayerFixture[] = [
 // 74 -> 72 on 2026-09-03: the KBA withdrawal removed one branch carrying two
 // literals (`layer === "kbas" || layer === "kbas-mvt"`), so the count drops
 // by two for one layer. A drop of one here would mean something else was lost.
-export const EXPECTED_LAYER_COUNT = 73;
+export const EXPECTED_LAYER_COUNT = 77;

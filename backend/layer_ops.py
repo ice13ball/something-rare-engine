@@ -172,9 +172,26 @@ LAYER_OPS: dict[str, LayerOps] = {
                              # 5,905 here would quietly report the layer as
                              # smaller than the data it holds.
                              "count_sql": "SELECT count(*) FROM marhys_samples"},
+    # ⛔ Only each layer's own samples table. pangaea_dataset_version is SHARED by
+    # both layers: listing it here would let a purge of one erase the other's
+    # version history. Counts read the *_current views, i.e. the served version.
+    "coastdom":            {"sync_source": "coastdom", "log_source": "coastdom",
+                             "tables": ("coastdom_samples",),
+                             "count_sql": "SELECT count(*) FROM coastdom_samples_current"},
+    "greenland-primary-production": {"sync_source": "greenland-pp", "log_source": "greenland-pp",
+                             "tables": ("greenland_pp_stations",),
+                             "count_sql": "SELECT count(*) FROM greenland_pp_stations_current"},
     "methane-seeps":       {"sync_source": "seaflea", "log_source": "seaflea",
                              "tables": ("seaflea_seeps",),
                              "count_sql": "SELECT count(*) FROM seaflea_seeps"},
+    # Preview layer, dev-only (owner decision 2026-09-25).
+    "greenland-sea-poc-aoc2025": {"sync_source": "aoc2025-poc", "log_source": "aoc2025-poc",
+                             "tables": ("aoc2025_poc_samples",),
+                             "count_sql": "SELECT count(*) FROM aoc2025_poc_samples_current"},
+    # Preview layer, dev-only (owner decision 2026-09-26).
+    "svalbard-fjords-primary-production": {"sync_source": "svalbard-fjords-pp", "log_source": "svalbard-fjords-pp",
+                             "tables": ("svalbard_fjords_pp_samples",),
+                             "count_sql": "SELECT count(*) FROM svalbard_fjords_pp_samples_current"},
 
     # --- Arctic land->ocean layers ---
     "sios-svalbard":       {"sync_source": "sios", "log_source": "sios",

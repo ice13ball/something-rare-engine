@@ -54,7 +54,12 @@ nameless CLOSED platform (ref 2300495_001). Rejected to NULL here and counted
 in the return value's `_sentinel_count` marker (popped by the caller before
 building station dicts — see `fetch_oceansites_stations`).
 
-License: OceanOPS data is publicly available under the WMO data policy.
+License: NOT an open licence. OceanOPS (ocean-ops.org/api/help) states "All rights
+reserved" - the data may be freely used and copied for educational and other
+non-commercial purposes with acknowledgement (credit, link) of OceanOPS as the
+source; any other use requires permission from OceanOPS. (The Apache 2.0 notice
+on that page covers the API source code, not the data. WMO Resolution 40
+governs the separate DBCP/GTS route, not this API.) See DATA-LICENCES.md.
 Contact: Thomas (OceanOPS) — prototype endpoint built specifically for Abyssal Claims.
 """
 import logging
