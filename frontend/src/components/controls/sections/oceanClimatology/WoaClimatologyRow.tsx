@@ -99,6 +99,9 @@ export function WoaClimatologyRow({ expandedFilter, setExpandedFilter, toggleExp
                               <span>{fmt(mid)}</span>
                               <span>{fmt(vm.vmax)}</span>
                             </div>
+                            {vm.key === "nstar" && (
+                              <span className="text-[10px] text-white/55 leading-snug">{t("woaPoint.nstarHint")}</span>
+                            )}
                           </div>
                         );
                       })()}

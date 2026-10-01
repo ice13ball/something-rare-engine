@@ -35,7 +35,7 @@ def test_clamps_beyond_range():
 
 
 def test_config_covers_eight_variables():
-    assert len(WOA_VARS) == 8
+    assert len(WOA_VARS) == 9  # 8 NetCDF-backed + derived N*
     assert set(DISPLAY_DEPTHS) == {0, 50, 100, 200, 500, 1000, 1500, 2000}
     for v in WOA_VARS.values():
-        assert v["cmap"] in ("thermal", "haline", "oxy", "matter")
+        assert v["cmap"] in ("thermal", "haline", "oxy", "matter", "diverging")

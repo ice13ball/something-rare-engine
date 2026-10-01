@@ -506,7 +506,7 @@
       "water-risk": "Globales Wasserrisiko auf Teileinzugsgebietsebene — Stress, Erschöpfung, Dürre, Überschwemmung. Bergbaugewichtete Werte heben Einzugsgebiete hervor, in denen der Abbau mit Gemeinschaften um Wasser konkurriert.",
       "offshore-activities": "Von Regierungen erteilte Offshore-Konzessionen innerhalb nationaler AWZ — Öl- und Gasblöcke, Offshore-Windparks, Bergbaulizenzen für den Meeresboden und CCS-Lizenzen (Kohlenstoffabscheidung und -speicherung). Nach Aktivitätsart und Land filtern, um zu sehen, wer wo lizenziert ist.",
       "ocean-currents": "Animierte Meeresströmungen (Oberfläche oder 1000 m) von Copernicus Marine. Partikel folgen dem aktuellen Strömungsfeld; der Tiefenschalter wechselt zwischen Oberflächendrift und der tieferen Schicht, die Sedimentfahnen des Tiefseebergbaus transportiert.",
-      "woa-climatology": "Gerasterte Ozean-Klimatologie (langjähriges Mittel) aus dem World Ocean Atlas 2023 — Temperatur, Salzgehalt, Sauerstoff, AOU, O₂-Sättigung und Nährstoffe in 8 Standardtiefen. Wählen Sie Variable und Tiefe; die Farbe zeigt den Mittelwert (ablesbar an der Skala unter dem Selektor). 1° Auflösung; der Referenzzeitraum variiert je nach Variable (T/S 1991–2020, O₂ 1971–2000, Nährstoffe 1965–2022).",
+      "woa-climatology": "Gerasterte Ozean-Klimatologie (langjähriges Mittel) aus dem World Ocean Atlas 2023 — Temperatur, Salzgehalt, Sauerstoff, AOU, O₂-Sättigung und Nährstoffe in 8 Standardtiefen. Wählen Sie Variable und Tiefe; die Farbe zeigt den Mittelwert (ablesbar an der Skala unter dem Selektor). 1° Auflösung; der Referenzzeitraum variiert je nach Variable (T/S 1991–2020, O₂ 1971–2000, Nährstoffe 1965–2022). N* (Nitrat − 16 × Phosphat) wird aus zwei davon abgeleitet: negativ bedeutet weniger Nitrat als Phosphat im 16:1-Verhältnis, das Plankton nutzt.",
       "oxygen-deox": "Gelöster Ozeansauerstoff aus ISAS-BGC-Argo-Floats. „Aktueller O₂” zeigt das Mittel 2014–2018 in der gewählten Tiefe (blau = hoch, rot = niedrig / Sauerstoffminimumzonen). „Sauerstoffverlust Δ” zeigt die Änderung gegenüber der WOA23-Basislinie 1971–2000 (rot = O₂-Verlust, blau = Zunahme). Indikatives regionales Muster, kein kalibrierter Trend — das aktuelle Feld der Argo-Optoden und die schiffsgestützte Basislinie 1971–2000 unterscheiden sich in der Methode.",
       "wod-oxygen": "Rohe historische Profile des gelösten Sauerstoffs aus der NOAA World Ocean Database (global). Jeder Punkt ist eine Schiffs-/Float-Messung, nach Jahrzehnt eingefärbt; klicken für das tatsächliche Tiefe–Sauerstoff-Profil. Inspizierbare Rohdaten über ~ein Jahrhundert — heterogene Methoden und QC, wie veröffentlicht dargestellt. Bei weitem Zoom auf eine Auswahl ausgedünnt; hineinzoomen für jede Messung.",
       "arctic-rivers": "Beobachteter Abfluss und Biogeochemie an den Mündungen der großen arktischen Flüsse (6 ArcticGRO-Flüsse + PANGAEA Kanada). Jeder Punkt = eine Messstation; klicken Sie für den Beobachtungszeitraum und Zeitreihen von gelöstem organischem Kohlenstoff, Nährstoffen und dem Abfluss am Probenahmetag. Veröffentlichte Messungen, Beprobung ~6×/Jahr, in monatlicher Auflösung.",
@@ -1512,5 +1512,8 @@
     "colTemperature": "Temp.",
     "colSalinity": "Salzgehalt",
     "colWaterMass": "Wassermasse"
+  },
+  "woaPoint": {
+    "nstarHint": "N* = Nitrat − 16 × Phosphat. Negativ = weniger Nitrat als Phosphat im 16:1-Verhältnis, das Plankton nutzt (Stickstoffdefizit); positiv = Nitratüberschuss."
   }
 }

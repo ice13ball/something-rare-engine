@@ -106,8 +106,19 @@ async def sync_woa(force: bool = False) -> int:
         async with db.pool.acquire() as conn:
             last = await conn.fetchval("SELECT last_synced_at FROM sync_log WHERE source = 'woa-climatology'")
         if last is not None and (datetime.now(timezone.utc) - last) < timedelta(days=30):
-            log.info("woa: recent bake found — skipping")
-            return 0
+            # Fresh guard, but a variable added since the last bake has no PNGs and
+            # would otherwise wait up to 30 days. Bake only what is missing.
+            if not await asyncio.to_thread(woa_climatology.missing_pngs):
+                log.info("woa: recent bake found — skipping")
+                return 0
+            try:
+                n = await asyncio.to_thread(woa_climatology.bake_all, True)
+            except Exception as exc:
+                log.warning("woa missing-PNG bake failed: %s", exc)
+                return 0
+            _woa_meta_cache = None
+            log.info("woa: baked %d missing colour PNGs (guard still fresh)", n)
+            return n
     try:
         n = await asyncio.to_thread(woa_climatology.bake_all)
     except Exception as exc:

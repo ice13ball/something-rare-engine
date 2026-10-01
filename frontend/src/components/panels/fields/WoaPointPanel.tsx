@@ -2,6 +2,7 @@
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { API } from "../shared/tokens";
 import { Section, Badge } from "../shared/primitives";
 
@@ -21,6 +22,7 @@ export interface WoaPointData {
 }
 
 export function WoaPointPanel({ props: p }: { props: Record<string, unknown> }) {
+  const { t } = useTranslation("panels");
   const lat   = p._lat   as number;
   const lon   = p._lon   as number;
   const depth = p.depth  as number;
@@ -86,6 +88,9 @@ export function WoaPointPanel({ props: p }: { props: Record<string, unknown> }) 
           <p className="text-[11px] text-white/60 mt-1">
             Nearest 1° WOA cell — climatological average, not a point measurement. Baselines vary by variable.
           </p>
+          {data.variables.some(v => v.key === "nstar" && v.value != null) && (
+            <p className="text-[11px] text-white/60 mt-1">{t("woaPoint.nstarHint")}</p>
+          )}
         </Section>
       )}
 

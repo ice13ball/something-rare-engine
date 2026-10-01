@@ -139,6 +139,7 @@ describe("path injection is refused", () => {
   it("accepts plain lowercase slugs", () => {
     expect(isValidDisplayValue("woaVariable", "oxygen")).toBe(true);
     expect(isValidDisplayValue("woaVariable", "o2sat")).toBe(true);
+    expect(isValidDisplayValue("woaVariable", "nstar")).toBe(true);
   });
 });
 

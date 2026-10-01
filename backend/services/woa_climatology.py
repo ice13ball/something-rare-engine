@@ -43,6 +43,16 @@ WOA_VARS: dict[str, dict] = {
     "phosphate":   dict(folder="phosphate",   code="p", period="all",       an_var="p_an", units="µmol/kg", vmin=0.0,  vmax=3.5,   cmap="matter",  label="Phosphate",     baseline="1965–2022"),
     "silicate":    dict(folder="silicate",    code="i", period="all",       an_var="i_an", units="µmol/kg", vmin=0.0,  vmax=180.0, cmap="matter",  label="Silicate",      baseline="1965–2022"),
     "nitrate":     dict(folder="nitrate",     code="n", period="all",       an_var="n_an", units="µmol/kg", vmin=0.0,  vmax=45.0,  cmap="matter",  label="Nitrate",       baseline="1965–2022"),
+    # Derived variable: no NetCDF of its own, computed cell-by-cell from two real
+    # grids as `a - k*b` at the same depth level (see _load_derived). N* = nitrate -
+    # 16 x phosphate: negative = less nitrate than phosphate at the 16:1 Redfield
+    # ratio plankton use. Fixed symmetric range +-15 so that 0 sits exactly at the
+    # ramp midpoint (real-data percentiles measured 2026-10-01: p1 -8..-21 and
+    # p99 +0.0..+2.0 µmol/kg across the display depths; a few extreme outliers
+    # reach -148, which the clip keeps from washing out the field).
+    "nstar":       dict(derived=dict(a="nitrate", b="phosphate", k=16.0), an_var=None,
+                        units="µmol/kg", vmin=-15.0, vmax=15.0, cmap="diverging",
+                        label="N* (N − 16P)", baseline="1965–2022"),
 }
 
 DISPLAY_DEPTHS = [0, 50, 100, 200, 500, 1000, 1500, 2000]
@@ -54,6 +64,11 @@ _RAMPS: dict[str, list[tuple[float, tuple[int, int, int]]]] = {
     "haline":  [(0.0, (40, 30, 90)), (0.4, (30, 110, 130)), (0.7, (60, 175, 130)), (1.0, (235, 240, 150))],
     "oxy":     [(0.0, (120, 20, 30)), (0.25, (200, 90, 40)), (0.5, (235, 200, 120)), (0.75, (90, 170, 200)), (1.0, (20, 60, 150))],
     "matter":  [(0.0, (250, 245, 220)), (0.4, (220, 160, 110)), (0.7, (170, 70, 110)), (1.0, (70, 20, 80))],
+    # Diverging, neutral at EXACTLY pos 0.5 so a range symmetric about 0 puts 0 on
+    # the neutral colour. Blue = negative, red = positive. The red side saturates
+    # early on purpose: real N* is skewed negative, positives are rarely above +3.
+    "diverging": [(0.0, (30, 60, 150)), (0.25, (90, 150, 205)), (0.5, (240, 240, 240)),
+                  (0.6, (250, 200, 170)), (0.75, (225, 100, 70)), (1.0, (130, 20, 30))],
 }
 
 
@@ -85,6 +100,16 @@ def encode_field_to_rgba(arr: np.ndarray, vmin: float, vmax: float, cmap: str) -
 # ──────────────────────────────────────────────────────────────────────────────
 
 _BASE = "https://www.ncei.noaa.gov/data/oceans/woa/WOA23/DATA"
+
+
+def is_derived(var_key: str) -> bool:
+    return "derived" in WOA_VARS[var_key]
+
+
+def _source_vars(var_key: str) -> list[str]:
+    """The variables whose NetCDF files must be on disk to serve `var_key`."""
+    d = WOA_VARS[var_key].get("derived")
+    return [d["a"], d["b"]] if d else [var_key]
 
 
 def _grid_filename(var_key: str, tt: int) -> str:
@@ -140,6 +165,8 @@ def ensure_all_grids() -> int:
     (T/S/O₂, used by month-matched point sampling). Returns count present."""
     have = 0
     for var_key in WOA_VARS:
+        if is_derived(var_key):
+            continue  # no file of its own; its inputs are in WOA_VARS too
         if ensure_grid(var_key, 0):  # annual
             have += 1
     for var_key in ("temperature", "salinity", "oxygen"):
@@ -170,6 +197,11 @@ def _load_grid(var_key: str, tt: int) -> "_Grid | None":
     key = (var_key, tt)
     if key in _GRID_CACHE:
         return _GRID_CACHE[key]
+    if is_derived(var_key):
+        grid = _load_derived(var_key, tt)
+        if grid is not None:
+            _GRID_CACHE[key] = grid
+        return grid
     path = _local_path(var_key, tt)
     if not path.is_file():
         return None
@@ -188,6 +220,36 @@ def _load_grid(var_key: str, tt: int) -> "_Grid | None":
         ds.close()
     _GRID_CACHE[key] = grid
     return grid
+
+
+_FILL_ABS = 1e30  # WOA fill ~9.97e36
+
+
+def _load_derived(var_key: str, tt: int) -> "_Grid | None":
+    """Build a derived grid `a - k*b` from two real grids. Refuses (ValueError) when
+    the two grids are not on identical lat/lon/depth coordinates — combining
+    misaligned grids would silently pair unrelated cells. Fill/NaN in EITHER
+    input gives NaN (never 0). Returns None when either input is unavailable."""
+    d = WOA_VARS[var_key]["derived"]
+    ga, gb = _load_grid(d["a"], tt), _load_grid(d["b"], tt)
+    if ga is None or gb is None:
+        return None
+    for name in ("lats", "lons", "depths"):
+        ca, cb = getattr(ga, name), getattr(gb, name)
+        if ca.shape != cb.shape or not np.allclose(ca, cb, rtol=0.0, atol=1e-6):
+            raise ValueError(
+                f"woa: cannot derive {var_key!r}: {d['a']} and {d['b']} differ in {name} "
+                f"({ca.shape} vs {cb.shape}) — refusing to combine misaligned grids")
+    if ga.data.shape != gb.data.shape:
+        raise ValueError(f"woa: cannot derive {var_key!r}: data shapes "
+                         f"{ga.data.shape} vs {gb.data.shape}")
+    a = ga.data.astype("float64")
+    b = gb.data.astype("float64")
+    bad = ~np.isfinite(a) | ~np.isfinite(b) | (np.abs(a) > _FILL_ABS) | (np.abs(b) > _FILL_ABS)
+    a[bad] = np.nan
+    b[bad] = np.nan
+    data = (a - float(d["k"]) * b).astype("float32")
+    return _Grid(lats=ga.lats, lons=ga.lons, depths=ga.depths, data=data)
 
 
 def _nearest_idx(coords: np.ndarray, value: float) -> int:
@@ -255,8 +317,9 @@ def bake_variable_depth(var_key: str, depth_m: int) -> dict | None:
     cfg = WOA_VARS[var_key]
     grid = _load_grid(var_key, 0)  # annual
     if grid is None:
-        if ensure_grid(var_key, 0) is None:
-            return None
+        for src in _source_vars(var_key):
+            if ensure_grid(src, 0) is None:
+                return None
         grid = _load_grid(var_key, 0)
         if grid is None:
             return None
@@ -287,14 +350,26 @@ def bake_variable_depth(var_key: str, depth_m: int) -> dict | None:
     }
 
 
-def bake_all() -> int:
-    """Ensure grids, then bake every (variable × DISPLAY_DEPTHS) PNG. Returns count."""
-    ensure_all_grids()
+def missing_pngs() -> list[tuple[str, int]]:
+    """(variable, depth) pairs in WOA_VARS x DISPLAY_DEPTHS with no baked PNG."""
+    return [(v, d) for v in WOA_VARS for d in DISPLAY_DEPTHS if baked_png_path(v, d) is None]
+
+
+def bake_all(only_missing: bool = False) -> int:
+    """Ensure grids, then bake every (variable × DISPLAY_DEPTHS) PNG. Returns count.
+    only_missing=True bakes just the pairs without a PNG (a newly added variable
+    under a still-fresh 30-day sync_log guard) and leaves existing PNGs alone."""
+    if only_missing:
+        todo = missing_pngs()
+        for src in {s for v, _ in todo for s in _source_vars(v)}:
+            ensure_grid(src, 0)
+    else:
+        ensure_all_grids()
+        todo = [(v, d) for v in WOA_VARS for d in DISPLAY_DEPTHS]
     n = 0
-    for var_key in WOA_VARS:
-        for d in DISPLAY_DEPTHS:
-            if bake_variable_depth(var_key, d):
-                n += 1
+    for var_key, d in todo:
+        if bake_variable_depth(var_key, d):
+            n += 1
     return n
 
 

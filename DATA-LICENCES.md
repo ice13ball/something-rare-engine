@@ -2,7 +2,7 @@
 
 **Almost no data ships in this repository, and the exception is named here rather than
 glossed.** Beyond the source code, `backend/tests/fixtures/` holds ~1.3 MB of **real**
-upstream excerpts across 17 sources — among them GEOTRACES seawater rows, ONC ADCP
+upstream excerpts across 18 sources — among them GEOTRACES seawater rows, ONC ADCP
 profiles, and GLODAP and SOCAT NetCDF slices. They exist so parsers are tested against
 the shapes they actually meet, and they remain under their upstream terms.
 
