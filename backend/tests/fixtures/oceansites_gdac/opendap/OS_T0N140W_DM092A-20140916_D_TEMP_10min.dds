@@ -1,0 +1,21 @@
+Dataset {
+    Float64 TIME[TIME = 27005];
+    Float32 DEPTH[DEPTH = 15];
+    Float32 LATITUDE[LATITUDE = 1];
+    Float32 LONGITUDE[LONGITUDE = 1];
+    Grid {
+     ARRAY:
+        Float32 TEMP[TIME = 27005][DEPTH = 15];
+     MAPS:
+        Float64 TIME[TIME = 27005];
+        Float32 DEPTH[DEPTH = 15];
+    } TEMP;
+    Grid {
+     ARRAY:
+        Byte TEMP_QC[TIME = 27005][DEPTH = 15];
+     MAPS:
+        Float64 TIME[TIME = 27005];
+        Float32 DEPTH[DEPTH = 15];
+    } TEMP_QC;
+    String TEMP_DM[TIME = 27005];
+} CORIOLIS-OCEANSITES-GDAC-OBS/DATA/T0N140W/OS_T0N140W_DM092A-20140916_D_TEMP_10min.nc;

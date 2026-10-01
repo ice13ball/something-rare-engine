@@ -271,6 +271,23 @@ CREATE INDEX IF NOT EXISTS oceansites_depl_geom_idx ON oceansites_deployments US
 CREATE INDEX IF NOT EXISTS oceansites_depl_wigos_idx ON oceansites_deployments (wigos_id) WHERE wigos_id IS NOT NULL
 ALTER TABLE oceansites_deployments OWNER TO abyssal_user
 ALTER TABLE oceansites_stations OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS oceansites_gdac_files ( file TEXT PRIMARY KEY, site_dir TEXT NOT NULL, platform_code TEXT, data_mode TEXT, start_time TIMESTAMPTZ, end_time TIMESTAMPTZ, lat DOUBLE PRECISION, lon DOUBLE PRECISION, position_source TEXT, bbox_south DOUBLE PRECISION, bbox_north DOUBLE PRECISION, bbox_west DOUBLE PRECISION, bbox_east DOUBLE PRECISION, min_depth DOUBLE PRECISION, max_depth DOUBLE PRECISION, parameters TEXT[], size_bytes BIGINT, gdac_update_date TIMESTAMPTZ, date_update TIMESTAMPTZ, seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_south DOUBLE PRECISION
+ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_north DOUBLE PRECISION
+ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_west DOUBLE PRECISION
+ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_east DOUBLE PRECISION
+CREATE INDEX IF NOT EXISTS oceansites_gdac_files_site_idx ON oceansites_gdac_files (site_dir, platform_code)
+CREATE TABLE IF NOT EXISTS oceansites_station_files ( station_ref TEXT NOT NULL, file TEXT NOT NULL, rule TEXT NOT NULL, distance_km DOUBLE PRECISION NOT NULL, PRIMARY KEY (station_ref, file) )
+CREATE INDEX IF NOT EXISTS oceansites_station_files_file_idx ON oceansites_station_files (file)
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS history_start TIMESTAMPTZ
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS history_end TIMESTAMPTZ
+ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS history_files INTEGER
+CREATE TABLE IF NOT EXISTS oceansites_gdac_series ( file TEXT NOT NULL, variable TEXT NOT NULL, depth_index INTEGER NOT NULL, depth_m DOUBLE PRECISION, units TEXT, long_name TEXT, standard_name TEXT, n_total INTEGER NOT NULL, stride INTEGER NOT NULL, times TIMESTAMPTZ[] NOT NULL, vals DOUBLE PRECISION[] NOT NULL, qc SMALLINT[] NOT NULL, first_time TIMESTAMPTZ, last_time TIMESTAMPTZ, gdac_update_date TIMESTAMPTZ, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (file, variable, depth_index) )
+CREATE TABLE IF NOT EXISTS oceansites_gdac_fetched ( file TEXT PRIMARY KEY, outcome TEXT NOT NULL, detail TEXT, change_marker TEXT, standard_names TEXT[] NOT NULL DEFAULT '{}', n_series INTEGER NOT NULL DEFAULT 0, citation TEXT, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )
+ALTER TABLE oceansites_gdac_files OWNER TO abyssal_user
+ALTER TABLE oceansites_station_files OWNER TO abyssal_user
+ALTER TABLE oceansites_gdac_series OWNER TO abyssal_user
+ALTER TABLE oceansites_gdac_fetched OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS onc_locations ( location_code TEXT PRIMARY KEY, name TEXT NOT NULL, lat DOUBLE PRECISION NOT NULL, lon DOUBLE PRECISION NOT NULL, depth_m DOUBLE PRECISION, description TEXT DEFAULT '', geom GEOMETRY(Point, 4326), updated_at TIMESTAMPTZ DEFAULT NOW(), latest_sensors JSONB, sensors_fetched_at TIMESTAMPTZ )
 ALTER TABLE onc_locations ADD COLUMN IF NOT EXISTS latest_sensors JSONB
 ALTER TABLE onc_locations ADD COLUMN IF NOT EXISTS sensors_fetched_at TIMESTAMPTZ

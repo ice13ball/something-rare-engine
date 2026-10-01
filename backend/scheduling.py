@@ -79,6 +79,7 @@ from domains import acoustic, arctic, biodiversity, cables, fields
 from domains import aoc2025_poc
 from domains import svalbard_fjords_pp
 from domains import geo_context, geochem, isa, offshore, onc, pangaea_water, seafloor, sensors
+from domains import oceansites_history
 
 from land_layers import (
     _sync_air_quality_readings,
@@ -144,6 +145,7 @@ MONITORING_DENSITY_REFRESH_INTERVAL_SECONDS = 12 * 3600
 SIO_BIC_SYNC_INTERVAL_SECONDS = 7 * 24 * 3600  # weekly
 ONC_SENSOR_SYNC_INTERVAL_SECONDS = 24 * 3600  # daily
 OCEANSITES_OBS_SYNC_INTERVAL_SECONDS = 24 * 3600  # daily
+OCEANSITES_HISTORY_SYNC_INTERVAL_SECONDS = 7 * 24 * 3600  # weekly; the GDAC index is daily, the history changes slowly
 AIR_QUALITY_READINGS_INTERVAL_SECONDS = 6 * 3600  # every 6 hours (OpenAQ key is shared with downWindGlobal)
 OFFSHORE_ACTIVITIES_INTERVAL = 7 * 24 * 3600  # weekly
 
@@ -1117,6 +1119,21 @@ async def _oceansites_obs_sync_task():
         await asyncio.sleep(OCEANSITES_OBS_SYNC_INTERVAL_SECONDS)
 
 
+async def _oceansites_history_task():
+    """Weekly: refresh the OceanSITES GDAC catalogue and relink moorings to files.
+
+    Heavy and network-bound (a ~21 MB FTP index now, OPeNDAP series later), so it
+    waits 45 min after startup — past the cold-start work, and not on the heels
+    of every deploy restart."""
+    await asyncio.sleep(2700)
+    while True:
+        try:
+            await oceansites_history.sync_oceansites_history()
+        except Exception:
+            log.exception("OceanSITES history sync failed")
+        await asyncio.sleep(OCEANSITES_HISTORY_SYNC_INTERVAL_SECONDS)
+
+
 async def _air_quality_readings_task():
     """Drip-fill air quality readings from OpenAQ v3 — paced by openaq_guard
     (~5 req/min, shared key, daily budget), one bounded run every 6 h. Runs
@@ -1594,6 +1611,11 @@ TASK_REGISTRY: list[TaskSpec] = [
     TaskSpec(
         "oceansites-obs-daily-sync", ROLE_WORKER, "Postgres/HTTP only.",
         _f(_oceansites_obs_sync_task),
+    ),
+    TaskSpec(
+        "oceansites-history-weekly-sync", ROLE_WORKER,
+        "Postgres + FTP/HTTP only (GDAC index, later OPeNDAP series).",
+        _f(_oceansites_history_task),
     ),
     TaskSpec(
         "air-quality-readings-drip", ROLE_WORKER, "Postgres/HTTP only (OpenAQ v3).",

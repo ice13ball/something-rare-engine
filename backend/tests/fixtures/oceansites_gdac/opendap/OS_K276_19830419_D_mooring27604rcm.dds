@@ -1,0 +1,76 @@
+Dataset {
+    Float64 TIME[TIME = 4383];
+    Float32 LATITUDE[LATITUDE = 1];
+    Float32 LONGITUDE[LONGITUDE = 1];
+    Float32 DEPTH[DEPTH = 7];
+    Grid {
+     ARRAY:
+        Float32 PRES[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } PRES;
+    Grid {
+     ARRAY:
+        Byte PRES_QC[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } PRES_QC;
+    Grid {
+     ARRAY:
+        Float32 UCUR[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } UCUR;
+    Grid {
+     ARRAY:
+        Byte UCUR_QC[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } UCUR_QC;
+    Grid {
+     ARRAY:
+        Float32 VCUR[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } VCUR;
+    Grid {
+     ARRAY:
+        Byte VCUR_QC[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } VCUR_QC;
+    Grid {
+     ARRAY:
+        Float32 TEMP[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } TEMP;
+    Grid {
+     ARRAY:
+        Byte TEMP_QC[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } TEMP_QC;
+    Grid {
+     ARRAY:
+        Float32 PSAL[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } PSAL;
+    Grid {
+     ARRAY:
+        Byte PSAL_QC[TIME = 4383][DEPTH = 7];
+     MAPS:
+        Float64 TIME[TIME = 4383];
+        Float32 DEPTH[DEPTH = 7];
+    } PSAL_QC;
+} CORIOLIS-OCEANSITES-GDAC-OBS/DATA/K276/OS_K276_19830419_D_mooring27604rcm.nc;

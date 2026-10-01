@@ -1,0 +1,176 @@
+Dataset {
+    Float64 TIME[TIME = 9829];
+    Float32 LATITUDE[LATITUDE = 1];
+    Float32 LONGITUDE[LONGITUDE = 1];
+    Float32 DEPTH_TEMP[DEPTH_TEMP = 17];
+    Float32 DEPTH_TEMP2[DEPTH_TEMP2 = 1];
+    Float32 DEPTH_PRES[DEPTH_PRES = 3];
+    Float32 DEPTH_CNDC[DEPTH_CNDC = 14];
+    Float32 DEPTH_CNDC2[DEPTH_CNDC2 = 1];
+    Float32 DEPTH_PSAL[DEPTH_PSAL = 14];
+    Float32 DEPTH_PSAL2[DEPTH_PSAL2 = 1];
+    Float32 DEPTH_DENS[DEPTH_DENS = 14];
+    Float32 DEPTH_DENS2[DEPTH_DENS2 = 1];
+    Grid {
+     ARRAY:
+        Float32 TEMP[TIME = 9829][DEPTH_TEMP = 17][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_TEMP[DEPTH_TEMP = 17];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } TEMP;
+    Grid {
+     ARRAY:
+        Byte TEMP_QC[TIME = 9829][DEPTH_TEMP = 17][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_TEMP[DEPTH_TEMP = 17];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } TEMP_QC;
+    Grid {
+     ARRAY:
+        Float32 PRES[TIME = 9829][DEPTH_PRES = 3][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_PRES[DEPTH_PRES = 3];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } PRES;
+    Grid {
+     ARRAY:
+        Byte PRES_QC[TIME = 9829][DEPTH_PRES = 3][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_PRES[DEPTH_PRES = 3];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } PRES_QC;
+    Grid {
+     ARRAY:
+        Float32 CNDC[TIME = 9829][DEPTH_CNDC = 14][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_CNDC[DEPTH_CNDC = 14];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } CNDC;
+    Grid {
+     ARRAY:
+        Byte CNDC_QC[TIME = 9829][DEPTH_CNDC = 14][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_CNDC[DEPTH_CNDC = 14];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } CNDC_QC;
+    Grid {
+     ARRAY:
+        Float32 DENS[TIME = 9829][DEPTH_DENS = 14][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_DENS[DEPTH_DENS = 14];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } DENS;
+    Grid {
+     ARRAY:
+        Byte DENS_QC[TIME = 9829][DEPTH_DENS = 14][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_DENS[DEPTH_DENS = 14];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } DENS_QC;
+    Grid {
+     ARRAY:
+        Float32 PSAL[TIME = 9829][DEPTH_PSAL = 14][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_PSAL[DEPTH_PSAL = 14];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } PSAL;
+    Grid {
+     ARRAY:
+        Byte PSAL_QC[TIME = 9829][DEPTH_PSAL = 14][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_PSAL[DEPTH_PSAL = 14];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } PSAL_QC;
+    Grid {
+     ARRAY:
+        Float32 TEMP2[TIME = 9829][DEPTH_TEMP2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_TEMP2[DEPTH_TEMP2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } TEMP2;
+    Grid {
+     ARRAY:
+        Byte TEMP2_QC[TIME = 9829][DEPTH_TEMP2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_TEMP2[DEPTH_TEMP2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } TEMP2_QC;
+    Grid {
+     ARRAY:
+        Float32 CNDC2[TIME = 9829][DEPTH_CNDC2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_CNDC2[DEPTH_CNDC2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } CNDC2;
+    Grid {
+     ARRAY:
+        Byte CNDC2_QC[TIME = 9829][DEPTH_CNDC2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_CNDC2[DEPTH_CNDC2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } CNDC2_QC;
+    Grid {
+     ARRAY:
+        Float32 DENS2[TIME = 9829][DEPTH_DENS2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_DENS2[DEPTH_DENS2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } DENS2;
+    Grid {
+     ARRAY:
+        Byte DENS2_QC[TIME = 9829][DEPTH_DENS2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_DENS2[DEPTH_DENS2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } DENS2_QC;
+    Grid {
+     ARRAY:
+        Float32 PSAL2[TIME = 9829][DEPTH_PSAL2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_PSAL2[DEPTH_PSAL2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } PSAL2;
+    Grid {
+     ARRAY:
+        Byte PSAL2_QC[TIME = 9829][DEPTH_PSAL2 = 1][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 9829];
+        Float32 DEPTH_PSAL2[DEPTH_PSAL2 = 1];
+        Float32 LATITUDE[LATITUDE = 1];
+        Float32 LONGITUDE[LONGITUDE = 1];
+    } PSAL2_QC;
+} CORIOLIS-OCEANSITES-GDAC-OBS/DATA/PAPA/OS_PAPA_2017PA011_D_SALT-1hr.nc;

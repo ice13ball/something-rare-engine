@@ -22,6 +22,9 @@ import re
 ROOT    = pathlib.Path(__file__).resolve().parents[2]
 SENSORS = ROOT / "backend" / "domains" / "sensors.py"
 PANEL   = ROOT / "frontend" / "src" / "components" / "panels" / "ocean" / "OceansitesPanel.tsx"
+#: The Historical record section lives in its own component, rendered by the panel
+#: and handed the same `p`. Its reads (history_start / history_end) count as the panel's.
+PANEL_PARTS = (PANEL, PANEL.with_name("OceansitesHistory.tsx"))
 
 #: field -> why the panel does not read it.
 NOT_FOR_THE_PANEL = {
@@ -48,7 +51,7 @@ def _properties_the_endpoint_sends() -> set[str]:
 
 
 def _fields_the_panel_reads() -> set[str]:
-    src = PANEL.read_text(encoding="utf-8")
+    src = "\n".join(part.read_text(encoding="utf-8") for part in PANEL_PARTS)
     # The panel destructures the feature as `p`, so every read is `p.<field>`.
     return set(re.findall(r"\bp\.([a-z_][a-z0-9_]*)\b", src))
 

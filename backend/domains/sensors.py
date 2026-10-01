@@ -155,6 +155,13 @@ def clear_caches() -> None:
     _oceansites_cache = None
 
 
+def clear_oceansites_map_cache() -> None:
+    """Drop only the /v1/map/oceansites payload (the history sync rewrites the
+    history_* columns it carries; the Argo caches are unaffected)."""
+    global _oceansites_cache
+    _oceansites_cache = None
+
+
 def extract_argo_measurements(profile: dict) -> dict:
     """Parse a single ArgoVis profile into flat measurement values.
 
@@ -2235,7 +2242,8 @@ async def get_oceansites():
         rows = await conn.fetch("""
             SELECT ref, name, lat, lon, status, network, deploy_date,
                    age_days, model, latest_obs, obs_source, obs_fetched_at,
-                   wigos_id, country, sensor_models, deploy_ship, deployment_count
+                   wigos_id, country, sensor_models, deploy_ship, deployment_count,
+                   history_start, history_end, history_files
             FROM oceansites_stations
             -- ⛔ This table's own contract is "one row per base ref, POSITIONED"
             -- (see fetch_oceansites_stations). lat/lon are NOT NULL, so the only
@@ -2286,6 +2294,12 @@ async def get_oceansites():
                 "sensor_models":    r["sensor_models"],
                 "deploy_ship":      r["deploy_ship"],
                 "deployment_count": r["deployment_count"],
+                # GDAC historical record (domains/oceansites_history.py): span and
+                # file count only; the series live behind /v1/oceansites/{ref}/history.
+                # NULL / 0 when no GDAC file is linked to the mooring.
+                "history_start":  r["history_start"].isoformat() if r["history_start"] else None,
+                "history_end":    r["history_end"].isoformat() if r["history_end"] else None,
+                "history_files":  r["history_files"],
             },
         }
         for r in rows

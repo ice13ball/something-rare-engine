@@ -192,3 +192,126 @@ async def ensure_oceansites(conn) -> None:
         pass
 
 
+
+
+async def ensure_oceansites_history(conn) -> None:
+    """oceansites_gdac_files, oceansites_station_files, + summary columns.
+
+    The OceanSITES GDAC catalogue (one row per ``DATA/`` file of its index) and
+    the derived link between a mooring in ``oceansites_stations`` and the files
+    that are its record. Must run after ``ensure_oceansites``.
+
+    ⛔ ``oceansites_gdac_files`` is source data: refreshed by UPSERT, never
+    deleted from, because an index the server could not serve is "unknown", not
+    "empty". ``oceansites_station_files`` is derived — it is rebuilt wholesale
+    in one transaction after each catalogue refresh and may be truncated freely.
+    """
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS oceansites_gdac_files (
+            file             TEXT PRIMARY KEY,
+            site_dir         TEXT NOT NULL,
+            platform_code    TEXT,
+            data_mode        TEXT,
+            start_time       TIMESTAMPTZ,
+            end_time         TIMESTAMPTZ,
+            lat              DOUBLE PRECISION,
+            lon              DOUBLE PRECISION,
+            position_source  TEXT,
+            bbox_south       DOUBLE PRECISION,
+            bbox_north       DOUBLE PRECISION,
+            bbox_west        DOUBLE PRECISION,
+            bbox_east        DOUBLE PRECISION,
+            min_depth        DOUBLE PRECISION,
+            max_depth        DOUBLE PRECISION,
+            parameters       TEXT[],
+            size_bytes       BIGINT,
+            gdac_update_date TIMESTAMPTZ,
+            date_update      TIMESTAMPTZ,
+            seen_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    # bbox_*: the index row's own box (west -> east, dateline-safe); the matcher
+    # measures station distance to it, lat/lon is only its midpoint.
+    # position_source: 'index' (the row's own box) | 'site_median' (the row's
+    # box was a fill/duplicate, so the median of the same mooring's valid rows).
+    for col in ("bbox_south", "bbox_north", "bbox_west", "bbox_east"):  # added after the first cut
+        await conn.execute(
+            f"ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS {col} DOUBLE PRECISION"
+        )
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS oceansites_gdac_files_site_idx "
+        "ON oceansites_gdac_files (site_dir, platform_code)"
+    )
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS oceansites_station_files (
+            station_ref  TEXT NOT NULL,
+            file         TEXT NOT NULL,
+            rule         TEXT NOT NULL,
+            distance_km  DOUBLE PRECISION NOT NULL,
+            PRIMARY KEY (station_ref, file)
+        )
+    """)
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS oceansites_station_files_file_idx "
+        "ON oceansites_station_files (file)"
+    )
+    for col, defn in [
+        ("history_start", "TIMESTAMPTZ"),
+        ("history_end",   "TIMESTAMPTZ"),
+        ("history_files", "INTEGER"),
+    ]:
+        await conn.execute(
+            f"ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS {col} {defn}"
+        )
+    # Strided real samples of a GDAC file (every k-th measurement, NOT averages;
+    # fill -> NULL, units exactly as the file declares them). One row per
+    # (file, variable, depth level); times/vals/qc are parallel arrays.
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS oceansites_gdac_series (
+            file             TEXT NOT NULL,
+            variable         TEXT NOT NULL,
+            depth_index      INTEGER NOT NULL,
+            depth_m          DOUBLE PRECISION,
+            units            TEXT,
+            long_name        TEXT,
+            standard_name    TEXT,
+            n_total          INTEGER NOT NULL,
+            stride           INTEGER NOT NULL,
+            times            TIMESTAMPTZ[] NOT NULL,
+            vals             DOUBLE PRECISION[] NOT NULL,
+            qc               SMALLINT[] NOT NULL,
+            first_time       TIMESTAMPTZ,
+            last_time        TIMESTAMPTZ,
+            gdac_update_date TIMESTAMPTZ,
+            fetched_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (file, variable, depth_index)
+        )
+    """)
+    # One row per file we have settled, so it is not asked again until the GDAC
+    # republishes it. outcome: 'ok' (series stored), 'empty' (read fine, nothing
+    # we can sample: profiles, ADCP bins), 'refused' (the server answered 4xx for
+    # this file or constraint: deterministic, so asking again is only noise).
+    # ⛔ A 5xx / timeout / dropped connection is NEVER recorded here: it says
+    # nothing about the file and the file stays due. change_marker is what the
+    # catalogue said about the file at that moment (see
+    # ingestion.oceansites_opendap.change_marker); a different marker means the
+    # GDAC republished it and the file is read again whatever its outcome.
+    # citation: the file's own global `citation` attribute (shown with its data).
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS oceansites_gdac_fetched (
+            file             TEXT PRIMARY KEY,
+            outcome          TEXT NOT NULL,
+            detail           TEXT,
+            change_marker    TEXT,
+            standard_names   TEXT[] NOT NULL DEFAULT '{}',
+            n_series         INTEGER NOT NULL DEFAULT 0,
+            citation         TEXT,
+            fetched_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    for table in ("oceansites_gdac_files", "oceansites_station_files",
+                  "oceansites_gdac_series", "oceansites_gdac_fetched"):
+        try:
+            await conn.execute(f"ALTER TABLE {table} OWNER TO abyssal_user")
+        except Exception:
+            pass

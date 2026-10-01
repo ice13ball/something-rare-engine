@@ -39,7 +39,7 @@ from schema.onc import ensure_onc_core, ensure_onc_ctd_series, ensure_usgs_earth
 from schema.pangaea_water import ensure_pangaea_water
 from schema.reports import ensure_reports
 from schema.seafloor import ensure_bathymetry_cache, ensure_bathymetry_stats
-from schema.sensors import ensure_plume_paths, ensure_wod_oxygen, ensure_oceansites
+from schema.sensors import ensure_plume_paths, ensure_wod_oxygen, ensure_oceansites, ensure_oceansites_history
 
 log = logging.getLogger(__name__)
 
@@ -72,6 +72,7 @@ async def ensure_schema() -> None:
         await ensure_feedback(conn)  # feedback_submissions
         await ensure_blog(conn)  # blog_articles
         await ensure_oceansites(conn)  # oceansites_stations
+        await ensure_oceansites_history(conn)  # oceansites_gdac_files, oceansites_station_files, oceansites_stations.history_*
         await ensure_onc_core(conn)  # onc_locations, onc_location_categories, onc_sparklines, onc_adcp_strips, onc_ctd_profiles
         await ensure_onc_ctd_series(conn)  # onc_ctd_series, onc_deployment_citations
         await ensure_usgs_earthquakes(conn)  # usgs_earthquakes

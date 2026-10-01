@@ -1,0 +1,46 @@
+Dataset {
+    Float64 LONGITUDE[LONGITUDE = 1];
+    Float64 LATITUDE[LATITUDE = 1];
+    Float64 DEPTH[DEPTH = 5];
+    Float64 DEPTH_bnds[DEPTH = 5][bnds = 2];
+    Float64 TIME[TIME = 2993];
+    Grid {
+     ARRAY:
+        Float32 PSAL[TIME = 2993][DEPTH = 5][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 2993];
+        Float64 DEPTH[DEPTH = 5];
+        Float64 LATITUDE[LATITUDE = 1];
+        Float64 LONGITUDE[LONGITUDE = 1];
+    } PSAL;
+    Grid {
+     ARRAY:
+        Float32 PSAL_QC[TIME = 2993][DEPTH = 5][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 2993];
+        Float64 DEPTH[DEPTH = 5];
+        Float64 LATITUDE[LATITUDE = 1];
+        Float64 LONGITUDE[LONGITUDE = 1];
+    } PSAL_QC;
+    Grid {
+     ARRAY:
+        Float32 TEMP[TIME = 2993][DEPTH = 5][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 2993];
+        Float64 DEPTH[DEPTH = 5];
+        Float64 LATITUDE[LATITUDE = 1];
+        Float64 LONGITUDE[LONGITUDE = 1];
+    } TEMP;
+    Grid {
+     ARRAY:
+        Float32 TEMP_QC[TIME = 2993][DEPTH = 5][LATITUDE = 1][LONGITUDE = 1];
+     MAPS:
+        Float64 TIME[TIME = 2993];
+        Float64 DEPTH[DEPTH = 5];
+        Float64 LATITUDE[LATITUDE = 1];
+        Float64 LONGITUDE[LONGITUDE = 1];
+    } TEMP_QC;
+    Float32 TIME_QC[TIME = 2993];
+    Float32 POSITION_QC[LONGITUDE = 1];
+    Float32 DEPTH_QC[DEPTH = 5];
+} CORIOLIS-OCEANSITES-GDAC-OBS/DATA/MBARI/OS_MBARI-M0_20040604_R_TS.nc;

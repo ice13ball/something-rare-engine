@@ -1,0 +1,21 @@
+Dataset {
+    Float64 TIME[TIME = 22127];
+    Float32 DEPTH[DEPTH = 1];
+    Float32 LATITUDE[LATITUDE = 1];
+    Float32 LONGITUDE[LONGITUDE = 1];
+    Grid {
+     ARRAY:
+        Float32 SST[TIME = 22127][DEPTH = 1];
+     MAPS:
+        Float64 TIME[TIME = 22127];
+        Float32 DEPTH[DEPTH = 1];
+    } SST;
+    Grid {
+     ARRAY:
+        Byte SST_QC[TIME = 22127][DEPTH = 1];
+     MAPS:
+        Float64 TIME[TIME = 22127];
+        Float32 DEPTH[DEPTH = 1];
+    } SST_QC;
+    String SST_DM[TIME = 22127];
+} CORIOLIS-OCEANSITES-GDAC-OBS/DATA/T8S165E/OS_T8S165E_PM079A-19990313_D_SST_10min.nc;

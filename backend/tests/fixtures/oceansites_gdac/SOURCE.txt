@@ -1,0 +1,24 @@
+Real excerpts, not synthetic. Retrieved 2026-10-01.
+
+oceansites_index_sample.txt
+          Verbatim lines of the OceanSITES GDAC index, chosen to cover the traps the
+          parser handles (latitude repeated in the longitude columns, "unknown"
+          DATE_UPDATE, T24:00:00Z end times, short continuation fragments).
+          Source: ftp://ftp.ifremer.fr/ifremer/oceansites/oceansites_index.txt
+opendap/  .dds / .das / .ascii responses from the GDAC OPeNDAP server
+          https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/DATA/...
+          Personal contact attributes in the .das files are replaced with "redacted";
+          the attribute lines are kept so the parser sees the real structure.
+Licence   OceanSITES data policy: free and unrestricted exchange, with the citation
+          below. https://ocean-ops.org/oceansites/data/index.html
+
+production_moorings.json
+          30 station rows (reference, name, position) from the OceanOPS register as
+          held in our database. OceanOPS data: all rights reserved; free for
+          non-commercial use with acknowledgement of OceanOPS (ocean-ops.org/api/help).
+          WITHHELD FROM THE PUBLIC MIRROR (scripts/export-public.sh NEVER_RULES): the
+          package is offered commercially, these rows are not. Tests that load it skip
+          when it is absent. See DATA-LICENCES.md.
+
+These data were collected and made freely available by the international OceanSITES
+project and the national programs that contribute to it.

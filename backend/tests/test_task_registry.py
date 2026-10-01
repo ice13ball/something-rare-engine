@@ -75,6 +75,7 @@ _EXPECTED_ALL_TASK_NAMES = {
     "onc-sensor-daily-sync", "onc-instruments-daily", "onc-sparkline-refresh",
     "onc-adcp-refresh", "onc-ctd-refresh", "onc-ctd-series-archive",
     "usgs-earthquakes-sync", "oceansites-obs-daily-sync",
+    "oceansites-history-weekly-sync",
     "air-quality-readings-drip", "acoustic-stations-weekly-sync",
     "acoustic-soundscape-weekly-sync", "offshore-activities-weekly-sync",
     "noise-risk-count-startup-log", "query-watchdog", "offshore-tile-prebake",

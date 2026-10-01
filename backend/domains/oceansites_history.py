@@ -1,0 +1,718 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
+
+"""OceanSITES historical record — the GDAC catalogue and the mooring↔file links.
+
+``oceansites_stations`` is the OceanOPS register; ~970 of its 1,038 moorings are
+closed, inactive or only registered, and the live-observation sync
+(``sensors.sync_oceansites_obs``) can say nothing about them. What they measured,
+where it was published, sits in the OceanSITES GDAC. This module:
+
+1. ``refresh_catalogue()``  — the GDAC's one index file → ``oceansites_gdac_files``
+   (UPSERT, never delete);
+2. ``rebuild_links()``      — position + name matching → ``oceansites_station_files``
+   and the ``history_*`` summary columns on ``oceansites_stations``;
+3. ``fetch_series()``      — every-k-th real measurements of the linked files over
+   OPeNDAP → ``oceansites_gdac_series`` (see ``ingestion/oceansites_opendap.py``);
+4. ``GET /v1/oceansites/{ref}/history`` — what steps 1-3 left, merged per mooring.
+
+Parsing and matching are pure and live in ``ingestion/oceansites_history.py``.
+
+⛔ "Missing" and "broken" must not share a code path. On 2026-10-01 the GDAC
+answered 503 to everything for about an hour. An index we could not fetch says
+nothing about the catalogue: stored rows are left exactly as they were.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import math
+import os
+import time
+from datetime import datetime, timezone
+
+import db
+import httpx
+from auth import get_api_key
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
+from ingestion import oceansites_history as ingest
+from ingestion import oceansites_opendap as dap
+from ingestion.oceansites_gdac import gdac_reachable
+from response_cache import CACHE_TTL, store as _cache
+from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
+
+log = logging.getLogger(__name__)
+
+router = APIRouter()
+
+SYNC_SOURCE = "oceansites-history"
+
+_UPSERT_SQL = """
+    INSERT INTO oceansites_gdac_files
+        (file, site_dir, platform_code, data_mode, start_time, end_time,
+         lat, lon, position_source, bbox_south, bbox_north, bbox_west, bbox_east,
+         min_depth, max_depth, parameters, size_bytes, gdac_update_date,
+         date_update, seen_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19, NOW())
+    ON CONFLICT (file) DO UPDATE SET
+        site_dir = EXCLUDED.site_dir, platform_code = EXCLUDED.platform_code,
+        data_mode = EXCLUDED.data_mode, start_time = EXCLUDED.start_time,
+        end_time = EXCLUDED.end_time, lat = EXCLUDED.lat, lon = EXCLUDED.lon,
+        position_source = EXCLUDED.position_source,
+        bbox_south = EXCLUDED.bbox_south, bbox_north = EXCLUDED.bbox_north,
+        bbox_west = EXCLUDED.bbox_west, bbox_east = EXCLUDED.bbox_east,
+        min_depth = EXCLUDED.min_depth, max_depth = EXCLUDED.max_depth,
+        parameters = EXCLUDED.parameters, size_bytes = EXCLUDED.size_bytes,
+        gdac_update_date = EXCLUDED.gdac_update_date,
+        date_update = EXCLUDED.date_update, seen_at = NOW()
+"""
+
+_BATCH = 5000
+
+
+def _row_args(r: dict) -> tuple:
+    return (
+        r["file"], r["site_dir"], r["platform_code"], r["data_mode"],
+        r["start_time"], r["end_time"], r["lat"], r["lon"], r["position_source"],
+        r["bbox_south"], r["bbox_north"], r["bbox_west"], r["bbox_east"],
+        r["min_depth"], r["max_depth"], r["parameters"], r["size_bytes"],
+        r["gdac_update_date"], r["date_update"],
+    )
+
+
+async def refresh_catalogue() -> int | None:
+    """Fetch the GDAC index and UPSERT one row per ``DATA/`` file.
+
+    Returns the number of rows written, or ``None`` when the index could not be
+    fetched. ⛔ ``None`` is "could not look", never "nothing there": no row is
+    touched, and the caller must not treat it as an empty catalogue. Rows that
+    drop out of a later index are kept (the catalogue is a record, not a mirror).
+    """
+    text = await ingest.fetch_index()
+    if text is None:
+        return None
+    # ~60k lines of parsing and median-fallback: keep it off the event loop.
+    rows = await asyncio.to_thread(ingest.parse_index, text)
+    if not rows:
+        log.warning("OceanSITES index parsed to zero DATA/ rows — catalogue left as it was")
+        return None
+    async with db.pool.acquire() as conn:
+        async with conn.transaction():
+            for i in range(0, len(rows), _BATCH):
+                await conn.executemany(_UPSERT_SQL, [_row_args(r) for r in rows[i:i + _BATCH]])
+    return len(rows)
+
+
+async def rebuild_links() -> dict | None:
+    """Rebuild ``oceansites_station_files`` from the stored catalogue, and write
+    the ``history_*`` summary onto ``oceansites_stations``.
+
+    Delete-then-insert of the link table is fine — it is derived, not source —
+    but it happens inside ONE transaction with the summary update, so a reader
+    never sees links without their summary or an emptied table.
+
+    Returns ``{"linked_stations", "linked_files", "links", "rejected_nearby"}``,
+    or ``None`` when the catalogue is empty (nothing to match against is not
+    "nothing matches": links and summaries stay as they were).
+    """
+    async with db.pool.acquire() as conn:
+        stations = [dict(r) for r in await conn.fetch(
+            "SELECT ref, name, lat, lon FROM oceansites_stations"
+        )]
+        deployments = [dict(r) for r in await conn.fetch(
+            "SELECT base_ref, name, lat, lon FROM oceansites_deployments "
+            "WHERE lat IS NOT NULL AND lon IS NOT NULL"
+        )]
+        files = [dict(r) for r in await conn.fetch(
+            "SELECT file, site_dir, platform_code, lat, lon, "
+            "bbox_south, bbox_north, bbox_west, bbox_east FROM oceansites_gdac_files "
+            "WHERE lat IS NOT NULL AND lon IS NOT NULL"
+        )]
+    if not files:
+        return None
+
+    links, rejected = await asyncio.to_thread(ingest.match_files, stations, deployments, files)
+
+    async with db.pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("DELETE FROM oceansites_station_files")
+            if links:
+                await conn.copy_records_to_table(
+                    "oceansites_station_files",
+                    records=[(l["station_ref"], l["file"], l["rule"], l["distance_km"]) for l in links],
+                    columns=["station_ref", "file", "rule", "distance_km"],
+                )
+            await conn.execute("""
+                UPDATE oceansites_stations s
+                   SET history_files = COALESCE(a.n, 0),
+                       history_start = a.t0,
+                       history_end   = a.t1
+                  FROM oceansites_stations s2
+                  LEFT JOIN (
+                        SELECT sf.station_ref, COUNT(*) AS n,
+                               MIN(f.start_time) AS t0, MAX(f.end_time) AS t1
+                          FROM oceansites_station_files sf
+                          JOIN oceansites_gdac_files f USING (file)
+                         GROUP BY sf.station_ref
+                       ) a ON a.station_ref = s2.ref
+                 WHERE s.ref = s2.ref
+            """)
+    return {
+        "linked_stations": len({l["station_ref"] for l in links}),
+        "linked_files": len({l["file"] for l in links}),
+        "links": len(links),
+        "rejected_nearby": len(rejected),
+        "rejected_sample": rejected[:15],
+    }
+
+
+# ── Series: sampled measurements of the linked files ───────────────────────
+
+_SERIES_UPSERT_SQL = """
+    INSERT INTO oceansites_gdac_series
+        (file, variable, depth_index, depth_m, units, long_name, standard_name,
+         n_total, stride, times, vals, qc, first_time, last_time,
+         gdac_update_date, fetched_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW())
+    ON CONFLICT (file, variable, depth_index) DO UPDATE SET
+        depth_m = EXCLUDED.depth_m, units = EXCLUDED.units, long_name = EXCLUDED.long_name,
+        standard_name = EXCLUDED.standard_name, n_total = EXCLUDED.n_total,
+        stride = EXCLUDED.stride, times = EXCLUDED.times, vals = EXCLUDED.vals,
+        qc = EXCLUDED.qc, first_time = EXCLUDED.first_time, last_time = EXCLUDED.last_time,
+        gdac_update_date = EXCLUDED.gdac_update_date, fetched_at = NOW()
+"""
+
+_FETCHED_UPSERT_SQL = """
+    INSERT INTO oceansites_gdac_fetched
+        (file, outcome, detail, change_marker, standard_names, n_series, citation, fetched_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+    ON CONFLICT (file) DO UPDATE SET
+        outcome = EXCLUDED.outcome, detail = EXCLUDED.detail,
+        change_marker = EXCLUDED.change_marker, standard_names = EXCLUDED.standard_names,
+        n_series = EXCLUDED.n_series, citation = EXCLUDED.citation, fetched_at = NOW()
+"""
+
+DEFAULT_MAX_FILES_PER_RUN = 6000  # measured full first fill: 5,448 files, ~14 min
+_CONCURRENCY = 4
+_ABORT_AFTER_UNAVAILABLE = 10  # consecutive "server cannot answer" files end the run
+
+
+def max_files_per_run() -> int:
+    """``OCEANSITES_HISTORY_MAX_FILES_PER_RUN`` (default 6000). The measured full
+    first fill is 5,448 files (~14 min), so one run completes it; set a lower value
+    to spread it over several runs."""
+    raw = os.getenv("OCEANSITES_HISTORY_MAX_FILES_PER_RUN", "")
+    try:
+        n = int(raw)
+    except ValueError:
+        return DEFAULT_MAX_FILES_PER_RUN
+    return n if n >= 1 else DEFAULT_MAX_FILES_PER_RUN
+
+
+async def _store_file(file: str, names: set[str], marker: str | None, gdac_stamp: datetime | None,
+                      result: "dap.FileFetch | None", previous: dict | None,
+                      outcome: str = "ok", detail: str | None = None) -> None:
+    """One file, one transaction: its series rows and its read-log row together.
+
+    ``outcome`` 'empty' / 'refused' (``result`` None) settle a file that has no
+    data to give; they write no series rows and leave any stored ones alone.
+    For an 'ok' file the rows of every variable that was read are REPLACED (deleted
+    and inserted in this one transaction); ``detail`` then carries any note on what
+    was left out (packed variables).
+    """
+    async with db.pool.acquire() as conn:
+        async with conn.transaction():
+            if result is None:
+                await conn.execute(_FETCHED_UPSERT_SQL, file, outcome, detail, marker,
+                                   sorted(names), 0, None)
+                return
+            stamp = gdac_stamp if dap.valid_stamp(gdac_stamp) else None
+            # A republished file is read again, and the new read is the whole truth about
+            # the variables it answered for: a level that is now all fill, or a depth_step
+            # that moved, must not leave the old rows behind to be merged with the new.
+            # ⛔ Only variables READ successfully this time: one the server refused
+            # ("constraint refused") or one we could not plan says nothing, so its stored
+            # rows stay. And this code is not reached for a failed or refused file at all.
+            if result.variables_read:
+                await conn.execute(
+                    "DELETE FROM oceansites_gdac_series WHERE file = $1 AND variable = ANY($2::text[])",
+                    file, sorted(result.variables_read))
+            for r in result.series:
+                await conn.execute(
+                    _SERIES_UPSERT_SQL, file, r.variable, r.depth_index, r.depth_m, r.units,
+                    r.long_name, r.standard_name, r.n_total, r.stride, r.times, r.vals, r.qc,
+                    r.first_time, r.last_time, stamp,
+                )
+            kept = set(names)
+            if previous and previous.get("outcome") == "ok" and previous.get("change_marker") == marker:
+                kept |= set(previous.get("standard_names") or ())
+            await conn.execute(_FETCHED_UPSERT_SQL, file, "ok", detail, marker, sorted(kept),
+                               len(result.series), result.citation)
+
+
+async def fetch_series(client: httpx.AsyncClient | None = None,
+                       max_files: int | None = None) -> dict | None:
+    """Sample the linked files' measurements into ``oceansites_gdac_series``.
+
+    Per (mooring, variable) at most 30 files are chosen (D > M > P > R, longest
+    first, skipping a span already covered); a file read before and unchanged
+    since is not read again; at most ``max_files`` files are read per run, the
+    best-placed first, and how many remain is logged.
+
+    Returns the run summary, or ``None`` when the OPeNDAP server could not be
+    reached (nothing was read, nothing stored was touched).
+
+    ⛔ "Cannot answer" and "answered no" are different. A 5xx, a timeout or a dropped
+    connection is counted and skipped and writes NOTHING (not a row, not a read-log
+    entry, not an empty series over a stored one): the file stays due. A 4xx for a
+    file is the server's answer: it is recorded as ``refused`` with the file's change
+    marker and left alone until the GDAC republishes the file. A run in which
+    ``_ABORT_AFTER_UNAVAILABLE`` files in a row meet an unavailable server stops
+    early and says so.
+    """
+    cap = max_files if max_files is not None else max_files_per_run()
+    if not await gdac_reachable():
+        log.warning("OceanSITES history series: OPeNDAP server unreachable — nothing read, "
+                    "stored series untouched")
+        return None
+
+    async with db.pool.acquire() as conn:
+        cands = [dict(r) for r in await conn.fetch(
+            """SELECT sf.station_ref, f.file, f.data_mode, f.start_time, f.end_time, f.parameters,
+                      f.size_bytes, f.gdac_update_date, f.date_update
+                 FROM oceansites_station_files sf
+                 JOIN oceansites_gdac_files f USING (file)
+                WHERE f.parameters && $1::text[]""",
+            sorted(dap.HISTORY_STANDARD_NAMES))]
+        fetched = {r["file"]: dict(r) for r in await conn.fetch(
+            "SELECT file, outcome, change_marker, standard_names FROM oceansites_gdac_fetched")}
+    plan = await asyncio.to_thread(dap.plan_run, cands, fetched, cap)
+    info = {c["file"]: c for c in cands}
+
+    summary = {"selected": plan["selected"], "needed": plan["needed"], "todo": len(plan["todo"]),
+               "remaining": plan["remaining"], "ok": 0, "empty": 0, "refused": 0, "failed": 0,
+               "failed_unavailable": 0, "aborted": False, "series_rows": 0, "requests": 0,
+               "packed_skipped": 0,
+               "seconds": 0.0}
+    t0 = time.monotonic()
+    own_client = client is None
+    if own_client:
+        client = httpx.AsyncClient(timeout=dap.HTTP_TIMEOUT)
+    sem = asyncio.Semaphore(_CONCURRENCY)
+    state = {"unavailable_run": 0}
+
+    async def one(file: str, names: set[str]) -> None:
+        async with sem:
+            if summary["aborted"]:
+                return
+            row = info[file]
+            marker = dap.change_marker(row)
+            try:
+                res = await dap.fetch_file_series(client, file, names)
+            except dap.UnsupportedFile as exc:
+                log.debug("OceanSITES history: %s has nothing sampleable (%s)", file, exc)
+                summary["packed_skipped"] += len(exc.packed)
+                await _store_file(file, names, marker, None, None, fetched.get(file), "empty", str(exc)[:200])
+                summary["empty"] += 1
+                state["unavailable_run"] = 0
+                return
+            except dap.OpendapError as exc:
+                if exc.kind == "rejected":
+                    # A 4xx is the server's settled answer for this file/constraint: record it
+                    # (with the marker) so it is not asked again until the file is republished.
+                    log.info("OceanSITES history: %s refused (%s)", file, exc)
+                    await _store_file(file, names, marker, None, None, fetched.get(file),
+                                      "refused", str(exc)[:200])
+                    summary["refused"] += 1
+                    state["unavailable_run"] = 0
+                    return
+                # unavailable (5xx / timeout / connection): transient, says nothing about the
+                # file -> counted, NEVER recorded, the file stays due.
+                summary["failed"] += 1
+                summary["failed_unavailable"] += 1
+                state["unavailable_run"] += 1
+                if state["unavailable_run"] >= _ABORT_AFTER_UNAVAILABLE:
+                    summary["aborted"] = True
+                log.info("OceanSITES history: %s skipped (%s)", file, exc)
+                return
+            except Exception:  # a parser surprise on one file must not end the run
+                summary["failed"] += 1
+                log.exception("OceanSITES history: %s could not be decoded — skipped", file)
+                return
+            state["unavailable_run"] = 0
+            packed = [v for v, why in res.skipped if why == dap.PACKED_REASON]
+            summary["packed_skipped"] += len(packed)
+            note = ("unsupported packed variables left out: " + ", ".join(packed))[:200] if packed else None
+            await _store_file(file, names, marker, row.get("gdac_update_date"), res, fetched.get(file),
+                              "ok", note)
+            summary["ok"] += 1
+            summary["series_rows"] += len(res.series)
+            summary["requests"] += res.requests
+
+    try:
+        outcomes = await asyncio.gather(*(one(f, names) for f, names in plan["todo"]),
+                                        return_exceptions=True)
+        for o in outcomes:  # a database error on one file: counted, the siblings carry on
+            if isinstance(o, BaseException):
+                summary["failed"] += 1
+                log.error("OceanSITES history: storing a file failed: %r", o)
+    finally:
+        if own_client:
+            await client.aclose()
+    summary["seconds"] = round(time.monotonic() - t0, 1)
+    log.info(
+        "OceanSITES history series: %d files selected, %d needed reading, %d attempted "
+        "(%d ok, %d with nothing sampleable, %d refused by the server, %d failed of which %d server-unavailable%s), "
+        "%d series rows, %d requests in %.0f s; %d packed variables left out (scale_factor/add_offset "
+        "unsupported); %d files remain for later runs",
+        summary["selected"], summary["needed"], summary["todo"], summary["ok"],
+        summary["empty"], summary["refused"], summary["failed"], summary["failed_unavailable"],
+        ", RUN ABORTED: server kept failing" if summary["aborted"] else "",
+        summary["series_rows"], summary["requests"], summary["seconds"], summary["packed_skipped"],
+        summary["remaining"],
+    )
+    return summary
+
+
+async def sync_oceansites_history() -> int:
+    """Weekly: refresh the GDAC catalogue, then relink moorings to files.
+
+    Returns the number of moorings linked to at least one GDAC file. Every
+    return path leaves a ``sync_log`` trace; the unreachable ones use
+    ``log_sync_skipped`` so a dead server does not stamp the layer as freshly
+    synced (``log_sync`` sets ``last_synced_at``).
+    """
+    n = await refresh_catalogue()
+    if n is None:
+        await _log_sync_skipped(
+            SYNC_SOURCE,
+            "GDAC index not fetched (unreachable or unusable) — stored catalogue and links untouched",
+        )
+        return 0
+
+    summary = await rebuild_links()
+    if summary is None:  # cannot happen right after a successful refresh; kept honest
+        await _log_sync_skipped(SYNC_SOURCE, "catalogue holds no positioned files — links untouched")
+        return 0
+    # The links and the history_* columns on the map's stations are committed:
+    # the map payload and every cached history response are stale from here on.
+    drop_history_caches()
+
+    # The catalogue and links above are committed. A failure below cannot undo
+    # them, and must not turn this run into a failed one: the series step reports
+    # for itself (fetch_series logs; None = server unreachable, stored rows untouched).
+    try:
+        await fetch_series()
+    except Exception:
+        log.exception("OceanSITES history: series step failed — catalogue and links stand")
+    finally:
+        drop_history_caches()  # series rows may have changed even when the step then failed
+
+    log.info(
+        "OceanSITES history: %d files catalogued, %d moorings linked to %d files "
+        "(%d links), %d station/file pairs within %.0f km rejected on name",
+        n, summary["linked_stations"], summary["linked_files"], summary["links"],
+        summary["rejected_nearby"], ingest.MAX_LINK_KM,
+    )
+    await _log_sync(SYNC_SOURCE, summary["linked_stations"], n)
+    return summary["linked_stations"]
+
+
+# ── GET /v1/oceansites/{ref}/history ───────────────────────────────────────
+
+OCEANSITES_CITATION = (
+    "These data were collected and made freely available by the international "
+    "OceanSITES project and the national programs that contribute to it."
+)
+OPENDAP_HTML = "https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/{file}.html"
+MAX_POINTS = 600                 # per merged series, so the payload stays small
+WITHHELD_QC = frozenset({3, 4, 9})   # bad-but-correctable, bad, missing (OceanSITES flags)
+_MODE_ORDER = {"D": 0, "M": 1, "P": 2, "R": 3}
+_CACHE_PREFIX = "oceansites-history:"
+DEFAULT_MAX_POINTS = 200       # per series in the default (3 depths per quantity) response
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def clear_caches() -> None:
+    """/admin/cache/clear: drop this domain's cached responses. The shared store
+    is cleared wholesale by the admin sweep anyway (see response_cache)."""
+    _cache.clear()
+
+
+def drop_history_caches() -> None:
+    """Forget the cached history responses and the map payload that carries the
+    ``history_*`` summary. Called when the history sync has written."""
+    for key in [k for k in _cache if k.startswith(_CACHE_PREFIX)]:
+        _cache.pop(key, None)
+    from domains import sensors  # late: sensors must not need this module to import
+
+    sensors.clear_oceansites_map_cache()
+
+
+def _iso(t: datetime | None) -> str | None:
+    if t is None:
+        return None
+    return t.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _depth_bucket(depth_m: float | None) -> int | None:
+    """Whole metres, halves up. Python's round() would send 0.5 to 0 and 1.5 to 2."""
+    if depth_m is None or not math.isfinite(depth_m):
+        return None
+    return math.floor(depth_m + 0.5)
+
+
+def _mode_rank(mode: str | None) -> int:
+    return _MODE_ORDER.get(mode or "", 9)
+
+
+def _thin(pts: list, cap: int) -> tuple[list, int]:
+    """At most ``cap`` points, always including the first and the last real one.
+
+    Keeps every m-th point from the first and appends the last when the stepping
+    misses it; m is the smallest step that fits. Returns (points, m); m = 1 when
+    nothing was dropped.
+    """
+    n = len(pts)
+    if n <= cap:
+        return pts, 1
+    m = math.ceil(n / cap)
+    while True:
+        keep = pts[::m]
+        if keep[-1] is not pts[-1]:
+            keep = keep + [pts[-1]]
+        if len(keep) <= cap:
+            return keep, m
+        m += 1
+
+
+def _pick_depths(depths: list) -> set:
+    """Shallowest, deepest and the one closest to the median depth (fewer if fewer exist).
+
+    ``None`` (a file that declares no depth) is not a depth: it never takes a slot from
+    real depths and is picked only when no numeric depth exists at all (``all_depths``
+    still returns it).
+    """
+    real = sorted(d for d in depths if d is not None)
+    has_none = any(d is None for d in depths)
+    if not real:
+        return {None} if has_none else set()
+    if len(real) <= 3:
+        chosen = set(real)
+    else:
+        chosen = {real[0], real[-1]}
+        mid = real[len(real) // 2] if len(real) % 2 else (real[len(real) // 2 - 1] + real[len(real) // 2]) / 2
+        rest = [d for d in real if d not in chosen]
+        chosen.add(min(rest, key=lambda d: (abs(d - mid), d)))
+    return chosen
+
+
+def merge_series(rows: list[dict], *, max_points: int = MAX_POINTS,
+                 pick_depths: bool = False) -> list[dict]:
+    """Merge stored series rows into one series per (standard_name, depth, units).
+
+    A *row* is one (file, variable, depth level) of ``oceansites_gdac_series``.
+    Rows of the same quantity at the same whole-metre depth from different files
+    are joined and sorted by time.
+
+    * ``units`` belongs to the key: a unit is never converted or reconciled, so
+      two spellings stay two series rather than one with a guessed unit.
+    * Two samples with the identical timestamp are one instant: the file with the
+      better ``data_mode`` (D > M > P > R) wins, then the later GDAC update stamp,
+      then the file name; the others are counted in ``duplicates_dropped``. This is
+      decided on the raw sample, before QC, so a series never mixes two sources
+      at one instant.
+    * A NULL value is a fill value the file declared (or a non-finite one): it
+      is dropped and counted in ``missing``. A value whose QC flag is 3, 4 or 9
+      is dropped and counted in ``qc_withheld``. The two counts are never
+      added together — a missing sample is not a rejected one.
+    * ``n_total_measurements`` is counted after that resolution (see the comment at
+      the field): a measurement in two overlapping files is counted once.
+    * Points are real every-k-th samples, never averages. Above ``max_points``
+      every m-th point is kept (the first and the last real point always are)
+      and ``stride_max`` carries the extra factor.
+    * ``pick_depths``: per (standard_name, units) only the shallowest, the deepest
+      and the depth nearest the median are returned; every series carries
+      ``depths_available``, all its quantity's depths, shallow to deep.
+    """
+    groups: dict[tuple, list[dict]] = {}
+    for r in rows:
+        key = (r["standard_name"] or r["variable"], _depth_bucket(r["depth_m"]), r["units"])
+        groups.setdefault(key, []).append(r)
+
+    by_quantity: dict[tuple, list] = {}
+    for std, depth, units in groups:
+        by_quantity.setdefault((std, units), []).append(depth)
+    shown: dict[tuple, set] = {
+        q: (_pick_depths(ds) if pick_depths else set(ds)) for q, ds in by_quantity.items()
+    }
+
+    out = []
+    for (std, depth, units), grp in groups.items():
+        if depth not in shown[(std, units)]:
+            continue
+        # one sample per instant, the best source first
+        best: dict[datetime, tuple] = {}
+        dropped = 0
+        dropped_weight = 0      # source measurements the losing samples stood for
+        for r in grp:
+            rank = (_mode_rank(r.get("data_mode")), -(r.get("gdac_update_date") or _EPOCH).timestamp(),
+                    r["file"])
+            qcs = r["qc"]
+            for i, (t, v) in enumerate(zip(r["times"], r["vals"])):
+                q = qcs[i] if i < len(qcs) else None
+                cur = best.get(t)
+                if cur is None:
+                    best[t] = (rank, v, q, r["stride"])
+                    continue
+                dropped += 1
+                if rank < cur[0]:
+                    dropped_weight += cur[3]
+                    best[t] = (rank, v, q, r["stride"])
+                else:
+                    dropped_weight += r["stride"]
+        pts: list[list] = []
+        missing = withheld = 0
+        for t in sorted(best):
+            _, v, q, _ = best[t]
+            if v is None or not math.isfinite(v):
+                missing += 1
+            elif q is not None and q in WITHHELD_QC:
+                withheld += 1
+            else:
+                pts.append([t, v])
+        pts, extra = _thin(pts, max_points)
+        first = grp[0]
+        out.append({
+            "variable": first["variable"],
+            "standard_name": std,
+            "long_name": first["long_name"],
+            "units": units,
+            "depth_m": depth,
+            "depths_available": sorted(d for d in by_quantity[(std, units)] if d is not None),
+            "points": [[_iso(t), v] for t, v in pts],
+            # Measurements in the source files AFTER the duplicate instants are resolved:
+            # each file's total, less what the losing samples stood for (one sample = its
+            # file's stride in measurements). Exact when the overlapping files were read at
+            # stride 1; with a larger stride an overlap is only seen where sampled instants
+            # coincide, so it is then a ceiling. Never below the points actually held.
+            "n_total_measurements": max(sum(r["n_total"] for r in grp) - dropped_weight, len(best)),
+            "stride_max": max(r["stride"] for r in grp) * extra,
+            "qc_withheld": withheld,
+            "missing": missing,
+            "duplicates_dropped": dropped,
+        })
+    out.sort(key=lambda s: (s["standard_name"], s["depth_m"] is None, s["depth_m"] or 0, s["units"] or ""))
+    return out
+
+
+async def _build_history(ref: str, all_depths: bool = False) -> dict | None:
+    async with db.pool.acquire() as conn:
+        st = await conn.fetchrow(
+            "SELECT history_start, history_end, history_files FROM oceansites_stations WHERE ref = $1",
+            ref,
+        )
+        if st is None:
+            return None
+        # Files the plotted series were read from, best mode first.
+        files = await conn.fetch(
+            """SELECT f.file, f.data_mode, f.start_time, f.end_time, f.min_depth, f.max_depth
+               FROM oceansites_gdac_files f
+               WHERE f.file IN (SELECT l.file FROM oceansites_station_files l WHERE l.station_ref = $1)
+                 AND EXISTS (SELECT 1 FROM oceansites_gdac_series s WHERE s.file = f.file)
+               ORDER BY f.start_time NULLS LAST, f.file""",
+            ref,
+        )
+        rows = await conn.fetch(
+            """SELECT s.file, s.variable, s.depth_index, s.depth_m, s.units, s.long_name,
+                      s.standard_name, s.n_total, s.stride, s.times, s.vals, s.qc,
+                      s.gdac_update_date, f.data_mode
+               FROM oceansites_gdac_series s
+               LEFT JOIN oceansites_gdac_files f ON f.file = s.file
+               WHERE s.file IN (SELECT l.file FROM oceansites_station_files l WHERE l.station_ref = $1)
+               ORDER BY s.file, s.variable, s.depth_index""",
+            ref,
+        )
+        cites = await conn.fetch(
+            """SELECT DISTINCT d.citation FROM oceansites_gdac_fetched d
+               WHERE d.citation IS NOT NULL AND d.citation <> ''
+                 AND d.file IN (SELECT s.file FROM oceansites_gdac_series s
+                                WHERE s.file IN (SELECT l.file FROM oceansites_station_files l
+                                                 WHERE l.station_ref = $1))
+               ORDER BY d.citation""",
+            ref,
+        )
+    # CPU-bound over up to ~350k samples (TAO): off the event loop, like the index parse.
+    series = await asyncio.to_thread(
+        merge_series,
+        [dict(r) for r in rows],
+        max_points=MAX_POINTS if all_depths else DEFAULT_MAX_POINTS,
+        pick_depths=not all_depths,
+    )
+    file_list = sorted(
+        (
+            {
+                "file": f["file"],
+                "data_mode": f["data_mode"],
+                "start": _iso(f["start_time"]),
+                "end": _iso(f["end_time"]),
+                "min_depth": f["min_depth"],
+                "max_depth": f["max_depth"],
+                "url_opendap_html": OPENDAP_HTML.format(file=f["file"]),
+            }
+            for f in files
+        ),
+        key=lambda f: (f["start"] or "", _MODE_ORDER.get(f["data_mode"], 9), f["file"]),
+    )
+    # The standard OceanSITES citation always leads; the files' own follow.
+    citations = [OCEANSITES_CITATION] + [
+        c["citation"].strip() for c in cites if c["citation"].strip() != OCEANSITES_CITATION
+    ]
+    return {
+        "ref": ref,
+        "start": _iso(st["history_start"]),
+        "end": _iso(st["history_end"]),
+        "n_catalogue_files": st["history_files"] or 0,   # every GDAC file linked to the mooring
+        "n_files_read": len(file_list),                  # the files `series` were read from
+        "citation": OCEANSITES_CITATION,
+        "citations": citations,
+        "files": file_list,
+        "series": series,
+    }
+
+
+@router.get("/v1/oceansites/{ref}/history", dependencies=[Depends(get_api_key)])
+async def get_oceansites_history(
+    ref: str,
+    all_depths: bool = Query(
+        False,
+        description="true: every depth of every quantity at up to 600 points per series. "
+                    "Default: the shallowest, deepest and median-depth series per quantity "
+                    "at up to 200 points (`depths_available` lists them all).",
+    ),
+):
+    """Historical record of one OceanSITES mooring from the GDAC.
+
+    Series are every-k-th real measurements of the mooring's GDAC files, merged
+    across files by standard name and depth, NOT averages. Values flagged bad
+    (QC 3, 4, 9) are withheld and counted in `qc_withheld`; fill values are
+    counted in `missing`. By default each quantity returns its shallowest, deepest
+    and median-depth series at up to 200 points (`depths_available` lists all
+    depths); `all_depths=true` returns every depth at up to 600 points. 404 = no such station; 200 with empty lists = a known
+    mooring with no stored history.
+    """
+    key = f"{_CACHE_PREFIX}{ref}:{int(all_depths)}"
+    hit = _cache.get(key)
+    if hit and time.monotonic() - hit[0] < CACHE_TTL:
+        return Response(content=hit[1], media_type="application/json")
+    body = await _build_history(ref, all_depths)
+    if body is None:
+        # 404 = "no such station"; a known mooring without history is a 200 below.
+        raise HTTPException(status_code=404, detail=f"No OceanSITES station '{ref}'")
+    # allow_nan=False: a NaN must raise (500), never ship as a token no browser parses.
+    data = json.dumps(body, allow_nan=False).encode()
+    _cache[key] = (time.monotonic(), data)
+    return Response(content=data, media_type="application/json")

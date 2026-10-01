@@ -31,6 +31,7 @@ from domains import acoustic, arctic, biodiversity, cables, fields
 from domains import aoc2025_poc
 from domains import svalbard_fjords_pp
 from domains import geo_context, geochem, isa, offshore, onc, pangaea_water, seafloor, sensors
+from domains import oceansites_history
 from land_layers import (
     sync_all_land_sources,
     _sync_air_quality_readings, _sync_mining_footprints, _sync_kbas, _sync_wdpa,
@@ -65,6 +66,7 @@ SYNC_SOURCES: dict[str, Callable[[], Awaitable[Any]]] = {
     "plumes":           lambda: _compute_plume_paths(db.pool, max_batch=500),
     "oceansites":       lambda: sensors.sync_oceansites(),
     "oceansites-obs":   lambda: sensors.sync_oceansites_obs(),
+    "oceansites-history": lambda: oceansites_history.sync_oceansites_history(),
     "argo-recent-history": lambda: sensors.sync_argo_recent_history(),
     # ⛔ Registered so the action can be un-paused. _argo_history_backfill_task
     # calls _run_unless_paused("argo-backfill", …); an action absent from this

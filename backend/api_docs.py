@@ -59,6 +59,7 @@ _TAG_RULES: list[tuple[str, str]] = [
     ("/v1/chi", "Ocean fields"),         # NCEAS/Halpern cumulative human impact raster/hexes/point/meta
     ("/v1/bathymetry", "Detail lookups"),  # per-feature confidence/gmrt/lookup enrichment
     ("/v1/live", "Detail lookups"),
+    ("/v1/oceansites", "Detail lookups"),  # per-mooring deployments / GDAC historical record
     ("/v1/map", "Sea layers"),
     ("/v2/map", "Land layers"),
     ("/v2/export", "Export"),            # area-export download + count endpoints
@@ -143,7 +144,86 @@ _EXPORT_EXAMPLE = {
     "features": [],
 }
 
+_OCEANSITES_HISTORY_EXAMPLE = {
+    # Real values (PAP-2, a closed OceanSITES mooring in the NE Atlantic), trimmed.
+    "ref": "TMP236332161",
+    "start": "2002-10-06T20:00:00Z",
+    "end": "2005-07-08T09:45:00Z",
+    "n_catalogue_files": 3,
+    "n_files_read": 3,
+    "citation": (
+        "These data were collected and made freely available by the international "
+        "OceanSITES project and the national programs that contribute to it."
+    ),
+    "citations": [
+        "These data were collected and made freely available by the international "
+        "OceanSITES project and the national programs that contribute to it."
+    ],
+    "files": [
+        {
+            "file": "DATA/PAP/OS_PAP-2_200210_D_CTD.nc",
+            "data_mode": "D",
+            "start": "2002-10-06T20:00:00Z",
+            "end": "2003-07-08T12:00:00Z",
+            "min_depth": 10.0,
+            "max_depth": 800.0,
+            "url_opendap_html": (
+                "https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/"
+                "DATA/PAP/OS_PAP-2_200210_D_CTD.nc.html"
+            ),
+        }
+    ],
+    "series": [
+        {
+            "variable": "TEMP",
+            "standard_name": "sea_water_temperature",
+            "long_name": "Temperature",
+            "units": "degree_Celsius",
+            "depth_m": 40,
+            "depths_available": [10, 25, 40, 60, 80, 150, 400, 600, 800],
+            "points": [["2002-10-08T16:00:00Z", 14.415147], ["2002-10-10T12:00:00Z", 16.390738]],
+            "n_total_measurements": 6593,
+            "stride_max": 44,
+            "qc_withheld": 1,
+            "missing": 115,
+            "duplicates_dropped": 0,
+        }
+    ],
+}
+
 CURATED: dict[str, dict] = {
+    "/v1/oceansites/{ref}/history": {
+        "description": (
+            "Historical record of one OceanSITES mooring, read from the OceanSITES "
+            "GDAC (Ifremer) files linked to it. `ref` is the station ref the map serves. "
+            "Each series is a set of **every k-th real measurement** (`stride_max` says how "
+            "sparse), merged across the mooring's files by CF standard name, whole-metre "
+            "depth and declared units — never averages, and units are never converted "
+            "(two units for one quantity stay two series). Values the file flags bad "
+            "(QC 3, 4 or 9) are withheld and counted in `qc_withheld`; fill values are "
+            "dropped and counted in `missing`; the two counts are separate. Two samples "
+            "with the same timestamp are one instant: the file with the better data mode "
+            "(D, M, P, R) wins, then the later GDAC update, and the others are counted in "
+            "`duplicates_dropped`. Thinning always keeps the first and the last real point. "
+            "By default each quantity (standard name and units) returns only its shallowest, "
+            "deepest and median-depth series at up to 200 points; `depths_available` lists "
+            "all of its depths so a client can say \"3 of 14 depths shown\". "
+            "`all_depths=true` returns every depth at up to 600 points. A file that declares no "
+            "depth gives a series with `depth_m: null`; it is listed only with `all_depths=true` "
+            "unless the quantity has no numeric depth at all. `n_total_measurements` counts the "
+            "measurements in the source files once per instant (a measurement present in two "
+            "overlapping files is not counted twice; with a stride above 1 an overlap is only "
+            "seen where sampled instants coincide, so it is then an upper bound). Variables "
+            "stored packed (`scale_factor` / `add_offset`) are left out rather than served "
+            "unscaled. "
+            "`n_catalogue_files` counts every GDAC file linked to the mooring; `n_files_read` "
+            "and `files` are the files stored series were read from. `citations` always "
+            "starts with the OceanSITES data-policy citation, followed by the files' own. "
+            "404 = no such station; 200 with empty `files` and `series` = a known mooring "
+            "with no stored history."
+        ),
+        "example": _OCEANSITES_HISTORY_EXAMPLE,
+    },
     "/v1/map/claims": {
         "description": (
             "ISA exploration contract areas as a GeoJSON FeatureCollection. "

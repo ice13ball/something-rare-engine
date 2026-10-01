@@ -1,0 +1,4 @@
+Error {
+    code = 0;
+    message = "opendap.dap.ConstraintException: Implementation limitation: muliple references to same variable in single constraint: UCUR.UCUR [0:30:4382 (147)] != [0:30:4382 (147)]";
+};

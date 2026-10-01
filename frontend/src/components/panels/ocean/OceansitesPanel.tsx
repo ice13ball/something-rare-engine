@@ -4,6 +4,7 @@
 import { useTranslation } from "react-i18next";
 import { tEnum } from "../../../utils/translateEnum";
 import { sourceLinkFor } from "../../../utils/sourceUrl";
+import { OceansitesHistory } from "./OceansitesHistory";
 
 import { Row, Section, Badge, PanelHeader, BodyText, WarningBanner, SourceAttribution } from "../shared/primitives";
 
@@ -26,7 +27,16 @@ function groupSensorModels(raw: string): string {
 // Readings are fetched only for OPERATIONAL moorings, and ~93% of the register
 // is not operational (2026-10-01: 1,038 stations, 67 operational). One message
 // for all of them read as "our feed is broken" on a buoy closed in 1998.
-function noObservationsKey(status: unknown) {
+//
+// ⚠️ An OPERATIONAL mooring whose platform model is "Subsurface" or "Benthic" has
+// all its instruments below the surface and no satellite link: its data exist
+// only after recovery. "None of our sources publishes live readings" is true of
+// it but reads as a gap we could close; this says why we cannot.
+function noObservationsKey(status: unknown, model: unknown) {
+  const underwater = /subsurface|benthic/i.test(String(model ?? ""));
+  if (String(status ?? "").toUpperCase() === "OPERATIONAL" && underwater) {
+    return "oceansites.noObservationsSubsurface" as const;
+  }
   switch (String(status ?? "").toUpperCase()) {
     case "CLOSED":     return "oceansites.noObservationsClosed" as const;
     case "INACTIVE":   return "oceansites.noObservationsInactive" as const;
@@ -143,9 +153,10 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
             )}
           </>
         ) : (
-          <p className="text-xs text-white/65 italic">{t(noObservationsKey(p.status))}</p>
+          <p className="text-xs text-white/65 italic">{t(noObservationsKey(p.status, p.model))}</p>
         )}
       </Section>
+      {Number(p.history_files) > 0 && <OceansitesHistory properties={p} />}
       <BodyText>{t("oceansites.body")}</BodyText>
       <SourceAttribution link={sourceLinkFor("oceansites-platform", p)} />
     </>

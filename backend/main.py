@@ -52,6 +52,7 @@ from domains import cables
 from domains import fields
 from domains import geo_context
 from domains import geochem
+from domains import oceansites_history
 from domains import aoc2025_poc, pangaea_water
 from domains import svalbard_fjords_pp
 from domains import game
@@ -407,6 +408,7 @@ app.include_router(game.router)
 app.include_router(onc.router)
 app.include_router(seafloor.router)
 app.include_router(sensors.router)
+app.include_router(oceansites_history.router)
 app.include_router(seo.router)
 app.include_router(seo_hubs.router)
 app.include_router(fields.router)
@@ -938,6 +940,7 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "plume_paths":            "plumes",
     "oceansites":             "oceansites",
     "oceansites-obs":         "oceansites-obs",
+    "oceansites-history":     "oceansites-history",
     "onc":                    "onc",
     "onc-sensors":            "onc-sensors",
     "noise_cells":            "noise-risk",
