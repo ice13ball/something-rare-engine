@@ -112,7 +112,11 @@ describe("point panel", () => {
   function stubFetch(point: (u: URL) => Record<string, unknown>) {
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://x");
-      const body = url.pathname.endsWith("/meta") ? META : point(url);
+      // Only the layer's own /point requests reach `point` (and its call counts):
+      // i18next lazily fetches /locales/<lng>/<ns>.json through this same stub in a
+      // full run, which made "asks for the month" count 5 calls instead of 4.
+      const body = url.pathname.endsWith("/meta") ? META
+        : url.pathname.endsWith("/point") ? point(url) : {};
       return { ok: true, status: 200, json: async () => body } as Response;
     }) as unknown as typeof fetch;
   }
