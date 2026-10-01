@@ -234,7 +234,11 @@ async def test_the_sync_uses_wmo_numbers_position_matching_and_clears_retired_mo
 
     monkeypatch.setattr(nd, "fetch_ndbc_observation", fake_ndbc)
     monkeypatch.setattr(pm, "fetch_pmel_observations", fake_pmel)
+    async def gdac_up(timeout: float = 20.0):
+        return True
+
     monkeypatch.setattr(oceansites_gdac, "fetch_gdac_observations", fake_gdac)
+    monkeypatch.setattr(oceansites_gdac, "gdac_reachable", gdac_up)
     monkeypatch.setattr(sensors, "_log_sync", fake_log_sync)
 
     assert await sensors.sync_oceansites_obs() == 2
@@ -242,8 +246,8 @@ async def test_the_sync_uses_wmo_numbers_position_matching_and_clears_retired_mo
     written = {r[0]: r[2] for sql, args in log if "SET latest_obs = $2::jsonb" in sql for r in args}
     assert written == {"1500009": "NDBC", "9999999": "PMEL"}
 
-    cleared = [args[0] for sql, args in log if "WHERE ref = ANY" in sql]
-    assert cleared == [["TMPX"]]
+    cleared = [args for sql, args in log if "WHERE ref = ANY" in sql]
+    assert cleared == [(["TMPX"], [])]  # nothing was down, so nothing is spared
 
     retired = [sql for sql, _ in log if "status <> 'OPERATIONAL'" in sql]
     assert len(retired) == 1 and "latest_obs = NULL" in retired[0]

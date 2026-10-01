@@ -2003,7 +2003,7 @@ async def sync_oceansites_obs() -> int:
     Returns count of stations with cached observations.
     """
     from ingestion.ndbc_realtime import fetch_ndbc_observation
-    from ingestion.oceansites_gdac import fetch_gdac_observations
+    from ingestion.oceansites_gdac import fetch_gdac_observations, gdac_reachable
     from ingestion.pmel_erddap import fetch_pmel_observations, match_pmel_stations
 
     # 2026-09-08: oceansites_stations widened from 65 OPERATIONAL-only rows to
@@ -2039,11 +2039,21 @@ async def sync_oceansites_obs() -> int:
     }
 
     # Source 2: PMEL ERDDAP — fill gaps for TAO/TRITON/PIRATA/RAMA stations.
+    # ⛔ "Missing" and "broken" must not share a code path. A source that was
+    # down this run says nothing about whether its moorings still transmit, so
+    # the stations it fed keep their last reading — which carries its own
+    # obs_time, and the panel marks it stale — instead of being wiped to NULL.
+    unavailable: set[str] = set()
+
     try:
         pmel_obs = await fetch_pmel_observations()
     except Exception:
         log.exception("PMEL ERDDAP fetch failed; continuing with NDBC only")
         pmel_obs = {}
+    if not pmel_obs:
+        # PMEL serves ~60 stations; zero back from all five datasets is an
+        # outage (each dataset fetch swallows its own error), not a quiet array.
+        unavailable.add("PMEL")
 
     if pmel_obs:
         # By name, then by the position a PMEL station ID encodes — a bare
@@ -2057,6 +2067,10 @@ async def sync_oceansites_obs() -> int:
     # Each lookup costs ~10 small OPeNDAP requests, so cap to remaining gaps.
     gdac_targets = [name for ref, name in refs_with_names
                     if name and ref not in obs_by_ref]
+    if gdac_targets and not await gdac_reachable():
+        log.warning("OceanSITES GDAC unreachable; keeping the readings it fed last time")
+        unavailable.add("GDAC")
+        gdac_targets = []
     if gdac_targets:
         try:
             gdac_obs = await fetch_gdac_observations(gdac_targets)
@@ -2093,8 +2107,10 @@ async def sync_oceansites_obs() -> int:
                        SET latest_obs = NULL,
                            obs_source = NULL,
                            obs_fetched_at = NOW()
-                       WHERE ref = ANY($1::text[])""",
+                       WHERE ref = ANY($1::text[])
+                         AND (obs_source IS NULL OR obs_source <> ALL($2::text[]))""",
                     without_data,
+                    sorted(unavailable),
                 )
             # ⛔ A mooring that left OPERATIONAL is no longer in `refs`, so
             # neither branch above touches it and its last reading stayed on
@@ -2115,10 +2131,11 @@ async def sync_oceansites_obs() -> int:
     for _, _, source in with_data:
         by_source[source] = by_source.get(source, 0) + 1
     log.info(
-        "oceansites obs: %d total (%s), %d without",
+        "oceansites obs: %d total (%s), %d without%s",
         len(with_data),
         ", ".join(f"{k}={v}" for k, v in sorted(by_source.items())),
         len(without_data),
+        f"; unavailable, readings kept: {', '.join(sorted(unavailable))}" if unavailable else "",
     )
     await _log_sync("oceansites-obs", len(with_data), len(with_data))
     return len(with_data)

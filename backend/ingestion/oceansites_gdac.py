@@ -271,6 +271,23 @@ async def _fetch_station(
     return station_name, obs
 
 
+async def gdac_reachable(timeout: float = 20.0) -> bool:
+    """Whether the GDAC THREDDS server answers at all.
+
+    ⛔ `fetch_gdac_observations` turns every failure into "no observation for
+    this station", so on its own it cannot tell a dead server from a station
+    with no file. On 2026-10-01 tds0.ifremer.fr answered 503 to every request,
+    including its own front page, and a sync that trusted the empty result
+    wiped five good readings as if their moorings had gone quiet.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{_CATALOG_BASE}/catalog.xml", timeout=timeout)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 async def fetch_gdac_observations(
     station_names: list[str], concurrency: int = 4
 ) -> dict[str, dict[str, Any]]:
