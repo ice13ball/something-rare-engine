@@ -923,7 +923,9 @@
     "historyVarEastwardVelocity": "Strömungsgeschwindigkeit nach Osten",
     "historyVarNorthwardVelocity": "Strömungsgeschwindigkeit nach Norden",
     "historyVarChlorophyll": "Chlorophyll",
-    "noObservationsSubsurface": "In Betrieb, aber die Instrumente dieser Verankerung liegen unter der Oberfläche und haben keine Satellitenverbindung: Ihre Daten erreichen uns erst nach der Bergung der Verankerung, daher gibt es keine aktuellen Messwerte."
+    "noObservationsSubsurface": "In Betrieb, aber die Instrumente dieser Verankerung liegen unter der Oberfläche und haben keine Satellitenverbindung: Ihre Daten erreichen uns erst nach der Bergung der Verankerung, daher gibt es keine aktuellen Messwerte.",
+    "noObservationsSubsurfacePast": "Unterwasser-Verankerung: Ihre Instrumente lagen unter der Oberfläche ohne Satellitenverbindung, daher hat sie nie Live-Messwerte gesendet. Ihre Messungen sind erst nach der Bergung verfügbar, beim Institut, das sie betrieben hat.",
+    "historyNone": "Das OceanSITES-GDAC-Archiv enthält keine Dateien für diese Verankerung (gesucht nach Position und Name)."
   },
   "offshore": {
     "areaLabel": "Fläche",

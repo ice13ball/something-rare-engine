@@ -377,9 +377,13 @@ describe("OceanSITES: a subsurface mooring that is operational", () => {
     expect(count(SUBSURFACE)).toBe(0);
   });
 
-  it("keeps the status message for a closed subsurface mooring", () => {
+  // Changed 2026-10-02: a closed subsurface mooring used to get the generic
+  // "no longer transmits", which implies it once transmitted. It gets its own
+  // past-tense line — and still never the OPERATIONAL subsurface one.
+  it("tells a closed subsurface mooring it never transmitted, not the operational line", () => {
     renderWith({ status: "CLOSED", model: "Subsurface Mooring Custom", history_files: 0 });
-    expect(count(/no longer transmits/)).toBe(1);
+    expect(count(/never sent live readings/)).toBe(1);
+    expect(count(/no longer transmits/)).toBe(0);
     expect(count(SUBSURFACE)).toBe(0);
   });
 

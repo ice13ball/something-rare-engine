@@ -58,12 +58,15 @@ function spanText(c: Coverage): string {
   return `${a}–${b}`;
 }
 
-export function TemporalFrame({ coverage }: { coverage?: Coverage | null }) {
+// `label` exists for the detail panel, where the frame sits under ONE clicked object
+// but describes the WHOLE layer. Unlabelled there, a 2014 mooring read
+// "Data from → 1948–ongoing" as if the station itself held data from 1948.
+export function TemporalFrame({ coverage, label = "Data from →" }: { coverage?: Coverage | null; label?: string }) {
   if (!coverage) return null;
   return (
     <p className="text-white/80 text-[15px] leading-[1.6] mb-2">
       <span className="text-white/75 font-mono text-[13px] uppercase tracking-wider">
-        Data from →{" "}
+        {label}{" "}
       </span>
       <span className="font-mono text-white/95">{spanText(coverage)}</span>
       <span className="text-white/60"> · {KIND_MEANING[coverage.kind]}</span>

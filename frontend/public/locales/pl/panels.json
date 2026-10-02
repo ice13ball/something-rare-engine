@@ -923,7 +923,9 @@
     "historyVarEastwardVelocity": "Prędkość prądu na wschód",
     "historyVarNorthwardVelocity": "Prędkość prądu na północ",
     "historyVarChlorophyll": "Chlorofil",
-    "noObservationsSubsurface": "Stacja działa, ale jej przyrządy leżą pod powierzchnią i nie mają łączności satelitarnej: dane trafiają do nas dopiero po wydobyciu stacji, więc bieżących odczytów nie ma."
+    "noObservationsSubsurface": "Stacja działa, ale jej przyrządy leżą pod powierzchnią i nie mają łączności satelitarnej: dane trafiają do nas dopiero po wydobyciu stacji, więc bieżących odczytów nie ma.",
+    "noObservationsSubsurfacePast": "Boja podpowierzchniowa: jej przyrządy były pod wodą i nie miały łącza satelitarnego, więc nigdy nie przesyłała bieżących odczytów. Pomiary są dostępne dopiero po jej wyłowieniu, u instytutu, który ją prowadził.",
+    "historyNone": "Archiwum OceanSITES GDAC nie ma plików tej boi (szukane po pozycji i nazwie)."
   },
   "offshore": {
     "areaLabel": "Obszar",

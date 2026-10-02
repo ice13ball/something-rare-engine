@@ -98,7 +98,7 @@ function LayerTimeFrame({ deckLayerId }: { deckLayerId: string }) {
   if (!c) return null;
   return (
     <div className="mt-3 pt-3 border-t border-white/[0.06]">
-      <TemporalFrame coverage={c} />
+      <TemporalFrame coverage={c} label="Whole layer · data from →" />
     </div>
   );
 }

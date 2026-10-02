@@ -34,8 +34,15 @@ function groupSensorModels(raw: string): string {
 // it but reads as a gap we could close; this says why we cannot.
 function noObservationsKey(status: unknown, model: unknown) {
   const underwater = /subsurface|benthic/i.test(String(model ?? ""));
-  if (String(status ?? "").toUpperCase() === "OPERATIONAL" && underwater) {
+  const st = String(status ?? "").toUpperCase();
+  if (st === "OPERATIONAL" && underwater) {
     return "oceansites.noObservationsSubsurface" as const;
+  }
+  // A closed or inactive underwater mooring never transmitted either. "It is not
+  // transmitting now" (the generic inactive line) implied it once did — seen
+  // 2026-10-02 on OM42, a 2014 Dutch subsurface mooring in the Irminger Sea.
+  if ((st === "CLOSED" || st === "INACTIVE") && underwater) {
+    return "oceansites.noObservationsSubsurfacePast" as const;
   }
   switch (String(status ?? "").toUpperCase()) {
     case "CLOSED":     return "oceansites.noObservationsClosed" as const;
@@ -157,6 +164,11 @@ export function OceansitesPanel({ properties: p }: { properties: Record<string, 
         )}
       </Section>
       {Number(p.history_files) > 0 && <OceansitesHistory properties={p} />}
+      {/* history_files is 0 only after the matching ran and found nothing; a
+          missing value means it was never computed, and then we say nothing. */}
+      {p.history_files != null && Number(p.history_files) === 0 && (
+        <p className="text-xs text-white/60 italic mt-2">{t("oceansites.historyNone")}</p>
+      )}
       <BodyText>{t("oceansites.body")}</BodyText>
       <SourceAttribution link={sourceLinkFor("oceansites-platform", p)} />
     </>

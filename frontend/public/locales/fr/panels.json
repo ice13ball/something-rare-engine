@@ -923,7 +923,9 @@
     "historyVarEastwardVelocity": "Vitesse du courant vers l'est",
     "historyVarNorthwardVelocity": "Vitesse du courant vers le nord",
     "historyVarChlorophyll": "Chlorophylle",
-    "noObservationsSubsurface": "En service, mais les instruments de ce mouillage sont sous la surface et sans liaison satellite : leurs données ne nous parviennent qu'après la récupération du mouillage, il n'y a donc pas de mesures en direct."
+    "noObservationsSubsurface": "En service, mais les instruments de ce mouillage sont sous la surface et sans liaison satellite : leurs données ne nous parviennent qu'après la récupération du mouillage, il n'y a donc pas de mesures en direct.",
+    "noObservationsSubsurfacePast": "Mouillage immergé : ses instruments étaient sous la surface, sans liaison satellite, il n'a donc jamais transmis de relevés en direct. Ses mesures ne sont disponibles qu'après sa récupération, auprès de l'institut qui l'exploitait.",
+    "historyNone": "L'archive GDAC OceanSITES ne contient aucun fichier pour ce mouillage (recherche par position et par nom)."
   },
   "offshore": {
     "areaLabel": "Superficie",

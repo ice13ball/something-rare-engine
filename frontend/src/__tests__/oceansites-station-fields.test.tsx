@@ -123,4 +123,27 @@ describe("OceanSITES station fields", () => {
     });
     expect(screen.getAllByText(/NDBC station 15009/).length).toBe(1);
   });
+
+  // OM42 (2014, Dutch, Irminger Sea): an inactive SUBSURFACE mooring got the
+  // generic "not transmitting now", which implies it once did. It never did.
+  it.each(["INACTIVE", "CLOSED"])("tells a %s subsurface mooring never transmitted", (status) => {
+    renderWith({ status, model: "Subsurface Mooring Custom" });
+    expect(screen.getAllByText(/never sent live readings/).length).toBe(1);
+    expect(screen.queryAllByText(/not transmitting now/).length).toBe(0);
+    expect(screen.queryAllByText(/no longer transmits/).length).toBe(0);
+  });
+
+  it("says the archive holds nothing only when the matching found nothing", () => {
+    renderWith({ status: "INACTIVE", history_files: 0 });
+    expect(screen.getAllByText(/holds no files for this mooring/).length).toBe(1);
+    cleanup();
+    // Never computed: say nothing. null matters most — Number(null) is 0, so a
+    // bare `=== 0` check would claim "searched, found nothing" for a station the
+    // matching never looked at.
+    for (const missing of [null, undefined]) {
+      renderWith({ status: "INACTIVE", history_files: missing });
+      expect(screen.queryAllByText(/holds no files for this mooring/).length).toBe(0);
+      cleanup();
+    }
+  });
 });
