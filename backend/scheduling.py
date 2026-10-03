@@ -1360,6 +1360,20 @@ async def _sync_request_listener_task() -> None:
     )
 
 
+async def _running_syncs_reaper_task() -> None:
+    """Clear `running_syncs` rows left by killed processes: once at start, then
+    hourly. Never raises — a failed reap must not take down startup or the
+    loop; the rows are only clutter."""
+    while True:
+        try:
+            await sync_queue.reap_stale_running()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.warning("running-syncs reaper failed", exc_info=True)
+        await asyncio.sleep(sync_queue.REAP_AFTER_SECONDS)
+
+
 # ── The registry ──────────────────────────────────────────────────────────────
 
 ROLE_WEB = "web"
@@ -1671,6 +1685,14 @@ TASK_REGISTRY: list[TaskSpec] = [
         "diagnostic's output meaningful for the question actually asked: "
         "which SYNC owns the unexplained peak.",
         _f(_memory_peak_sampler),
+    ),
+    TaskSpec(
+        "running-syncs-reaper", ROLE_WORKER,
+        "Deletes running_syncs rows whose heartbeat is over an hour old (rows "
+        "of killed processes). Worker, because _held_sync_lock writes those "
+        "rows from the process that runs syncs; role `worker` also covers "
+        "ABYSSAL_ROLE=all. Touches only Postgres, so it is safe anywhere.",
+        _f(_running_syncs_reaper_task),
     ),
 ]
 

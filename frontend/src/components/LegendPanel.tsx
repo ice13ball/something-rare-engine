@@ -1194,8 +1194,8 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                       <li>New Zealand → <span className="text-cyan-400">nzpam.govt.nz/maps-geoscience/online-permit-register</span></li>
                       <li>Indonesia → <span className="text-cyan-400">geoportal.esdm.go.id/migas</span></li>
                       <li>South Africa → <span className="text-cyan-400">petroleumagencysa.com</span></li>
-                      <li>Papua New Guinea → <span className="text-cyan-400">portal.mra.gov.pg</span></li>
-                      <li>Namibia → <span className="text-cyan-400">portals.landfolio.com/namibia</span></li>
+                      <li>Papua New Guinea → <span className="text-cyan-400">mra.gov.pg</span> (cadastre map requires login — not loaded)</li>
+                      <li>Namibia → <span className="text-cyan-400">mme.gov.na</span> (cadastre layer access-protected — not loaded)</li>
                       <li>Cook Islands → <span className="text-cyan-400">sbma.gov.ck/map-of-applications</span></li>
                     </ul>
                   </li>

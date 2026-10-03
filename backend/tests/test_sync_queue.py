@@ -437,6 +437,38 @@ async def test_a_dead_process_row_is_reported_stale_not_running(pool):
     assert stale[0]["age_seconds"] >= 4000
 
 
+async def test_reaper_removes_only_rows_dead_for_hours_and_logs_the_evidence(pool, caplog):
+    """A killed process never runs its `finally`; the row would sit forever
+    (19 of them, up to 10 days old, cluttered `_stale`). The reaper deletes
+    them, but the proof that a process died moves into the log."""
+    import logging
+    await _seed_running(pool, _SOURCE, started_ago=8000, beat_ago=7200,
+                        role="worker", pid=9999, host="deadbox")
+    await _seed_running(pool, _OTHER, started_ago=4000, beat_ago=300)
+
+    with caplog.at_level(logging.WARNING):
+        reaped = await sync_queue.reap_stale_running()
+
+    assert reaped == 1
+    snap = await sync_queue.running_snapshot()
+    assert not [s for s in snap["_stale"] if s["source"] == _SOURCE]
+    assert _OTHER in snap or [s for s in snap["_stale"] if s["source"] == _OTHER], (
+        "a row with a 5-minute-old heartbeat was reaped")
+    msgs = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    hit = [m for m in msgs if _SOURCE in m]
+    assert hit and "9999" in hit[0] and "deadbox" in hit[0], (
+        "the reaped row left no evidence of which process died")
+    assert not [m for m in msgs if _OTHER in m]
+
+
+def test_reaper_threshold_is_far_above_the_staleness_threshold():
+    """A reaped row must already have been reported `_stale` for a long time."""
+    import inspect
+    default = inspect.signature(sync_queue.reap_stale_running).parameters[
+        "older_than_seconds"].default
+    assert default >= 20 * sync_queue.STALE_AFTER_SECONDS
+
+
 # ── 6. The listener is wired to a role that today's production starts ────────
 
 def test_the_listener_is_in_the_registry_for_every_role_that_should_run_it():

@@ -30,8 +30,15 @@ from domains import offshore
 SYNCS = [
     (offshore.sync_nopta_petroleum, "nopta"),
     (offshore.sync_nzpam_offshore, "nzpam"),
-    (offshore.sync_mra_png_dsm, "mra_png"),
-    (offshore.sync_mme_nam_dsm, "mme_nam"),
+]
+
+# mra_png / mme_nam have no public endpoint (2026-10-03): they never fetch and
+# always record the same skip reason. Executed, with every HTTP path booby-trapped.
+DEAD_SOURCES = [
+    (offshore.sync_mra_png_dsm, "mra_png",
+     "no public endpoint: MRA cadastre map requires login (checked 2026-10-03)"),
+    (offshore.sync_mme_nam_dsm, "mme_nam",
+     "no public endpoint: MME cadastre layer on ArcGIS Online is token-gated (checked 2026-10-03)"),
 ]
 
 _FEATURE = {
@@ -106,6 +113,19 @@ async def test_successful_run_records_the_sync(monkeypatch, recorded, sync, key)
     _serve(monkeypatch, [_FEATURE])
     assert await sync() == 1
     assert recorded == [("synced", key, 1, 1)]
+
+
+@pytest.mark.parametrize("sync, key, reason", DEAD_SOURCES, ids=[k for _, k, _ in DEAD_SOURCES])
+async def test_dead_source_makes_no_request_and_records_the_reason(monkeypatch, recorded, sync, key, reason):
+    def _boom(*a, **k):
+        raise AssertionError("a dead source must not touch the network")
+
+    for name in ("fetch_arcgis_features_url", "fetch_arcgis_no_ssl", "_get_with_retry"):
+        monkeypatch.setattr(offshore, name, _boom)
+    monkeypatch.setattr(offshore.httpx, "AsyncClient", _boom)
+    for _ in range(2):  # every call, not just the first
+        assert await sync() == 0
+    assert recorded == [("skipped", key, reason)] * 2
 
 
 # ── 2026-09-23 audit: the ~20 additional untraced paths ─────────────────────

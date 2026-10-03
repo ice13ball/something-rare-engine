@@ -79,7 +79,7 @@ _EXPECTED_ALL_TASK_NAMES = {
     "air-quality-readings-drip", "acoustic-stations-weekly-sync",
     "acoustic-soundscape-weekly-sync", "offshore-activities-weekly-sync",
     "noise-risk-count-startup-log", "query-watchdog", "offshore-tile-prebake",
-    "memory-peak-sampler",
+    "memory-peak-sampler", "running-syncs-reaper",
 }
 
 _EXPECTED_WEB_ONLY = {"request-log-batch-writer"}

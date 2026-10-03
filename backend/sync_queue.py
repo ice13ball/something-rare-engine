@@ -203,6 +203,34 @@ async def heartbeat_loop(row_id: int, interval: float = HEARTBEAT_INTERVAL_SECON
                         exc_info=True)
 
 
+# A row whose heartbeat is this old belongs to a process that was killed
+# mid-sync (OOM, deploy restart): a live sync beats every HEARTBEAT_INTERVAL.
+# Far above STALE_AFTER_SECONDS (60 s) on purpose — for a full hour the row is
+# reported under `_stale` as evidence; only then is it cleaned up.
+REAP_AFTER_SECONDS = 3600
+
+
+async def reap_stale_running(older_than_seconds: int = REAP_AFTER_SECONDS) -> int:
+    """Delete `running_syncs` rows whose heartbeat stopped `older_than_seconds`
+    ago, and return how many. `running_snapshot` calls such a row proof that a
+    process died; deleting it must not destroy that proof, so each removed row
+    is logged at WARNING with source, pid, host, started_at and heartbeat_at.
+    """
+    async with db.pool.acquire() as conn:
+        rows = await conn.fetch(
+            "DELETE FROM running_syncs "
+            "WHERE heartbeat_at < now() - ($1 || ' seconds')::interval "
+            "RETURNING source, role, pid, host, started_at, heartbeat_at",
+            str(int(older_than_seconds)))
+    for r in rows:
+        log.warning(
+            "sync_queue: reaped dead running sync %s (role=%s pid=%s host=%s "
+            "started_at=%s heartbeat_at=%s) — its process died mid-sync",
+            r["source"], r["role"], r["pid"], r["host"],
+            r["started_at"].isoformat(), r["heartbeat_at"].isoformat())
+    return len(rows)
+
+
 # ── The read model behind GET /admin/sync/running ────────────────────────────
 
 async def running_snapshot(stale_after: float = STALE_AFTER_SECONDS) -> dict[str, Any]:

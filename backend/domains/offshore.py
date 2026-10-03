@@ -1172,108 +1172,34 @@ async def sync_pasa_sa() -> int:
     return inserted
 
 
-# ── Phase 5: MRA Papua New Guinea ────────────────────────────────────────────
+# ── Phase 5: MRA Papua New Guinea / MME Namibia — no public endpoint ─────────
+# Both sources were wired to ArcGIS REST URLs that never existed (404; the
+# portals are Landfolio ASP.NET apps) and never loaded a single record. Checked
+# 2026-10-03. The functions stay so the schedule, force-sync and the staleness
+# monitor keep seeing WHY there is no data (sync_log.skipped_reason), but they
+# make no HTTP request.
+
+PNG_SKIP_REASON = "no public endpoint: MRA cadastre map requires login (checked 2026-10-03)"
+NAM_SKIP_REASON = "no public endpoint: MME cadastre layer on ArcGIS Online is token-gated (checked 2026-10-03)"
+
 
 async def sync_mra_png_dsm() -> int:
-    """Fetch PNG seabed-mining licence areas from MRA Landfolio portal."""
-    MRA_URL = (
-        "https://portal.mra.gov.pg/server/rest/services/Public/Mining_Tenements/MapServer/0/query"
-    )
-    rows: list[dict] = []
-    try:
-        features = await fetch_arcgis_features_url(MRA_URL, out_fields="*")
-    except Exception as exc:
-        log.warning("mra-png-dsm: fetch failed — %s", exc)
-        await _log_sync_skipped("mra_png", f"fetch failed: {type(exc).__name__}")
-        return 0
+    """PNG seabed-mining licences: the MRA cadastre map is login-only. No fetch."""
+    log.info("mra-png-dsm: %s", PNG_SKIP_REASON)
+    await _log_sync_skipped("mra_png", PNG_SKIP_REASON)
+    return 0
 
-    for f in features:
-        props = f.get("properties") or {}
-        geom = f.get("geometry")
-        if not geom:
-            continue
-        name_val = props.get("TENEMENT_NO") or props.get("NAME") or props.get("OBJECTID")
-        rows.append({
-            "source": "mra_png",
-            "source_id": str(props.get("TENEMENT_NO") or props.get("OBJECTID") or ""),
-            "activity_type": "seabed_mining",
-            "name": str(name_val) if name_val else None,
-            "operator": props.get("HOLDER") or props.get("COMPANY"),
-            "country": "PNG",
-            "status": (props.get("STATUS") or "active").lower(),
-            "awarded_date": None,
-            "expires_date": None,
-            "portal_url": "https://portal.mra.gov.pg",
-            "attributes": {k: v for k, v in props.items()},
-            "geom": geom,
-        })
-
-    if not rows:
-        log.warning("mra-png-dsm: no features returned")
-        await _log_sync_skipped("mra_png", "source returned no features with geometry")
-        return 0
-
-    async with db.pool.acquire() as conn:
-        inserted = await offshore_upsert(conn, rows)
-        await offshore_tag_sovereign(conn, "mra_png")
-        total = await conn.fetchval("SELECT COUNT(*) FROM offshore_activities")
-
-    clear_offshore_tile_cache()
-    log.info("mra-png-dsm: %d new / %d total", inserted, total)
-    await _log_sync("mra_png", inserted, len(rows))
-    return inserted
-
-
-# ── Phase 5: MME Namibia ─────────────────────────────────────────────────────
 
 async def sync_mme_nam_dsm() -> int:
-    """Fetch Namibia seabed-mining licences from MME Landfolio portal."""
-    MME_URL = (
-        "https://portals.landfolio.com/namibia/Server/rest/services/Public/"
-        "Mining_Tenements/MapServer/0/query"
-    )
-    rows: list[dict] = []
-    try:
-        features = await fetch_arcgis_features_url(MME_URL, out_fields="*")
-    except Exception as exc:
-        log.warning("mme-namibia-dsm: fetch failed — %s", exc)
-        await _log_sync_skipped("mme_nam", f"fetch failed: {type(exc).__name__}")
-        return 0
+    """Namibia seabed-mining licences: the layer is token-gated. No fetch.
 
-    for f in features:
-        props = f.get("properties") or {}
-        geom = f.get("geometry")
-        if not geom:
-            continue
-        rows.append({
-            "source": "mme_nam",
-            "source_id": str(props.get("TENEMENT_NO") or props.get("OBJECTID") or ""),
-            "activity_type": "seabed_mining",
-            "name": props.get("TENEMENT_NO") or props.get("NAME"),
-            "operator": props.get("HOLDER") or props.get("COMPANY"),
-            "country": "NAM",
-            "status": (props.get("STATUS") or "active").lower(),
-            "awarded_date": None,
-            "expires_date": None,
-            "portal_url": "https://portals.landfolio.com/namibia",
-            "attributes": {k: v for k, v in props.items()},
-            "geom": geom,
-        })
-
-    if not rows:
-        log.warning("mme-namibia-dsm: no features returned")
-        await _log_sync_skipped("mme_nam", "source returned no features with geometry")
-        return 0
-
-    async with db.pool.acquire() as conn:
-        inserted = await offshore_upsert(conn, rows)
-        await offshore_tag_sovereign(conn, "mme_nam")
-        total = await conn.fetchval("SELECT COUNT(*) FROM offshore_activities")
-
-    clear_offshore_tile_cache()
-    log.info("mme-namibia-dsm: %d new / %d total", inserted, total)
-    await _log_sync("mme_nam", inserted, len(rows))
-    return inserted
+    Where to look once access is granted (2026-10-03, "Token Required"):
+    https://services1.arcgis.com/AYIukXzftCPbklHN/arcgis/rest/services/
+    NamibiaPortal_ActiveMiningLayer_1/FeatureServer
+    """
+    log.info("mme-namibia-dsm: %s", NAM_SKIP_REASON)
+    await _log_sync_skipped("mme_nam", NAM_SKIP_REASON)
+    return 0
 
 
 # ── Phase 5: SBMA Cook Islands ───────────────────────────────────────────────
