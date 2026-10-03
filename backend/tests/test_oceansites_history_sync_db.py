@@ -88,6 +88,7 @@ def _index(monkeypatch, text):
         return None
 
     monkeypatch.setattr(dom, "fetch_series", no_series)
+    monkeypatch.setattr(dom, "refresh_adc", no_series)   # the ADC step has its own tests; no network here
 
 
 async def _snapshot(pool):

@@ -22,3 +22,40 @@ production_moorings.json
 
 These data were collected and made freely available by the international OceanSITES
 project and the national programs that contribute to it.
+
+adc_davis/  The Davis Strait moorings, NSF Arctic Data Center — doi:10.18739/A2416T169,
+          "Davis Strait hydrographic mooring Level 2 data: temperature, salinity, and velocity
+          measurements from the Davis Strait Observing System moorings, 2004 to 2022"
+          (Lee, C., 2024), licence CC0 1.0 (the dataset's EML intellectualRights; DataCite carries
+          no rightsList). Retrieved 2026-10-03.
+          solr_listing.json  the REAL response of the DataONE Solr index
+                https://arcticdata.io/metacat/d1/mn/v2/query/solr/ for the query the code sends
+                (isDocumentedBy:"doi:10.18739/A2416T169" AND -obsoletedBy:*, fl limited to
+                id,fileName,formatId,size,checksum,checksumAlgorithm,dateModified): 447 documents,
+                446 netCDF files (261 MicroCAT, 85 RCM, 100 ADCP) and the EML.
+          datacite.json      the DOI's DataCite record (api.datacite.org/dois/10.18739/a2416t169),
+                the source of the citation text in ingestion/oceansites_adc.py.
+          Davis_*_L2.nc      seven REAL files of that dataset, downloaded from the ADC object
+                endpoint and cut in time (the first 200-300 samples, or a window that holds the
+                file's real fill values and QC flags) with every variable, dimension and attribute
+                kept verbatim. The cut changes the length of the data only: the global attributes
+                (time_coverage_*, ...) still describe the whole real file, which is why a test
+                that wants the coverage reads it from the 2007-2014 layout. What each one is for:
+                BI4_2010_96m  the 2007-2014 layout (mooring_number = BI4, time_coverage as text);
+                BI4_2004_151m the 2004-2006 layout (mooring_number = 1535, a numeric id; the site
+                              is only in the `source` attribute; the salinity is flagged 4);
+                BI4_2015_28m  the 2015 layout (no mooring_number, platform_id = BI4.30,
+                              time_coverage_start an epoch number, no sensor_depth);
+                RCM_velocity_C4_2013_500m  an RCM file whose coverage spans two seasons
+                              (2013-09-16 .. 2015-09-11) and whose velocities turn into the
+                              1e+35 fill with flag 9; one shared velocity_QC;
+                RCM_velocity_C1_2015_234m  fills plus flags 4 and 9 in one window;
+                MicroCAT_C5_2013_23m       a MicroCAT with a flagged sample;
+                RCM_velocity_C6_2013_250m  every velocity is fill (flag 9): read fine, nothing to store.
+
+adc_davis_register.json
+          Six OceanOPS register rows (ref, name, position, deploy date: DS_BI4 x3, DS_C4 x2, DS_C6)
+          copied from the production `oceansites_stations` table on 2026-10-03, for the database
+          tests of the Arctic Data Center matching. OceanOPS terms as for production_moorings.json:
+          WITHHELD FROM THE PUBLIC MIRROR (scripts/export-public.sh NEVER_RULES); the tests skip
+          without it. See DATA-LICENCES.md.

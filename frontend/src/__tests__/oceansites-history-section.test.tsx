@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
-// The "Historical record (OceanSITES GDAC)" section of the OceanSITES station
+// The "Historical record" section (which names its source) of the OceanSITES station
 // panel. 971 of 1,038 moorings are not operational and show no live reading;
 // where the GDAC archive holds their measurements, this section is how a reader
 // sees them.
@@ -70,8 +70,10 @@ describe("OceanSITES historical record: when the section exists", () => {
   it("is present when the station has catalogue files, and asks the BFF path exactly once", async () => {
     const fetchMock = stubFetch(() => ok(PAP));
     renderWith();
-    expect(count(/Historical record \(OceanSITES GDAC\)/)).toBe(1);
+    expect(count(/^Historical record$/)).toBe(1);
     await screen.findAllByTestId("oceansites-series");
+    expect(count(/^OceanSITES GDAC \(IFREMER\)$/)).toBe(1);   // a GDAC-only record names GDAC, and only GDAC
+    expect(count(/Arctic Data Center/)).toBe(0);
     // Count the history requests only: i18n lazy-loads `/locales/<lng>/legend.json` through the
     // same global fetch, and whether that lands inside this test depends on machine load.
     const urls = fetchMock.mock.calls.map(c => String(c[0])).filter(u => !u.startsWith("/locales/"));

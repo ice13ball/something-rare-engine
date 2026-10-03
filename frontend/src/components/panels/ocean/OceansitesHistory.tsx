@@ -7,7 +7,8 @@ import { useTranslation } from "react-i18next";
 import { API, T } from "../shared/tokens";
 import { Row, Section, ExternalLink } from "../shared/primitives";
 
-// The historical record of a mooring, read from the OceanSITES GDAC archive.
+// The historical record of a mooring, read from the OceanSITES GDAC archive and, for the
+// Davis Strait moorings, from the NSF Arctic Data Center (two sources, never merged).
 // Shape of GET /v1/oceansites/{ref}/history (backend/domains/oceansites_history.py).
 //
 // ⛔ A series is identified by (standard_name, depth_m, units) — NOT by the first
@@ -20,6 +21,10 @@ import { Row, Section, ExternalLink } from "../shared/primitives";
 // duplicates_dropped (overlapping files) are four different counts. Do not sum.
 // The points the endpoint sends are already net of the first three, so min/max below
 // are computed from what is plotted, never from a withheld extreme.
+// ⛔ The archive link and the source named in the section depend on files[].source, NOT on
+// the shape of files[0].file: an Arctic Data Center file is "ADC/<doi suffix>/<name>.nc",
+// whose second segment is not a GDAC THREDDS directory. A response without `source`
+// (cached before the second source existed) is GDAC.
 
 export interface HistorySeries {
   variable: string;
@@ -37,6 +42,16 @@ export interface HistorySeries {
   duplicates_dropped: number;
 }
 
+export interface HistoryFile {
+  file: string;
+  source?: string;                      // "gdac" | "adc_davis"; absent in a response cached before the second source
+  data_mode: string | null;             // null for an Arctic Data Center file (no OceanSITES data mode)
+  start: string | null;
+  end: string | null;
+  url?: string | null;                  // GDAC: the OPeNDAP page of the file; ADC: the dataset's DOI landing page
+  url_opendap_html?: string | null;
+}
+
 export interface HistoryResponse {
   ref: string;
   start: string | null;
@@ -45,7 +60,7 @@ export interface HistoryResponse {
   n_files_read: number;
   citation: string;
   citations: string[];
-  files: { file: string; data_mode: string; start: string | null; end: string | null }[];
+  files: HistoryFile[];
   series: HistorySeries[];
 }
 
@@ -57,6 +72,15 @@ type LoadState =
 // Collapsed to the first few variables: TAO moorings carry 19 series by default.
 const COLLAPSED_GROUPS = 4;
 const GDAC_THREDDS = "https://tds0.ifremer.fr/thredds/catalog/CORIOLIS-OCEANSITES-GDAC-OBS/DATA";
+
+type ArchiveKind = "gdac" | "adc";
+
+// null: a source this panel does not know — it is neither named nor linked rather than guessed.
+function archiveOf(f: HistoryFile): ArchiveKind | null {
+  if (f.source == null || f.source === "gdac") return "gdac";
+  if (f.source === "adc_davis") return "adc";
+  return null;
+}
 
 function variableLabelKey(standardName: string) {
   switch (standardName) {
@@ -202,8 +226,18 @@ export function OceansitesHistory({ properties: p }: { properties: Record<string
   const data = state.kind === "ok" ? state.data : null;
   const groups = data ? groupSeries(data.series, labelOf) : [];
   const shown = showAll ? groups : groups.slice(0, COLLAPSED_GROUPS);
-  const siteDir = data?.files?.[0]?.file?.split("/")[1];
+  const files = data && Array.isArray(data.files) ? data.files : [];
+  const gdacFiles = files.filter(f => archiveOf(f) === "gdac");
+  const adcFiles = files.filter(f => archiveOf(f) === "adc");
+  // The THREDDS directory is named for the site, and only a GDAC path says so ("DATA/<site>/<file>").
+  const siteDir = gdacFiles[0]?.file?.split("/")[1];
   const threddsUrl = `${GDAC_THREDDS}/${siteDir ? `${encodeURIComponent(siteDir)}/` : ""}catalog.html`;
+  // Every ADC file of one dataset carries the same DOI landing page; one link per distinct page.
+  const adcUrls = [...new Set(adcFiles.map(f => f.url).filter((u): u is string => typeof u === "string" && u.startsWith("https://")))];
+  const sourceNames = [
+    gdacFiles.length > 0 ? t("oceansites.historySourceGdac") : null,
+    adcFiles.length > 0 ? t("oceansites.historySourceAdc") : null,
+  ].filter((n): n is string => n != null);
   const citations = data ? (data.citations?.length ? data.citations : [data.citation]).filter(Boolean) : [];
 
   return (
@@ -213,6 +247,9 @@ export function OceansitesHistory({ properties: p }: { properties: Record<string
              value={`${day(String(p.history_start))} – ${day(String(p.history_end))}`} />
       )}
       <Row label={t("oceansites.historyFilesLabel")} value={String(Number(p.history_files))} />
+      {sourceNames.length > 0 && (
+        <Row label={t("oceansites.historySourceLabel")} value={sourceNames.join(" · ")} />
+      )}
       {data && data.series.length > 0 && (
         <Row label={t("oceansites.historyFilesReadLabel")} value={String(data.n_files_read)} />
       )}
@@ -262,9 +299,10 @@ export function OceansitesHistory({ properties: p }: { properties: Record<string
         </>
       )}
 
-      {data && (
-        <div className="mt-2">
-          <ExternalLink href={threddsUrl} label={t("oceansites.historyBrowse")} />
+      {(gdacFiles.length > 0 || adcUrls.length > 0) && (
+        <div className="mt-2 flex flex-col gap-1">
+          {gdacFiles.length > 0 && <ExternalLink href={threddsUrl} label={t("oceansites.historyBrowse")} />}
+          {adcUrls.map(u => <ExternalLink key={u} href={u} label={t("oceansites.historyBrowseAdc")} />)}
         </div>
       )}
     </Section>

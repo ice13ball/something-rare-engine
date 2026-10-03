@@ -889,10 +889,10 @@
     "ageDaysWithYears": "{{days}} days (~{{years}} yr)",
     "qcWithheld": "PMEL flagged {{count}} reading(s) as questionable or bad and they are not shown: {{fields}}. This is the publisher's own quality flag, not a gap in our fetch.",
     "qcLowered": "PMEL rates {{count}} of these reading(s) as lower quality: {{fields}}.",
-    "noObservationsClosed": "Closed — this mooring no longer transmits, so there are no live readings. Where its past measurements were published, they are in the OceanSITES GDAC archive (IFREMER).",
+    "noObservationsClosed": "Closed — this mooring no longer transmits, so there are no live readings. Where its past measurements were published, they are in the OceanSITES GDAC archive (IFREMER) or, for the Davis Strait moorings, in the NSF Arctic Data Center.",
     "noObservationsInactive": "OceanOPS lists this mooring as inactive: it is not transmitting now, so no live readings are fetched.",
     "noObservationsRegistered": "Registered with OceanOPS but not yet deployed — no readings exist yet.",
-    "historySectionTitle": "Historical record (OceanSITES GDAC)",
+    "historySectionTitle": "Historical record",
     "historySpanLabel": "Span",
     "historyFilesLabel": "Files in the archive",
     "historyFilesReadLabel": "Files read for the plots",
@@ -913,6 +913,10 @@
     "historyShowFewer": "Show fewer variables",
     "historyCitationTitle": "Citation",
     "historyBrowse": "Browse the files in the GDAC (THREDDS)",
+    "historyBrowseAdc": "Open the dataset at the NSF Arctic Data Center (DOI)",
+    "historySourceLabel": "Source",
+    "historySourceGdac": "OceanSITES GDAC (IFREMER)",
+    "historySourceAdc": "NSF Arctic Data Center (Davis Strait moorings)",
     "historySparkLabel": "{{variable}}, {{depth}} m, {{start}} to {{end}}",
     "historySparkLabelNoDepth": "{{variable}}, {{start}} to {{end}}",
     "historyVarSeaWaterTemperature": "Sea water temperature",
@@ -925,7 +929,7 @@
     "historyVarChlorophyll": "Chlorophyll",
     "noObservationsSubsurface": "Operational, but the instruments of this mooring sit below the surface and have no satellite link: their data reach us only after the mooring is recovered, so there are no live readings.",
     "noObservationsSubsurfacePast": "Subsurface mooring: its instruments sat below the surface with no satellite link, so it never sent live readings. Its measurements become available only after recovery, from the institute that operated it.",
-    "historyNone": "The OceanSITES GDAC archive holds no files for this mooring (searched by position and name)."
+    "historyNone": "Neither the OceanSITES GDAC archive nor the Davis Strait mooring dataset of the NSF Arctic Data Center holds files matched to this mooring (GDAC: by position and name; Arctic Data Center: by mooring name and deployment date)."
   },
   "offshore": {
     "areaLabel": "Area",

@@ -135,14 +135,14 @@ describe("OceanSITES station fields", () => {
 
   it("says the archive holds nothing only when the matching found nothing", () => {
     renderWith({ status: "INACTIVE", history_files: 0 });
-    expect(screen.getAllByText(/holds no files for this mooring/).length).toBe(1);
+    expect(screen.getAllByText(/Neither the OceanSITES GDAC archive nor the Davis Strait mooring dataset/).length).toBe(1);
     cleanup();
     // Never computed: say nothing. null matters most — Number(null) is 0, so a
     // bare `=== 0` check would claim "searched, found nothing" for a station the
     // matching never looked at.
     for (const missing of [null, undefined]) {
       renderWith({ status: "INACTIVE", history_files: missing });
-      expect(screen.queryAllByText(/holds no files for this mooring/).length).toBe(0);
+      expect(screen.queryAllByText(/Neither the OceanSITES GDAC archive nor the Davis Strait mooring dataset/).length).toBe(0);
       cleanup();
     }
   });

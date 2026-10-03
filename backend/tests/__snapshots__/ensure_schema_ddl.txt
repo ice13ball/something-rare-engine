@@ -276,7 +276,10 @@ ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_south DOUBLE PRE
 ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_north DOUBLE PRECISION
 ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_west DOUBLE PRECISION
 ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS bbox_east DOUBLE PRECISION
+ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'gdac'
+ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS landing_url TEXT
 CREATE INDEX IF NOT EXISTS oceansites_gdac_files_site_idx ON oceansites_gdac_files (site_dir, platform_code)
+CREATE INDEX IF NOT EXISTS oceansites_gdac_files_source_idx ON oceansites_gdac_files (source)
 CREATE TABLE IF NOT EXISTS oceansites_station_files ( station_ref TEXT NOT NULL, file TEXT NOT NULL, rule TEXT NOT NULL, distance_km DOUBLE PRECISION NOT NULL, PRIMARY KEY (station_ref, file) )
 CREATE INDEX IF NOT EXISTS oceansites_station_files_file_idx ON oceansites_station_files (file)
 ALTER TABLE oceansites_stations ADD COLUMN IF NOT EXISTS history_start TIMESTAMPTZ

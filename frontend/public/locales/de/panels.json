@@ -889,10 +889,10 @@
     "ageDaysWithYears": "{{days}} Tage (~{{years}} J.)",
     "qcWithheld": "PMEL hat {{count}} Messwert(e) als fragwürdig oder schlecht markiert; sie werden nicht angezeigt: {{fields}}. Das ist das Qualitätskennzeichen des Herausgebers, keine Lücke in unserem Abruf.",
     "qcLowered": "PMEL stuft {{count}} dieser Messwerte als geringere Qualität ein: {{fields}}.",
-    "noObservationsClosed": "Geschlossen — diese Verankerung sendet nicht mehr, daher gibt es keine Live-Messwerte. Soweit ihre früheren Messungen veröffentlicht wurden, liegen sie im OceanSITES-GDAC-Archiv (IFREMER).",
+    "noObservationsClosed": "Geschlossen — diese Verankerung sendet nicht mehr, daher gibt es keine Live-Messwerte. Soweit ihre früheren Messungen veröffentlicht wurden, liegen sie im OceanSITES-GDAC-Archiv (IFREMER) oder, bei den Verankerungen in der Davisstraße, im NSF Arctic Data Center.",
     "noObservationsInactive": "OceanOPS führt diese Verankerung als inaktiv: Sie sendet derzeit nicht, daher werden keine Live-Messwerte abgerufen.",
     "noObservationsRegistered": "Bei OceanOPS registriert, aber noch nicht ausgebracht — es gibt noch keine Messwerte.",
-    "historySectionTitle": "Historische Messreihe (OceanSITES GDAC)",
+    "historySectionTitle": "Historische Messreihe",
     "historySpanLabel": "Zeitraum",
     "historyFilesLabel": "Dateien im Archiv",
     "historyFilesReadLabel": "Für die Diagramme gelesene Dateien",
@@ -913,6 +913,10 @@
     "historyShowFewer": "Weniger Größen anzeigen",
     "historyCitationTitle": "Zitierhinweis",
     "historyBrowse": "Dateien im GDAC durchsuchen (THREDDS)",
+    "historyBrowseAdc": "Datensatz im NSF Arctic Data Center öffnen (DOI)",
+    "historySourceLabel": "Quelle",
+    "historySourceGdac": "OceanSITES GDAC (IFREMER)",
+    "historySourceAdc": "NSF Arctic Data Center (Verankerungen in der Davisstraße)",
     "historySparkLabel": "{{variable}}, {{depth}} m, {{start}} bis {{end}}",
     "historySparkLabelNoDepth": "{{variable}}, {{start}} bis {{end}}",
     "historyVarSeaWaterTemperature": "Meerwassertemperatur",
@@ -925,7 +929,7 @@
     "historyVarChlorophyll": "Chlorophyll",
     "noObservationsSubsurface": "In Betrieb, aber die Instrumente dieser Verankerung liegen unter der Oberfläche und haben keine Satellitenverbindung: Ihre Daten erreichen uns erst nach der Bergung der Verankerung, daher gibt es keine aktuellen Messwerte.",
     "noObservationsSubsurfacePast": "Unterwasser-Verankerung: Ihre Instrumente lagen unter der Oberfläche ohne Satellitenverbindung, daher hat sie nie Live-Messwerte gesendet. Ihre Messungen sind erst nach der Bergung verfügbar, beim Institut, das sie betrieben hat.",
-    "historyNone": "Das OceanSITES-GDAC-Archiv enthält keine Dateien für diese Verankerung (gesucht nach Position und Name)."
+    "historyNone": "Weder das OceanSITES-GDAC-Archiv noch der Datensatz der Davisstraße-Verankerungen im NSF Arctic Data Center enthält Dateien, die sich dieser Verankerung zuordnen ließen (GDAC: nach Position und Name; Arctic Data Center: nach Verankerungsname und Auslegedatum)."
   },
   "offshore": {
     "areaLabel": "Fläche",

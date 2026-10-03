@@ -889,10 +889,10 @@
     "ageDaysWithYears": "{{days}} dni (~{{years}} lat)",
     "qcWithheld": "PMEL oznaczył {{count}} odczyt(y) jako wątpliwe lub złe i nie są pokazane: {{fields}}. To flaga jakości samego wydawcy, nie luka w naszym pobraniu.",
     "qcLowered": "PMEL ocenia {{count}} z tych odczytów jako niższej jakości: {{fields}}.",
-    "noObservationsClosed": "Stacja zamknięta — już nie nadaje, więc bieżących odczytów nie ma. Jeśli jej dawne pomiary zostały opublikowane, są w archiwum OceanSITES GDAC (IFREMER).",
+    "noObservationsClosed": "Stacja zamknięta — już nie nadaje, więc bieżących odczytów nie ma. Jeśli jej dawne pomiary zostały opublikowane, są w archiwum OceanSITES GDAC (IFREMER) albo, dla cum w Cieśninie Davisa, w NSF Arctic Data Center.",
     "noObservationsInactive": "OceanOPS oznacza tę stację jako nieaktywną: obecnie nie nadaje, więc nie pobieramy dla niej bieżących odczytów.",
     "noObservationsRegistered": "Stacja zgłoszona w OceanOPS, ale jeszcze nie postawiona — odczytów jeszcze nie ma.",
-    "historySectionTitle": "Zapis historyczny (OceanSITES GDAC)",
+    "historySectionTitle": "Zapis historyczny",
     "historySpanLabel": "Zakres",
     "historyFilesLabel": "Plików w archiwum",
     "historyFilesReadLabel": "Plików użytych na wykresach",
@@ -913,6 +913,10 @@
     "historyShowFewer": "Pokaż mniej zmiennych",
     "historyCitationTitle": "Cytowanie",
     "historyBrowse": "Przeglądaj pliki w GDAC (THREDDS)",
+    "historyBrowseAdc": "Otwórz zbiór danych w NSF Arctic Data Center (DOI)",
+    "historySourceLabel": "Źródło",
+    "historySourceGdac": "OceanSITES GDAC (IFREMER)",
+    "historySourceAdc": "NSF Arctic Data Center (cumy w Cieśninie Davisa)",
     "historySparkLabel": "{{variable}}, {{depth}} m, od {{start}} do {{end}}",
     "historySparkLabelNoDepth": "{{variable}}, od {{start}} do {{end}}",
     "historyVarSeaWaterTemperature": "Temperatura wody morskiej",
@@ -925,7 +929,7 @@
     "historyVarChlorophyll": "Chlorofil",
     "noObservationsSubsurface": "Stacja działa, ale jej przyrządy leżą pod powierzchnią i nie mają łączności satelitarnej: dane trafiają do nas dopiero po wydobyciu stacji, więc bieżących odczytów nie ma.",
     "noObservationsSubsurfacePast": "Boja podpowierzchniowa: jej przyrządy były pod wodą i nie miały łącza satelitarnego, więc nigdy nie przesyłała bieżących odczytów. Pomiary są dostępne dopiero po jej wyłowieniu, u instytutu, który ją prowadził.",
-    "historyNone": "Archiwum OceanSITES GDAC nie ma plików tej boi (szukane po pozycji i nazwie)."
+    "historyNone": "Ani archiwum OceanSITES GDAC, ani zbiór cum z Cieśniny Davisa w NSF Arctic Data Center nie zawiera plików dopasowanych do tej cumy (GDAC: po pozycji i nazwie; Arctic Data Center: po nazwie cumy i dacie rozstawienia)."
   },
   "offshore": {
     "areaLabel": "Obszar",

@@ -1122,8 +1122,9 @@ async def _oceansites_obs_sync_task():
 async def _oceansites_history_task():
     """Weekly: refresh the OceanSITES GDAC catalogue and relink moorings to files.
 
-    Heavy and network-bound (a ~21 MB FTP index now, OPeNDAP series later), so it
-    waits 45 min after startup — past the cold-start work, and not on the heels
+    Heavy and network-bound (a ~21 MB FTP index, OPeNDAP series, and the Davis Strait
+    netCDF files of the NSF Arctic Data Center: ~1 GB on the first run, then only what
+    changed), so it waits 45 min after startup — past the cold-start work, and not on the heels
     of every deploy restart."""
     await asyncio.sleep(2700)
     while True:

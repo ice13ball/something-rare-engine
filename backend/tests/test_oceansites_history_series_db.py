@@ -593,6 +593,11 @@ async def test_the_sync_runs_the_series_step_and_survives_its_failure(pool, reac
         raise RuntimeError("series step blew up")
 
     monkeypatch.setattr(dom, "fetch_series", boom)
+
+    async def no_adc(*a, **k):
+        return None                      # the ADC step has its own tests; no network here
+
+    monkeypatch.setattr(dom, "refresh_adc", no_adc)
     linked = await dom.sync_oceansites_history()
     assert called == [1]
     assert linked == 0                   # no stations in this DB; the point is that the run returned

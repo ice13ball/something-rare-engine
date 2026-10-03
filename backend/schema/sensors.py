@@ -238,9 +238,23 @@ async def ensure_oceansites_history(conn) -> None:
         await conn.execute(
             f"ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS {col} DOUBLE PRECISION"
         )
+    # source: which archive the row came from. 'gdac' (the OceanSITES GDAC index, the
+    # default, so every row that existed before keeps working) | 'adc_davis' (the NSF
+    # Arctic Data Center Davis Strait dataset, ingestion/oceansites_adc.py). An ADC row's
+    # `file` is namespaced ('ADC/A2416T169/<name>') so it can never equal a GDAC path.
+    # landing_url: where a human reads about the file (the DOI for an ADC row; NULL for GDAC,
+    # whose per-file URL is derived from the path).
+    await conn.execute(
+        "ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'gdac'"
+    )
+    await conn.execute("ALTER TABLE oceansites_gdac_files ADD COLUMN IF NOT EXISTS landing_url TEXT")
     await conn.execute(
         "CREATE INDEX IF NOT EXISTS oceansites_gdac_files_site_idx "
         "ON oceansites_gdac_files (site_dir, platform_code)"
+    )
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS oceansites_gdac_files_source_idx "
+        "ON oceansites_gdac_files (source)"
     )
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS oceansites_station_files (

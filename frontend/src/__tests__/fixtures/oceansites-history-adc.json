@@ -1,0 +1,397 @@
+{
+ "_provenance": "adc_only: the response of GET /v1/oceansites/{ref}/history for DS_C4 2013, generated 2026-10-03 by running the backend's own parse_file + merge_series on the REAL trimmed netCDF Davis_RCM_velocity_C4_2013_500m_L2.nc (tests/fixtures/oceansites_gdac/adc_davis/), each series cut to its first 10 points + the last one. mixed: no real station has files from both archives yet; composed from that response and the first GDAC file + TEMP series of the real PAP-2 response (oceansites-history.json), with the fields exactly as the endpoint emits them (files[].source/url, citations lead with OceanSITES then the ADC citation).",
+ "adc_only": {
+  "ref": "TMP-1036802018",
+  "start": "2013-09-16T23:06:00Z",
+  "end": "2015-09-11T13:06:00Z",
+  "n_catalogue_files": 1,
+  "n_files_read": 1,
+  "citation": "Lee, C. (2024). Davis Strait hydrographic mooring Level 2 data: temperature, salinity, and velocity measurements from the Davis Strait Observing System moorings, 2004 to 2022 [Dataset]. NSF Arctic Data Center. https://doi.org/10.18739/A2416T169",
+  "citations": [
+   "Lee, C. (2024). Davis Strait hydrographic mooring Level 2 data: temperature, salinity, and velocity measurements from the Davis Strait Observing System moorings, 2004 to 2022 [Dataset]. NSF Arctic Data Center. https://doi.org/10.18739/A2416T169"
+  ],
+  "files": [
+   {
+    "file": "ADC/A2416T169/Davis_RCM_velocity_C4_2013_500m_L2.nc",
+    "source": "adc_davis",
+    "data_mode": null,
+    "start": "2013-09-16T23:06:00Z",
+    "end": "2015-09-11T13:06:00Z",
+    "min_depth": 500.0,
+    "max_depth": 500.0,
+    "url": "https://doi.org/10.18739/A2416T169",
+    "url_opendap_html": null
+   }
+  ],
+  "series": [
+   {
+    "variable": "eastward_sea_water_velocity",
+    "standard_name": "eastward_sea_water_velocity",
+    "long_name": "Eastward current velocity (Eulerian) in the water measured by moored recording current meter (RCM)",
+    "units": "m s-1",
+    "depth_m": 500,
+    "depths_available": [
+     500
+    ],
+    "points": [
+     [
+      "2013-09-16T23:06:00Z",
+      -0.008213554308349674
+     ],
+     [
+      "2013-09-17T03:06:00Z",
+      -0.1347655040266937
+     ],
+     [
+      "2013-09-17T07:06:00Z",
+      0.07103277526134616
+     ],
+     [
+      "2013-09-17T11:06:00Z",
+      -0.008957049963520317
+     ],
+     [
+      "2013-09-17T15:06:00Z",
+      -0.17469490045940217
+     ],
+     [
+      "2013-09-17T19:06:00Z",
+      0.050165994748951635
+     ],
+     [
+      "2013-09-17T23:06:00Z",
+      -0.007558542159144088
+     ],
+     [
+      "2013-09-18T03:06:00Z",
+      -0.14743332269953577
+     ],
+     [
+      "2013-09-18T07:06:00Z",
+      0.08997816898943059
+     ],
+     [
+      "2013-09-18T11:06:00Z",
+      0.09778364660911691
+     ],
+     [
+      "2013-10-09T23:06:00Z",
+      0.10685411116079258
+     ]
+    ],
+    "n_total_measurements": 300,
+    "stride_max": 2,
+    "qc_withheld": 0,
+    "range_withheld": 0,
+    "missing": 27,
+    "duplicates_dropped": 0
+   },
+   {
+    "variable": "northward_sea_water_velocity",
+    "standard_name": "northward_sea_water_velocity",
+    "long_name": "Northward current velocity (Eulerian) in the water measured by moored recording current meter (RCM)",
+    "units": "m s-1",
+    "depth_m": 500,
+    "depths_available": [
+     500
+    ],
+    "points": [
+     [
+      "2013-09-16T23:06:00Z",
+      0.10949236286437421
+     ],
+     [
+      "2013-09-17T03:06:00Z",
+      0.09008145716201084
+     ],
+     [
+      "2013-09-17T07:06:00Z",
+      -0.06353294294042335
+     ],
+     [
+      "2013-09-17T11:06:00Z",
+      0.08020137938932846
+     ],
+     [
+      "2013-09-17T15:06:00Z",
+      0.04125459675575035
+     ],
+     [
+      "2013-09-17T19:06:00Z",
+      -0.09110089445690506
+     ],
+     [
+      "2013-09-17T23:06:00Z",
+      0.07160215388120975
+     ],
+     [
+      "2013-09-18T03:06:00Z",
+      0.060067090472026
+     ],
+     [
+      "2013-09-18T07:06:00Z",
+      -0.1587771365950069
+     ],
+     [
+      "2013-09-18T11:06:00Z",
+      -0.025682064866815863
+     ],
+     [
+      "2013-10-09T23:06:00Z",
+      -0.08874350076505311
+     ]
+    ],
+    "n_total_measurements": 300,
+    "stride_max": 2,
+    "qc_withheld": 0,
+    "range_withheld": 0,
+    "missing": 27,
+    "duplicates_dropped": 0
+   }
+  ]
+ },
+ "mixed": {
+  "ref": "TMP-1036802018",
+  "start": "2002-10-06T20:00:00Z",
+  "end": "2015-09-11T13:06:00Z",
+  "n_catalogue_files": 2,
+  "n_files_read": 2,
+  "citation": "These data were collected and made freely available by the international OceanSITES project and the national programs that contribute to it.",
+  "citations": [
+   "These data were collected and made freely available by the international OceanSITES project and the national programs that contribute to it.",
+   "Lee, C. (2024). Davis Strait hydrographic mooring Level 2 data: temperature, salinity, and velocity measurements from the Davis Strait Observing System moorings, 2004 to 2022 [Dataset]. NSF Arctic Data Center. https://doi.org/10.18739/A2416T169"
+  ],
+  "files": [
+   {
+    "file": "DATA/PAP/OS_PAP-2_200210_D_CTD.nc",
+    "data_mode": "D",
+    "start": "2002-10-06T20:00:00Z",
+    "end": "2003-07-08T12:00:00Z",
+    "min_depth": 10.0,
+    "max_depth": 800.0,
+    "url_opendap_html": "https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/DATA/PAP/OS_PAP-2_200210_D_CTD.nc.html",
+    "source": "gdac",
+    "url": "https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/DATA/PAP/OS_PAP-2_200210_D_CTD.nc.html"
+   },
+   {
+    "file": "ADC/A2416T169/Davis_RCM_velocity_C4_2013_500m_L2.nc",
+    "source": "adc_davis",
+    "data_mode": null,
+    "start": "2013-09-16T23:06:00Z",
+    "end": "2015-09-11T13:06:00Z",
+    "min_depth": 500.0,
+    "max_depth": 500.0,
+    "url": "https://doi.org/10.18739/A2416T169",
+    "url_opendap_html": null
+   }
+  ],
+  "series": [
+   {
+    "variable": "TEMP",
+    "standard_name": "sea_water_temperature",
+    "long_name": "Temperature",
+    "units": "degree_Celsius",
+    "depth_m": 10,
+    "depths_available": [
+     10,
+     25,
+     38,
+     39,
+     40,
+     60,
+     67,
+     80,
+     107,
+     150,
+     152,
+     153,
+     252,
+     400,
+     403,
+     600,
+     603,
+     800,
+     803,
+     1002,
+     1003,
+     1013
+    ],
+    "points": [
+     [
+      "2002-10-08T16:00:00Z",
+      16.935911
+     ],
+     [
+      "2002-10-10T12:00:00Z",
+      16.389502
+     ],
+     [
+      "2002-10-12T08:00:00Z",
+      16.353313
+     ],
+     [
+      "2002-10-14T04:00:00Z",
+      16.161428
+     ],
+     [
+      "2002-10-16T00:00:00Z",
+      15.9694195
+     ],
+     [
+      "2002-10-17T20:00:00Z",
+      15.782615
+     ],
+     [
+      "2002-10-19T16:00:00Z",
+      15.542748
+     ],
+     [
+      "2002-10-21T12:00:00Z",
+      15.531747
+     ],
+     [
+      "2002-10-23T08:00:00Z",
+      15.28407
+     ],
+     [
+      "2002-10-25T04:00:00Z",
+      15.174692
+     ],
+     [
+      "2004-06-17T07:45:00Z",
+      16.065054
+     ]
+    ],
+    "n_total_measurements": 27139,
+    "stride_max": 137,
+    "qc_withheld": 0,
+    "missing": 116,
+    "duplicates_dropped": 0
+   },
+   {
+    "variable": "eastward_sea_water_velocity",
+    "standard_name": "eastward_sea_water_velocity",
+    "long_name": "Eastward current velocity (Eulerian) in the water measured by moored recording current meter (RCM)",
+    "units": "m s-1",
+    "depth_m": 500,
+    "depths_available": [
+     500
+    ],
+    "points": [
+     [
+      "2013-09-16T23:06:00Z",
+      -0.008213554308349674
+     ],
+     [
+      "2013-09-17T03:06:00Z",
+      -0.1347655040266937
+     ],
+     [
+      "2013-09-17T07:06:00Z",
+      0.07103277526134616
+     ],
+     [
+      "2013-09-17T11:06:00Z",
+      -0.008957049963520317
+     ],
+     [
+      "2013-09-17T15:06:00Z",
+      -0.17469490045940217
+     ],
+     [
+      "2013-09-17T19:06:00Z",
+      0.050165994748951635
+     ],
+     [
+      "2013-09-17T23:06:00Z",
+      -0.007558542159144088
+     ],
+     [
+      "2013-09-18T03:06:00Z",
+      -0.14743332269953577
+     ],
+     [
+      "2013-09-18T07:06:00Z",
+      0.08997816898943059
+     ],
+     [
+      "2013-09-18T11:06:00Z",
+      0.09778364660911691
+     ],
+     [
+      "2013-10-09T23:06:00Z",
+      0.10685411116079258
+     ]
+    ],
+    "n_total_measurements": 300,
+    "stride_max": 2,
+    "qc_withheld": 0,
+    "range_withheld": 0,
+    "missing": 27,
+    "duplicates_dropped": 0
+   },
+   {
+    "variable": "northward_sea_water_velocity",
+    "standard_name": "northward_sea_water_velocity",
+    "long_name": "Northward current velocity (Eulerian) in the water measured by moored recording current meter (RCM)",
+    "units": "m s-1",
+    "depth_m": 500,
+    "depths_available": [
+     500
+    ],
+    "points": [
+     [
+      "2013-09-16T23:06:00Z",
+      0.10949236286437421
+     ],
+     [
+      "2013-09-17T03:06:00Z",
+      0.09008145716201084
+     ],
+     [
+      "2013-09-17T07:06:00Z",
+      -0.06353294294042335
+     ],
+     [
+      "2013-09-17T11:06:00Z",
+      0.08020137938932846
+     ],
+     [
+      "2013-09-17T15:06:00Z",
+      0.04125459675575035
+     ],
+     [
+      "2013-09-17T19:06:00Z",
+      -0.09110089445690506
+     ],
+     [
+      "2013-09-17T23:06:00Z",
+      0.07160215388120975
+     ],
+     [
+      "2013-09-18T03:06:00Z",
+      0.060067090472026
+     ],
+     [
+      "2013-09-18T07:06:00Z",
+      -0.1587771365950069
+     ],
+     [
+      "2013-09-18T11:06:00Z",
+      -0.025682064866815863
+     ],
+     [
+      "2013-10-09T23:06:00Z",
+      -0.08874350076505311
+     ]
+    ],
+    "n_total_measurements": 300,
+    "stride_max": 2,
+    "qc_withheld": 0,
+    "range_withheld": 0,
+    "missing": 27,
+    "duplicates_dropped": 0
+   }
+  ]
+ }
+}

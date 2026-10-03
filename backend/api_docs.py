@@ -162,11 +162,16 @@ _OCEANSITES_HISTORY_EXAMPLE = {
     "files": [
         {
             "file": "DATA/PAP/OS_PAP-2_200210_D_CTD.nc",
+            "source": "gdac",
             "data_mode": "D",
             "start": "2002-10-06T20:00:00Z",
             "end": "2003-07-08T12:00:00Z",
             "min_depth": 10.0,
             "max_depth": 800.0,
+            "url": (
+                "https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/"
+                "DATA/PAP/OS_PAP-2_200210_D_CTD.nc.html"
+            ),
             "url_opendap_html": (
                 "https://tds0.ifremer.fr/thredds/dodsC/CORIOLIS-OCEANSITES-GDAC-OBS/"
                 "DATA/PAP/OS_PAP-2_200210_D_CTD.nc.html"
@@ -195,8 +200,12 @@ _OCEANSITES_HISTORY_EXAMPLE = {
 CURATED: dict[str, dict] = {
     "/v1/oceansites/{ref}/history": {
         "description": (
-            "Historical record of one OceanSITES mooring, read from the OceanSITES "
-            "GDAC (Ifremer) files linked to it. `ref` is the station ref the map serves. "
+            "Historical record of one OceanSITES mooring, read from the files linked to it: "
+            "the OceanSITES GDAC (Ifremer) for most moorings, the NSF Arctic Data Center's "
+            "Davis Strait dataset (CC0, doi:10.18739/A2416T169) for the `DS_*` moorings. "
+            "Every entry of `files` says which archive it came from (`source`: `gdac` or "
+            "`adc_davis`) and carries a `url` (the OPeNDAP page for a GDAC file, the DOI for an "
+            "ADC file; `url_opendap_html` is null for an ADC file). `ref` is the station ref the map serves. "
             "Each series is a set of **every k-th real measurement** (`stride_max` says how "
             "sparse), merged across the mooring's files by CF standard name, whole-metre "
             "depth and declared units — never averages, and units are never converted "
@@ -222,9 +231,12 @@ CURATED: dict[str, dict] = {
             "seen where sampled instants coincide, so it is then an upper bound). Variables "
             "stored packed (`scale_factor` / `add_offset`) are left out rather than served "
             "unscaled. "
-            "`n_catalogue_files` counts every GDAC file linked to the mooring; `n_files_read` "
-            "and `files` are the files stored series were read from. `citations` always "
-            "starts with the OceanSITES data-policy citation, followed by the files' own. "
+            "`n_catalogue_files` counts every file linked to the mooring, from either archive; "
+            "`n_files_read` and `files` are the files stored series were read from. `citations` "
+            "starts with the OceanSITES data-policy citation whenever a GDAC file contributes "
+            "(and when nothing does), is followed by the Arctic Data Center dataset citation "
+            "whenever an ADC file contributes, then by the files' own; a mooring whose record "
+            "is only from the Arctic Data Center is not credited to OceanSITES. "
             "404 = no such station; 200 with empty `files` and `series` = a known mooring "
             "with no stored history."
         ),

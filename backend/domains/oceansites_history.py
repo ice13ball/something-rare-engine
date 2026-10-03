@@ -18,6 +18,13 @@ where it was published, sits in the OceanSITES GDAC. This module:
 
 Parsing and matching are pure and live in ``ingestion/oceansites_history.py``.
 
+A second source shares every table: the Davis Strait moorings (``DS_*``) are not in
+the GDAC but in a CC0 dataset at the NSF Arctic Data Center
+(``ingestion/oceansites_adc.py``). ``oceansites_gdac_files.source`` says which archive
+a row came from (``gdac`` | ``adc_davis``); ``refresh_adc()`` catalogues AND samples
+those files in one pass (they are plain downloads, not OPeNDAP), ``rebuild_links()``
+matches both sources, and the ``history_*`` summary counts both.
+
 ⛔ "Missing" and "broken" must not share a code path. On 2026-10-01 the GDAC
 answered 503 to everything for about an hour. An index we could not fetch says
 nothing about the catalogue: stored rows are left exactly as they were.
@@ -37,6 +44,7 @@ import httpx
 from auth import get_api_key
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
+from ingestion import oceansites_adc as adc
 from ingestion import oceansites_history as ingest
 from ingestion import oceansites_opendap as dap
 from ingestion.oceansites_gdac import gdac_reachable
@@ -110,31 +118,40 @@ async def rebuild_links() -> dict | None:
     """Rebuild ``oceansites_station_files`` from the stored catalogue, and write
     the ``history_*`` summary onto ``oceansites_stations``.
 
+    Both sources are matched: GDAC files by position AND name, Davis Strait (ADC)
+    files by name AND date (``ingestion/oceansites_adc.match_adc_files``, no position).
     Delete-then-insert of the link table is fine — it is derived, not source —
     but it happens inside ONE transaction with the summary update, so a reader
     never sees links without their summary or an emptied table.
 
-    Returns ``{"linked_stations", "linked_files", "links", "rejected_nearby"}``,
-    or ``None`` when the catalogue is empty (nothing to match against is not
-    "nothing matches": links and summaries stay as they were).
+    Returns ``{"linked_stations", "linked_files", "links", "rejected_nearby", ...}``,
+    or ``None`` when the catalogue holds nothing to match (nothing to match against
+    is not "nothing matches": links and summaries stay as they were).
     """
     async with db.pool.acquire() as conn:
         stations = [dict(r) for r in await conn.fetch(
-            "SELECT ref, name, lat, lon FROM oceansites_stations"
+            "SELECT ref, name, lat, lon, deploy_date FROM oceansites_stations"
         )]
         deployments = [dict(r) for r in await conn.fetch(
-            "SELECT base_ref, name, lat, lon FROM oceansites_deployments "
-            "WHERE lat IS NOT NULL AND lon IS NOT NULL"
+            "SELECT base_ref, name, lat, lon, deploy_date FROM oceansites_deployments"
         )]
         files = [dict(r) for r in await conn.fetch(
             "SELECT file, site_dir, platform_code, lat, lon, "
             "bbox_south, bbox_north, bbox_west, bbox_east FROM oceansites_gdac_files "
-            "WHERE lat IS NOT NULL AND lon IS NOT NULL"
+            "WHERE source = 'gdac' AND lat IS NOT NULL AND lon IS NOT NULL"
         )]
-    if not files:
+        adc_files = [dict(r) for r in await conn.fetch(
+            "SELECT file, platform_code, start_time, end_time, lat, lon "
+            "FROM oceansites_gdac_files WHERE source = $1", adc.SOURCE
+        )]
+    if not files and not adc_files:
         return None
 
-    links, rejected = await asyncio.to_thread(ingest.match_files, stations, deployments, files)
+    # match_files wants positioned deployments only (it measures to them)
+    positioned = [d for d in deployments if d["lat"] is not None and d["lon"] is not None]
+    links, rejected = await asyncio.to_thread(ingest.match_files, stations, positioned, files)
+    adc_links = await asyncio.to_thread(adc.match_adc_files, stations, deployments, adc_files)
+    links = links + adc_links
 
     async with db.pool.acquire() as conn:
         async with conn.transaction():
@@ -164,6 +181,9 @@ async def rebuild_links() -> dict | None:
         "linked_stations": len({l["station_ref"] for l in links}),
         "linked_files": len({l["file"] for l in links}),
         "links": len(links),
+        "adc_linked_stations": len({l["station_ref"] for l in adc_links}),
+        "adc_linked_files": len({l["file"] for l in adc_links}),
+        "adc_links": len(adc_links),
         "rejected_nearby": len(rejected),
         "rejected_sample": rejected[:15],
     }
@@ -285,7 +305,7 @@ async def fetch_series(client: httpx.AsyncClient | None = None,
                       f.size_bytes, f.gdac_update_date, f.date_update
                  FROM oceansites_station_files sf
                  JOIN oceansites_gdac_files f USING (file)
-                WHERE f.parameters && $1::text[]""",
+                WHERE f.source = 'gdac' AND f.parameters && $1::text[]""",
             sorted(dap.HISTORY_STANDARD_NAMES))]
         fetched = {r["file"]: dict(r) for r in await conn.fetch(
             "SELECT file, outcome, change_marker, standard_names FROM oceansites_gdac_fetched")}
@@ -377,25 +397,218 @@ async def fetch_series(client: httpx.AsyncClient | None = None,
     return summary
 
 
-async def sync_oceansites_history() -> int:
-    """Weekly: refresh the GDAC catalogue, then relink moorings to files.
+# ── Davis Strait (NSF Arctic Data Center): catalogue + series in one pass ──
 
-    Returns the number of moorings linked to at least one GDAC file. Every
+_ADC_FILE_UPSERT_SQL = """
+    INSERT INTO oceansites_gdac_files
+        (file, site_dir, platform_code, data_mode, start_time, end_time,
+         lat, lon, position_source, min_depth, max_depth, parameters, size_bytes,
+         gdac_update_date, source, landing_url, seen_at)
+    VALUES ($1,$2,$3,NULL,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW())
+    ON CONFLICT (file) DO UPDATE SET
+        site_dir = EXCLUDED.site_dir, platform_code = EXCLUDED.platform_code,
+        start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time,
+        lat = EXCLUDED.lat, lon = EXCLUDED.lon, position_source = EXCLUDED.position_source,
+        min_depth = EXCLUDED.min_depth, max_depth = EXCLUDED.max_depth,
+        parameters = EXCLUDED.parameters, size_bytes = EXCLUDED.size_bytes,
+        gdac_update_date = EXCLUDED.gdac_update_date, source = EXCLUDED.source,
+        landing_url = EXCLUDED.landing_url, seen_at = NOW()
+"""
+
+
+def _adc_stamp(value: str | None) -> datetime | None:
+    """The Solr ``dateModified`` (``2024-02-23T00:21:07.863Z``) as an aware datetime."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+async def _store_adc_file(entry: dict, parsed: "adc.ParsedFile", marker: str) -> None:
+    """One ADC file, one transaction: its catalogue row, its series and its read-log row.
+
+    A file is parsed whole, so its stored series are REPLACED (all variables): a
+    republished file that no longer yields a level must not leave the old rows behind.
+    An unreadable or unplaceable file never reaches here (see ``refresh_adc``).
+    """
+    key = entry["key"]
+    names = sorted({r.standard_name for r in parsed.series})
+    async with db.pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                _ADC_FILE_UPSERT_SQL, key, key.rsplit("/", 1)[0], parsed.mooring, parsed.start,
+                parsed.end, parsed.lat, parsed.lon, "file" if parsed.lat is not None else None,
+                parsed.min_depth, parsed.max_depth, parsed.parameters, entry.get("size"),
+                _adc_stamp(entry.get("date_modified")), adc.SOURCE, adc.LANDING_URL,
+            )
+            await conn.execute("DELETE FROM oceansites_gdac_series WHERE file = $1", key)
+            for r in parsed.series:
+                await conn.execute(
+                    _SERIES_UPSERT_SQL, key, r.variable, r.depth_index, r.depth_m, r.units,
+                    r.long_name, r.standard_name, r.n_total, r.stride, r.times, r.vals, r.qc,
+                    r.first_time, r.last_time, _adc_stamp(entry.get("date_modified")),
+                )
+            await conn.execute(
+                _FETCHED_UPSERT_SQL, key, "ok" if parsed.series else "empty",
+                None if parsed.series else "read fine, no sampleable variable", marker,
+                names, len(parsed.series), adc.CITATION,
+            )
+
+
+async def _settle_adc_file(entry: dict, marker: str, outcome: str, detail: str) -> None:
+    """Record a deterministic "nothing to read" (no row for the file, no series touched)."""
+    async with db.pool.acquire() as conn:
+        await conn.execute(_FETCHED_UPSERT_SQL, entry["key"], outcome, detail[:200], marker, [], 0, None)
+
+
+async def refresh_adc(client: httpx.AsyncClient | None = None, max_files: int | None = None) -> dict | None:
+    """Catalogue and sample the Davis Strait files of the NSF Arctic Data Center.
+
+    Lists the dataset (DataONE Solr), keeps the files that can matter (an instrument we
+    read, a mooring that has a ``DS_<mooring>`` row in the register), skips the ones read
+    before and unchanged (their MD5 is the change marker), downloads the rest ONCE
+    (bounded concurrency, size cap, MD5 and size checked against the index) and stores
+    catalogue row + strided series + read-log row per file in one transaction.
+
+    Returns the run summary, or ``None`` when the ADC could not be asked (nothing was
+    read, nothing stored was touched).
+
+    ⛔ "Cannot answer" and "answered no" are different, exactly as for the GDAC. A 5xx, a
+    timeout, a truncated or corrupt download counts as ``failed_unavailable`` and writes
+    NOTHING: the file stays due. A 4xx, a file over the size cap, a file that is not a
+    netCDF we can place, or one whose ``mooring_number`` contradicts its name is a settled
+    answer: recorded with its change marker and left alone until the ADC republishes it.
+    An unexpected exception on one file is counted and does not end the run.
+    """
+    own = client is None
+    if own:
+        client = httpx.AsyncClient(timeout=adc.HTTP_TIMEOUT)
+    try:
+        entries = await adc.fetch_listing(client)
+        if entries is None:
+            return None
+        async with db.pool.acquire() as conn:
+            moorings = {m for r in await conn.fetch(
+                "SELECT name FROM oceansites_stations WHERE name IS NOT NULL "
+                "UNION SELECT name FROM oceansites_deployments WHERE name IS NOT NULL")
+                for m in [adc.station_mooring(r["name"])] if m}
+            fetched = {r["file"]: dict(r) for r in await conn.fetch(
+                "SELECT file, outcome, change_marker FROM oceansites_gdac_fetched WHERE file LIKE $1",
+                adc.KEY_PREFIX + "%")}
+        read = [e for e in entries if adc.in_scope(e)]
+        relevant = [e for e in read if adc._norm(e["mooring"]) in moorings]
+        due = [e for e in relevant
+               if fetched.get(e["key"], {}).get("change_marker") != adc.change_marker(e)]
+        cap = max_files if max_files is not None else max_files_per_run()
+        todo = due[:cap]
+        summary = {"listed": len(entries), "not_read_instrument": len(entries) - len(read),
+                   "no_register_row": len(read) - len(relevant), "relevant": len(relevant),
+                   "due": len(due), "attempted": len(todo), "remaining": len(due) - len(todo),
+                   "ok": 0, "empty": 0, "refused": 0, "failed": 0, "failed_unavailable": 0,
+                   "aborted": False, "series_rows": 0, "bytes": 0, "seconds": 0.0}
+        t0 = time.monotonic()
+        sem = asyncio.Semaphore(adc.CONCURRENCY)
+        parse_lock = asyncio.Lock()  # downloads overlap; the HDF5 library is not thread-safe, so parses do not
+        state = {"unavailable_run": 0}
+
+        async def one(entry: dict) -> None:
+            async with sem:
+                if summary["aborted"]:
+                    return
+                marker = adc.change_marker(entry)
+                try:
+                    body = await adc.download(client, entry)
+                except adc.AdcError as exc:
+                    if exc.kind == "rejected":
+                        log.info("ADC Davis: %s refused (%s)", entry["file_name"], exc)
+                        await _settle_adc_file(entry, marker, "refused", str(exc))
+                        summary["refused"] += 1
+                        state["unavailable_run"] = 0
+                        return
+                    summary["failed"] += 1
+                    summary["failed_unavailable"] += 1
+                    state["unavailable_run"] += 1
+                    if state["unavailable_run"] >= adc.ABORT_AFTER_UNAVAILABLE:
+                        summary["aborted"] = True
+                    log.info("ADC Davis: %s skipped (%s)", entry["file_name"], exc)
+                    return
+                state["unavailable_run"] = 0
+                summary["bytes"] += len(body)
+                try:
+                    async with parse_lock:
+                        parsed = await asyncio.to_thread(
+                            adc.parse_file, body, entry["mooring"], entry.get("depth"))
+                except adc.MooringMismatch as exc:
+                    # The name and the file disagree about which mooring this is (or nothing
+                    # in the file names it): say so and do not guess. Precision over recall.
+                    await _settle_adc_file(entry, marker, "refused", str(exc))
+                    summary["refused"] += 1
+                    return
+                except dap.UnsupportedFile as exc:
+                    await _settle_adc_file(entry, marker, "empty", str(exc))
+                    summary["empty"] += 1
+                    return
+                except Exception:  # a parser surprise on one file must not end the run
+                    summary["failed"] += 1
+                    log.exception("ADC Davis: %s could not be decoded — skipped", entry["file_name"])
+                    return
+                await _store_adc_file(entry, parsed, marker)
+                summary["ok" if parsed.series else "empty"] += 1
+                summary["series_rows"] += len(parsed.series)
+
+        outcomes = await asyncio.gather(*(one(e) for e in todo), return_exceptions=True)
+        for o in outcomes:  # a database error on one file: counted, the siblings carry on
+            if isinstance(o, BaseException):
+                summary["failed"] += 1
+                log.error("ADC Davis: storing a file failed: %r", o)
+        summary["seconds"] = round(time.monotonic() - t0, 1)
+        log.info(
+            "ADC Davis: %d objects listed (%d not read: ADCP/unknown name, %d for moorings with no register row), "
+            "%d relevant, %d due, %d attempted: %d ok, %d with nothing sampleable, %d refused, %d failed of which "
+            "%d server-unavailable%s; %d series rows, %.1f MB in %.0f s; %d remain for later runs",
+            summary["listed"], summary["not_read_instrument"], summary["no_register_row"],
+            summary["relevant"], summary["due"], summary["attempted"], summary["ok"], summary["empty"],
+            summary["refused"], summary["failed"], summary["failed_unavailable"],
+            ", RUN ABORTED: server kept failing" if summary["aborted"] else "",
+            summary["series_rows"], summary["bytes"] / 1e6, summary["seconds"], summary["remaining"],
+        )
+        return summary
+    finally:
+        if own:
+            await client.aclose()
+
+
+async def sync_oceansites_history() -> int:
+    """Weekly: refresh the GDAC catalogue and the Davis Strait (ADC) files, then relink
+    moorings to files.
+
+    Returns the number of moorings linked to at least one file of either source. Every
     return path leaves a ``sync_log`` trace; the unreachable ones use
     ``log_sync_skipped`` so a dead server does not stamp the layer as freshly
     synced (``log_sync`` sets ``last_synced_at``).
     """
     n = await refresh_catalogue()
-    if n is None:
+    # The ADC step is independent of the GDAC one: either archive being down must not
+    # stop the other from being read, and neither may blank what the other stored.
+    try:
+        adc_run = await refresh_adc()
+    except Exception:
+        log.exception("OceanSITES history: ADC Davis step failed — its stored rows stand")
+        adc_run = None
+    finally:
+        drop_history_caches()  # ADC series rows may have changed even when the step then failed
+    if n is None and adc_run is None:
         await _log_sync_skipped(
             SYNC_SOURCE,
-            "GDAC index not fetched (unreachable or unusable) — stored catalogue and links untouched",
+            "GDAC index and ADC listing not fetched (unreachable or unusable) — stored catalogue and links untouched",
         )
         return 0
 
     summary = await rebuild_links()
     if summary is None:  # cannot happen right after a successful refresh; kept honest
-        await _log_sync_skipped(SYNC_SOURCE, "catalogue holds no positioned files — links untouched")
+        await _log_sync_skipped(SYNC_SOURCE, "catalogue holds no matchable files — links untouched")
         return 0
     # The links and the history_* columns on the map's stations are committed:
     # the map payload and every cached history response are stale from here on.
@@ -412,12 +625,14 @@ async def sync_oceansites_history() -> int:
         drop_history_caches()  # series rows may have changed even when the step then failed
 
     log.info(
-        "OceanSITES history: %d files catalogued, %d moorings linked to %d files "
-        "(%d links), %d station/file pairs within %.0f km rejected on name",
-        n, summary["linked_stations"], summary["linked_files"], summary["links"],
+        "OceanSITES history: %d GDAC files catalogued, %d moorings linked to %d files "
+        "(%d links; %d moorings / %d links from the ADC Davis Strait dataset), "
+        "%d station/file pairs within %.0f km rejected on name",
+        n or 0, summary["linked_stations"], summary["linked_files"], summary["links"],
+        summary["adc_linked_stations"], summary["adc_links"],
         summary["rejected_nearby"], ingest.MAX_LINK_KM,
     )
-    await _log_sync(SYNC_SOURCE, summary["linked_stations"], n)
+    await _log_sync(SYNC_SOURCE, summary["linked_stations"], n or 0)
     return summary["linked_stations"]
 
 
@@ -663,7 +878,8 @@ async def _build_history(ref: str, all_depths: bool = False) -> dict | None:
             return None
         # Files the plotted series were read from, best mode first.
         files = await conn.fetch(
-            """SELECT f.file, f.data_mode, f.start_time, f.end_time, f.min_depth, f.max_depth
+            """SELECT f.file, f.data_mode, f.start_time, f.end_time, f.min_depth, f.max_depth,
+                      f.source, f.landing_url
                FROM oceansites_gdac_files f
                WHERE f.file IN (SELECT l.file FROM oceansites_station_files l WHERE l.station_ref = $1)
                  AND EXISTS (SELECT 1 FROM oceansites_gdac_series s WHERE s.file = f.file)
@@ -696,32 +912,51 @@ async def _build_history(ref: str, all_depths: bool = False) -> dict | None:
         max_points=MAX_POINTS if all_depths else DEFAULT_MAX_POINTS,
         pick_depths=not all_depths,
     )
+    def _file_entry(f) -> dict:
+        if f["source"] == adc.SOURCE:
+            # a plain download at the Arctic Data Center: the DOI is the landing page,
+            # there is no OPeNDAP endpoint
+            url, opendap = f["landing_url"] or adc.LANDING_URL, None
+        else:
+            url = opendap = OPENDAP_HTML.format(file=f["file"])
+        return {
+            "file": f["file"],
+            "source": f["source"],
+            "data_mode": f["data_mode"],
+            "start": _iso(f["start_time"]),
+            "end": _iso(f["end_time"]),
+            "min_depth": f["min_depth"],
+            "max_depth": f["max_depth"],
+            "url": url,
+            "url_opendap_html": opendap,
+        }
+
     file_list = sorted(
-        (
-            {
-                "file": f["file"],
-                "data_mode": f["data_mode"],
-                "start": _iso(f["start_time"]),
-                "end": _iso(f["end_time"]),
-                "min_depth": f["min_depth"],
-                "max_depth": f["max_depth"],
-                "url_opendap_html": OPENDAP_HTML.format(file=f["file"]),
-            }
-            for f in files
-        ),
+        (_file_entry(f) for f in files),
         key=lambda f: (f["start"] or "", _MODE_ORDER.get(f["data_mode"], 9), f["file"]),
     )
-    # The standard OceanSITES citation always leads; the files' own follow.
-    citations = [OCEANSITES_CITATION] + [
-        c["citation"].strip() for c in cites if c["citation"].strip() != OCEANSITES_CITATION
+    # Which archives the plotted series came from. The OceanSITES data-policy citation
+    # leads when a GDAC file contributes (or when nothing does: the empty response keeps
+    # its shape); a mooring whose record is ONLY from the Arctic Data Center is not
+    # credited to OceanSITES. The ADC dataset citation is added whenever an ADC file
+    # contributes, then the files' own.
+    sources = {f["source"] for f in file_list}
+    lead: list[str] = []
+    if adc.SOURCE in sources:
+        lead.append(adc.CITATION)
+    if sources != {adc.SOURCE}:
+        lead.insert(0, OCEANSITES_CITATION)
+    citations = lead + [
+        c["citation"].strip() for c in cites
+        if c["citation"].strip() not in lead
     ]
     return {
         "ref": ref,
         "start": _iso(st["history_start"]),
         "end": _iso(st["history_end"]),
-        "n_catalogue_files": st["history_files"] or 0,   # every GDAC file linked to the mooring
+        "n_catalogue_files": st["history_files"] or 0,   # every catalogued file (either source) linked to the mooring
         "n_files_read": len(file_list),                  # the files `series` were read from
-        "citation": OCEANSITES_CITATION,
+        "citation": citations[0],
         "citations": citations,
         "files": file_list,
         "series": series,
@@ -738,9 +973,12 @@ async def get_oceansites_history(
                     "at up to 200 points (`depths_available` lists them all).",
     ),
 ):
-    """Historical record of one OceanSITES mooring from the GDAC.
+    """Historical record of one OceanSITES mooring: the GDAC, or for the Davis Strait
+    moorings (`DS_*`) the NSF Arctic Data Center (CC0, doi:10.18739/A2416T169).
 
-    Series are every-k-th real measurements of the mooring's GDAC files, merged
+    Each entry of `files` carries its `source` (`gdac` | `adc_davis`) and a `url`
+    (the OPeNDAP page for a GDAC file, the DOI for an ADC file). Series are every-k-th
+    real measurements of the mooring's files, merged
     across files by standard name and depth, NOT averages. Values flagged bad
     (QC 3, 4, 9) are withheld and counted in `qc_withheld`; fill values are
     counted in `missing`; unflagged values outside the physical range of a

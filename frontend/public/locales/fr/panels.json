@@ -889,10 +889,10 @@
     "ageDaysWithYears": "{{days}} jours (~{{years}} ans)",
     "qcWithheld": "PMEL a signalé {{count}} relevé(s) comme douteux ou mauvais ; ils ne sont pas affichés : {{fields}}. Il s'agit du drapeau qualité de l'éditeur, pas d'une lacune de notre récupération.",
     "qcLowered": "PMEL classe {{count}} de ces relevés en qualité inférieure : {{fields}}.",
-    "noObservationsClosed": "Fermé — ce mouillage n'émet plus, il n'y a donc pas de relevés en direct. Lorsque ses mesures passées ont été publiées, elles se trouvent dans l'archive GDAC OceanSITES (IFREMER).",
+    "noObservationsClosed": "Fermé — ce mouillage n'émet plus, il n'y a donc pas de relevés en direct. Lorsque ses mesures passées ont été publiées, elles se trouvent dans l'archive GDAC OceanSITES (IFREMER) ou, pour les mouillages du détroit de Davis, au NSF Arctic Data Center.",
     "noObservationsInactive": "OceanOPS indique ce mouillage comme inactif : il n'émet pas actuellement, aucun relevé en direct n'est donc récupéré.",
     "noObservationsRegistered": "Enregistré auprès d'OceanOPS mais pas encore déployé — aucun relevé n'existe encore.",
-    "historySectionTitle": "Historique des mesures (OceanSITES GDAC)",
+    "historySectionTitle": "Historique des mesures",
     "historySpanLabel": "Période",
     "historyFilesLabel": "Fichiers dans l'archive",
     "historyFilesReadLabel": "Fichiers utilisés pour les courbes",
@@ -913,6 +913,10 @@
     "historyShowFewer": "Afficher moins de variables",
     "historyCitationTitle": "Citation",
     "historyBrowse": "Parcourir les fichiers dans le GDAC (THREDDS)",
+    "historyBrowseAdc": "Ouvrir le jeu de données au NSF Arctic Data Center (DOI)",
+    "historySourceLabel": "Source",
+    "historySourceGdac": "GDAC OceanSITES (IFREMER)",
+    "historySourceAdc": "NSF Arctic Data Center (mouillages du détroit de Davis)",
     "historySparkLabel": "{{variable}}, {{depth}} m, du {{start}} au {{end}}",
     "historySparkLabelNoDepth": "{{variable}}, du {{start}} au {{end}}",
     "historyVarSeaWaterTemperature": "Température de l'eau de mer",
@@ -925,7 +929,7 @@
     "historyVarChlorophyll": "Chlorophylle",
     "noObservationsSubsurface": "En service, mais les instruments de ce mouillage sont sous la surface et sans liaison satellite : leurs données ne nous parviennent qu'après la récupération du mouillage, il n'y a donc pas de mesures en direct.",
     "noObservationsSubsurfacePast": "Mouillage immergé : ses instruments étaient sous la surface, sans liaison satellite, il n'a donc jamais transmis de relevés en direct. Ses mesures ne sont disponibles qu'après sa récupération, auprès de l'institut qui l'exploitait.",
-    "historyNone": "L'archive GDAC OceanSITES ne contient aucun fichier pour ce mouillage (recherche par position et par nom)."
+    "historyNone": "Ni l'archive GDAC OceanSITES ni le jeu de données des mouillages du détroit de Davis du NSF Arctic Data Center ne contiennent de fichier rattaché à ce mouillage (GDAC : par position et par nom ; Arctic Data Center : par nom du mouillage et date de déploiement)."
   },
   "offshore": {
     "areaLabel": "Superficie",

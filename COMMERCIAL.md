@@ -34,13 +34,13 @@ Copyright is **not** for sale — this is licensing, not assignment.
    any right to upstream data.
 
    One exception, stated plainly because a buyer would otherwise rely on the sentence above:
-   `backend/tests/fixtures/` holds ~1.3 MB of **real** upstream excerpts across 21 sources —
+   `backend/tests/fixtures/` holds ~2 MB of **real** upstream excerpts across 21 sources —
    GEOTRACES seawater rows, ONC ADCP profiles, GLODAP and SOCAT NetCDF slices among
    them. They are there so the parsers are tested against the shapes they actually meet, and
    they travel under their own upstream terms like everything else. They are not mine to
    sublicense either. Five further fixture sets (MEMENTO, seabed lithology, MOSAiC sediment,
    Arctic rivers, Svalbard fjords primary production) are withheld from this package because their terms forbid redistribution or
-   are silent — see `DATA-LICENCES.md`. One file of OceanOPS station rows (`oceansites_gdac/production_moorings.json`, all rights reserved, non-commercial) is withheld too.
+   are silent — see `DATA-LICENCES.md`. Two files of OceanOPS station rows (`oceansites_gdac/production_moorings.json` and `oceansites_gdac/adc_davis_register.json`, all rights reserved, non-commercial) are withheld too.
 
 2. **One dependency is GPL-3.0.** `PyCO2SYS`, used in a single lazily-imported function
    (`backend/services/acidification.py`) for the aragonite-saturation reconstruction, is
