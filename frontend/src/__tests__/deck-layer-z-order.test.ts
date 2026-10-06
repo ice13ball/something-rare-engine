@@ -26,7 +26,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
-import { LAYER_DEFAULTS, toggleIdForDeckLayer } from "../utils/layerConfig";
+import { LAYER_DEFAULTS, sortDeckLayers, toggleIdForDeckLayer } from "../utils/layerConfig";
 import { toLf } from "./sliceSource";
 
 const ORDER = new Map(LAYER_DEFAULTS.map((l) => [l.id, l.order_idx]));
@@ -211,5 +211,76 @@ describe("ambient fields sit under the point layers", () => {
     );
     const bad = [...bitmapFields].filter((f) => points.some((p) => ORDER.get(p)! <= ORDER.get(f)!));
     expect(bad).toEqual([]);
+  });
+});
+
+// ── The shape Map3D really hands to the sort ─────────────────────────────────
+//
+// ⛔ This is the test the first two halves lacked. They fed ids; the map feeds a LIST
+// in which every sliced field is ONE NESTED ARRAY (`tiles.map(tile => new BitmapLayer)`),
+// beside plain layer objects, `null`, `false` and `[]`. A sort that reads `.id` off the
+// array sees undefined -> 9999 -> on top, and no id test can notice.
+
+describe("sortDeckLayers on the real layersRaw shape", () => {
+  const ORDER_CFG = LAYER_DEFAULTS;
+  // deck.gl itself cannot load under vitest (luma.gl wants WebGPU modules), and the sort
+  // reads nothing but `.id` — so a stand-in layer object carries exactly what it uses.
+  const dots = (id: string) => ({ id, kind: "point" });
+  const slices = (prefix: string, n = 54) =>
+    Array.from({ length: n }, (_, i) => ({ id: `${prefix}-${i}`, kind: "bitmap" }));
+  const idsOf = (layers: unknown[]) => layers.map((l) => (l as { id: string }).id);
+
+  it("a nested bitmap slice set sorts under the point layer, not on top of it", () => {
+    // Exactly what prod showed: ["memento", ARRAY[54] (woa-climatology-bitmap-oxygen-500-0..53), ARRAY[0]]
+    const raw = [dots("memento"), slices("woa-climatology-bitmap-oxygen-500"), []];
+    const ids = idsOf(sortDeckLayers(raw, ORDER_CFG));
+    expect(ids).toHaveLength(55);
+    expect(ids[ids.length - 1]).toBe("memento");
+    expect(ids.slice(0, 54).every((i) => i.startsWith("woa-climatology-bitmap-"))).toBe(true);
+  });
+
+  it("keeps the slices of one field in their own order", () => {
+    const ids = idsOf(sortDeckLayers([dots("memento"), slices("woa-climatology-bitmap-oxygen-500", 5)], ORDER_CFG));
+    expect(ids.slice(0, 5)).toEqual([0, 1, 2, 3, 4].map((i) => `woa-climatology-bitmap-oxygen-500-${i}`));
+  });
+
+  it("orders every sliced field the map builds by its toggle, whichever slot it sits in", () => {
+    const fields: Array<[string, string]> = [
+      ["woa-climatology-bitmap-oxygen-500", "woa-climatology"],
+      ["oxygen-deox-bitmap-trend-200", "oxygen-deox"],
+      ["ocean-carbon-bitmap-dic-100", "ocean-carbon"],
+      ["ocean-co2-surface-bitmap-fco2-2010", "ocean-co2-surface"],
+      ["ocean-acidification-bitmap-omega_a-0", "ocean-acidification"],
+      ["ocean-nutrients-model-bitmap-chl-2026-08", "ocean-nutrients-model"],
+      ["ocean-colour-satellite-bitmap-pp-2026-08", "ocean-colour-satellite"],
+    ];
+    // Reverse of the right order on purpose, and the points first.
+    const raw = [dots("memento"), dots("geotraces"), dots("argo-glow"),
+                 ...[...fields].reverse().map(([p]) => slices(p, 3))];
+    const ids = idsOf(sortDeckLayers(raw, ORDER_CFG));
+    const toggles = ids.map(toggleIdForDeckLayer);
+    const firstPoint = toggles.findIndex((t) => ["memento", "geotraces", "argo"].includes(t));
+    const lastField = Math.max(...fields.map(([, t]) => toggles.lastIndexOf(t)));
+    expect(lastField, "a field slice was drawn after a point layer").toBeLessThan(firstPoint);
+    const order = fields.map(([, t]) => ORDER.get(t)!);
+    const seen = [...new Set(toggles.slice(0, lastField + 1))].map((t) => ORDER.get(t)!);
+    expect(seen).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it("drops null, false, undefined and empty arrays at any depth", () => {
+    const raw = [null, false, undefined, [], [[]], dots("memento"), [null, [slices("woa-climatology-bitmap-x", 2), false]]];
+    expect(idsOf(sortDeckLayers(raw, ORDER_CFG))).toEqual(
+      ["woa-climatology-bitmap-x-0", "woa-climatology-bitmap-x-1", "memento"]);
+  });
+
+  it("is stable for equal order and puts an unmapped layer last", () => {
+    const raw = [dots("aoi-preview"), dots("hydrothermal-vents-active"), dots("hydrothermal-vents-inactive")];
+    expect(idsOf(sortDeckLayers(raw, ORDER_CFG))).toEqual(
+      ["hydrothermal-vents-active", "hydrothermal-vents-inactive", "aoi-preview"]);
+  });
+
+  it("with no config yet it still flattens and keeps the order it was given", () => {
+    const raw = [dots("b"), [dots("a"), null], false];
+    expect(idsOf(sortDeckLayers(raw, []))).toEqual(["b", "a"]);
   });
 });

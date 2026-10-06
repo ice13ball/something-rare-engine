@@ -185,6 +185,43 @@ export function toggleIdForDeckLayer(deckId: string): string {
   return hit ? hit[1] : deckId;
 }
 
+/** Flatten any depth of nested arrays and drop null/false/undefined entries. */
+function flattenDeckLayers(raw: readonly unknown[], out: unknown[] = []): unknown[] {
+  for (const item of raw) {
+    if (Array.isArray(item)) flattenDeckLayers(item, out);
+    else if (item) out.push(item);
+  }
+  return out;
+}
+
+/**
+ * The deck.gl layer list in draw order: flat, falsy entries dropped, sorted by the
+ * `order_idx` of each layer's toggle (see `toggleIdForDeckLayer`), stable for equal
+ * order. A layer whose toggle has no order_idx sorts last (9999) — on top.
+ *
+ * ⛔ Flatten FIRST. `layersRaw` in Map3D holds the sliced field bitmaps as one nested
+ * array per layer (one BitmapLayer per tile, built with `tiles.map`), and deck.gl is happy
+ * with that. A sort that reads `.id` off such an array gets undefined, so the whole
+ * slice set resolved to 9999 and was drawn on top of every point layer — whatever the
+ * id maps or the order_idx say. That kept the WOA field over MEMENTO after both had
+ * been fixed (2026-10-06); the mapping tests passed because they fed ids, not the
+ * list the map really builds.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function sortDeckLayers(raw: readonly unknown[], layerOrder: readonly LayerConfig[]): any[] {
+  const flat = flattenDeckLayers(raw);
+  if (!layerOrder.length) return flat;
+  const orderMap = new Map(layerOrder.map((c) => [c.id, c.order_idx]));
+  const rank = (layer: unknown): number => {
+    const id = (layer as { id?: string }).id ?? "";
+    return orderMap.get(toggleIdForDeckLayer(id)) ?? 9999;
+  };
+  return flat
+    .map((layer, i) => ({ layer, i, r: rank(layer) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.layer);
+}
+
 const LS_KEY = "abyssal_layer_config";
 const LS_TTL_MS = 60 * 1000; // visibility must be fresh — a disabled layer disappears within ~1 min
 

@@ -66,7 +66,7 @@ import {
 import { stationAqi, AQI_NO_DATA_COLOR } from "../styles/aqi";
 import { ONC_EOV_CATEGORIES, ONC_ALL_KNOWN_CATEGORIES } from "../types/onc";
 import type { OncEov } from "../types/onc";
-import { useLayerConfig, toggleIdForDeckLayer } from "../utils/layerConfig";
+import { useLayerConfig, sortDeckLayers } from "../utils/layerConfig";
 import { isLayerHidden } from "../utils/hiddenLayers";
 import { gebcoTileUrl } from "../utils/gebcoTiles";
 import { wodDecadeColor } from "../utils/wodDecades";
@@ -5417,19 +5417,9 @@ export function Map3D() {
   ].filter(Boolean);
 
   const layers = (() => {
-    // Sort layersRaw by layer order from config.
-    const sorted = (() => {
-      if (!layerOrder.length) return layersRaw;
-      const orderMap = new Map(layerOrder.map(c => [c.id, c.order_idx]));
-      type RawItem = (typeof layersRaw)[number];
-      return [...layersRaw].sort((a: RawItem, b: RawItem) => {
-        const aid = (a as unknown as { id?: string })?.id ?? "";
-        const bid = (b as unknown as { id?: string })?.id ?? "";
-        const ga = toggleIdForDeckLayer(aid);
-        const gb = toggleIdForDeckLayer(bid);
-        return (orderMap.get(ga) ?? 9999) - (orderMap.get(gb) ?? 9999);
-      });
-    })();
+    // Flatten and sort layersRaw by layer order from config (nested field-bitmap
+    // arrays included — see sortDeckLayers).
+    const sorted = sortDeckLayers(layersRaw, layerOrder);
 
     // ── AOI overlay layers (always on top) ─────────────────────────────────
 
