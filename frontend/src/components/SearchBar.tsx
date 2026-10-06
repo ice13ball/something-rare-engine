@@ -465,6 +465,17 @@ export function featureId(p: Record<string, unknown>): string | number {
 }
 
 /**
+ * Layer-aware id for a search result. OceanSITES moorings carry none of the
+ * names in `featureId()`'s chain — `ref` is their only unique key — so without
+ * this a search result wrote `["oceansites", ""]` into the share link. `ref` is
+ * deliberately NOT in the global chain (first-match-wins for every layer).
+ */
+export function featureIdFor(layerId: string, p: Record<string, unknown>): string | number {
+  if (layerId === "oceansites" && p.ref != null) return p.ref as string | number;
+  return featureId(p);
+}
+
+/**
  * Parse a free-text coordinate into GeoJSON [lon, lat], or null if the query
  * isn't a coordinate. Accepts forms like:
  *   "46.97°N,154.55°E"  "46.97 N 154.55 E"  "-46.97, 154.55"  "154.55E 46.97N"
@@ -532,7 +543,7 @@ function search(
         primary,
         secondary,
         coords: getCoords(f),
-        featureId: featureId(props),
+        featureId: featureIdFor(cfg.layerId, props),
         properties: props,
       });
       count++;

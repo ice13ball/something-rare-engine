@@ -17,7 +17,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { featureId } from "../components/SearchBar";
+import { featureId, featureIdFor } from "../components/SearchBar";
 import { ID_CHAIN } from "../types/openableRegistry";
 
 describe("the two id chains agree", () => {
@@ -39,5 +39,20 @@ describe("the two id chains agree", () => {
 
   it("keys a MARHYS sample on its source row", () => {
     expect(featureId({ sample_id: "Menez Gwen-Fontaine-1994", source_row: 312 })).toBe(312);
+  });
+});
+
+describe("search results carry an id a link can reopen", () => {
+  it("keys an OceanSITES mooring on its ref (featureId() alone returns empty)", () => {
+    // ⛔ OceanSITES has none of the chain's names; selecting a search result
+    // wrote ["oceansites", ""] into the share link — reopening nothing.
+    const mooring = { ref: "TMP1578159815", name: "Mooring T", network: "TAO" };
+    expect(featureId(mooring)).toBe("");
+    expect(featureIdFor("oceansites", mooring)).toBe("TMP1578159815");
+  });
+
+  it("does not apply the ref rule to other layers", () => {
+    expect(featureIdFor("onc", { ref: "X", location_code: "L" })).toBe("");
+    expect(featureIdFor("contracts", { isa_id: "ISA-1", ref: "X" })).toBe("ISA-1");
   });
 });

@@ -231,6 +231,57 @@ describe("the click handler's id chain matches what a link can reopen", () => {
   });
 });
 
+describe("OceanSITES moorings are keyed on ref, never on the pick index", () => {
+  // ⛔ OceanSITES features carry none of isa_id/id/platform_id, so the click
+  // handler wrote the deck.gl pick index ("oceansites · 469") into the link and
+  // the restore — which searches the id chain — answered "points at something
+  // missing". `ref` is the only unique key (1038 of 1038 features on prod).
+  const mooring = { ref: "TMP1578159815", name: "Mooring T", network: "TAO", status: "operational" };
+  const other = { ref: "1500009", name: "Mooring O", network: "OOI", status: "operational" };
+  const third = { ref: "4400001", name: "Mooring Z", network: "DART", status: "operational" };
+
+  it("writes the ref into the link, not the pick index", () => {
+    expect(clickIdFor("oceansites", mooring, 469)).toBe("TMP1578159815");
+    expect(clickIdFor("oceansites", other, 0)).toBe("1500009");
+  });
+
+  it("falls back to the pick index when a mooring carries no ref", () => {
+    expect(clickIdFor("oceansites", { name: "no ref" }, 7)).toBe("7");
+  });
+
+  it("round-trips through openObjectsFor: the link carries the ref", () => {
+    const id = clickIdFor("oceansites", mooring, 469);
+    expect(openObjectsFor([{ id, layer: "oceansites" }])).toEqual([["oceansites", "TMP1578159815"]]);
+  });
+
+  it("opens that exact mooring, even when the feature array is reordered", async () => {
+    const clickedId = String(clickIdFor("oceansites", mooring, 0));
+    for (const order of [[mooring, other, third], [third, other, mooring], [other, mooring, third]]) {
+      const t = await openTargetFor("oceansites", clickedId, fc(order), "");
+      expect(t).not.toBeNull();
+      expect(t!.routingKey).toBe("oceansites");
+      expect(t!.properties.name).toBe("Mooring T");
+      expect(t!.id).toBe("TMP1578159815");
+    }
+  });
+
+  it("does not let a bare pick index open some unrelated mooring", () => {
+    // An old link carrying the index must say "missing", not open mooring #1.
+    const data = fc([mooring, other, third]);
+    expect(resolveOpenTarget("oceansites", "1", data)).toBeNull();
+    expect(resolveOpenTarget("oceansites", "469", data)).toBeNull();
+    expect(resolveOpenTarget("oceansites", "0", data)).toBeNull();
+  });
+
+  it("does not match on a ref-like value carried in another property", () => {
+    // `ref` is OceanSITES' own key, not part of the global chain: another
+    // layer's `ref` must never be reachable through it, and here an unrelated
+    // property that merely equals the link id must not match either.
+    const data = fc([{ ref: "A", name: "1500009" }]);
+    expect(resolveOpenTarget("oceansites", "1500009", data)).toBeNull();
+  });
+});
+
 describe("client-held data comes first, the network only as a fallback", () => {
   afterEach(() => { vi.restoreAllMocks(); });
 

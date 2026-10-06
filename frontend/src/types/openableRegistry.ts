@@ -276,7 +276,9 @@ export const OPENABLE = {
     byIdPath: "/api/v2/spatial/mosaic/by-id/",
   },
   "oceansites": {
-    source: "client", idProps: ID_CHAIN,
+    // `ref` is OceanSITES' only unique key. ⛔ Not in ID_CHAIN: the chain is
+    // first-match-wins for every layer and another layer may carry a `ref`.
+    source: "client", idProps: ["ref"],
     routingKeys: ["oceansites"], routingKey: () => "oceansites",
     zoom: 7, idStability: "nieustalone",
     dataKey: "oceansites",

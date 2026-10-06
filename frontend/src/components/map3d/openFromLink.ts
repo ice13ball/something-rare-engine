@@ -196,7 +196,12 @@ export function clickIdFor(
   props: Record<string, unknown>,
   index: number,
 ): string | number {
-  return layerId === "chess"
+  return layerId === "oceansites"
+    // ⛔ OceanSITES features carry none of isa_id/id/platform_id; `ref` is the
+    // only unique key (1038 of 1038 on prod). Without this branch the pick
+    // index went into the link and reopened nothing.
+    ? ((props.ref as string | number | undefined) ?? String(index))
+    : layerId === "chess"
     ? ((props.locality as string | number | undefined) ?? String(index))
     : layerId === "deepdata-stations"
       ? ((props.station_id as string | number | undefined) ?? String(index))
