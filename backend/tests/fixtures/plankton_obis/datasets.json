@@ -1,0 +1,87 @@
+[
+ {
+  "id": "5c4667b8-8d93-4768-bc7e-3c31cde1cf18",
+  "title": "The CPR Survey",
+  "url": "https://www.dassh.ac.uk/ipt/resource?r=cpr_public",
+  "citation": "Johns D, Broughton D (2022): The CPR Survey. v1.3. Marine Biological Association. Dataset/Samplingevent. https://doi.org/10.17031/1629",
+  "intellectualrights": "This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License",
+  "institutes": null,
+  "published": "2022-02-23T12:19:56.000Z",
+  "core": "event",
+  "extensions": [
+   "measurementorfact",
+   "occurrence"
+  ],
+  "records": 3386395
+ },
+ {
+  "id": "b508f7bc-8708-43d5-b940-e44f2765d1af",
+  "title": "Australian Microbiome 18S (Eukaryote) Dataset of Aquatic Samples",
+  "url": "https://www.marine.csiro.au/ipt/resource?r=am_18sv4_aquatic",
+  "citation": null,
+  "intellectualrights": "To the extent possible under law, the publisher has waived all rights to these data and has dedicated them to the  Public Domain (CC0 1.0)",
+  "institutes": [
+   {
+    "name": "CSIRO Oceans and Atmosphere Information and Data Centre, Hobart",
+    "oceanexpert_id": 17014,
+    "oceanexpert_parent_id": 19301
+   }
+  ],
+  "published": "2025-12-23T16:15:21.000Z",
+  "core": "occurrence",
+  "extensions": [
+   "measurementorfact",
+   "dnaderiveddata"
+  ],
+  "records": 9471381
+ },
+ {
+  "id": "8726cede-98ab-4c06-859d-ce997e8f9717",
+  "title": "Distribution and community structure of benthic copepods in the Delta area and the Ems-Dollard between 1976 and 1981",
+  "url": "http://ipt.vliz.be/eurobis/resource?r=benthic_copepods_delta_ems-dollard_1976-1981",
+  "citation": "Willems K.A.; Coomans A.; Faculteit Wetenschappen. RUG: Belgium; (2016): Distribution and community structure of benthic copepods in the Delta area and the Ems-Dollard between 1976 and 1981. (http://www.vliz.be/en/imis?module=dataset&amp;dasid=5080) https://dx.doi.org/10.14284/216",
+  "intellectualrights": "This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License",
+  "institutes": [
+   {
+    "name": "Vlaams Instituut voor de Zee",
+    "oceanexpert_id": 6223,
+    "oceanexpert_parent_id": null
+   },
+   {
+    "name": "Universiteit Gent, Faculteit Wetenschap",
+    "oceanexpert_id": 9162,
+    "oceanexpert_parent_id": 19328
+   }
+  ],
+  "published": "2025-09-17T08:32:36.000Z",
+  "core": "event",
+  "extensions": [
+   "measurementorfact",
+   "occurrence"
+  ],
+  "records": 1244
+ },
+ {
+  "id": "cd42b44b-2560-450d-88e7-70b5778d0194",
+  "title": "CASES: The pre-winter assemblages of southeastern Beaufort Sea",
+  "url": "http://geo.abds.is/ipt/resource?r=arcod_2009p5",
+  "citation": "Darnis, Gérald, Barber, David G., and Fortier, Louis. 2015. CASES: The pre-winter assemblages of southeastern Beaufort Sea. Version 1 In ArcOD Digital Collections. Institute of Marine Science University of Alaska, Fairbanks, AK, USA. Published by OBIS, Digital http://www.iobis.org/. Accessed on –INSERT DATE",
+  "intellectualrights": "This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License",
+  "institutes": [
+   {
+    "name": "University of Alaska Fairbanks - School of Fisheries and Oceans",
+    "oceanexpert_id": 12745,
+    "oceanexpert_parent_id": 20908
+   },
+   {
+    "name": "Université Laval",
+    "oceanexpert_id": 19405,
+    "oceanexpert_parent_id": null
+   }
+  ],
+  "published": "2019-08-26T14:16:46.000Z",
+  "core": "occurrence",
+  "extensions": [],
+  "records": 1728
+ }
+]

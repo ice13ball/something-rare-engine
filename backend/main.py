@@ -50,6 +50,7 @@ from domains import biodiversity
 from domains import blog
 from domains import cables
 from domains import fields
+from domains import plankton
 from domains import geo_context
 from domains import geochem
 from domains import oceansites_history
@@ -412,6 +413,7 @@ app.include_router(oceansites_history.router)
 app.include_router(seo.router)
 app.include_router(seo_hubs.router)
 app.include_router(fields.router)
+app.include_router(plankton.router)
 
 # Public API documentation: curated OpenAPI served at /openapi.json,
 # rendered by Scalar at the frontend /api-docs route. See backend/api_docs.py.

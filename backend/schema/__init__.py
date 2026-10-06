@@ -37,6 +37,7 @@ from schema.offshore import ensure_ports, ensure_offshore_activities
 from schema.openaq_budget import ensure_openaq_request_budget
 from schema.onc import ensure_onc_core, ensure_onc_ctd_series, ensure_usgs_earthquakes
 from schema.pangaea_water import ensure_pangaea_water
+from schema.plankton import ensure_plankton
 from schema.reports import ensure_reports
 from schema.seafloor import ensure_bathymetry_cache, ensure_bathymetry_stats
 from schema.sensors import ensure_plume_paths, ensure_wod_oxygen, ensure_oceansites, ensure_oceansites_history
@@ -96,5 +97,6 @@ async def ensure_schema() -> None:
         await ensure_aoc2025_poc(conn)  # aoc2025_poc_version, aoc2025_poc_samples, *_current view (dev-only preview layer)
         await ensure_svalbard_fjords_pp(conn)  # svalbard_fjords_pp_version, svalbard_fjords_pp_samples, *_current view (dev-only preview layer)
         await ensure_openaq_request_budget(conn)  # openaq_request_budget (per-UTC-day OpenAQ request counter)
+        await ensure_plankton(conn)  # plankton_datasets, plankton_occurrences (filled by plankton_obis_worker)
 
     log.info("Schema ready")

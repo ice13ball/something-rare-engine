@@ -8,7 +8,7 @@ that declares a cache global MUST appear here, or its caches are never swept and
 the endpoint quietly serves stale data — a failure no test and no gate can see.
 `backend/tests/test_domain_cache_clear.py` enforces this.
 """
-from . import acoustic, aoc2025_poc, arctic, biodiversity, blog, cables, fields, game, geo_context, geochem, isa, offshore, onc, oceansites_history, pangaea_water, seafloor, sensors, seo, svalbard_fjords_pp
+from . import acoustic, aoc2025_poc, arctic, biodiversity, blog, cables, fields, game, geo_context, geochem, isa, offshore, onc, oceansites_history, pangaea_water, plankton, seafloor, sensors, seo, svalbard_fjords_pp
 from .land import density as land_density
 from .land import extractive as land_extractive
 from .land import hazards as land_hazards
@@ -30,4 +30,4 @@ import land_layers
 # registered" sweep walks domains/* by real Python package ancestry —
 # domains.land.density's/domains.land.extractive's ancestor is domains.land,
 # not land_layers, so land_layers being registered does not cover them.
-CACHE_CLEARING_DOMAINS = (acoustic, aoc2025_poc, arctic, biodiversity, blog, cables, fields, game, geo_context, geochem, isa, offshore, onc, oceansites_history, pangaea_water, seafloor, sensors, seo, svalbard_fjords_pp, land_layers, land_density, land_extractive, land_hazards, land_arctic)
+CACHE_CLEARING_DOMAINS = (acoustic, aoc2025_poc, arctic, biodiversity, blog, cables, fields, game, geo_context, geochem, isa, offshore, onc, oceansites_history, pangaea_water, plankton, seafloor, sensors, seo, svalbard_fjords_pp, land_layers, land_density, land_extractive, land_hazards, land_arctic)

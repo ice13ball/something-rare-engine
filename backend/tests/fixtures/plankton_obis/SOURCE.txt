@@ -1,0 +1,142 @@
+SOURCE of occurrences.parquet - real OBIS occurrence rows (fixture for the plankton import tests)
+
+Only CC-BY / CC0 datasets; redistributed in the public mirror under those licences with attribution below.
+Each licence was verified from the OBIS dataset metadata field `intellectualrights` (datasets.json, as returned
+by https://api.obis.org/v3/dataset/<id>); licenses.tsv is only a fallback and holds ONLY the rows that exist in
+the OBIS licence dump (it misses the CPR Survey and the Australian Microbiome - nothing was invented).
+
+Retrieved: 2026-10-03 (selection run on the VPS with DuckDB 1.5.6 over httpfs).
+Raw column layout kept exactly as in the OBIS S3 files (select *, no renaming): _id, _event_id, _occurrence_id,
+dataset_id, node_ids, source, interpreted, extensions, missing, invalid, flags, dropped, absence, tags, geometry.
+Rows: 228, 4 datasets. Rows were chosen BY CONDITION (see the query), deterministic: order by hash(_id||category).
+
+Source URLs (one parquet per dataset, https://obis-open-data.s3.amazonaws.com/occurrence/<dataset_id>.parquet):
+  5c4667b8-8d93-4768-bc7e-3c31cde1cf18  The CPR Survey
+    file: https://obis-open-data.s3.amazonaws.com/occurrence/5c4667b8-8d93-4768-bc7e-3c31cde1cf18.parquet
+    dataset page: https://www.dassh.ac.uk/ipt/resource?r=cpr_public
+    licence (intellectualrights, verbatim): This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License
+    licenses.tsv row: none (dataset absent from licenses.tsv)
+  b508f7bc-8708-43d5-b940-e44f2765d1af  Australian Microbiome 18S (Eukaryote) Dataset of Aquatic Samples
+    file: https://obis-open-data.s3.amazonaws.com/occurrence/b508f7bc-8708-43d5-b940-e44f2765d1af.parquet
+    dataset page: https://www.marine.csiro.au/ipt/resource?r=am_18sv4_aquatic
+    licence (intellectualrights, verbatim): To the extent possible under law, the publisher has waived all rights to these data and has dedicated them to the  Public Domain (CC0 1.0)
+    licenses.tsv row: none (dataset absent from licenses.tsv)
+  8726cede-98ab-4c06-859d-ce997e8f9717  Distribution and community structure of benthic copepods in the Delta area and the Ems-Dollard between 1976 and 1981
+    file: https://obis-open-data.s3.amazonaws.com/occurrence/8726cede-98ab-4c06-859d-ce997e8f9717.parquet
+    dataset page: http://ipt.vliz.be/eurobis/resource?r=benthic_copepods_delta_ems-dollard_1976-1981
+    licence (intellectualrights, verbatim): This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License
+    licenses.tsv row: licence = This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License ; url = http://creativecommons.org/licenses/by/4.0/legalcode
+  cd42b44b-2560-450d-88e7-70b5778d0194  CASES: The pre-winter assemblages of southeastern Beaufort Sea
+    file: https://obis-open-data.s3.amazonaws.com/occurrence/cd42b44b-2560-450d-88e7-70b5778d0194.parquet
+    dataset page: http://geo.abds.is/ipt/resource?r=arcod_2009p5
+    licence (intellectualrights, verbatim): This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License
+    licenses.tsv row: licence = This work is licensed under a  Creative Commons Attribution (CC-BY) 4.0 License ; url = http://creativecommons.org/licenses/by/4.0/legalcode
+
+Category counts in the fixture (rows; a row can fall in several categories). Columns = datasets:
+
+| category | total | CPR 5c4667b8 | AusMicrobiome 18S b508f7bc | benthic copepods 8726cede | cd42b44b |
+|---|---|---|---|---|---|
+| group copepoda | 97 | 35 | 17 | 32 | 13 |
+| group euphausiacea | 18 | 13 | 2 | 0 | 3 |
+| group diatoms | 23 | 12 | 11 | 0 | 0 |
+| group coccolithophores | 19 | 6 | 13 | 0 | 0 |
+| group dinoflagellates | 33 | 18 | 15 | 0 | 0 |
+| absence=true | 28 | 0 | 0 | 28 | 0 |
+| dropped=true | 10 | 4 | 3 | 3 | 0 |
+| flags ON_LAND | 31 | 4 | 8 | 19 | 0 |
+| Harpacticoida (all) | 49 | 10 | 7 | 32 | 0 |
+| Harpacticoida kept genus | 14 | 5 | 4 | 5 | 0 |
+| Harpacticoida non-kept genus (named) | 31 | 3 | 3 | 25 | 0 |
+| Harpacticoida genus NULL | 4 | 2 | 0 | 2 | 0 |
+| copepod NULL order | 6 | 6 | 0 | 0 | 0 |
+| Siphonostomatoida/Monstrilloida | 5 | 3 | 2 | 0 | 0 |
+| Prymnesiales/Phaeocystales | 10 | 4 | 6 | 0 | 0 |
+| eDNA correct rule: len(DNADerivedData)>0 | 80 | 0 | 80 | 0 | 0 |
+| DNADerivedData IS NOT NULL (Task-3 literal rule, empty list counts) | 178 | 98 | 80 | 0 | 0 |
+| non-eDNA (len=0 or NULL) | 148 | 98 | 0 | 32 | 18 |
+| depth present | 116 | 98 | 0 | 0 | 18 |
+| depth range (min<>max) | 116 | 98 | 0 | 0 | 18 |
+| depth min/max only (depth NULL, min&max set) | 0 | 0 | 0 | 0 | 0 |
+| no depth at all | 112 | 0 | 80 | 32 | 0 |
+| negative depth | 8 | 0 | 0 | 0 | 8 |
+| eventDate NULL | 4 | 0 | 4 | 0 | 0 |
+| month NULL | 182 | 98 | 80 | 4 | 0 |
+| month non-null | 46 | 0 | 0 | 28 | 18 |
+[(228, 228, -95.5, 227.0)]
+
+Categories NOT available in CC-BY/CC0 data (cover them synthetically in unit tests):
+  - depth min/max ONLY (interpreted.depth NULL while min and max depth set): 0 rows in every open dataset of the
+    OBIS extract (OBIS derives interpreted.depth whenever a min/max exists). Rows with a depth RANGE (min<>max)
+    and a depth value are present (CPR, cd42b44b).
+  - month outside 1..12 ("13"): none. interpreted."month" is NULL for the CPR and the Australian Microbiome; the
+    only populated months are in 8726cede (28 rows) and cd42b44b (18 rows).
+  - dinoflagellate/diatom/coccolithophore/euphausiacea ABSENCE rows: the only absence=true rows in the chosen
+    datasets are copepods (8726cede).
+  - no row has copepods with a NULL order outside the CPR.
+  - Copepoda at SUBCLASS rank (interpreted.subclass = 'Copepoda'): 0 rows. All 97 copepod rows have
+    class = 'Copepoda'. None of the four datasets has subclass-ranked copepods (checked in the OBIS extract too:
+    0 rows) -> covered by a synthetic unit test in Task 7.
+
+WARNING (eDNA rule): the CPR Survey rows carry extensions."http://rs.gbif.org/terms/1.0/DNADerivedData" as an
+EMPTY LIST, not NULL (verified on the first 20 000 raw CPR rows: 20 000 not null, 0 with len>0). The rule
+`DNADerivedData IS NOT NULL` therefore marks every CPR row as eDNA. Use
+`coalesce(len(extensions."http://rs.gbif.org/terms/1.0/DNADerivedData"), 0) > 0` (Australian Microbiome: 80/80 true;
+CPR 0/98; 8726cede and cd42b44b: NULL).
+
+Query (DuckDB; per dataset: step 1 choose _id per category from the raw file, step 2 copy `select *` for those _id;
+then `select * from part_*.parquet order by dataset_id,_id` -> occurrences.parquet, zstd). The category predicates
+and the per-dataset row quotas (PLAN) are verbatim below (the script is the text that was executed; its CPR PLAN
+has the typo key `prym_phaseo=0`, which was a no-op: quota 0 and not in CATS, so it was skipped - the real
+Prymnesiales/Phaeocystales quota is `prym_phaeo=4`); `\x27` is a single quote in the Python source.
+```python
+import duckdb,sys,time
+B="https://obis-open-data.s3.amazonaws.com/occurrence/"
+KEPT="(\x27Microsetella\x27,\x27Macrosetella\x27,\x27Miracia\x27,\x27Euterpina\x27,\x27Clytemnestra\x27,\x27Aegisthus\x27)"
+COP="(i.\"class\"=\x27Copepoda\x27 or i.subclass=\x27Copepoda\x27)"
+CATS={
+ "copepoda_other":f"{COP} and i.\"order\" is not null and i.\"order\" not in (\x27Harpacticoida\x27,\x27Siphonostomatoida\x27,\x27Monstrilloida\x27) and not absence and not dropped",
+ "copepoda_null_order":f"{COP} and i.\"order\" is null and not absence and not dropped",
+ "harp_kept_genus":f"{COP} and i.\"order\"=\x27Harpacticoida\x27 and i.genus in {KEPT}",
+ "harp_other_genus":f"{COP} and i.\"order\"=\x27Harpacticoida\x27 and i.genus is not null and i.genus not in {KEPT}",
+ "harp_null_genus":f"{COP} and i.\"order\"=\x27Harpacticoida\x27 and i.genus is null",
+ "sipho_monstrilloid":f"{COP} and i.\"order\" in (\x27Siphonostomatoida\x27,\x27Monstrilloida\x27)",
+ "euphausiacea":"i.\"order\"=\x27Euphausiacea\x27 and not absence and not dropped",
+ "diatoms":"(i.phylum=\x27Bacillariophyta\x27 or i.division=\x27Bacillariophyta\x27 or i.\"class\" in (\x27Bacillariophyceae\x27,\x27Coscinodiscophyceae\x27,\x27Mediophyceae\x27)) and not absence and not dropped",
+ "dinoflagellates":"(i.\"class\"=\x27Dinophyceae\x27 or \x27Dinoflagellata\x27 in (i.phylum,i.division,i.subphylum,i.infraphylum)) and not absence and not dropped",
+ "coccolithophores":"i.\"class\" in (\x27Coccolithophyceae\x27,\x27Prymnesiophyceae\x27) and coalesce(i.\"order\",\x27\x27) not in (\x27Prymnesiales\x27,\x27Phaeocystales\x27) and not absence and not dropped",
+ "prym_phaeo":"i.\"order\" in (\x27Prymnesiales\x27,\x27Phaeocystales\x27) and i.\"class\" in (\x27Coccolithophyceae\x27,\x27Prymnesiophyceae\x27)",
+ "absence":"absence",
+ "dropped":"dropped",
+ "on_land":"list_contains(flags,\x27ON_LAND\x27)",
+ "no_eventdate":"i.eventDate is null",
+ "neg_depth":"i.depth<0",
+ "range_depth":"i.minimumDepthInMeters<>i.maximumDepthInMeters",
+ "any":"true",
+}
+PLAN={
+ "5c4667b8-8d93-4768-bc7e-3c31cde1cf18":dict(copepoda_other=12,copepoda_null_order=5,harp_kept_genus=5,harp_other_genus=3,harp_null_genus=2,sipho_monstrilloid=3,euphausiacea=12,diatoms=12,dinoflagellates=12,coccolithophores=6,prym_phaseo=0,prym_phaeo=4,dropped=3,on_land=4,any=15),
+ "b508f7bc-8708-43d5-b940-e44f2765d1af":dict(copepoda_other=8,harp_kept_genus=4,harp_other_genus=3,sipho_monstrilloid=2,euphausiacea=2,diatoms=10,dinoflagellates=10,coccolithophores=12,prym_phaeo=4,dropped=3,on_land=3,no_eventdate=4,any=15),
+ "8726cede-98ab-4c06-859d-ce997e8f9717":dict(absence=10,harp_kept_genus=4,harp_other_genus=4,dropped=3,on_land=3,copepoda_other=0,any=8),
+ "cd42b44b-2560-450d-88e7-70b5778d0194":dict(neg_depth=5,range_depth=5,euphausiacea=3,copepoda_null_order=3,any=5),
+}
+c=duckdb.connect(); c.execute("install httpfs; load httpfs; set memory_limit=\x27800MB\x27; set threads=1; set temp_directory=\x27work/tmp\x27")
+only=sys.argv[1]
+for n,(ds,p) in enumerate(PLAN.items()):
+    if ds!=only: continue
+    t=time.time(); url=f"{B}{ds}.parquet"
+    c.execute(f"create temp table k as select _id,interpreted i0 ,flags,absence,dropped from (select _id,interpreted,flags,absence,dropped from read_parquet(\x27{url}\x27))")
+    ids=set()
+    for cat,k in p.items():
+        if not k or cat not in CATS: continue
+        r=c.execute(f"select _id from (select _id,i0 as i,flags,absence,dropped from k) where {CATS[cat]} order by hash(_id||\x27{cat}\x27) limit {k}").fetchall()
+        print(ds[:8],cat,len(r),flush=True); ids|={x[0] for x in r}
+    c.execute("create temp table want(id varchar)"); c.executemany("insert into want values(?)",[(x,) for x in ids])
+    c.execute(f"copy (select * from read_parquet(\x27{url}\x27) where _id in (select id from want)) to \x27part_{ds[:8]}.parquet\x27 (format parquet, compression zstd)")
+    print(ds[:8],"rows",c.execute(f"select count(*) from \x27part_{ds[:8]}.parquet\x27").fetchall(),round(time.time()-t),flush=True)
+```
+
+Attribution (citation per dataset, as returned by the OBIS API):
+- The CPR Survey: Johns D, Broughton D (2022): The CPR Survey. v1.3. Marine Biological Association. Dataset/Samplingevent. https://doi.org/10.17031/1629
+- Australian Microbiome 18S (Eukaryote) Dataset of Aquatic Samples: (no citation in OBIS metadata) - publisher: CSIRO Oceans and Atmosphere Information and Data Centre, Hobart; https://www.marine.csiro.au/ipt/resource?r=am_18sv4_aquatic
+- Distribution and community structure of benthic copepods in the Delta area and the Ems-Dollard between 1976 and 1981: Willems K.A.; Coomans A.; Faculteit Wetenschappen. RUG: Belgium; (2016): Distribution and community structure of benthic copepods in the Delta area and the Ems-Dollard between 1976 and 1981. (http://www.vliz.be/en/imis?module=dataset&amp;dasid=5080) https://dx.doi.org/10.14284/216
+- CASES: The pre-winter assemblages of southeastern Beaufort Sea: Darnis, Gérald, Barber, David G., and Fortier, Louis. 2015. CASES: The pre-winter assemblages of southeastern Beaufort Sea. Version 1 In ArcOD Digital Collections. Institute of Marine Science University of Alaska, Fairbanks, AK, USA. Published by OBIS, Digital http://www.iobis.org/. Accessed on –INSERT DATE

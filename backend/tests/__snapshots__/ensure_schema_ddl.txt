@@ -504,3 +504,10 @@ ALTER TABLE svalbard_fjords_pp_samples OWNER TO abyssal_user
 ALTER VIEW svalbard_fjords_pp_samples_current OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS openaq_request_budget ( utc_day DATE PRIMARY KEY, requests INTEGER NOT NULL DEFAULT 0, updated_at TIMESTAMPTZ NOT NULL DEFAULT now() )
 ALTER TABLE openaq_request_budget OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS plankton_datasets ( dataset_id UUID PRIMARY KEY, title TEXT, institution TEXT, licence TEXT NOT NULL CHECK (licence IN ('cc0', 'cc-by', 'cc-by-sa', 'cc-by-nc', 'unknown')), licence_raw TEXT, url TEXT, citation TEXT, record_count INTEGER NOT NULL DEFAULT 0, imported_at TIMESTAMPTZ NOT NULL DEFAULT now() )
+ALTER TABLE plankton_datasets OWNER TO abyssal_user
+CREATE TABLE IF NOT EXISTS plankton_occurrences ( id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, taxon_group TEXT NOT NULL CHECK (taxon_group IN ('copepoda', 'euphausiacea', 'diatoms', 'coccolithophores', 'dinoflagellates')), scientific_name TEXT, aphia_id INTEGER, taxon_order TEXT, dataset_id UUID NOT NULL REFERENCES plankton_datasets (dataset_id), licence TEXT NOT NULL CHECK (licence IN ('cc0', 'cc-by', 'cc-by-sa', 'cc-by-nc', 'unknown')), is_edna BOOLEAN NOT NULL, depth_m REAL CHECK (depth_m IS NULL OR (depth_m >= 0 AND depth_m <= 11000)), event_date DATE, year SMALLINT, month SMALLINT CHECK (month IS NULL OR month BETWEEN 1 AND 12), lon DOUBLE PRECISION NOT NULL CHECK (lon BETWEEN -180 AND 180), lat DOUBLE PRECISION NOT NULL CHECK (lat BETWEEN -90 AND 90), geom geometry(Point, 4326) GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(lon, lat), 4326)) STORED NOT NULL )
+ALTER TABLE plankton_occurrences OWNER TO abyssal_user
+CREATE INDEX IF NOT EXISTS plankton_occurrences_geom_gix ON plankton_occurrences USING GIST (geom)
+CREATE INDEX IF NOT EXISTS plankton_occurrences_group_licence_idx ON plankton_occurrences (taxon_group, licence)
+CREATE INDEX IF NOT EXISTS plankton_occurrences_dataset_idx ON plankton_occurrences (dataset_id)
