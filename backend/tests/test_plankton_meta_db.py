@@ -197,7 +197,7 @@ async def test_meta_stale_started_marker_is_an_error_and_leaks_nothing(conn):
     from ingestion.plankton_obis import STARTED_PREFIX
     await _seed(conn)
     await _set_sync(conn, STARTED_PREFIX + ": import in progress /var/cache/x")
-    await conn.execute("UPDATE sync_log SET skipped_at = now() - interval '9 hours' WHERE source = 'plankton-obis'")
+    await conn.execute("UPDATE sync_log SET skipped_at = now() - interval '13 hours' WHERE source = 'plankton-obis'")
     r = await _get()
     assert r.json()["last_import"]["outcome"] == "error"
     assert "/var/cache" not in r.text and "progress" not in r.text

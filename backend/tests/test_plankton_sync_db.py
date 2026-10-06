@@ -3,7 +3,11 @@
 
 """Orchestrator of the plankton import — real PostGIS, no network (all seams injected)."""
 import json
+import os
 import pathlib
+import re
+import sys
+import time
 import uuid
 
 import asyncpg
@@ -377,16 +381,16 @@ async def test_a_lost_connection_ends_the_run_without_touching_the_remaining_dat
     await _setup(conn)
     src = _split_fixture(tmp_path)
     extracted, loaded = [], []
-    real = p.extract_dataset
+    real = p.extract_in_child
 
-    def spy(con, source, dest, **kw):
+    async def spy(source, dest, scratch, title=None, **kw):
         extracted.append(source)
-        return real(con, source, dest, **kw)
+        return await real(source, dest, scratch, title, **kw)
 
     async def dead(c, path, lic):
         loaded.append(path)
         raise exc
-    monkeypatch.setattr(p, "extract_dataset", spy)
+    monkeypatch.setattr(p, "extract_in_child", spy)
     monkeypatch.setattr(p, "load_extract", dead)
     res = await _run(tmp_path, src)
     assert res["outcome"] == "error"
@@ -399,18 +403,18 @@ async def test_a_closed_connection_after_a_failure_ends_the_run(conn, tmp_path, 
     await _setup(conn)
     src = _split_fixture(tmp_path)
     extracted = []
-    real = p.extract_dataset
+    real = p.extract_in_child
 
-    def spy(con, source, dest, **kw):
+    async def spy(source, dest, scratch, title=None, **kw):
         extracted.append(source)
-        return real(con, source, dest, **kw)
+        return await real(source, dest, scratch, title, **kw)
 
     closed = []
 
     async def boom(c, path, lic):
         closed.append(1)                                  # the connection dies during this load ...
         raise ValueError("looks like a data problem")     # ... but surfaces as a generic error
-    monkeypatch.setattr(p, "extract_dataset", spy)
+    monkeypatch.setattr(p, "extract_in_child", spy)
     monkeypatch.setattr(p, "load_extract", boom)
     monkeypatch.setattr(type(conn), "is_closed", lambda self: bool(closed), raising=False)
     try:
@@ -445,12 +449,12 @@ async def test_excluded_and_restricted_datasets_are_not_read(conn, tmp_path, mon
     excluded = "cd42b44b-2560-450d-88e7-70b5778d0194"      # CPR (restricted below) is not the only carrier
     monkeypatch.setattr(p, "EXCLUDED_DATASETS", frozenset({excluded}))
     asked = []
-    real = p.extract_dataset
+    real = p.extract_in_child
 
-    def spy(con, source, dest, **kw):
+    async def spy(source, dest, scratch, title=None, **kw):
         asked.append(source)
-        return real(con, source, dest, **kw)
-    monkeypatch.setattr(p, "extract_dataset", spy)
+        return await real(source, dest, scratch, title, **kw)
+    monkeypatch.setattr(p, "extract_in_child", spy)
     res = await _run(tmp_path, src, fetch_json=_api(IDS, **{CPR: {"intellectualrights": "Restricted - ask"}}))
     assert src[excluded] not in asked and src[CPR] not in asked
     assert len(asked) == len(IDS) - 2 and res["skipped_datasets"] == 2
@@ -529,3 +533,104 @@ async def test_unusable_scratch_dir_is_logged_alerted_and_never_raises(conn, tmp
     assert (await _log(conn))["skipped_reason"] == p.SCRATCH_REASON
     assert str(blocker) not in p.SCRATCH_REASON
     assert len(alerts) == 1 and "TRIP" in alerts[0][0]
+
+
+# ---- memory isolation: the extract of each dataset runs in a child process --------------------
+
+def _crash_one_child(monkeypatch, nth: int, code: str):
+    """The nth extract child (1-based) runs `code` instead of the real entry point."""
+    real = p._child_argv
+    calls = []
+
+    def argv():
+        calls.append(1)
+        return [sys.executable, "-c", code] if len(calls) == nth else real()
+    monkeypatch.setattr(p, "_child_argv", argv)
+    return calls
+
+
+@needs_db
+async def test_a_crashing_child_fails_that_dataset_and_the_run_continues(conn, tmp_path, alerts, monkeypatch, caplog):
+    await _setup(conn)
+    src = _split_fixture(tmp_path)
+    calls = _crash_one_child(monkeypatch, 1, "import os, signal; os.kill(os.getpid(), signal.SIGKILL)")
+    with caplog.at_level("INFO"):
+        res = await _run(tmp_path, src)
+    assert len(calls) == len(IDS)                          # every other dataset still got its own child
+    assert res["outcome"] == "swapped" and res["failed_datasets"] == 1 and len(res["failed_ids"]) == 1
+    assert res["kept"] > 0
+    assert await conn.fetchval("SELECT count(*) FROM plankton_occurrences WHERE dataset_id = $1::uuid",
+                               res["failed_ids"][0]) == 0
+    assert len(alerts) == 1 and "1 of" in alerts[0][1]     # the existing loud-failure path (threshold logic)
+    warned = " ".join(r.getMessage() for r in caplog.records if r.levelname == "WARNING")
+    assert "signal 9" in warned and res["failed_ids"][0] in warned
+
+
+@needs_db
+async def test_enough_crashing_children_trip_the_failed_datasets_threshold(conn, tmp_path, alerts, monkeypatch):
+    await _setup(conn)
+    src = _split_fixture(tmp_path)
+    await _run(tmp_path, src)                              # a live table to protect
+    alerts.clear()
+    live = await conn.fetchval("SELECT count(*) FROM plankton_occurrences")
+    monkeypatch.setattr(p, "FAILED_FLOOR", 1)
+    monkeypatch.setattr(p, "_child_argv", lambda: [sys.executable, "-c", "import sys; sys.exit(9)"])
+    res = await _run(tmp_path, src)
+    assert res["outcome"] == "error"                       # every attempted dataset failed
+    assert await conn.fetchval("SELECT count(*) FROM plankton_occurrences") == live
+
+
+@needs_db
+async def test_a_hung_child_times_out_as_a_failed_dataset_and_leaves_no_process(conn, tmp_path, alerts, monkeypatch):
+    await _setup(conn)
+    src = _split_fixture(tmp_path)
+    pidfile = tmp_path / "pid"
+    _crash_one_child(monkeypatch, 2, f"import os, time; open({str(pidfile)!r}, 'w').write(str(os.getpid())); time.sleep(300)")
+    monkeypatch.setattr(p, "CHILD_TIMEOUT_S", 2)
+    t = time.monotonic()
+    res = await _run(tmp_path, src)
+    assert time.monotonic() - t < 120
+    assert res["outcome"] == "swapped" and res["failed_datasets"] == 1
+    with pytest.raises(ProcessLookupError):
+        os.kill(int(pidfile.read_text()), 0)
+
+
+@needs_db
+async def test_progress_lines_report_position_rows_failures_and_rss(conn, tmp_path, alerts, monkeypatch, caplog):
+    await _setup(conn)
+    src = _split_fixture(tmp_path)
+    monkeypatch.setattr(p, "PROGRESS_EVERY", 2)
+    monkeypatch.setattr(p, "PROGRESS_SLOW_S", 3600)       # only the every-N rule fires
+    with caplog.at_level("INFO"):
+        await _run(tmp_path, src)
+    lines = [r.getMessage() for r in caplog.records if " datasets, rows so far " in r.getMessage()]
+    assert len(lines) == len(IDS) // 2
+    assert re.fullmatch(rf"plankton-obis: 2/{len(IDS)} datasets, rows so far \d+, failed 0, rss \d+ MB.*", lines[0])
+    assert "http" not in " ".join(lines)
+
+
+@needs_db
+async def test_a_slow_dataset_is_reported_whatever_the_counter(conn, tmp_path, alerts, monkeypatch, caplog):
+    await _setup(conn)
+    src = _split_fixture(tmp_path)
+    monkeypatch.setattr(p, "PROGRESS_EVERY", 10_000)
+    monkeypatch.setattr(p, "PROGRESS_SLOW_S", -1)         # every dataset counts as slow
+    with caplog.at_level("INFO"):
+        await _run(tmp_path, src)
+    assert len([r for r in caplog.records if " datasets, rows so far " in r.getMessage()]) == len(IDS)
+
+
+@needs_db
+async def test_a_leftover_staging_pair_with_rows_is_dropped_at_the_start_of_a_run(conn, tmp_path, alerts):
+    """The 16.5 M-row `_new` a killed production run left behind: the next run must start from nothing."""
+    await _setup(conn)
+    await p.build_staging(conn)
+    ghost = uuid.uuid4()
+    await conn.execute("INSERT INTO plankton_datasets_new (dataset_id, licence) VALUES ($1, 'cc0')", ghost)
+    await conn.execute("INSERT INTO plankton_occurrences_new (taxon_group, dataset_id, licence, is_edna, lon, lat) "
+                       "VALUES ('copepoda', $1, 'cc0', false, 1, 1)", ghost)
+    res = await _run(tmp_path, _split_fixture(tmp_path))
+    assert res["outcome"] == "swapped"
+    assert await conn.fetchval("SELECT count(*) FROM plankton_occurrences WHERE dataset_id = $1", ghost) == 0
+    assert await conn.fetchval("SELECT count(*) FROM plankton_datasets WHERE dataset_id = $1", ghost) == 0
+    assert not await conn.fetchval("SELECT to_regclass('plankton_occurrences_new')")

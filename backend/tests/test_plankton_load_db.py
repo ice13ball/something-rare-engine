@@ -98,9 +98,13 @@ async def test_a_missing_group_blocks_the_swap(conn, tmp_path):
 async def test_leftover_staging_from_a_killed_run_is_rebuilt(conn, tmp_path):
     await ensure_plankton(conn)
     await p.build_staging(conn)
-    await conn.execute("INSERT INTO plankton_datasets_new (dataset_id, licence) VALUES ($1, 'cc0')", uuid.uuid4())
+    ghost = uuid.uuid4()
+    await conn.execute("INSERT INTO plankton_datasets_new (dataset_id, licence) VALUES ($1, 'cc0')", ghost)
+    await conn.execute("INSERT INTO plankton_occurrences_new (taxon_group, dataset_id, licence, is_edna, lon, lat) "
+                       "VALUES ('copepoda', $1, 'cc0', false, 1, 1)", ghost)       # the killed run's loaded rows
     await p.build_staging(conn)     # second call must not fail and must start empty
     assert await conn.fetchval("SELECT count(*) FROM plankton_datasets_new") == 0
+    assert await conn.fetchval("SELECT count(*) FROM plankton_occurrences_new") == 0
 
 
 @needs_db

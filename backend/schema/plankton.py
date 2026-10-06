@@ -14,7 +14,7 @@ GROUPS = ("copepoda", "euphausiacea", "diatoms", "coccolithophores", "dinoflagel
 # sync_log marker written when an import starts (see ingestion/plankton_obis.py). Lives here, a leaf
 # module, because the API (domains/plankton.py) and the worker both need it and neither may import the other.
 STARTED_PREFIX = "started"
-STARTED_STALE_HOURS = 8        # = plankton-obis.service TimeoutStartSec
+STARTED_STALE_HOURS = 12       # = plankton-obis.service TimeoutStartSec
 # A swap that went through but lost some datasets writes this into sync_log.skipped_reason, with the
 # count in a fixed-format token. /v1/plankton/meta parses ONLY that token (an int); no other sync_log text.
 SWAPPED_PARTIAL_PREFIX = "swapped with failed datasets"

@@ -7,6 +7,7 @@ import pathlib
 import duckdb
 import pytest
 
+from ingestion import plankton_extract as x
 from ingestion import plankton_obis as p
 
 FIX = pathlib.Path(__file__).parent / "fixtures" / "plankton_obis" / "occurrences.parquet"
@@ -152,8 +153,8 @@ def test_slice_without_hits_never_runs_pass_2(tmp_path, monkeypatch):
         f"UNION ALL SELECT *, 1 FROM read_parquet('{FIX}') WHERE ({p.GROUP_SQL}) IS NOT NULL) "
         f"ORDER BY o) TO '{mixed}' (FORMAT PARQUET, ROW_GROUP_SIZE 2048)")
     calls = []
-    real = p._pass2_write
-    monkeypatch.setattr(p, "_pass2_write", lambda *a, **k: (calls.append(a[2:4]), real(*a, **k))[1])
+    real = x._pass2_write            # extract_dataset lives in plankton_extract and looks the name up there
+    monkeypatch.setattr(x, "_pass2_write", lambda *a, **k: (calls.append(a[2:4]), real(*a, **k))[1])
     con = p.connect_duckdb(tmp_path)
     n_slices = len(p.plan_slices(con, str(mixed), 1))
     # all-miss file: zero pass-2 calls, no output
@@ -247,3 +248,46 @@ async def test_load_extract_reads_through_the_memory_capped_connection(tmp_path,
     assert len(seen) == 1 and seen[0][0] == out
     assert float(seen[0][1].split()[0].rstrip("MiB").rstrip("MB")) <= 750
     assert seen[0][2].startswith(str(tmp_path))
+
+
+async def test_load_extract_closes_its_duckdb_even_when_the_load_fails(tmp_path, monkeypatch):
+    """The load's DuckDB lives in the long-running PARENT; a leaked connection per dataset is the leak
+    the per-dataset child process exists to avoid."""
+    opened = []
+    real = p._load_connection
+
+    def spy(path):
+        opened.append(real(path))
+        return opened[-1]
+    monkeypatch.setattr(p, "_load_connection", spy)
+
+    class _Conn:
+        async def fetch(self, *a, **k):
+            return []
+
+        async def copy_records_to_table(self, *a, **k):
+            raise RuntimeError("COPY failed")
+    out = tmp_path / "c.parquet"
+    assert p.extract_dataset(p.connect_duckdb(tmp_path), str(FIX), out) > 0
+    await p.load_extract(_Conn(), out, {})                       # ok path: no row reaches COPY
+    with pytest.raises(duckdb.ConnectionException):
+        opened[0].execute("SELECT 1")
+    out2 = tmp_path / "c2.parquet"
+    p.extract_dataset(p.connect_duckdb(tmp_path), str(FIX), out2)
+
+    class _KnownConn(_Conn):
+        async def fetch(self, *a, **k):
+            import uuid as _u
+            return [(_u.UUID(r[0]),) for r in duckdb.sql(f"SELECT DISTINCT dataset_id FROM read_parquet('{out2}')").fetchall()]
+    with pytest.raises(RuntimeError):
+        await p.load_extract(_KnownConn(), out2, {r[0]: "cc0" for r in duckdb.sql(f"SELECT DISTINCT dataset_id FROM read_parquet('{out2}')").fetchall()})
+    with pytest.raises(duckdb.ConnectionException):
+        opened[1].execute("SELECT 1")
+
+
+def test_the_extract_connection_keeps_the_external_file_cache_off_and_trim_is_safe(tmp_path):
+    """On the 5 GB iNaturalist file the cache made the child creep 1.1 -> 1.4 GB (measured on the VPS)."""
+    con = x.connect_duckdb(tmp_path)
+    assert con.execute("SELECT current_setting('enable_external_file_cache')").fetchone()[0] is False
+    x.trim_heap()                                   # a no-op or a trim, never an error (macOS has no libc.so.6)
+    con.close()

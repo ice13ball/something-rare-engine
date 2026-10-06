@@ -3,295 +3,21 @@
 
 """OBIS plankton occurrences — monthly full rebuild of plankton_occurrences.
 
-Rules, extraction, load/swap and the sync orchestrator live here; the process
-wrapper (lock, memory check) is plankton_obis_worker.py. Rules were measured on
-the 2026-10-02 coverage audit (docs/superpowers/plans/2026-10-02-plankton-measurements.md).
-All SQL below is DuckDB over the RAW OBIS parquet layout (interpreted struct,
-flags VARCHAR[], extensions struct).
+Load/swap and the sync orchestrator live here; the rules and the per-dataset extraction are in
+plankton_extract.py (re-exported below), run in a child process per dataset. The process wrapper
+(lock, memory check, --force) is plankton_obis_worker.py.
 """
 from __future__ import annotations
 
-import datetime as dt
-import re
+import datetime as dt  # noqa: F401
+import pathlib
+import re  # noqa: F401
+import shutil
 
-from schema.plankton import GROUPS, STARTED_PREFIX, STARTED_STALE_HOURS  # noqa: F401  (re-exported)
-
-PLANKTONIC_HARPACTICOID_GENERA: tuple[str, ...] = (
-    "Microsetella", "Macrosetella", "Miracia", "Euterpina", "Clytemnestra", "Aegisthus")
-EXCLUDED_COPEPOD_ORDERS: tuple[str, ...] = ("Harpacticoida", "Siphonostomatoida", "Monstrilloida")
-NON_CALCIFYING_HAPTOPHYTE_ORDERS: tuple[str, ...] = ("Prymnesiales", "Phaeocystales")
-# "Continuous Plankton Recorder Dataset (CPR Survey) - Zooplankton" (CC-BY-NC): a 96.3 % duplicate
-# of the CC-BY "The CPR Survey" (5c4667b8-...), which we keep.
-EXCLUDED_DATASETS: frozenset[str] = frozenset({"10134dbd-457e-4a97-9a89-b4e9f81482ca"})
-EXCLUDED_DATASET_GROUPS: frozenset[tuple[str, str]] = frozenset()
-# OBIS land flag (upper case; raw `flags` is VARCHAR[]).
-LAND_FLAG: str | None = "ON_LAND"
-EDNA_TITLE_RE = r"microbiome|metagenom|amplicon|18s|16s|metabarcod|edna|e-dna|sequenc|omics"
-_DNA_EXT = 'extensions."http://rs.gbif.org/terms/1.0/DNADerivedData"'
-
-
-def _sql_list(values) -> str:
-    return ", ".join("'" + v.replace("'", "''") + "'" for v in sorted(values)) or "NULL"
-
-
-_I = "interpreted"
-# Copepoda may be ranked as class or subclass; both columns are real raw names.
-_COPEPODA = f"({_I}.\"class\" = 'Copepoda' OR {_I}.subclass = 'Copepoda')"
-
-GROUP_SQL = f"""CASE
-  WHEN {_COPEPODA} THEN 'copepoda'
-  WHEN {_I}."order" = 'Euphausiacea' THEN 'euphausiacea'
-  WHEN {_I}.phylum = 'Bacillariophyta' OR {_I}.division = 'Bacillariophyta'
-       OR {_I}."class" IN ('Bacillariophyceae','Coscinodiscophyceae','Mediophyceae') THEN 'diatoms'
-  WHEN {_I}."class" IN ('Coccolithophyceae','Prymnesiophyceae')
-       AND coalesce({_I}."order", '') NOT IN ({_sql_list(NON_CALCIFYING_HAPTOPHYTE_ORDERS)}) THEN 'coccolithophores'
-  WHEN {_I}."class" = 'Dinophyceae' OR 'Dinoflagellata' IN (
-       {_I}.phylum, {_I}.division, {_I}.subphylum, {_I}.infraphylum) THEN 'dinoflagellates'
-END"""
-
-_LAND = (f"AND NOT list_contains(coalesce(flags, []::VARCHAR[]), '{LAND_FLAG}')" if LAND_FLAG else "")
-KEEP_SQL = f"""(
-  NOT coalesce(absence, false) AND NOT coalesce(dropped, false)
-  AND dataset_id NOT IN ({_sql_list(EXCLUDED_DATASETS)})
-  AND {_I}.decimalLatitude IS NOT NULL AND {_I}.decimalLongitude IS NOT NULL
-  AND {_I}.decimalLatitude BETWEEN -90 AND 90 AND {_I}.decimalLongitude BETWEEN -180 AND 180
-  AND NOT ({_I}.decimalLatitude = 0 AND {_I}.decimalLongitude = 0)
-  {_LAND}
-  AND NOT coalesce({_COPEPODA}
-           AND {_I}."order" IN ({_sql_list(EXCLUDED_COPEPOD_ORDERS)})
-           AND coalesce({_I}.genus, '') NOT IN ({_sql_list(PLANKTONIC_HARPACTICOID_GENERA)}), false)
-)"""
-
-# eDNA = a non-empty DNADerivedData extension list. CPR rows carry an EMPTY list,
-# so `IS NOT NULL` would flag 100 % of CPR.
-EDNA_SQL = f"(coalesce(len({_DNA_EXT}), 0) > 0)"
-
-
-def edna_sql(columns, title_expr: str = "''") -> str:
-    """EDNA_SQL, or the dataset-title regex fallback when `extensions` is absent."""
-    if "extensions" in set(columns):
-        return EDNA_SQL
-    return f"regexp_matches(lower({title_expr}), '{EDNA_TITLE_RE}')"
-
-
-_NC_RE = re.compile(r"(?<![a-z])nc(?![a-z])|non-?commercial")
-_ND_RE = re.compile(r"(?<![a-z])nd(?![a-z])|no-?deriv")
-_RESTRICTED_RE = re.compile(r"^restricted(?![a-z])")
-
-
-def normalise_licence(text: str | None) -> str:
-    """cc0 | cc-by | cc-by-sa | cc-by-nc | unknown | restricted.
-    'restricted' is returned so the caller can DROP the dataset; it is never stored.
-    Order matters: NC wins over every other class (an NC dataset must never read as open);
-    ND has no schema class and a map/export is arguably a derivative -> unknown."""
-    t = re.sub(r"[\s_]+", "-", (text or "").strip().lower())
-    if not t:
-        return "unknown"
-    if _RESTRICTED_RE.match(t):
-        return "restricted"
-    if _NC_RE.search(t):
-        return "cc-by-nc"
-    if _ND_RE.search(t):
-        return "unknown"
-    if "cc0" in t or "creative-commons-zero" in t or "publicdomain/zero" in t:
-        return "cc0"
-    if "by-sa" in t or "sharealike" in t or "share-alike" in t:
-        return "cc-by-sa"
-    if ("cc-by" in t or "creative-commons-attribution" in t or "licenses/by/" in t
-            or "opendatacommons.org/licenses/by" in t or "open-government-licence" in t):
-        return "cc-by"
-    return "unknown"
-
-
-def parse_depth(depth, dmin, dmax) -> float | None:
-    try:
-        if depth is not None:
-            d = float(depth)
-        elif dmin is not None and dmax is not None:
-            d = (float(dmin) + float(dmax)) / 2
-        elif dmin is not None or dmax is not None:
-            d = float(dmin if dmin is not None else dmax)
-        else:
-            return None
-    except (TypeError, ValueError):
-        return None
-    return d if 0 <= d <= 11000 else None
-
-
-def parse_month(value) -> int | None:
-    try:
-        m = int(str(value).strip())
-    except (TypeError, ValueError):
-        return None
-    return m if 1 <= m <= 12 else None
-
-
-_DATE_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$")
-
-
-def parse_event_date(value) -> dt.date | None:
-    m = _DATE_RE.match(str(value or "").strip())
-    if not m:
-        return None
-    try:
-        return dt.date(int(m[1]), int(m[2]), int(m[3]))
-    except ValueError:
-        return None
-
-
-# ---------------------------------------------------------------------------
-# Extraction: one OBIS parquet (S3 https URL or local path) -> local parquet of
-# plankton-group rows. Filters ONLY on GROUP_SQL; KEEP_SQL is evaluated into the
-# `keep` column but never used to drop rows, so the loader can count drops per reason.
-# ---------------------------------------------------------------------------
-import pathlib  # noqa: E402
-import shutil  # noqa: E402
-
-OBIS_HTTP_BASE = "https://obis-open-data.s3.amazonaws.com/occurrence/"
-DUCKDB_MEMORY_LIMIT = "700MB"          # worker budget is 2 GB; spec F12 caps DuckDB at <= 750 MB
-SLICE_BYTES = 192 * 1024 * 1024        # uncompressed row-group bytes read per slice
-# Raw columns the loader needs that a new OBIS dataset might lack: carried as NULL.
-_OPTIONAL_COLUMNS = {"absence": "BOOLEAN", "dropped": "BOOLEAN", "flags": "VARCHAR[]"}
-
-_SELECT = f"""
-  dataset_id, ({GROUP_SQL}) AS grp, {KEEP_SQL} AS keep,
-  {_I}.scientificName AS sciname, {_I}.aphiaid AS aphiaid, {_I}."order" AS ord, {_I}.genus AS genus,
-  {_I}.decimalLatitude AS lat, {_I}.decimalLongitude AS lon,
-  {_I}.depth AS depth, {_I}.minimumDepthInMeters AS dmin, {_I}.maximumDepthInMeters AS dmax,
-  {_I}."month" AS month, {_I}.eventDate AS eventdate, {_I}.basisOfRecord AS basis,
-  ({{edna}}) AS edna_struct,
-  absence, dropped, flags"""
-
-
-def _lit(path) -> str:
-    return "'" + str(path).replace("'", "''") + "'"
-
-
-# Fields of the `interpreted` struct that GROUP_SQL / KEEP_SQL / _SELECT read, with the type each is
-# read as. Everything except the coordinates (a file without them has nothing to place: it SHOULD
-# fail). DuckDB raises on a missing struct key, so a file lacking one is read with that field as a
-# typed NULL: the rows still extract, the column is NULL.
-_GUARDED_FIELDS = {
-    **{f: "VARCHAR" for f in ("class", "subclass", "order", "phylum", "division", "subphylum",
-                              "infraphylum", "genus", "scientificName", "basisOfRecord", "eventDate", "month")},
-    "aphiaid": "BIGINT", "depth": "DOUBLE", "minimumDepthInMeters": "DOUBLE", "maximumDepthInMeters": "DOUBLE"}
-_RANK_FIELDS = tuple(_GUARDED_FIELDS)            # kept for the fallback list when `interpreted` is absent
-_RANK_REF = re.compile(r'interpreted\.(?:"(\w+)"|(\w+))')
-
-
-def _guard_missing_ranks(sql: str, fields) -> str:
-    """Replace `interpreted.<field>` by a typed NULL for every guarded field absent from `fields`."""
-    have = {f.lower() for f in fields}
-    by_lower = {k.lower(): t for k, t in _GUARDED_FIELDS.items()}
-
-    def sub(m):
-        name = (m.group(1) or m.group(2)).lower()
-        return f"NULL::{by_lower[name]}" if name in by_lower and name not in have else m.group(0)
-    return _RANK_REF.sub(sub, sql)
-
-
-def connect_duckdb(scratch: pathlib.Path):
-    import duckdb
-    tmp = pathlib.Path(scratch) / "duckdb"
-    tmp.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect()
-    con.execute("INSTALL httpfs; LOAD httpfs;")
-    con.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}'")
-    con.execute("SET threads=2")
-    con.execute(f"SET temp_directory={_lit(tmp)}")
-    con.execute("SET preserve_insertion_order=false")
-    con.execute("SET http_timeout=180000")
-    con.execute("SET http_retries=6")
-    return con
-
-
-def plan_slices(con, source: str, slice_bytes: int = SLICE_BYTES) -> list[tuple[int, int]]:
-    """Split a file into [start, end) file_row_number windows on row-group boundaries,
-    each holding about `slice_bytes` of uncompressed data (a single larger row group
-    is its own slice). Peak memory is therefore bounded by the slice, not the file."""
-    rows = con.execute(
-        f"SELECT row_group_id, any_value(row_group_num_rows), sum(total_uncompressed_size) "
-        f"FROM parquet_metadata({_lit(source)}) GROUP BY row_group_id ORDER BY row_group_id").fetchall()
-    slices: list[tuple[int, int]] = []
-    start = pos = acc = 0
-    for _, n_rows, size in rows:
-        if acc and acc + (size or 0) > slice_bytes:
-            slices.append((start, pos))
-            start, acc = pos, 0
-        pos += n_rows
-        acc += size or 0
-    if pos > start:
-        slices.append((start, pos))
-    return slices
-
-
-def _pass1_hits(con, src: str, a: int, b: int, group_sql: str = GROUP_SQL) -> int:
-    """Pass 1: read ONLY the columns GROUP_SQL touches (+ row number) for window [a, b)
-    and park the hit row numbers in temp table `hits`. GROUP_SQL is a CASE expression,
-    so DuckDB cannot push it into the reader; narrowing the projection is what saves the
-    HTTP fetch of every other column chunk."""
-    con.execute("DROP TABLE IF EXISTS hits")
-    con.execute(
-        f"CREATE TEMP TABLE hits AS SELECT file_row_number AS r "
-        f"FROM read_parquet({src}, file_row_number=true) "
-        f"WHERE file_row_number >= {a} AND file_row_number < {b} AND ({group_sql}) IS NOT NULL")
-    return con.execute("SELECT count(*) FROM hits").fetchone()[0]
-
-
-def _pass2_write(con, src: str, a: int, b: int, extra: str, select: str, part,
-                 group_sql: str = GROUP_SQL) -> None:
-    """Pass 2: full projection, only for the pass-1 hit rows (same window, so the
-    reader can still prune row groups)."""
-    con.execute(
-        f"COPY (SELECT {select} FROM (SELECT *{extra} FROM read_parquet({src}, file_row_number=true) "
-        f"WHERE file_row_number >= {a} AND file_row_number < {b} "
-        f"AND file_row_number IN (SELECT r FROM hits)) "
-        f"WHERE ({group_sql}) IS NOT NULL) TO {_lit(part)} (FORMAT PARQUET, COMPRESSION ZSTD)")
-
-
-def extract_dataset(con, source: str, dest: pathlib.Path, *, title: str | None = None,
-                    slice_bytes: int = SLICE_BYTES) -> int:
-    """Write the plankton-group rows of ONE OBIS file to `dest`; return the row count
-    (0 -> nothing written). The file is read slice by slice (see plan_slices) so a 6 GB
-    dataset costs no more memory than a small one. Files lacking `extensions` get the
-    eDNA flag from the dataset `title` regex; lacking absence/dropped/flags get NULL."""
-    dest = pathlib.Path(dest)
-    src = _lit(source)
-    cols = [r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet({src})").fetchall()]
-    extra = "".join(f", NULL::{t} AS {c}" for c, t in _OPTIONAL_COLUMNS.items() if c not in cols)
-    edna = edna_sql(cols, _lit(title or ""))
-    try:
-        fields = [r[0] for r in con.execute(f"DESCRIBE SELECT interpreted.* FROM read_parquet({src})").fetchall()]
-    except Exception:          # no `interpreted` struct at all: leave the SQL alone, the read reports it
-        fields = list(_RANK_FIELDS)
-    group_sql = _guard_missing_ranks(GROUP_SQL, fields)
-    select = _guard_missing_ranks(_SELECT.format(edna=edna), fields)
-    parts_dir = dest.parent / (dest.name + ".parts")
-    shutil.rmtree(parts_dir, ignore_errors=True)
-    parts_dir.mkdir(parents=True)
-    try:
-        parts, total = [], 0
-        for i, (a, b) in enumerate(plan_slices(con, source, slice_bytes)):
-            part = parts_dir / f"{i:05d}.parquet"
-            if _pass1_hits(con, src, a, b, group_sql) == 0:
-                continue  # nothing plankton in this window: pass 2 never runs
-            _pass2_write(con, src, a, b, extra, select, part, group_sql)
-            n = con.execute(f"SELECT count(*) FROM read_parquet({_lit(part)})").fetchone()[0]
-            if n:
-                parts.append(part)
-                total += n
-            else:
-                part.unlink(missing_ok=True)
-        if total == 0:
-            return 0
-        tmp = dest.with_suffix(".tmp")
-        con.execute(f"COPY (SELECT * FROM read_parquet({_lit(parts_dir / '*.parquet')})) "
-                    f"TO {_lit(tmp)} (FORMAT PARQUET, COMPRESSION ZSTD)")
-        tmp.rename(dest)
-        return total
-    finally:
-        shutil.rmtree(parts_dir, ignore_errors=True)
-
+from ingestion.plankton_extract import *  # noqa: F401,F403
+from ingestion.plankton_extract import (  # noqa: F401  (underscore names are not covered by *)
+    _I, _SELECT, _lit, _sql_list, _COPEPODA, _guard_missing_ranks, _pass1_hits, _pass2_write)
+from schema.plankton import GROUPS, STARTED_PREFIX, STARTED_STALE_HOURS  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Load, validate, swap. The live tables are never written to: everything goes
@@ -347,6 +73,7 @@ async def load_datasets(conn, datasets: list[dict]) -> None:
             VALUES ($1, $2, $3, $4, $5, $6, $7)""", rows)
 
 
+LOAD_MEMORY_LIMIT = "256MB"
 _COLS = ("taxon_group", "scientific_name", "aphia_id", "taxon_order", "dataset_id", "licence",
          "is_edna", "depth_m", "event_date", "year", "month", "lon", "lat")
 # Keys of the dict load_extract returns (every extract row lands in exactly one):
@@ -391,14 +118,15 @@ def _drop_reason(r: dict) -> str | None:
 
 
 def _load_connection(path):
-    """DuckDB for reading one extract in the load: same cap and on-disk spill as extract_dataset
-    (a default connection would take 80 % of RAM inside a 2 GB cgroup)."""
+    """DuckDB for reading one extract in the load: capped, on-disk spill (a default connection would
+    take 80 % of RAM inside a 2 GB cgroup). It lives in the PARENT next to the asyncpg connection,
+    so it is small (it only streams a local parquet) and load_extract closes it every time."""
     import duckdb
     tmp = pathlib.Path(path).parent / "duckdb-load"
     tmp.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
-    con.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}'")
-    con.execute("SET threads=2")
+    con.execute(f"SET memory_limit='{LOAD_MEMORY_LIMIT}'")
+    con.execute("SET threads=1")
     con.execute(f"SET temp_directory={_lit(tmp)}")
     return con
 
@@ -413,8 +141,15 @@ async def load_extract(conn, path, licences: dict[str, str]) -> dict[str, int]:
     counted as unknown_dataset."""
     stats = {"kept": 0, **{k: 0 for k in DROP_REASONS}}
     known = {r[0] for r in await conn.fetch(f"SELECT dataset_id FROM {DS}_new")}
-    lic_cache: dict[str, str] = {}
     db = _load_connection(path)
+    try:
+        return await _load_rows(conn, db, path, licences, known, stats)
+    finally:
+        db.close()        # this connection lives in the PARENT: leaving it open would keep ~1,700 of them
+
+
+async def _load_rows(conn, db, path, licences, known, stats) -> dict[str, int]:
+    lic_cache: dict[str, str] = {}
     cur = db.execute(f"SELECT * FROM read_parquet({_lit(path)})")
     names = [d[0] for d in cur.description]
     batch: list[tuple] = []
@@ -564,10 +299,13 @@ async def swap_validated(conn) -> None:
 # ---------------------------------------------------------------------------
 import asyncio  # noqa: E402
 import csv  # noqa: E402
+import ctypes  # noqa: E402
+import gc  # noqa: E402
 import io  # noqa: E402
 import json as _json  # noqa: E402
 import logging  # noqa: E402
 import os  # noqa: E402
+import sys  # noqa: E402
 import time  # noqa: E402
 import urllib.request  # noqa: E402
 
@@ -614,6 +352,86 @@ def _failed_summary(failed_ids: list[str], attempted: int) -> str:
     shown = ", ".join(failed_ids[:ALERT_UUIDS])
     more = f" (+{len(failed_ids) - ALERT_UUIDS} more)" if len(failed_ids) > ALERT_UUIDS else ""
     return f"{len(failed_ids)} of {attempted} datasets failed: {shown}{more}"
+
+
+# ---------------------------------------------------------------------------
+# Extract in a CHILD process, one per dataset (see plankton_extract_child.py for why).
+# ---------------------------------------------------------------------------
+CHILD_TIMEOUT_S = 150 * 60           # a hung S3 read ends the dataset, not the run
+PROGRESS_EVERY = 50                  # datasets between progress lines ...
+PROGRESS_SLOW_S = 60                 # ... or any single dataset slower than this
+_BACKEND_DIR = pathlib.Path(__file__).resolve().parent.parent
+
+
+class ChildFailed(Exception):
+    """The extract child died, timed out or reported an error. `.reason` is type / exit code only
+    (never a message: those can carry the source URL)."""
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _child_argv() -> list[str]:
+    return [sys.executable, "-m", "ingestion.plankton_extract_child"]
+
+
+async def extract_in_child(source: str, dest: pathlib.Path, scratch: pathlib.Path,
+                           title: str | None = None, *, timeout: float | None = None) -> tuple[int, int]:
+    """Run extract_dataset for ONE dataset in a fresh interpreter -> (rows, child peak RSS MB).
+    Raises ChildFailed on a non-zero exit, a signal (OOM kill), no result, or `timeout` seconds
+    (default CHILD_TIMEOUT_S). The child is ALWAYS gone when this returns or raises, including when
+    the parent is cancelled: no zombie keeps eating the cgroup's memory."""
+    timeout = CHILD_TIMEOUT_S if timeout is None else timeout
+    request = _json.dumps({"source": source, "dest": str(dest), "scratch": str(scratch), "title": title})
+    proc = await asyncio.create_subprocess_exec(
+        *_child_argv(), cwd=str(_BACKEND_DIR), stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+    try:
+        try:
+            out, _ = await asyncio.wait_for(proc.communicate(request.encode()), timeout)
+        except asyncio.TimeoutError:
+            raise ChildFailed(f"timeout after {int(timeout)} s") from None
+    finally:
+        if proc.returncode is None:
+            proc.kill()
+            await proc.wait()
+    lines = out.decode("utf-8", "replace").strip().splitlines()
+    try:
+        result = _json.loads(lines[-1]) if lines else {}
+    except ValueError:
+        result = {}
+    rc = proc.returncode
+    if rc != 0:
+        how = f"killed by signal {-rc}" if rc < 0 else f"exit code {rc}"
+        err = result.get("error") if isinstance(result, dict) else None
+        raise ChildFailed(f"{how}" + (f" ({str(err)[:60]})" if err else ""))
+    if not isinstance(result, dict) or "rows" not in result:
+        raise ChildFailed("exit code 0 but no result")
+    return int(result["rows"]), int(result.get("peak_rss_mb") or 0)
+
+
+def _rss_mb() -> int:
+    """Resident set of THIS process (VmRSS on Linux, peak elsewhere)."""
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) // 1024
+    except OSError:
+        pass
+    import resource
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return int(peak / (1024 * 1024) if sys.platform == "darwin" else peak / 1024)
+
+
+def _release_memory() -> None:
+    """Hand freed heap back to the OS: glibc keeps it otherwise, and a run lasts hours."""
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):
+        pass
 
 
 def _retrying(fetch):
@@ -739,25 +557,26 @@ async def _import(fetch_json, fetch_licences, source_for, scratch: pathlib.Path)
         lic_rows = {}
     resolved = {i: resolve_dataset(m, lic_rows.get(i)) for i, m in meta.items()}
     licences = {i: d["licence"] for i, d in resolved.items()}
-    con = connect_duckdb(scratch)
     drops = {k: 0 for k in DROP_REASONS}
     failed_ids: list[str] = []
-    skipped = attempted = 0
+    skipped = attempted = rows_so_far = 0
+    total = len(meta)
     async with db.pool.acquire() as conn:
         await build_staging(conn)
         await load_datasets(conn, list(resolved.values()))
-        for i in meta:                      # ONE dataset at a time: extract -> load -> delete
+        for n, i in enumerate(meta, 1):     # ONE dataset at a time: extract (child) -> load -> delete
             if i in EXCLUDED_DATASETS or licences[i] == "restricted":
                 skipped += 1                # always dropped: do not even download it
                 continue
             attempted += 1
             dest = scratch / f"{i}.parquet"
-            phase = "extract"
+            phase, started, child_peak = "extract", time.monotonic(), 0
             try:
-                if await asyncio.to_thread(extract_dataset, con, source_for(i), dest,
-                                           title=meta[i].get("title")):
+                rows, child_peak = await extract_in_child(source_for(i), dest, scratch, title=meta[i].get("title"))
+                if rows:
                     phase = "load"
                     stats = await load_extract(conn, dest, licences)
+                    rows_so_far += stats["kept"]
                     for k in drops:
                         drops[k] += stats[k]
             except Exception as e:
@@ -766,17 +585,26 @@ async def _import(fetch_json, fetch_licences, source_for, scratch: pathlib.Path)
                 if isinstance(e, _PG_CONNECTION_ERRORS) or conn.is_closed() \
                         or (phase == "load" and isinstance(e, ConnectionError)):
                     raise
-                # One bad dataset (S3 404, corrupt parquet, odd schema) must not sink the month's
-                # run. Type only: the message can carry the source URL. The >10 % drop check in
-                # swap_validated still protects the live table if too much goes missing.
+                # One bad dataset (S3 404, corrupt parquet, odd schema, a child killed by the OOM
+                # killer or the timeout) must not sink the month's run. Type / exit code only: a
+                # message can carry the source URL. The >10 % drop check in swap_validated still
+                # protects the live table if too much goes missing.
                 failed_ids.append(i)
-                log.warning("plankton-obis: dataset %s failed (%s) — skipped", i, type(e).__name__)
+                if isinstance(e, ChildFailed):
+                    log.warning("plankton-obis: dataset %s extract child failed (%s) — skipped", i, e.reason)
+                else:
+                    log.warning("plankton-obis: dataset %s failed (%s) — skipped", i, type(e).__name__)
                 try:
                     await conn.execute(f"DELETE FROM {OCC}_new WHERE dataset_id = $1::uuid", i)
                 except Exception:
                     log.warning("plankton-obis: could not drop the partial rows of dataset %s", i)
             finally:
                 dest.unlink(missing_ok=True)
+            _release_memory()
+            took = time.monotonic() - started
+            if took > PROGRESS_SLOW_S or n % PROGRESS_EVERY == 0:
+                log.info("plankton-obis: %d/%d datasets, rows so far %d, failed %d, rss %d MB (child peak %d MB, last dataset %d s)",
+                         n, total, rows_so_far, len(failed_ids), _rss_mb(), child_peak, took)
         failed = len(failed_ids)
         if attempted and failed == attempted:
             raise DatasetFailures(f"every attempted dataset failed ({_failed_summary(failed_ids, attempted)})"

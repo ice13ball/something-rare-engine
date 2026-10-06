@@ -184,7 +184,7 @@ async def test_partial_swap_marker_is_a_success_not_a_failure_to_back_off_from(w
 @needs_db
 async def test_stale_started_marker_means_a_killed_run_and_backs_off(worker_pool):
     pool, ran = worker_pool
-    await _marker(pool, hours=9, success_days=40)         # older than TimeoutStartSec (8 h)
+    await _marker(pool, hours=13, success_days=40)        # older than TimeoutStartSec (12 h)
     assert await w.run_once(pool) == "backoff" and not ran
 
 
@@ -201,3 +201,70 @@ async def test_started_marker_older_than_the_backoff_window_runs_again(worker_po
     pool, ran = worker_pool
     await _marker(pool, hours=24 * 8, success_days=40)
     assert await w.run_once(pool) == "ran" and ran
+
+
+# ---- --force: the rerun after a killed run ---------------------------------------------------
+
+@needs_db
+async def test_force_ignores_a_fresh_started_marker(worker_pool):
+    pool, ran = worker_pool
+    await _marker(pool, hours=2, success_days=40)         # a killed run's marker, still "fresh"
+    assert await w.run_once(pool, force=True) == "ran" and ran
+
+
+@needs_db
+async def test_without_force_a_fresh_started_marker_still_skips(worker_pool):
+    pool, ran = worker_pool
+    await _marker(pool, hours=2, success_days=40)
+    assert await w.run_once(pool) == "running" and not ran
+    assert await w.run_once(pool, force=False) == "running" and not ran
+
+
+@needs_db
+async def test_force_ignores_the_fresh_success_and_the_failure_backoff(worker_pool):
+    pool, ran = worker_pool
+    await _row(pool, success_days=2)
+    assert await w.run_once(pool, force=True) == "ran"
+    async with pool.acquire() as c:
+        await c.execute("DELETE FROM sync_log WHERE source = $1", SRC)
+    await _row(pool, success_days=40, fail_days=1, reason="error: boom")
+    assert await w.run_once(pool) == "backoff"
+    assert await w.run_once(pool, force=True) == "ran" and len(ran) == 2
+
+
+@needs_db
+async def test_force_still_takes_lock_4242001(worker_pool):
+    pool, ran = worker_pool
+    await _marker(pool, hours=2, success_days=40)
+    holder = await asyncpg.connect(os.environ["TEST_DATABASE_URL"])
+    try:
+        await holder.execute("SELECT pg_advisory_lock(4242001)")
+        task = asyncio.create_task(w.run_once(pool, force=True))
+        await asyncio.sleep(1.0)
+        assert not task.done() and not ran, "--force must still wait for the advisory lock"
+        await holder.execute("SELECT pg_advisory_unlock(4242001)")
+        assert await asyncio.wait_for(task, 10) == "ran"
+    finally:
+        await holder.close()
+
+
+@needs_db
+async def test_force_writes_its_own_started_marker_through_the_real_sync(worker_pool, monkeypatch):
+    """The fake sync is replaced by one that behaves like the real one's first act (the marker)."""
+    pool, ran = worker_pool
+    from ingestion import plankton_obis as po
+    seen = []
+
+    async def marking_sync(**_):
+        await po._mark_started()
+        seen.append((await _skip(pool))["skipped_reason"])
+        return {"outcome": "swapped"}
+    monkeypatch.setattr(w, "sync_plankton_obis", marking_sync)
+    await _marker(pool, hours=2, success_days=40)
+    assert await w.run_once(pool, force=True) == "ran"
+    assert seen and seen[0].startswith(w.STARTED_PREFIX)
+
+
+def test_cli_force_flag():
+    assert w.parse_args(["--force"]).force is True
+    assert w.parse_args([]).force is False
