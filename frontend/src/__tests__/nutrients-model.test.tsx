@@ -47,7 +47,7 @@ describe("deck ids of the sliced field", () => {
   });
   it("leaves exact-map and unknown ids alone", () => {
     expect(toggleIdForDeckLayer("argo-glow")).toBe("argo");
-    expect(toggleIdForDeckLayer("woa-climatology-bitmap-oxygen-500-0")).toBe("woa-climatology-bitmap-oxygen-500-0");
+    expect(toggleIdForDeckLayer("aoi-preview")).toBe("aoi-preview");
   });
   it("the layer sorts below the point layers (low order_idx), default off", () => {
     const row = LAYER_DEFAULTS.find((l) => l.id === "ocean-nutrients-model");

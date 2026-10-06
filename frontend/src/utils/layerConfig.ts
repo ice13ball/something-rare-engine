@@ -44,8 +44,13 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "onc-instruments",        order_idx: 1900, default_on: true,  modes: ["ocean","continue"] },
   { id: "ports",                  order_idx: 2000, default_on: false, modes: ["ocean","continue"] },
   { id: "ocean-currents",         order_idx: 2050, default_on: false, modes: ["ocean","continue"] },
-  { id: "woa-climatology",        order_idx: 2075, default_on: false, modes: ["ocean","continue"] },
-  { id: "oxygen-deox",            order_idx: 2076, default_on: false, modes: ["ocean","continue"] },
+  // The four ambient colour fields (WOA, oxygen, ocean-carbon, CO2-surface) sit in
+  // the low band 75-78, under every point layer, like their siblings at 68-74. They
+  // were 2075-2082 — above memento/geotraces/wod-oxygen — and only looked right while
+  // their unmapped deck ids forced them to the very top anyway. The sort needs the
+  // number to be right now. Pinned by deck-layer-z-order.test.ts.
+  { id: "woa-climatology",        order_idx: 75, default_on: false, modes: ["ocean","continue"] },
+  { id: "oxygen-deox",            order_idx: 76, default_on: false, modes: ["ocean","continue"] },
   { id: "wod-oxygen",             order_idx: 2077, default_on: false, modes: ["ocean","continue"] },
   { id: "ocean-nutrients-model",  order_idx: 73,   default_on: false, modes: ["ocean","continue"] },
   { id: "ocean-colour-satellite", order_idx: 74,   default_on: false, modes: ["ocean","continue"] },
@@ -66,8 +71,8 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "vessel-events",          order_idx: 3500, default_on: false, modes: ["ocean","continue"] },
   { id: "arctic-rivers",          order_idx: 2079, default_on: false, modes: ["ocean","continue"] },
   { id: "methane-seeps",          order_idx: 2080, default_on: false, modes: ["ocean","continue"] },
-  { id: "ocean-carbon",           order_idx: 2081, default_on: false, modes: ["ocean","continue"] },
-  { id: "ocean-co2-surface",      order_idx: 2082, default_on: false, modes: ["ocean","continue"] },
+  { id: "ocean-carbon",           order_idx: 77, default_on: false, modes: ["ocean","continue"] },
+  { id: "ocean-co2-surface",      order_idx: 78, default_on: false, modes: ["ocean","continue"] },
   { id: "marine-carbon",          order_idx: 70,   default_on: false, modes: ["ocean","continue"] },
   { id: "sios-svalbard",          order_idx: 2083, default_on: false, modes: ["ocean","continue"] },
   { id: "arctic-catchments",      order_idx: 2084, default_on: false, modes: ["ocean","continue"] },
@@ -143,6 +148,13 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
   // top, ignoring its order_idx — and covers the layers above it.
   "marhys-density":                  "marhys",
   "mosaic-hexes":                   "mosaic-sediment",
+  // Hex views of the four ambient-field layers (their sliced bitmaps are in
+  // DECK_ID_PREFIX_TO_TOGGLE below). Unmapped, they sorted at 9999 — on top of
+  // every point layer, ignoring order_idx.
+  "woa-hexes":                      "woa-climatology",
+  "oxygen-hexes":                   "oxygen-deox",
+  "ocean-carbon-hexes":             "ocean-carbon",
+  "ocean-co2-surface-hexes":        "ocean-co2-surface",
 };
 
 /**
@@ -155,6 +167,14 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
 const DECK_ID_PREFIX_TO_TOGGLE: ReadonlyArray<readonly [string, string]> = [
   ["ocean-nutrients-model-bitmap-", "ocean-nutrients-model"],
   ["ocean-colour-satellite-bitmap-", "ocean-colour-satellite"],
+  // The older sliced fields. Their bitmaps were moved to the front of the layer
+  // array to "render behind" (2026-06-19), which the sort undid: the ids were
+  // unmapped, so they sat at 9999 and covered the dots of every layer below.
+  ["woa-climatology-bitmap-", "woa-climatology"],
+  ["oxygen-deox-bitmap-", "oxygen-deox"],
+  ["ocean-carbon-bitmap-", "ocean-carbon"],
+  ["ocean-co2-surface-bitmap-", "ocean-co2-surface"],
+  ["ocean-acidification-bitmap-", "ocean-acidification"],
 ];
 
 /** The toggle id a deck.gl layer id belongs to (exact map first, then prefixes). */

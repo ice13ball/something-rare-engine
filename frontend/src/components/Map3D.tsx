@@ -3695,8 +3695,9 @@ export function Map3D() {
 
     // Cumulative Human Impact — server-rendered raster PNG tiles (field mode). Single
     // TileLayer id → exact DECK_TO_TOGGLE match → order_idx 72, so the field renders
-    // UNDER claims/dots (the seabed/arctic raster pattern, NOT the manually-sliced
-    // BitmapLayer field pattern which forces the field on top). pickable:false — the
+    // UNDER claims/dots (the seabed/arctic raster pattern). The sliced BitmapLayer
+    // fields (WOA, oxygen, carbon, CO2, acidification) are ordered by their own order_idx
+    // too, via DECK_ID_PREFIX_TO_TOGGLE in layerConfig (where that lands them is the number). pickable:false — the
     // BitmapLayer whole-quad-pick gotcha; field clicks resolve via the <DeckGL onClick>
     // empty-click branch + /v1/chi/point.
     chiActive && chiDisplayMode === "field" && new TileLayer({

@@ -61,12 +61,16 @@ LAYER_DEFAULTS_PY = [
     {"id": "ocean-nutrients-model",  "order_idx": 73, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "ocean-colour-satellite", "order_idx": 74, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "geotraces",              "order_idx": 2074, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "woa-climatology",        "order_idx": 2075, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "oxygen-deox",            "order_idx": 2076, "default_on": False, "modes": ["ocean","continue"]},
+    # The four ambient colour fields (WOA, oxygen, ocean-carbon, CO2-surface) sit in
+    # the low band 75-78, under every point layer. Seed rows are ON CONFLICT DO
+    # NOTHING, so a database that already has the old 2075-2082 needs the UPDATE
+    # run by hand. KEEP IN SYNC with layerConfig.ts.
+    {"id": "woa-climatology",        "order_idx": 75, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "oxygen-deox",            "order_idx": 76, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "wod-oxygen",             "order_idx": 2077, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "memento",                "order_idx": 2078, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "ocean-carbon",           "order_idx": 2081, "default_on": False, "modes": ["ocean","continue"]},
-    {"id": "ocean-co2-surface",      "order_idx": 2082, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "ocean-carbon",           "order_idx": 77, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "ocean-co2-surface",      "order_idx": 78, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "marine-carbon",          "order_idx": 70,   "default_on": False, "modes": ["ocean","continue"]},
     {"id": "surface-water",          "order_idx": 2100, "default_on": False, "modes": ["land"]},
     {"id": "forest-loss",            "order_idx": 2200, "default_on": False, "modes": ["land"]},
