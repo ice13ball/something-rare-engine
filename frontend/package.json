@@ -32,7 +32,7 @@
     "@deck.gl/react": "^9.2.11",
     "@scalar/api-reference-react": "^0.9.47",
     "@turf/turf": "^7.3.4",
-    "compression": "^1.8.1",
+    "compression": "^1.8.2",
     "deck.gl": "^9.2.11",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
