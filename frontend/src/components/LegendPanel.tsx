@@ -150,6 +150,7 @@ const LAYER_STRUCT = [
   { id: "permafrost-thaw", layerId: "permafrost-thaw", symbol: "dot", syncKey: "permafrost-thaw", color: "#38bdf8",
     colorRampHex: ["#38bdf8", "#f97316", "#ef4444", "#a78bfa", "#fbbf24", "#34d399", "#e879f9", "#22d3ee", "#94a3b8"] },
   { id: "ocean-carbon", layerId: "ocean-carbon", color: "#38b2ac", symbol: "square", syncKey: "glodap-carbon" },
+  { id: "glodap-points", layerId: "glodap-points", color: "#f8fafc", symbol: "dot", syncKey: "glodap-bottles" },
   { id: "ocean-co2-surface", layerId: "ocean-co2-surface", color: "#06b6d4", symbol: "square", syncKey: "socat-co2" },
   { id: "sios-svalbard", layerId: "sios-svalbard", color: "#7dd3fc", symbol: "dot", syncKey: "sios" },
   { id: "arctic-catchments", layerId: "arctic-catchments", color: "#7dd3fc", symbol: "polygon", syncKey: "arcade" },
@@ -839,6 +840,9 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li><span className="text-white/90">{t("layers.ocean-nutrients-model.label")}</span> — {t("dates.fresh_nutrients_model")}{syncDates["ocean-nutrients-model"] && <span className="text-white/75 font-mono ml-1">({syncDates["ocean-nutrients-model"]})</span>}</li>
                   <li><span className="text-white/90">{t("layers.ocean-colour-satellite.label")}</span> — {t("dates.fresh_ocean_colour")}{syncDates["ocean-colour-satellite"] && <span className="text-white/75 font-mono ml-1">({syncDates["ocean-colour-satellite"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Carbon (GLODAP)</span> — Static (GLODAPv2.2016b release; observations 1972–2013){syncDates["glodap-carbon"] && <span className="text-white/75 font-mono ml-1">({syncDates["glodap-carbon"]})</span>}</li>
+                  {layerShown("glodap-points") && (
+                  <li><span className="text-white/90">GLODAPv3 Bottle Measurements</span> — Static release (GLODAPv3, 2026; casts 1972–2023); the source is checked for a new version at most monthly{syncDates["glodap-bottles"] && <span className="text-white/75 font-mono ml-1">({syncDates["glodap-bottles"]})</span>}</li>
+                  )}
                   <li><span className="text-white/90">Surface Ocean CO₂ (SOCAT)</span> — Static (SOCATv2026 release){syncDates["socat-co2"] && <span className="text-white/75 font-mono ml-1">({syncDates["socat-co2"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Oxygen &amp; Deoxygenation</span> — Static (ISAS 2014–2018 release){syncDates["oxygen-deox"] && <span className="text-white/75 font-mono ml-1">({syncDates["oxygen-deox"]})</span>}</li>
                   <li><span className="text-white/90">Historical Oxygen Profiles (WOD)</span> — Static (WOD23 release; global){syncDates["wod-oxygen"] && <span className="text-white/75 font-mono ml-1">({syncDates["wod-oxygen"]})</span>}</li>
@@ -1067,6 +1071,12 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                     <span className="text-white/90 font-medium">Ocean Carbon (GLODAP)</span>
                     <p className="mt-0.5">Cross-check a grid cell value by selecting the same variable and depth at <span className="text-cyan-400">glodap.info/index.php/mapped-data-product/</span>. The mapped product (GLODAPv2.2016b) is also available via the NCEI data portal and the <span className="text-cyan-400">doi.org/10.3334/CDIAC/OTG.NDP093_V2016</span> DOI. Values shown in the hexagon view are served verbatim from the 1° DIVA-interpolated product.</p>
                   </li>
+                  {layerShown("glodap-points") && (
+                  <li>
+                    <span className="text-white/90 font-medium">{t("verify.glodapPoints_title")}</span>
+                    <p className="mt-0.5">{t("verify.glodapPoints")}</p>
+                  </li>
+                  )}
                   <li>
                     <span className="text-white/90 font-medium">Ocean Acidification (modeled)</span>
                     <p className="mt-0.5">The ΩA/ΩC fields are GLODAP's own <span className="text-cyan-400">OmegaA</span>/<span className="text-cyan-400">OmegaC</span> saturation variables — cross-check a hexagon value at the same lat/lon/depth against the GLODAPv2.2016b mapped product at <span className="text-cyan-400">glodap.info/index.php/mapped-data-product/</span> (read directly, never recomputed). The aragonite saturation-horizon depth is <span className="text-white/80">platform-derived</span> (shallowest depth where ΩA crosses 1.0, interpolated from GLODAP's 33 standard levels) — recompute it yourself from the ΩA profile to verify.</p>

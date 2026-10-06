@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 
 import { featureId, featureIdFor } from "../components/SearchBar";
+import { clickIdFor } from "../components/map3d/openFromLink";
 import { ID_CHAIN } from "../types/openableRegistry";
 
 describe("the two id chains agree", () => {
@@ -54,5 +55,18 @@ describe("search results carry an id a link can reopen", () => {
   it("does not apply the ref rule to other layers", () => {
     expect(featureIdFor("onc", { ref: "X", location_code: "L" })).toBe("");
     expect(featureIdFor("contracts", { isa_id: "ISA-1", ref: "X" })).toBe("ISA-1");
+  });
+});
+
+describe("GLODAP cruise search opens the cruise's first cast", () => {
+  it("returns first_cast_key, which clickIdFor also accepts", () => {
+    const p = { expocode: "49UF20150620", ship_name: "Keifu Maru", first_cast_key: "49UF20150620_4511_1" };
+    expect(featureIdFor("glodap-points", p)).toBe("49UF20150620_4511_1");
+    expect(clickIdFor("glodap-points", { cast_key: featureIdFor("glodap-points", p) }, 0)).toBe("49UF20150620_4511_1");
+  });
+
+  it("is not the bare expocode (the cast endpoint would 404 on it) and not the global chain's answer", () => {
+    expect(featureId({ expocode: "49UF20150620", first_cast_key: "49UF20150620_4511_1" })).toBe("");
+    expect(featureIdFor("glodap-points", { expocode: "49UF20150620" })).toBe("");
   });
 });

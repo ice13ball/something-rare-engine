@@ -53,6 +53,7 @@ from domains import fields
 from domains import plankton
 from domains import geo_context
 from domains import geochem
+from domains import glodap_points
 from domains import oceansites_history
 from domains import aoc2025_poc, pangaea_water
 from domains import svalbard_fjords_pp
@@ -401,6 +402,7 @@ app.include_router(acoustic.router)
 app.include_router(arctic.router)
 app.include_router(biodiversity.router)
 app.include_router(geochem.router)
+app.include_router(glodap_points.router)
 app.include_router(pangaea_water.router)
 app.include_router(aoc2025_poc.router)
 app.include_router(svalbard_fjords_pp.router)
@@ -1049,6 +1051,7 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "coastdom":               "coastdom",
     "greenland-pp":           "greenland-pp",
     "aoc2025-poc":            "aoc2025-poc",
+    "glodap-bottles":         "glodap-bottles",
     "svalbard-fjords-pp":     "svalbard-fjords-pp",
     "mosaic":                 "mosaic",
     "vme-sdm":                "vme-sdm",

@@ -4,7 +4,8 @@
 import { useTranslation } from "react-i18next";
 import { useMapStore } from "../../../../store/mapStore";
 import type { LayerId } from "../../../../types/layers";
-import { LayerRow } from "../../rows";
+import { glodapWindowLabel } from "../../../../utils/glodapPoints";
+import { LayerRow, FilterResetLink } from "../../rows";
 import { useFieldLayerToggle } from "./useFieldLayerToggle";
 
 interface Props {
@@ -12,16 +13,44 @@ interface Props {
   setExpandedFilter: (f: LayerId | null) => void;
   toggleExpand: (id: LayerId) => void;
   toggle: (id: LayerId) => void;
+  // Year span of the GLODAPv3 cast document (null until it has loaded) and whether it is loading now.
+  glodapYearBounds?: { min: number; max: number } | null;
+  glodapLoading?: boolean;
   carbonMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
 }
 
-export function OceanCarbonRow({ expandedFilter, setExpandedFilter, toggleExpand, toggle, carbonMeta }: Props) {
+const SELECT_CLS =
+  "bg-white/5 text-white/90 text-[12px] font-mono rounded px-2 py-1 border border-white/10 focus:outline-none focus:border-cyan-400/40";
+
+export function OceanCarbonRow({ expandedFilter, setExpandedFilter, toggleExpand, toggle, carbonMeta, glodapYearBounds, glodapLoading = false }: Props) {
   const {
     activeLayers,
     carbonVariable, setCarbonVariable,
     carbonDepth, setCarbonDepth,
     carbonDisplayMode, setCarbonDisplayMode,
+    glodapYearRange, setGlodapYearRange,
+    enabledLayerIds,
   } = useMapStore();
+
+  // Measurements are the THIRD option of the display switch (Field / Hexagons / Measurements) and replace the
+  // field. The store keeps the `glodap-points` layer id (share links, search, z-order) in step with the mode.
+  const pointsOn = carbonDisplayMode === "points";
+  // Offer the option only while the layer can be turned on: `enabledLayerIds` already folds in a layer disabled or
+  // retired in layer_config AND one hidden per environment via HIDDEN_LAYERS (null = config not loaded: allow all).
+  // Same rule as LayerRow, and the store would refuse to select it anyway: a visible dead option is the bug.
+  const pointsAvailable = !enabledLayerIds || enabledLayerIds.has("glodap-points");
+  const bounds = glodapYearBounds ?? null;
+  // A stored range can outlive the data it was set on (a share link, a refreshed load); clamp for display only.
+  const from = bounds ? Math.max(bounds.min, Math.min(glodapYearRange?.[0] ?? bounds.min, bounds.max)) : 0;
+  const to = bounds ? Math.min(bounds.max, Math.max(glodapYearRange?.[1] ?? bounds.max, bounds.min)) : 0;
+  const years = bounds ? Array.from({ length: bounds.max - bounds.min + 1 }, (_, i) => bounds.min + i) : [];
+  // Both ends back at the bounds store null, so "all years" is one state and stays out of the share link.
+  const update = (nextFrom: number, nextTo: number) => {
+    if (!bounds) return;
+    const a = Math.min(nextFrom, nextTo);
+    const b = Math.max(nextFrom, nextTo);
+    setGlodapYearRange(a <= bounds.min && b >= bounds.max ? null : [a, b]);
+  };
 
   const { t } = useTranslation(["panels", "common"]);
 
@@ -36,19 +65,22 @@ export function OceanCarbonRow({ expandedFilter, setExpandedFilter, toggleExpand
                 onToggle={() => toggleFieldLayer("ocean-carbon")}
                 expanded={expandedFilter === "ocean-carbon"}
                 onExpandToggle={() => toggleExpand("ocean-carbon")}
+                filterActive={pointsOn && glodapYearRange !== null}
                 filterContent={
                   carbonMeta ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-1">
                         <span className="text-[11px] font-mono text-white/70 uppercase tracking-wide">{t("controls.fieldLayer.display")}</span>
                         <div className="flex gap-1">
-                          {(["field", "hexes"] as const).map((m) => (
+                          {(pointsAvailable ? ["field", "hexes", "points"] as const : ["field", "hexes"] as const).map((m) => (
                             <button
                               key={m}
+                              aria-pressed={carbonDisplayMode === m}
+                              aria-describedby={m === "points" ? "glodap-version-note" : undefined}
                               onClick={() => setCarbonDisplayMode(m)}
                               className={`flex-1 text-[12px] font-mono rounded px-2 py-1 border transition-colors ${carbonDisplayMode === m ? "bg-cyan-400/20 border-cyan-400/50 text-cyan-300" : "bg-white/5 border-white/10 text-white/80 hover:bg-white/10"}`}
                             >
-                              {m === "field" ? t("controls.fieldLayer.field") : t("controls.fieldLayer.hexagons")}
+                              {m === "field" ? t("controls.fieldLayer.field") : m === "hexes" ? t("controls.fieldLayer.hexagons") : t("controls.fieldLayer.measurements")}
                             </button>
                           ))}
                         </div>
@@ -102,6 +134,45 @@ export function OceanCarbonRow({ expandedFilter, setExpandedFilter, toggleExpand
                           </div>
                         );
                       })()}
+                        {pointsAvailable && (
+                        <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
+                          <p id="glodap-version-note" className="text-[11px] text-white/60 leading-snug">{t("layers.oceanCarbon.points.versionNote")}</p>
+                          {pointsOn && (
+                            <>
+                              {carbonVariable === "cant"
+                                ? <p className="text-[11px] text-amber-300/80">{t("layers.oceanCarbon.points.cantNote")}</p>
+                                : <p className="text-[11px] text-white/60">{t("layers.oceanCarbon.points.greyNote", { window: glodapWindowLabel(carbonDepth) })}</p>}
+                              {glodapLoading && <p className="text-[11px] text-white/50">{t("layers.oceanCarbon.points.loading")}</p>}
+                              {bounds && (
+                                <div className="flex items-center gap-2">
+                                  <select
+                                    aria-label={t("layers.oceanCarbon.points.yearFrom")}
+                                    value={from}
+                                    onChange={(e) => update(Number(e.target.value), to)}
+                                    className={SELECT_CLS}
+                                  >
+                                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                                  </select>
+                                  <span className="text-white/50">–</span>
+                                  <select
+                                    aria-label={t("layers.oceanCarbon.points.yearTo")}
+                                    value={to}
+                                    onChange={(e) => update(from, Number(e.target.value))}
+                                    className={SELECT_CLS}
+                                  >
+                                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                                  </select>
+                                  <FilterResetLink
+                                    show={glodapYearRange !== null}
+                                    onReset={() => setGlodapYearRange(null)}
+                                    label={t("common:actions.reset")}
+                                  />
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        )}
                     </div>
                   ) : null
                 }

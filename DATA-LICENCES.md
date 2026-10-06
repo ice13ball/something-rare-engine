@@ -2,7 +2,7 @@
 
 **Almost no data ships in this repository, and the exception is named here rather than
 glossed.** Beyond the source code, `backend/tests/fixtures/` holds ~2 MB of **real**
-upstream excerpts across 22 sources — among them GEOTRACES seawater rows, ONC ADCP
+upstream excerpts across 23 sources — among them GEOTRACES seawater rows, ONC ADCP
 profiles, and GLODAP and SOCAT NetCDF slices. They exist so parsers are tested against
 the shapes they actually meet, and they remain under their upstream terms.
 
@@ -62,6 +62,7 @@ These are carried verbatim in the platform and must be preserved in any derivati
 | **MEMENTO** (GEOMAR marine CH₄/N₂O) | `memento` | Terms of use | Cite **Kock & Bange (2015), *Eos* 96(3), doi:10.1029/2015EO023665** + the verbatim GEOMAR/SOPRAN acknowledgement. **Contributors may include unpublished data — contact the contributing scientist before publishing results.** GEOMAR states data are "freely usable" but does not name a specific open licence — treat "Terms of use" literally, not as a stand-in for e.g. CC-BY. |
 | **MARHYS Database 4.0** (vent fluid chemistry) | `marhys` | CC-BY 4.0 | Diehl & Bach (2024), PANGAEA doi:10.1594/PANGAEA.972999. ⭐ **The dataset's own header requires the base publication to be cited ALONGSIDE it**: Diehl & Bach (2020), *Geochemistry, Geophysics, Geosystems*, doi:10.1029/2020GC009385 — citing only the PANGAEA DOI does not satisfy the terms. Compiled at MARUM, University of Bremen; funded by DFG EXC 2077. Frozen at v4.0; versions 1.0-3.0 carry their own DOIs. |
 | **GLODAP v2.2016b** (interior-ocean carbon) | `ocean-carbon`, `marine-carbon`, `ocean-acidification`, `coral-acid-exposure` | Open, cite | Lauvset et al. 2016 (ESSD 8:325) + Key et al. 2015 (NDP-093). |
+| **GLODAPv3** (2026, bottle samples; NCEI Accession 0315582) | `glodap-points` | CC BY 4.0 | Cite both: Lange et al. 2026, *GLODAPv3 … (NCEI Accession 0315582)*, doi:10.25921/m6tp-mj50, **and** Lange et al., ESSD preprint doi:10.5194/essd-2026-496. Single-cruise use: also the cruise DOI (`doi` column). Ship names: The NERC Vocabulary Server (NVS), National Oceanography Centre – British Oceanographic Data Centre (BODC), https://vocab.nerc.ac.uk, collection C17 (ICES platform codes), https://vocab.nerc.ac.uk/collection/C17/current/ — licensed CC BY 4.0 (https://vocab.nerc.ac.uk/about). |
 | **SOCAT v2026** (surface CO₂) | `ocean-co2-surface`, `marine-carbon` | CC-BY 4.0 | Bakker et al. 2026 (NCEI Accession 0315110, doi:10.25921/8dba-fr90) + Sabine et al. 2013. |
 | **GEOTRACES IDP2025** (trace metals) | `geotraces` | CC-BY 4.0 | BODC-hosted; research-grade. |
 | **CASCADE v2** (Arctic sediment carbon) | `arctic-sediment-carbon` | CC-BY 4.0 | doi:10.17043/cascade-2 (Bolin Centre). |

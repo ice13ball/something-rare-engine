@@ -16,6 +16,9 @@ export type ArcticCatchmentVariable = "ocs_mean" | "oc_tot" | "runoff_mean" | "p
 // Arctic Sediment Carbon (CASCADE) — display state types (not filters)
 export type CascadeVariable = "oc" | "tn" | "d13c" | "d14c";
 export type CascadeDisplayMode = "field" | "stations";
+/** Ocean Carbon: the mapped field, its hex view, or the GLODAPv3 bottle Measurements drawn instead of both. */
+export type CarbonDisplayMode = "field" | "hexes" | "points";
+const GLODAP_POINTS_ID: LayerId = "glodap-points";
 
 export interface SelectedFeature {
   id: string | number;
@@ -302,8 +305,15 @@ export interface MapStore {
   setCarbonVariable: (v: string) => void;
   carbonDepth: number;
   setCarbonDepth: (d: number) => void;
-  carbonDisplayMode: "field" | "hexes";
-  setCarbonDisplayMode: (m: "field" | "hexes") => void;
+  // "points" = the GLODAPv3 Measurements: they REPLACE the field/hexes (Michal, 2026-10-06). The layer id
+  // `glodap-points` stays the points' toggle / z-order / share-link id, and the store keeps the two in step:
+  // `glodap-points` is in `activeLayers` exactly while the mode is "points" (see `_carbonModeFor`).
+  carbonDisplayMode: CarbonDisplayMode;
+  setCarbonDisplayMode: (m: CarbonDisplayMode) => void;
+  // GLODAP Measurements (points) — year window; null = every year. A real filter: reset by
+  // resetAllFilters and carried in a share link (filterRegistry.ts).
+  glodapYearRange: YearRange | null;
+  setGlodapYearRange: (r: YearRange | null) => void;
 
   // Ocean Acidification (GLODAP Ω) — display mode (NOT a filter; not reset by resetAllFilters)
   acidificationVariable: "aragonite" | "calcite" | "horizon" | "horizon-shift";
@@ -454,6 +464,21 @@ function _gateActive(enabled: Set<string> | null, layers: Set<LayerId>): Set<Lay
   return new Set([...layers].filter((id) => enabled.has(id)));
 }
 
+/**
+ * The carbon display mode that agrees with an active-set: `glodap-points` in the set means Measurements,
+ * and a Measurements mode whose layer was switched off (or pruned as disabled/hidden) falls back to the field.
+ * Every path that writes `activeLayers` runs through this, so a link, a search hit or the layer list that
+ * switches the points on never leaves the field drawn underneath them.
+ */
+function _carbonModeFor(active: ReadonlySet<string>, mode: CarbonDisplayMode): CarbonDisplayMode {
+  if (active.has(GLODAP_POINTS_ID)) return "points";
+  return mode === "points" ? "field" : mode;
+}
+
+function _withMode(active: Set<LayerId>, mode: CarbonDisplayMode): { activeLayers: Set<LayerId>; carbonDisplayMode: CarbonDisplayMode } {
+  return { activeLayers: active, carbonDisplayMode: _carbonModeFor(active, mode) };
+}
+
 export const useMapStore = create<MapStore>((set) => ({
   selectedFeatures: [],
   setSelectedFeature: (f, shift = false) =>
@@ -497,10 +522,10 @@ export const useMapStore = create<MapStore>((set) => ({
       enabledLayerIds: ids,
       // Prune anything already active that just became non-enabled (handles the
       // race where WelcomeOverlay seeded before the config finished loading).
-      activeLayers: _gateActive(ids, s.activeLayers),
+      ..._withMode(_gateActive(ids, s.activeLayers), s.carbonDisplayMode),
     })),
   setActiveLayers: (layers) =>
-    set((s) => ({ activeLayers: _gateActive(s.enabledLayerIds, layers) })),
+    set((s) => _withMode(_gateActive(s.enabledLayerIds, layers), s.carbonDisplayMode)),
   toggleLayer: (id) =>
     set((s) => {
       // Never activate a non-enabled layer; always allow deactivation.
@@ -509,9 +534,9 @@ export const useMapStore = create<MapStore>((set) => ({
       }
       const next = new Set(s.activeLayers);
       next.has(id) ? next.delete(id) : next.add(id);
-      return { activeLayers: next };
+      return _withMode(next, s.carbonDisplayMode);
     }),
-  disableAllLayers: () => set({ activeLayers: new Set() }),
+  disableAllLayers: () => set((s) => _withMode(new Set(), s.carbonDisplayMode)),
 
   hiddenContractors: new Set(),
   toggleContractor: (key) =>
@@ -641,7 +666,16 @@ export const useMapStore = create<MapStore>((set) => ({
   carbonDepth: 0,
   setCarbonDepth: (d) => set({ carbonDepth: d }),
   carbonDisplayMode: "field",
-  setCarbonDisplayMode: (m) => set({ carbonDisplayMode: m }),
+  setCarbonDisplayMode: (m) =>
+    set((s) => {
+      // Measurements can only be chosen while their layer can be on (enabled in layer_config, not hidden here).
+      if (m === "points" && s.enabledLayerIds && !s.enabledLayerIds.has(GLODAP_POINTS_ID)) return {};
+      const next = new Set(s.activeLayers);
+      if (m === "points") next.add(GLODAP_POINTS_ID); else next.delete(GLODAP_POINTS_ID);
+      return { carbonDisplayMode: m, activeLayers: next };
+    }),
+  glodapYearRange: null,
+  setGlodapYearRange: (r) => set({ glodapYearRange: r }),
 
   acidificationVariable: "aragonite",
   setAcidificationVariable: (v) => set({ acidificationVariable: v }),
@@ -816,6 +850,7 @@ export const useMapStore = create<MapStore>((set) => ({
     cascadeDecadeFilters: new Set<string>(),
     mosaicDecadeFilters: new Set<string>(),
     coastdomYearRange: null,
+    glodapYearRange: null,
   }),
 
   layerProgress: new Map(),

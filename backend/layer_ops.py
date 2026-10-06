@@ -190,6 +190,9 @@ LAYER_OPS: dict[str, LayerOps] = {
     "methane-seeps":       {"sync_source": "seaflea", "log_source": "seaflea",
                              "tables": ("seaflea_seeps",),
                              "count_sql": "SELECT count(*) FROM seaflea_seeps"},
+    "glodap-points":       {"sync_source": "glodap-bottles", "log_source": "glodap-bottles",
+                             "tables": ("glodap_casts", "glodap_cruises"),
+                             "count_sql": "SELECT count(*) FROM glodap_casts"},
     # Preview layer, dev-only (owner decision 2026-09-25).
     "greenland-sea-poc-aoc2025": {"sync_source": "aoc2025-poc", "log_source": "aoc2025-poc",
                              "tables": ("aoc2025_poc_samples",),

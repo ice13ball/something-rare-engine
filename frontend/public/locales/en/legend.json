@@ -443,6 +443,29 @@
       "reading": "Colour encodes the magnitude of the selected variable at the chosen depth. Use the Variable selector to switch between DIC (µmol/kg), Total Alkalinity (µmol/kg), pH, and anthropogenic CO₂ Cant (µmol/kg). Use the Depth selector to step through levels from 0 to 4000 m. Exact numeric values are only available in the hexagon view — switch to Hexagons and click a cell.",
       "limitations": "1° horizontal resolution; gap-filled DIVA interpolation smooths fine-scale gradients and introduces artefacts in data-sparse regions (Southern Ocean, Arctic). Mapped product frozen at GLODAPv2.2016b — does not reflect post-2016 observations or the accelerating acidification trend of the past decade. The PNG colour-field is a pre-baked RGBA texture; numeric values are not available via click in the field view."
     },
+    "glodap-points": {
+      "label": "GLODAPv3 bottle measurements",
+      "source": "Lange, N., Lauvset, S. K., Carter, B. R., et al. (2026) The Global Ocean Data Analysis Project version 3 (GLODAPv3), NCEI Accession 0315582. NOAA NCEI, doi:10.25921/m6tp-mj50, CC BY 4.0 · ESSD preprint doi:10.5194/essd-2026-496 · Ship names: NERC Vocabulary Server (NVS), BODC, collection C17, CC BY 4.0",
+      "updateFreq": "Static release (GLODAPv3, 2026); the source is checked for a new version at most monthly",
+      "description": "75,102 casts from 1,181 cruises (1972–2023) in GLODAPv3 (2026): the bottle samples behind the ocean-carbon field. Turned on with \"Measurements\" in the Ocean Carbon panel.",
+      "reading": "Each dot is one cast, coloured in the field's own scale with the nearest acceptable bottle (WOCE flag 2) inside the selected depth's window (surface 0–10 m; deeper levels the field's grid cell). Grey: no such bottle. pH is total scale at in-situ temperature and pressure, as in the field.",
+      "limitations": "The field is GLODAPv2.2016b mapped, with TCO₂ and pH normalised to 2002; bottles are as measured in their year, so differences are expected. GLODAPv3 pH and fCO₂ had no secondary QC. Cant has no bottle equivalent.",
+      "selectionCriteria": "Only bottles with WOCE flag 2 reach the map. Interpolated or calculated values (flag 0) and missing samples (flag 9) are never drawn as measurements; the secondary-QC status is stored and shown in the cast panel.",
+      "dataSources": [
+        {
+          "name": "GLODAPv3 — NOAA NCEI accession 0315582 (doi:10.25921/m6tp-mj50, CC BY 4.0)",
+          "url": "https://doi.org/10.25921/m6tp-mj50"
+        },
+        {
+          "name": "Lange et al., ESSD preprint (doi:10.5194/essd-2026-496)",
+          "url": "https://doi.org/10.5194/essd-2026-496"
+        },
+        {
+          "name": "Ship names — NERC Vocabulary Server (NVS), BODC, collection C17, CC BY 4.0",
+          "url": "https://vocab.nerc.ac.uk/collection/C17/current/"
+        }
+      ]
+    },
     "ocean-co2-surface": {
       "label": "Surface Ocean CO₂ (SOCAT)",
       "source": "Bakker, D.C.E. et al. / SOCAT community (2025) Surface Ocean CO₂ Atlas (SOCAT) version 2026. NCEI Accession 0315110, https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system-portal/ · socat.info",
@@ -1154,7 +1177,9 @@
     "nutrients_model_title": "Nutrients & productivity (model)",
     "nutrients_model": "Compare a cell with the product's own viewer or download service at",
     "ocean_colour_title": "Ocean colour (satellite)",
-    "ocean_colour": "Compare a cell with the product's own viewer or download service at"
+    "ocean_colour": "Compare a cell with the product's own viewer or download service at",
+    "glodapPoints_title": "GLODAPv3 bottle measurements",
+    "glodapPoints": "Source: GLODAPv3 (2026), NOAA NCEI accession 0315582, doi:10.25921/m6tp-mj50, CC BY 4.0. Cross-check a cast by the cruise EXPOCODE shown in its panel: the cruise page is cchdo.ucsd.edu/cruise/<EXPOCODE> (CCHDO), and the cruise is listed in the NCEI GLODAPv3 Cruise Summary Table (https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/GLODAPv3/cruise_table_v3.html). Then find the station and cast in the cruise's data file. Compare a cast's DIC at 200 m with the field there: same units (µmol/kg), different vintage (bottle year vs 2002-normalised map) — the points are GLODAPv3 bottle values as measured, the field is the GLODAPv2.2016b map, so differences are expected. Ship names are credited to the NERC Vocabulary Server (NVS), BODC, collection C17, CC BY 4.0."
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

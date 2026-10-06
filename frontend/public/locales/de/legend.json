@@ -443,6 +443,29 @@
       "reading": "Die Farbe kodiert den Wert der gewählten Variable auf der gewählten Tiefe. Verwenden Sie den Variablen-Selektor, um zwischen DIC (µmol/kg), Gesamtalkalität (µmol/kg), pH und anthropogenem CO₂ Cant (µmol/kg) umzuschalten. Verwenden Sie den Tiefen-Selektor, um die Ebenen von 0 bis 4000 m zu durchlaufen. Genaue numerische Werte sind nur in der Hexagon-Ansicht verfügbar — wechseln Sie zu Hexagone und klicken Sie auf eine Zelle.",
       "limitations": "Horizontale Auflösung 1°; die DIVA-Interpolation glättet feinskalige Gradienten und erzeugt Artefakte in datenspärlichen Regionen (Südpolarmeer, Arktis). Das Rasterprodukt ist auf GLODAPv2.2016b eingefroren — es spiegelt keine Beobachtungen nach 2016 oder den sich beschleunigenden Versauerungstrend des vergangenen Jahrzehnts wider. Das PNG-Farbfeld ist eine vorberechnete RGBA-Textur; numerische Werte sind im Feldmodus nicht per Klick abrufbar."
     },
+    "glodap-points": {
+      "label": "GLODAPv3-Flaschenmessungen",
+      "source": "Lange, N., Lauvset, S. K., Carter, B. R., et al. (2026) The Global Ocean Data Analysis Project version 3 (GLODAPv3), NCEI Accession 0315582. NOAA NCEI, doi:10.25921/m6tp-mj50, CC BY 4.0 · ESSD-Preprint doi:10.5194/essd-2026-496 · Schiffsnamen: NERC Vocabulary Server (NVS), BODC, Kollektion C17, CC BY 4.0",
+      "updateFreq": "Statische Version (GLODAPv3, 2026); die Quelle wird höchstens monatlich auf eine neue Version geprüft",
+      "description": "75.102 Casts von 1.181 Expeditionen (1972–2023) in GLODAPv3 (2026): die Flaschenproben hinter dem Ocean-Carbon-Feld. Einschalten über „Messungen“ im Ocean-Carbon-Panel.",
+      "reading": "Jeder Punkt ist ein Cast, eingefärbt in der eigenen Skala des Feldes mit der nächstgelegenen akzeptablen Flaschenprobe (WOCE-Flag 2) im Fenster der gewählten Tiefe (Oberfläche 0–10 m; tiefere Stufen: die Gitterzelle des Feldes). Grau: keine solche Flaschenprobe. Der pH ist auf der Gesamtskala bei In-situ-Temperatur und -Druck angegeben, wie im Feld.",
+      "limitations": "Das Feld ist das kartierte GLODAPv2.2016b, mit auf 2002 normiertem TCO₂ und pH; die Flaschenwerte sind so gemessen, wie sie in ihrem Jahr vorlagen, Abweichungen sind daher zu erwarten. Für pH und fCO₂ in GLODAPv3 gab es keine sekundäre Qualitätskontrolle. Cant hat kein Flaschenäquivalent.",
+      "selectionCriteria": "Nur Flaschenproben mit WOCE-Flag 2 erreichen die Karte. Interpolierte oder berechnete Werte (Flag 0) und fehlende Proben (Flag 9) werden nie als Messungen gezeichnet; der Status der sekundären Qualitätskontrolle ist gespeichert und im Cast-Panel zu sehen.",
+      "dataSources": [
+        {
+          "name": "GLODAPv3 — NOAA NCEI, Accession 0315582 (doi:10.25921/m6tp-mj50, CC BY 4.0)",
+          "url": "https://doi.org/10.25921/m6tp-mj50"
+        },
+        {
+          "name": "Lange et al., ESSD-Preprint (doi:10.5194/essd-2026-496)",
+          "url": "https://doi.org/10.5194/essd-2026-496"
+        },
+        {
+          "name": "Schiffsnamen — NERC Vocabulary Server (NVS), BODC, Kollektion C17, CC BY 4.0",
+          "url": "https://vocab.nerc.ac.uk/collection/C17/current/"
+        }
+      ]
+    },
     "ocean-co2-surface": {
       "label": "Oberflächen-CO₂ im Ozean (SOCAT)",
       "source": "Bakker, D.C.E. et al. / SOCAT-Gemeinschaft (2025) Surface Ocean CO₂ Atlas (SOCAT) Version 2026. NCEI Accession 0315110, https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system-portal/ · socat.info",
@@ -1154,7 +1177,9 @@
     "nutrients_model_title": "Nährstoffe & Produktivität (Modell)",
     "nutrients_model": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter",
     "ocean_colour_title": "Ozeanfarbe (Satellit)",
-    "ocean_colour": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter"
+    "ocean_colour": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter",
+    "glodapPoints_title": "GLODAPv3-Flaschenmessungen",
+    "glodapPoints": "Quelle: GLODAPv3 (2026), NOAA NCEI, Accession 0315582, doi:10.25921/m6tp-mj50, CC BY 4.0. Einen Cast prüfen Sie über den EXPOCODE der Expedition aus seinem Panel: die Expeditionsseite ist cchdo.ucsd.edu/cruise/<EXPOCODE> (CCHDO), und die Expedition steht in der NCEI-Tabelle GLODAPv3 Cruise Summary Table (https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/GLODAPv3/cruise_table_v3.html). Danach Station und Cast in der Datendatei der Expedition suchen. Vergleichen Sie den DIC eines Casts in 200 m mit dem Feld an dieser Stelle: gleiche Einheiten (µmol/kg), anderer Jahrgang (Flaschenjahr vs. auf 2002 normierte Karte) — die Punkte sind GLODAPv3-Flaschenwerte wie gemessen, das Feld ist die GLODAPv2.2016b-Karte, Abweichungen sind daher zu erwarten. Die Schiffsnamen sind dem NERC Vocabulary Server (NVS), BODC, Kollektion C17, CC BY 4.0, zugeordnet."
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

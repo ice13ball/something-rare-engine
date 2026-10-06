@@ -519,6 +519,7 @@ export const LAYER_FIXTURES: LayerFixture[] = [
     },
   },
   { layer: "wod-oxygen", id: "TEST-WOD-1", properties: {} },
+  { layer: "glodap-points", id: "49UF20150620_4511_1", properties: { cast_key: "49UF20150620_4511_1" } },
   { layer: "memento", id: "TEST-MEMENTO-1", properties: {} },
   {
     layer: "memento-hexes",
@@ -641,4 +642,5 @@ export const LAYER_FIXTURES: LayerFixture[] = [
 // by two for one layer. A drop of one here would mean something else was lost.
 // 77 -> 78 on 2026-10-01: `ocean-nutrients-model` point panel added.
 // 78 -> 79 on 2026-10-01: `ocean-colour-satellite` point panel added.
-export const EXPECTED_LAYER_COUNT = 79;
+// 79 -> 80 on 2026-10-06: `glodap-points` cast panel added.
+export const EXPECTED_LAYER_COUNT = 80;

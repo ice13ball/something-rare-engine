@@ -16,6 +16,7 @@
  * admission, because it stops anyone re-checking.
  */
 import type { AssertComplete, AssertDisjoint } from "./layerRegistry";
+import type { LayerId } from "./layers";
 import { isActiveVentStatus } from "../utils/ventStatus";
 
 /** How the client gets at a feature of this layer. */
@@ -58,6 +59,19 @@ export interface OpenableLayer {
    * a panel poorer than a click produces, and say nothing about it.
    */
   byIdPath?: string;
+  /**
+   * The `/by-id` answer is a bare object, not a GeoJSON Feature, but carries top-level numeric `lat`/`lon`:
+   * build the Point from them so the link can fly there. Opt-in — turning it on for a layer whose endpoint
+   * happens to return `lat`/`lon` would change where its links land.
+   */
+  geometryFromLatLon?: boolean;
+  /**
+   * Other layers that must be ON for this layer's object to be visible on the map, switched on together with
+   * it when a link restores the panel. Typed `LayerId`, so a typo or a removed layer is a tsc error.
+   * ⛔ A link without a layer list (`l`) names only its `o` entries: without this the panel opens over a map
+   * that draws nothing for it.
+   */
+  alsoActivate?: readonly LayerId[];
 }
 
 /**
@@ -268,6 +282,19 @@ export const OPENABLE = {
     routingKeys: ["methane-seeps"], routingKey: () => "methane-seeps",
     zoom: 7, idStability: "nieustalone",
     dataKey: "methaneSeeps",
+  },
+  "glodap-points": {
+    // cast_key = EXPOCODE_station_cast: stable across re-imports (surrogate ids regenerate on every swap, and
+    // the pick index changes with every year filter and variable switch). `key` is the same value under the
+    // points document's name. ⛔ Not in ID_CHAIN: the chain is first-match-wins for every layer.
+    source: "by-id", idProps: ["cast_key", "key"],
+    routingKeys: ["glodap-points"], routingKey: () => "glodap-points",
+    zoom: 6, idStability: "stable",
+    byIdPath: "/api/v1/glodap/cast/",
+    geometryFromLatLon: true,
+    // The points are drawn only when the Ocean Carbon field's own toggle is on too (the child toggle sits in
+    // its panel), and the panel reads that field's variable/depth.
+    alsoActivate: ["ocean-carbon"],
   },
   "mosaic-sediment": {
     source: "by-id", idProps: ["core_id", "id"],

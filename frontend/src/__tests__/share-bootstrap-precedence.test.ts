@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 
 import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam } from "../components/map3d/shareBootstrap";
 import type { LayerId } from "../types/layers";
+import { useMapStore } from "../store/mapStore";
 
 const FLY = { longitude: 1, latitude: 2, zoom: 9 };
 const SHARE_CAM = { longitude: 10, latitude: 20, zoom: 6, pitch: 30, bearing: 15 };
@@ -79,6 +80,22 @@ describe("layer precedence — a link's layer list is authoritative, never merge
     // seamounts stays opt-in; brand-new-layer auto-enables.
     const r = resolveInitialLayers(null, saved, ALL_IDS);
     expect(r).toEqual(new Set(["argo", "brand-new-layer"]));
+  });
+
+  it("glodap-points is opt-in like seamounts: a returning visitor who never knew it does not get it, and ocean-carbon opens in Field mode", () => {
+    const ids = ["ocean-carbon", "argo", "glodap-points", "brand-new-layer"] as unknown as LayerId[];
+    const saved = { activeLayers: ["ocean-carbon", "argo"] as unknown as LayerId[], knownLayers: ["ocean-carbon", "argo"] as LayerId[] };
+    const r = resolveInitialLayers(null, saved, ids)!;
+    expect(r.has("glodap-points" as LayerId)).toBe(false);
+    expect(r.has("brand-new-layer" as LayerId)).toBe(true);        // ordinary new layers still auto-enable
+    useMapStore.setState({ activeLayers: new Set(), carbonDisplayMode: "field", enabledLayerIds: null } as any);
+    useMapStore.getState().setActiveLayers(r);
+    expect(useMapStore.getState().carbonDisplayMode).toBe("field");
+    expect(useMapStore.getState().activeLayers.has("ocean-carbon" as LayerId)).toBe(true);
+    // a visitor who DID switch it on (known + active) keeps it
+    const kept = resolveInitialLayers(null, { activeLayers: ["ocean-carbon", "glodap-points"] as unknown as LayerId[],
+      knownLayers: ["ocean-carbon", "glodap-points"] as LayerId[] }, ids)!;
+    expect(kept.has("glodap-points" as LayerId)).toBe(true);
   });
 
   it("returns null (do nothing) when there is neither a link nor saved state", () => {

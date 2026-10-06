@@ -39,10 +39,12 @@ interface Props {
   oceanColourMeta?: OceanColourMeta | null;
   oxygenMeta?: { views: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp: Array<{ pos: number; hex: string }>; depths: number[]; diverging: boolean }>; depths: number[]; attribution: string } | null;
   carbonMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
+  glodapYearBounds?: { min: number; max: number } | null;
+  glodapLoading?: boolean;
   co2Meta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp?: Array<{ pos: number; hex: string }> }>; decades: Array<{ index: number; label: string }> } | null;
 }
 
-export function OceanClimatologySection({ expandedFilter, setExpandedFilter, toggleExpand, toggle, flyToLayer, woaMeta, nutrientsMeta, oceanColourMeta, oxygenMeta, carbonMeta, co2Meta }: Props) {
+export function OceanClimatologySection({ expandedFilter, setExpandedFilter, toggleExpand, toggle, flyToLayer, woaMeta, nutrientsMeta, oceanColourMeta, oxygenMeta, carbonMeta, glodapYearBounds, glodapLoading, co2Meta }: Props) {
   const { t } = useTranslation(["panels", "common"]);
 
   return (
@@ -77,6 +79,8 @@ export function OceanClimatologySection({ expandedFilter, setExpandedFilter, tog
                 toggleExpand={toggleExpand}
                 toggle={toggle}
                 carbonMeta={carbonMeta}
+                glodapYearBounds={glodapYearBounds}
+                glodapLoading={glodapLoading}
               />
 
               <OceanCo2SurfaceRow

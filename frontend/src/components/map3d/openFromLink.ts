@@ -158,11 +158,18 @@ export async function fetchOpenTarget(
     const feature = (body?.type === "Feature" ? body : null) as Feature | null;
     const properties = (feature?.properties ?? body ?? {}) as Record<string, unknown>;
     if (Object.keys(properties).length === 0) return null;
+    // A bare object has no geometry, so the link could not fly anywhere. Layers that opt in (the `/by-id`
+    // answer carries top-level lat/lon) get a Point built from those two numbers.
+    const lat = properties.lat, lon = properties.lon;
+    const geometry = cfg.geometryFromLatLon && typeof lat === "number" && typeof lon === "number"
+      && Number.isFinite(lat) && Number.isFinite(lon)
+      ? { type: "Point" as const, coordinates: [lon, lat] }
+      : null;
     return {
       routingKey: cfg.routingKey(properties),
       id: featureId,
       properties,
-      feature: feature ?? ({ type: "Feature", geometry: null, properties } as unknown as Feature),
+      feature: feature ?? ({ type: "Feature", geometry, properties } as unknown as Feature),
       zoom: cfg.zoom,
     };
   } catch {
@@ -196,7 +203,12 @@ export function clickIdFor(
   props: Record<string, unknown>,
   index: number,
 ): string | number {
-  return layerId === "oceansites"
+  return layerId === "glodap-points"
+    // ⛔ The pick index changes with every year filter and variable switch (grey points sort first), and the
+    // surrogate row id regenerates on every swap. cast_key (EXPOCODE_station_cast) is the only stable name.
+    // The click handler stores `cast_key`; the points document calls the same value `key` — accept both.
+    ? ((props.cast_key as string | undefined) ?? (props.key as string | undefined) ?? String(index))
+    : layerId === "oceansites"
     // ⛔ OceanSITES features carry none of isa_id/id/platform_id; `ref` is the
     // only unique key (1038 of 1038 on prod). Without this branch the pick
     // index went into the link and reopened nothing.

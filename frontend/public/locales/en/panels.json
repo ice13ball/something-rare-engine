@@ -5,6 +5,7 @@
       "display": "Display",
       "field": "Field",
       "hexagons": "Hexagons",
+      "measurements": "Measurements",
       "variable": "Variable",
       "depth": "Depth",
       "decade": "Decade",
@@ -207,7 +208,15 @@
       "toggle": "Ocean Climatology (WOA)"
     },
     "oceanCarbon": {
-      "toggle": "Ocean Carbon (GLODAP)"
+      "toggle": "Ocean Carbon (GLODAP)",
+      "points": {
+        "versionNote": "Points: GLODAPv3 (2026) bottle samples. Field: GLODAPv2.2016b mapped climatology, TCO₂ and pH normalised to 2002. Points are as measured in their year.",
+        "greyNote": "Grey: no acceptable (WOCE flag 2) bottle in the {{window}} range around this depth.",
+        "cantNote": "Bottles carry no anthropogenic CO₂ — it is a mapped quantity. Points are grey.",
+        "yearFrom": "From",
+        "yearTo": "To",
+        "loading": "Loading measurements…"
+      }
     },
     "oceanCo2Surface": {
       "toggle": "Surface Ocean CO₂ (SOCAT)"
@@ -521,6 +530,7 @@
       "geotraces": "GEOTRACES IDP2025 water-column profiles of dissolved trace metals (Mn, Fe, Co, Ni, Cu) — the metals concentrated in seafloor nodules and crusts. Pick an element; each dot is a station coloured by its peak concentration. Click for the concentration-vs-depth profile. Research-grade, sparse coverage.",
       "methane-seeps": "Global inventory of seafloor methane seep sites from the SEAFLEA observed database (NRL / NOAA NCEI), compiled by Phrampus et al. (2020). Each dot is a confirmed seep location coloured by feature type (gas bubbles, gas hydrate, mound, pockmark, chemosynthetic community, carbonate hardground). Caveat: frozen Feb-2019 compilation — no new seep discoveries after that date are included. Coverage is survey-biased: 59% of records come from one Gulf of Mexico survey and the central North Sea has none — a blank area means no survey, not no seeps.",
       "ocean-carbon": "Seawater dissolved inorganic carbon system (DIC, Total Alkalinity, pH, anthropogenic CO₂) from the GLODAPv2.2016b 1° climatology. Select a variable and depth (0–4000 m); the colour field shows the global distribution. Switch to Hexagons to read exact values on click. Static product — pre-2016 cruise data only.",
+      "glodap-points": "Individual GLODAPv3 (2026) bottle casts — the real measurements behind the Ocean Carbon field. Each dot is one cast, coloured in the field's scale at the selected variable and depth; grey where no acceptable bottle lies within that depth's window. Raw bottle values: the field (GLODAPv2.2016b) is normalised to 2002, the bottles are not.",
       "ocean-co2-surface": "Surface ocean fugacity of CO₂ (fCO₂), observation density, sea-surface temperature, and salinity from the SOCATv2026 quality-controlled ship-track database, binned onto a 1° decadal grid. Use the variable selector to switch between fCO₂, density, SST, and salinity; use the decade selector to step through the 1970s–2020s. Switch to Hexagons to read exact values on click. Caveat: non-gap-filled product — roughly 21% of 1° cells have data, concentrated along ship tracks.",
       "sios-svalbard": "In-situ observing datasets from the SIOS (Svalbard Integrated Arctic Earth Observing System) catalogue — oceanographic, atmospheric, cryospheric, and biological measurements collected around Svalbard and the wider Arctic. Each point links to the dataset landing page. Discovery layer only: metadata and links, not the measurements themselves. Coverage is in-situ; remote-sensing and modelled products are outside this layer's scope.",
       "marine-carbon": "One hexagon grid uniting every carbon-related ocean field — click a cell to see surface CO₂, interior carbon, oxygen and physical climatology together, each labelled by source. A co-located readout, not a single combined value.",
@@ -1610,6 +1620,59 @@
       "noData": "No satellite observation this month (cloud, sea ice, polar night or land).",
       "notCovered": "Outside the grid, which ends at 89.875° latitude.",
       "failed": "Could not load the satellite values."
+    }
+  },
+  "glodapCast": {
+    "loading": "Loading cast…",
+    "missing": "This cast no longer exists in the current GLODAPv3 import.",
+    "error": "The cast could not be loaded right now. The service is unavailable or busy.",
+    "retry": "Try again",
+    "productNote": "{{points}} bottle cast · field: {{field}}",
+    "variable": "Variable",
+    "cantFallback": "Bottles carry no anthropogenic CO₂ (Cant is a mapped quantity). The chart shows DIC.",
+    "depthAxis": "Depth (m)",
+    "chartAria": "{{variable}} profile of the cast",
+    "legend": "White: acceptable bottles (WOCE flag 2). Amber ring: the bottle used at the selected depth.",
+    "legendField": "Dashed green: the mapped field at this position.",
+    "noAcceptable": "No acceptable (WOCE flag 2) {{variable}} samples on this cast, so there is nothing to plot.",
+    "sectionValues": "At the selected depth",
+    "sectionCast": "Cast",
+    "sectionSource": "Source and credit",
+    "atDepth": "{{variable}}, bottle at {{depth}} m",
+    "noBottleInWindow": "no acceptable bottle within {{window}}",
+    "fieldHere": "{{variable}}, field at {{depth}} m",
+    "noField": "no field value here",
+    "cruise": "Cruise (EXPOCODE)",
+    "ship": "Ship",
+    "stationCast": "Station / cast",
+    "castNotGiven": "not given",
+    "date": "Date",
+    "dayPrecision": "date only, no time recorded",
+    "position": "Position",
+    "spreadLabel": "Position spread",
+    "spread": "bottles spread over {{km}} km",
+    "bottomDepth": "Bottom depth",
+    "flags": "Samples",
+    "flagCounts": "{{good}} acceptable (flag 2) · {{other}} with another flag, e.g. interpolated or calculated (flag 0) — not plotted",
+    "qc": "Secondary QC",
+    "qc1": "passed",
+    "qc0": "not applied",
+    "noQc": "this variable has no secondary QC in GLODAPv3",
+    "source": "GLODAPv3 dataset (NCEI)",
+    "cruiseDoi": "Cruise DOI",
+    "var": {
+      "tco2": "DIC (TCO₂)",
+      "talk": "Total alkalinity",
+      "phtsinsitutp": "pH (total scale, in situ)",
+      "cant": "Anthropogenic CO₂ (Cant)",
+      "temperature": "Temperature",
+      "salinity": "Salinity",
+      "oxygen": "Oxygen",
+      "nitrate": "Nitrate",
+      "silicate": "Silicate",
+      "phosphate": "Phosphate",
+      "phts25p0": "pH (total scale, 25 °C)",
+      "fco2": "fCO₂ (20 °C)"
     }
   }
 }

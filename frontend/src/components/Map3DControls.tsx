@@ -44,6 +44,9 @@ interface Props {
   oxygenMeta?: { views: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp: Array<{ pos: number; hex: string }>; depths: number[]; diverging: boolean }>; depths: number[]; attribution: string } | null;
   // Ocean Carbon (GLODAP) meta — passed from Map3D once the layer first activates.
   carbonMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
+  // GLODAP Measurements (points): year span of the loaded cast document, and whether it is still loading.
+  glodapYearBounds?: { min: number; max: number } | null;
+  glodapLoading?: boolean;
   // Surface Ocean CO₂ (SOCAT) meta — passed from Map3D once the layer first activates.
   co2Meta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp?: Array<{ pos: number; hex: string }> }>; decades: Array<{ index: number; label: string }> } | null;
 }
@@ -62,6 +65,8 @@ export function Map3DControls({
   oceanColourMeta,
   oxygenMeta,
   carbonMeta,
+  glodapYearBounds,
+  glodapLoading,
   co2Meta,
 }: Props) {
   const {
@@ -379,7 +384,7 @@ export function Map3DControls({
             <SensorsSection expandedFilter={expandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} currentsMeta={currentsMeta} currentsDate={currentsDate} setCurrentsDate={setCurrentsDate} currentsPlaying={currentsPlaying} setCurrentsPlaying={setCurrentsPlaying} />
 
             {/* ── Ocean Climatology ─────────────────────────────────── */}
-            <OceanClimatologySection expandedFilter={expandedFilter} setExpandedFilter={setExpandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} woaMeta={woaMeta} nutrientsMeta={nutrientsMeta} oceanColourMeta={oceanColourMeta} oxygenMeta={oxygenMeta} carbonMeta={carbonMeta} co2Meta={co2Meta} />
+            <OceanClimatologySection expandedFilter={expandedFilter} setExpandedFilter={setExpandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} woaMeta={woaMeta} nutrientsMeta={nutrientsMeta} oceanColourMeta={oceanColourMeta} oxygenMeta={oxygenMeta} carbonMeta={carbonMeta} glodapYearBounds={glodapYearBounds} glodapLoading={glodapLoading} co2Meta={co2Meta} />
 
             {/* ── Infrastructure ────────────────────────────────────── */}
             {/* ── Infrastructure ────────────────────────────────────── */}

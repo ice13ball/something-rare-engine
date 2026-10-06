@@ -31,6 +31,7 @@ from schema.blog import ensure_blog
 from schema.cables import ensure_cables
 from schema.core import ensure_core, ensure_argo_long_form, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback, ensure_sync_queue
 from schema.fields import ensure_vme
+from schema.glodap_bottles import ensure_glodap_bottles
 from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea, ensure_marhys
 from schema.isa import ensure_mining_contracts_columns, ensure_isa_seed, ISA_CONTRACT_SEED
 from schema.offshore import ensure_ports, ensure_offshore_activities
@@ -98,5 +99,6 @@ async def ensure_schema() -> None:
         await ensure_svalbard_fjords_pp(conn)  # svalbard_fjords_pp_version, svalbard_fjords_pp_samples, *_current view (dev-only preview layer)
         await ensure_openaq_request_budget(conn)  # openaq_request_budget (per-UTC-day OpenAQ request counter)
         await ensure_plankton(conn)  # plankton_datasets, plankton_occurrences (filled by plankton_obis_worker)
+        await ensure_glodap_bottles(conn)  # glodap_casts, glodap_cruises, glodap_bottle_source (filled by glodap_bottles_worker)
 
     log.info("Schema ready")

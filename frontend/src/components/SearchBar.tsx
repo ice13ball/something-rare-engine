@@ -9,6 +9,7 @@ import type { LayerId } from "../types/layers";
 import { useMapStore } from "../store/mapStore";
 import type { AssertComplete, AssertDisjoint } from "../types/layerRegistry";
 import { isActiveVentStatus } from "../utils/ventStatus";
+import { OPENABLE_LOOKUP } from "../types/openableRegistry";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -152,6 +153,21 @@ const SEARCH_CONFIGS = [
     fields: ["ref", "name", "network"],
     display: p => ({ primary: String(p.name ?? p.ref ?? ""), secondary: String(p.network ?? p.ref ?? "") }),
     color: "#00cfff",
+  },
+  {
+    // Searches the 1,181 CRUISES, not the 75,102 casts: expocode is the name people quote, ship_name is
+    // absent when no open source for it was verified (the field is null then, and simply does not match).
+    key: "glodapCruises", layerId: "glodap-points", label: "GLODAPv3 cruises",
+    fields: ["expocode", "ship_name"],
+    display: p => ({
+      primary: String(p.ship_name ?? p.expocode ?? ""),
+      secondary: [
+        p.expocode,
+        [p.first_date, p.last_date].map(d => String(d ?? "").slice(0, 4))
+          .filter((y, i, a) => y && a.indexOf(y) === i).join("–"),
+      ].filter(Boolean).join(" · "),
+    }),
+    color: "#f8fafc",
   },
   {
     key: "onc", layerId: "onc", label: "ONC Observatories",
@@ -472,6 +488,10 @@ export function featureId(p: Record<string, unknown>): string | number {
  */
 export function featureIdFor(layerId: string, p: Record<string, unknown>): string | number {
   if (layerId === "oceansites" && p.ref != null) return p.ref as string | number;
+  // A cruise has no panel of its own: a search result opens the cruise's first cast, whose key
+  // (EXPOCODE_station_cast) is stable across re-imports. Never a pick index, never the bare expocode
+  // (the cast endpoint would 404 on it).
+  if (layerId === "glodap-points" && p.first_cast_key != null) return p.first_cast_key as string;
   return featureId(p);
 }
 
@@ -684,8 +704,12 @@ export function SearchBar({ dataRef, dataVersion }: SearchBarProps) {
         }, 800);
         return;
       }
-      // Ensure layer is active
+      // Ensure layer is active — and the layers its panel needs beside it (GLODAP points draw only
+      // while the Ocean Carbon field is on), as a shared link does.
       if (!activeLayers.has(r.layerId)) toggleLayer(r.layerId);
+      for (const extra of OPENABLE_LOOKUP[r.layerId]?.alsoActivate ?? []) {
+        if (!activeLayers.has(extra)) toggleLayer(extra);
+      }
       // Fly to the feature
       flyTo?.(r.coords[0], r.coords[1]);
       // Open popup after fly animation settles

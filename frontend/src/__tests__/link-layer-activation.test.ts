@@ -14,10 +14,41 @@
 import { describe, it, expect } from "vitest";
 
 import { nextActiveForLink, NO_CLIENT_COPY } from "../components/map3d/linkLayerActivation";
+import { isOpenableLayer, OPENABLE_LOOKUP } from "../components/map3d/openFromLink";
+import { isPointLayer } from "../components/map3d/pointFromLink";
 import { resolveOpenTarget } from "../components/map3d/openFromLink";
 
 const openable = (id: string) => id !== "not-openable";
 const point = (id: string) => id !== "not-a-point";
+
+describe("a layer's `alsoActivate` rides along with it", () => {
+  const also = (l: string) => (l === "child" ? ["parent"] : []);
+
+  it("an o-only link ends with both layers on", () => {
+    const out = nextActiveForLink(new Set(["contracts"]), [["child", "k"]], [], openable, point, also);
+    expect([...out!].sort()).toEqual(["child", "contracts", "parent"]);
+  });
+  it("the parent is added even when the child is already on", () => {
+    const out = nextActiveForLink(new Set(["child"]), [["child", "k"]], [], openable, point, also);
+    expect([...out!].sort()).toEqual(["child", "parent"]);
+  });
+  it("nothing to write when both are on", () => {
+    expect(nextActiveForLink(new Set(["child", "parent"]), [["child", "k"]], [], openable, point, also)).toBeNull();
+  });
+  it("is not pulled in by an entry the helper refuses (wrong kind)", () => {
+    expect(nextActiveForLink(new Set(), [["not-openable", "k"]], [], openable, point, () => ["parent"])).toBeNull();
+  });
+});
+
+describe("the real registry: a GLODAP cast link with no layer list", () => {
+  it("ends with glodap-points AND ocean-carbon on, merged onto whatever was on", () => {
+    const out = nextActiveForLink(
+      new Set(["contracts"]), [["glodap-points", "49UF20150620_4511_1"]], [],
+      isOpenableLayer, isPointLayer, (l) => OPENABLE_LOOKUP[l]?.alsoActivate ?? [],
+    );
+    expect([...out!].sort()).toEqual(["contracts", "glodap-points", "ocean-carbon"]);
+  });
+});
 
 describe("nextActiveForLink", () => {
   it("keeps a layer the link carried but no panel needs", () => {

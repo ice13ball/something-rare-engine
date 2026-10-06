@@ -38,11 +38,15 @@ export function nextActiveForLink(
   wantedPoints: readonly LayerEntry[],
   isOpenable: (layerId: string) => boolean,
   isPoint: (layerId: string) => boolean,
+  // Layers a panel's layer needs on beside itself (the registry's `alsoActivate`). A parameter, like the two
+  // predicates above, so this file stays free of the registry.
+  alsoActivate: (layerId: string) => readonly string[] = () => [],
 ): Set<string> | null {
-  const needed = [
+  const named = [
     ...wanted.filter(([layerId]) => isOpenable(layerId)).map(([l]) => l),
     ...wantedPoints.filter(([layerId]) => isPoint(layerId)).map(([l]) => l),
-  ].filter((l) => !base.has(l));
+  ];
+  const needed = [...named, ...named.flatMap((l) => alsoActivate(l))].filter((l) => !base.has(l));
 
   if (needed.length === 0) return null;
 

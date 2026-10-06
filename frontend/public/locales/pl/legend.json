@@ -443,6 +443,29 @@
       "reading": "Barwa koduje wartość wybranej zmiennej na wybranej głębokości. Użyj selektora Zmiennej, by przełączać między DIC (µmol/kg), zasadowością całkowitą (µmol/kg), pH i antropogenicznym CO₂ Cant (µmol/kg). Użyj selektora Głębokości, by przechodzić między poziomami od 0 do 4000 m. Dokładne wartości liczbowe są dostępne wyłącznie w widoku sześciokątów — przełącz na Sześciokąty i kliknij komórkę.",
       "limitations": "Rozdzielczość pozioma 1°; interpolacja DIVA wygładza gradienty drobnoskalowe i wprowadza artefakty w obszarach ubogich w dane (Ocean Południowy, Arktyka). Produkt siatkowy zamrożony na wersji GLODAPv2.2016b — nie odzwierciedla obserwacji po 2016 r. ani przyspieszającego trendu zakwaszenia z ostatniej dekady. Pole barwne PNG to wstępnie wyrenderowana tekstura RGBA; wartości liczbowe nie są dostępne przez kliknięcie w widoku pola."
     },
+    "glodap-points": {
+      "label": "Pomiary butelkowe GLODAPv3",
+      "source": "Lange, N., Lauvset, S. K., Carter, B. R. i in. (2026) The Global Ocean Data Analysis Project version 3 (GLODAPv3), NCEI Accession 0315582. NOAA NCEI, doi:10.25921/m6tp-mj50, CC BY 4.0 · preprint ESSD doi:10.5194/essd-2026-496 · Nazwy statków: NERC Vocabulary Server (NVS), BODC, kolekcja C17, CC BY 4.0",
+      "updateFreq": "Wydanie statyczne (GLODAPv3, 2026); źródło sprawdzane pod kątem nowej wersji najwyżej raz w miesiącu",
+      "description": "75 102 profile z 1181 rejsów (1972–2023) w GLODAPv3 (2026): próbki butelkowe stojące za polem Ocean Carbon. Włączane przełącznikiem „Pomiary” w panelu Ocean Carbon.",
+      "reading": "Każda kropka to jeden profil, pokolorowany w skali samego pola wartością najbliższej poprawnej butelki (flaga WOCE 2) w oknie wybranej głębokości (powierzchnia 0–10 m; głębsze poziomy: komórka siatki pola). Szary: brak takiej butelki. pH w skali całkowitej, w temperaturze i ciśnieniu in situ, jak w polu.",
+      "limitations": "Pole to zmapowane GLODAPv2.2016b, z TCO₂ i pH znormalizowanymi do 2002; butelki są takie, jak zmierzono w danym roku, więc różnice są oczekiwane. pH i fCO₂ w GLODAPv3 nie przeszły wtórnej kontroli jakości. Cant nie ma odpowiednika w butelkach.",
+      "selectionCriteria": "Na mapę trafiają tylko butelki z flagą WOCE 2. Wartości interpolowane lub obliczone (flaga 0) i brakujące próbki (flaga 9) nigdy nie są rysowane jako pomiary; status wtórnej kontroli jakości jest zapisany i pokazany w panelu profilu.",
+      "dataSources": [
+        {
+          "name": "GLODAPv3 — NOAA NCEI, akcesja 0315582 (doi:10.25921/m6tp-mj50, CC BY 4.0)",
+          "url": "https://doi.org/10.25921/m6tp-mj50"
+        },
+        {
+          "name": "Lange i in., preprint ESSD (doi:10.5194/essd-2026-496)",
+          "url": "https://doi.org/10.5194/essd-2026-496"
+        },
+        {
+          "name": "Nazwy statków — NERC Vocabulary Server (NVS), BODC, kolekcja C17, CC BY 4.0",
+          "url": "https://vocab.nerc.ac.uk/collection/C17/current/"
+        }
+      ]
+    },
     "ocean-co2-surface": {
       "label": "CO₂ powierzchniowego oceanu (SOCAT)",
       "source": "Bakker, D.C.E. i in. / społeczność SOCAT (2025) Surface Ocean CO₂ Atlas (SOCAT) wersja 2026. NCEI Accession 0315110, https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system-portal/ · socat.info",
@@ -1154,7 +1177,9 @@
     "nutrients_model_title": "Biogeny i produktywność (model)",
     "nutrients_model": "Porównaj komórkę z przeglądarką lub usługą pobierania samego produktu:",
     "ocean_colour_title": "Barwa oceanu (satelita)",
-    "ocean_colour": "Porównaj komórkę z przeglądarką lub usługą pobierania produktu na"
+    "ocean_colour": "Porównaj komórkę z przeglądarką lub usługą pobierania produktu na",
+    "glodapPoints_title": "Pomiary butelkowe GLODAPv3",
+    "glodapPoints": "Źródło: GLODAPv3 (2026), NOAA NCEI, akcesja 0315582, doi:10.25921/m6tp-mj50, CC BY 4.0. Profil sprawdzisz po EXPOCODE rejsu z jego panelu: strona rejsu to cchdo.ucsd.edu/cruise/<EXPOCODE> (CCHDO), a sam rejs znajdziesz w tabeli rejsów NCEI GLODAPv3 (Cruise Summary Table, https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/GLODAPv3/cruise_table_v3.html). Potem znajdź stację i profil w pliku danych rejsu. Porównaj DIC profilu na 200 m z polem w tym miejscu: te same jednostki (µmol/kg), inny rocznik (rok butelki vs mapa znormalizowana do 2002) — punkty to wartości butelkowe GLODAPv3 w stanie zmierzonym, pole to mapa GLODAPv2.2016b, więc różnice są oczekiwane. Nazwy statków pochodzą z NERC Vocabulary Server (NVS), BODC, kolekcja C17, CC BY 4.0."
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

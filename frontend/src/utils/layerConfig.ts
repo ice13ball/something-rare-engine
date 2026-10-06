@@ -73,6 +73,9 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "methane-seeps",          order_idx: 2080, default_on: false, modes: ["ocean","continue"] },
   { id: "ocean-carbon",           order_idx: 77, default_on: false, modes: ["ocean","continue"] },
   { id: "ocean-co2-surface",      order_idx: 78, default_on: false, modes: ["ocean","continue"] },
+  // Point layer (bottle casts) in the point band, above every field at 68-78. 2093 and not a
+  // free 2081/2082: databases not yet UPDATEd still hold the fields at the old 2075-2082.
+  { id: "glodap-points",          order_idx: 2093, default_on: false, modes: ["ocean","continue"] },
   { id: "marine-carbon",          order_idx: 70,   default_on: false, modes: ["ocean","continue"] },
   { id: "sios-svalbard",          order_idx: 2083, default_on: false, modes: ["ocean","continue"] },
   { id: "arctic-catchments",      order_idx: 2084, default_on: false, modes: ["ocean","continue"] },

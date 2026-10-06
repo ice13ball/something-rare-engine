@@ -314,3 +314,56 @@ describe("client-held data comes first, the network only as a fallback", () => {
   });
 });
 
+
+describe("GLODAP casts are keyed on cast_key, never on the pick index", () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+  const cast = { key: "49UF20150620_4511_1", cast_key: "49UF20150620_4511_1" };
+
+  it("writes the cast key into the link, not the pick index", () => {
+    expect(clickIdFor("glodap-points", cast, 51234)).toBe("49UF20150620_4511_1");
+  });
+  it("accepts the points document's own name for it (`key`)", () => {
+    expect(clickIdFor("glodap-points", { key: "49UF20150620_4511_1" }, 7)).toBe("49UF20150620_4511_1");
+  });
+  it("is not captured by the generic chain: an `id` on the properties never wins", () => {
+    expect(clickIdFor("glodap-points", { ...cast, id: 7 }, 3)).toBe("49UF20150620_4511_1");
+  });
+  it("round-trips through the cast key, not the pick index or the row id", () => {
+    const id = clickIdFor("glodap-points", { ...cast, id: 7 }, 3);
+    expect(openObjectsFor([{ id, layer: "glodap-points" }])).toEqual([["glodap-points", "49UF20150620_4511_1"]]);
+  });
+
+  it("a reloaded link reopens the same cast: `/by-id` by cast_key, panel routed to glodap-points, camera on its position", async () => {
+    // After a reload the layer's data is NOT loaded and every surrogate id has changed — the only thing that
+    // survives is the cast key in the link, so the lookup has to go to the API with exactly that.
+    const body = { cast_key: "49UF20150620_4511_1", lat: 1.23, lon: 4.56, expocode: "49UF20150620" };
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => body } as unknown as Response);
+    const [layerId, featureId] = openObjectsFor([{ id: clickIdFor("glodap-points", cast, 99), layer: "glodap-points" }])[0];
+    const t = await openTargetFor(layerId, featureId, null, "");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect((spy.mock.calls[0] as unknown as [string])[0]).toBe("/api/v1/glodap/cast/49UF20150620_4511_1");
+    expect(t!.routingKey).toBe("glodap-points");
+    expect(t!.id).toBe("49UF20150620_4511_1");               // the same id a click writes -> the panel dedupes
+    expect(t!.properties.cast_key).toBe("49UF20150620_4511_1");
+    expect(t!.zoom).toBe(6);
+    // the link can fly there: the bare answer's lat/lon became a Point
+    expect(t!.feature.geometry).toEqual({ type: "Point", coordinates: [4.56, 1.23] });
+  });
+
+  it("a cast key with reserved characters is encoded in the path", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => ({ cast_key: "A/B_1_1", lat: 1, lon: 2 }) } as unknown as Response);
+    await openTargetFor("glodap-points", "A/B_1_1", null, "");
+    expect((spy.mock.calls[0] as unknown as [string])[0]).toBe("/api/v1/glodap/cast/A%2FB_1_1");
+  });
+
+  it("a cast that no longer exists (404) is null — for the caller to report", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
+    expect(await openTargetFor("glodap-points", "GONE_1_1", null, "")).toBeNull();
+  });
+
+  it("only layers that opt in get a Point from a bare lat/lon answer", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => ({ gid: 77, lat: 5, lon: 6 }) } as unknown as Response);
+    const t = await openTargetFor("arctic-catchments", "77", null, "");
+    expect(t!.feature.geometry).toBeNull();
+  });
+});

@@ -70,7 +70,7 @@ export const DISPLAY_FIELDS = {
   oxygenDisplayMode: { layer: "oxygen-deox", default: "field", values: ["field", "hexes"] },
   carbonVariable: { layer: "ocean-carbon", default: "dic", check: "slug" },
   carbonDepth: { layer: "ocean-carbon", default: 0, check: "depth" },
-  carbonDisplayMode: { layer: "ocean-carbon", default: "field", values: ["field", "hexes"] },
+  carbonDisplayMode: { layer: "ocean-carbon", default: "field", values: ["field", "hexes", "points"] },
   acidificationVariable: { layer: "ocean-acidification", default: "aragonite", values: ["aragonite", "calcite", "horizon", "horizon-shift"] },
   acidificationDepth: { layer: "ocean-acidification", default: 0, check: "depth" },
   acidificationDisplayMode: { layer: "ocean-acidification", default: "field", values: ["field", "hexes"] },

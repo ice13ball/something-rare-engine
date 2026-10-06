@@ -599,3 +599,37 @@ export const SVALBARD_FJORDS_PP_META = {
     ],
   },
 };
+
+// GLODAPv3 bottle cast — shape of `/api/v1/glodap/cast/{cast_key}` (backend/domains/glodap_points.py
+// `get_cast_payload`). One flag-0 sample (205 m, interpolated) and one flag-9 sample with no value (1000 m).
+const GLODAP_NVS_CREDIT =
+  "Ship names: The NERC Vocabulary Server (NVS), National Oceanography Centre - British Oceanographic Data Centre (BODC), "
+  + "collection C17 (ICES platform codes), https://vocab.nerc.ac.uk/collection/C17/current/ - CC BY 4.0, https://vocab.nerc.ac.uk/about";
+export const GLODAP_CAST = {
+  cast_key: "49UF20150620_4511_1", expocode: "49UF20150620", station: "4511", cast_no: 1,
+  ship_name: "TEST Ship", platform_code: "49UF", lat: 1.23, lon: 4.56,
+  obs_date: "2015-06-20", obs_time: "2015-06-20T12:34:00+00:00", time_precision: "minute",
+  year: 2015, region: 1, doi: "10.1234/test-cruise", bottom_depth_m: 4100, pos_spread_km: 0.5,
+  depth_m: [5, 200, 205, 1000, 4000],
+  variables: {
+    tco2: { values: [2050, 2150, 2155, null, 2250], flags: [2, 2, 0, 9, 2], qc: 1, units: "µmol/kg" },
+    talk: { values: [2300, 2310, null, null, 2330], flags: [2, 2, 9, 9, 2], qc: null, units: "µmol/kg" },
+    temperature: { values: [20, 10, 9, 4, 1.5], flags: [2, 2, 2, 2, 2], qc: 1, units: "°C" },
+  },
+  levels: { dic: { "0": [2050, 5], "200": [2150, 200], "4000": [2250, 4000] }, talk: { "0": [2300, 5] } },
+  field: {
+    dic: { "0": 2040.5, "200": 2140.2, "500": null, "1000": 2190, "2000": 2220, "3000": 2240, "4000": 2260 },
+    talk: { "0": 2299.9, "200": 2309.9 },
+    ph: { "0": 8.101, "200": 7.9 },
+    cant: { "0": 55.4, "200": 30.1 },
+  },
+  citations: [
+    "Lange, N., et al. (2026). The Global Ocean Data Analysis Project version 3 (GLODAPv3). NOAA NCEI. https://doi.org/10.25921/m6tp-mj50",
+    "Lange et al., ESSD preprint, https://doi.org/10.5194/essd-2026-496",
+    GLODAP_NVS_CREDIT,
+  ],
+  citation: "dataset — and — paper — and — ship names",
+  source_url: "https://doi.org/10.25921/m6tp-mj50",
+  product: "GLODAPv3 (2026)",
+  field_product: "GLODAPv2.2016b mapped climatology (TCO2 and pH normalised to 2002)",
+};

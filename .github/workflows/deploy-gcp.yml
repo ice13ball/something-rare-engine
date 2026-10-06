@@ -22,20 +22,81 @@ env:
   IMAGE: YOUR_REGION-docker.pkg.dev/YOUR_GCP_PROJECT_ID/YOUR_ARTIFACT_REPO/frontend
 
 jobs:
-  # ⛔ THE GATE. Nothing below runs until the whole suite passes. Before 2026-08-21
-  # this workflow went straight from `git push` to `gcloud run deploy` with no test
-  # of any kind — the only check was `tsc` running as a side effect of the Docker
-  # build. See .github/workflows/tests.yml for what this runs and what it excludes.
+  # ⛔ THE GATE. Nothing below runs until the whole suite has passed FOR THIS EXACT
+  # COMMIT. Before 2026-08-21 this workflow went straight from `git push` to
+  # `gcloud run deploy` with no test of any kind — the only check was `tsc` running
+  # as a side effect of the Docker build. See .github/workflows/tests.yml for what
+  # the suite runs and what it excludes.
+  #
+  # Since 2026-10-06 the suite is not run twice for one release. `main` is a
+  # fast-forward copy of `dev` (the push is refused until GitHub shows both test
+  # jobs green for that SHA), so the run here used to repeat, minute for minute, the
+  # run the commit had already passed on `dev` — and free Actions minutes are
+  # limited. `check` asks GitHub whether that proof already exists; `test` runs only
+  # if it does not, and `deploy` accepts either "test passed" or "already green".
+  #
+  # What still runs the suite here: a manual dispatch (always), a commit that has no
+  # green proof (it never went through `dev`, or a job was red / cancelled / still
+  # running), and any doubt — an API error counts as "no proof".
+  check:
+    name: Already tested on this SHA?
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read   # sparse checkout of the one script below
+      checks: read     # the check runs of this commit
+    outputs:
+      already_green: ${{ steps.decide.outputs.already_green }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: backend/scripts/ci_already_green.py
+          sparse-checkout-cone-mode: false
+
+      # The rule lives in the script (unit-tested in backend/tests/test_ci_already_green.py),
+      # not here. Any failure of this step — gh missing, the API down, a malformed
+      # answer — lands on `false`, i.e. "run the tests".
+      - name: Ask GitHub for this commit's check runs
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          EVENT: ${{ github.event_name }}
+        shell: bash   # explicit, to get `-o pipefail`: a failed `gh` must not look like a result
+        run: |
+          out=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" --paginate --slurp \
+                  | python3 -I backend/scripts/ci_already_green.py --run-id "$RUN_ID" --event "$EVENT") \
+            || out="already_green=false"
+          case "$out" in
+            already_green=true|already_green=false) ;;
+            *) out="already_green=false" ;;
+          esac
+          echo "$out" | tee -a "$GITHUB_OUTPUT"
+
   test:
+    needs: check
+    # `!cancelled()` and not the default success() so that a failed `check` job
+    # still runs the tests instead of silently skipping them.
+    if: ${{ !cancelled() && needs.check.outputs.already_green != 'true' }}
     uses: ./.github/workflows/tests.yml
 
   deploy:
     name: Build & Deploy
-    needs: test
+    needs: [check, test]
+    # Deploy when the suite passed here, or was skipped BECAUSE the commit was
+    # already green. A failed or cancelled `test` never deploys (`skipped` for any
+    # other reason does not either: the second arm demands `already_green`).
+    # `!cancelled()` is required, otherwise a skipped `test` skips this job too.
+    #
     # Skip cleanly on a fork instead of failing loudly on GCP auth — the
     # workload identity provider and service account below only exist in the
     # upstream project (see README: "infra values are placeholders").
-    if: github.repository == 'ice13ball/something-rare'
+    if: >-
+      ${{ !cancelled()
+          && github.repository == 'ice13ball/something-rare'
+          && (needs.test.result == 'success'
+              || (needs.test.result == 'skipped' && needs.check.outputs.already_green == 'true')) }}
     # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
     # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}

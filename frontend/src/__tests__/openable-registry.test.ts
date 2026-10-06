@@ -13,7 +13,8 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
-import { OPENABLE, NOT_OPENABLE } from "../types/openableRegistry";
+import { OPENABLE, OPENABLE_LOOKUP, NOT_OPENABLE } from "../types/openableRegistry";
+import { LAYER_DEFAULTS } from "../utils/layerConfig";
 
 const DETAIL_PANEL = path.resolve(__dirname, "../components/DetailPanel.tsx");
 
@@ -60,12 +61,30 @@ describe("every key the registry promises is a branch the dispatcher has", () =>
     expect(covered.size).toBeGreaterThan(0);
     expect(opted.size).toBeGreaterThan(0);
     expect([...covered].filter((l) => opted.has(l))).toEqual([]);
-    expect(covered.size + opted.size).toBe(64);
+    expect(covered.size + opted.size).toBe(65);
   });
 
   it("an identifier known to rot is marked, not quietly treated as stable", () => {
     // ⛔ OBIS mints a new id on every republication. A reader whose link stops
     // working deserves to be told the link aged, not that the record never was.
     expect(OPENABLE["biodiversity-hotspots"].idStability).toBe("regenerated");
+  });
+});
+
+describe("alsoActivate names real layers and is wired where the cast link needs it", () => {
+  it("every alsoActivate id is a layer the map has, and never the layer itself", () => {
+    const real = new Set(LAYER_DEFAULTS.map((l) => l.id as string));
+    expect(real.size).toBeGreaterThan(50);                       // positive control
+    const withAlso = Object.entries(OPENABLE_LOOKUP).filter(([, c]) => c.alsoActivate?.length);
+    expect(withAlso.length).toBeGreaterThan(0);
+    for (const [layerId, cfg] of withAlso) {
+      for (const dep of cfg.alsoActivate!) {
+        expect(real.has(dep), `${layerId} -> ${dep}`).toBe(true);
+        expect(dep).not.toBe(layerId);
+      }
+    }
+  });
+  it("the GLODAP cast link also switches on the Ocean Carbon field", () => {
+    expect(OPENABLE["glodap-points"].alsoActivate).toEqual(["ocean-carbon"]);
   });
 });

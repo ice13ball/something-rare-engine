@@ -64,6 +64,11 @@ export const LAYER_TOOLTIPS_META = {
     sourceUrl: "https://glodap.info/index.php/mapped-data-product/",
     pairsWith: ["woa-climatology", "oxygen-deox", "argo"],
   },
+  "glodap-points": {
+    source: "GLODAPv3 (Lange et al. 2026) — individual bottle casts, NOAA NCEI (doi:10.25921/m6tp-mj50)",
+    sourceUrl: "https://doi.org/10.25921/m6tp-mj50",
+    pairsWith: ["ocean-carbon", "woa-climatology", "argo"],
+  },
   "ocean-acidification": {
     source: "GLODAP v2.2016b OmegaA/OmegaC (Lauvset 2016; Key 2015) — horizon depth platform-derived",
     legendRef: "ocean-acidification",

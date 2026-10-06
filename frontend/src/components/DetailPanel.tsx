@@ -16,6 +16,7 @@ import { NoiseRiskPanel } from "./panels/density/NoiseRiskPanel";
 import { MonitoringDensityPanel } from "./panels/density/MonitoringDensityPanel";
 import { WodOxygenPanel } from "./panels/fields/WodOxygenPanel";
 import { WoaPointPanel } from "./panels/fields/WoaPointPanel";
+import { GlodapCastPanel } from "./panels/fields/GlodapCastPanel";
 import { NutrientsModelPanel } from "./panels/fields/NutrientsModelPanel";
 import { OceanColourPanel } from "./panels/fields/OceanColourPanel";
 import { CarbonPointPanel } from "./panels/fields/CarbonPointPanel";
@@ -164,6 +165,7 @@ function PanelContent({ feature }: { feature: SelectedFeature }) {
   if (layer === "permafrost-thaw")            return <PermafrostThawPanel properties={properties} />;
   if (layer === "arctic-rivers")              return <ArcticRiverPanel properties={properties} />;
   if (layer === "wod-oxygen")                 return <WodOxygenPanel id={id} />;
+  if (layer === "glodap-points")              return <GlodapCastPanel id={String(properties.cast_key ?? id)} />;
   if (layer === "memento")        return <MementoPanel id={id} />;
   if (layer === "memento-hexes")  return <MementoHexPanel properties={properties} />;
   if (layer === "geotraces")      return <GeotracesStationPanel id={id} />;
@@ -250,6 +252,7 @@ const LAYER_TITLE: Record<string, string> = {
   "arctic-catchments":  "Arctic Catchment",
   "ocean-carbon":      "Ocean Carbon (GLODAP)",
   "ocean-carbon-hexes": "Ocean Carbon Density",
+  "glodap-points":     "GLODAPv3 bottle cast",
   "ocean-acidification": "Ocean Acidification (GLODAP Ω)",
   "ocean-acidification-hexes": "Ocean Acidification Density",
   "coral-acid-exposure": "Coral Acidification Exposure",

@@ -91,11 +91,42 @@ export function useLayerFetcher() {
     [fetchLayer, retryNonce],
   );
 
+  /**
+   * Guarded one-shot fetch of a plain JSON document that is not a FeatureCollection (the GLODAP
+   * casts column document). Same latch, same `failedLayers` behaviour as `fetchGuarded`: any
+   * non-2xx — the API answers 503 while the product is "not loaded / temporarily unavailable" —
+   * un-latches the ref and names the layer in `failedLayers`, so the layer is never silently
+   * empty; a later success clears the name again.
+   */
+  const fetchJsonGuarded = useCallback(
+    <T,>(ref: MutableRefObject<boolean>, path: string, setter: (d: T) => void, name: string) => {
+      guardedRefs.current.add(ref);
+      if (ref.current) return;
+      ref.current = true;
+      // fetchWithProgress: the loading bar and its 2 automatic retries (2 s, 4 s) — a short backend
+      // blip must not raise the "unavailable" banner. It throws on any non-2xx, 503 included.
+      fetchWithProgress(`${API}${path}`, (received, total) => setLayerProgress(name, received, total))
+        .then((d: T) => {
+          setter(d);
+          markLayerDone(name);
+          setFailedLayers(prev => (prev.includes(name) ? prev.filter(n => n !== name) : prev));
+        })
+        .catch(() => {
+          markLayerDone(name);
+          ref.current = false;
+          setFailedLayers(prev => (prev.includes(name) ? prev : [...prev, name]));
+        });
+    },
+    // ⛔ retryNonce on purpose, as in fetchGuarded: it is how "Retry" re-runs the calling effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setLayerProgress, markLayerDone, retryNonce],
+  );
+
   /** Un-latch every guarded layer and make the effects re-run. */
   const retryGuardedLayers = useCallback(() => {
     guardedRefs.current.forEach(ref => { ref.current = false; });
     setRetryNonce(n => n + 1);
   }, []);
 
-  return { fetchLayer, fetchGuarded, failedLayers, setFailedLayers, retryGuardedLayers };
+  return { fetchLayer, fetchGuarded, fetchJsonGuarded, failedLayers, setFailedLayers, retryGuardedLayers };
 }

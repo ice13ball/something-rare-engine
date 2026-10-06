@@ -21,7 +21,7 @@ export const SEA_LAYER_IDS = [
   "tectonic-plates", "vessel-events", "ais-live", "monitoring-density", "offshore-activities",
   "deepdata-stations", "hydrophone-stations", "bathymetry", "ocean-currents",
   "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "oxygen-deox", "wod-oxygen", "memento", "geotraces", "methane-seeps",
-  "ocean-carbon", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
+  "ocean-carbon", "glodap-points", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
   "seabed-substrate", "arctic-sediment-carbon", "mosaic-sediment", "vme-suitability",
   "ocean-acidification", "coral-acid-exposure", "cumulative-human-impact",
   "marhys", "coastdom", "greenland-primary-production",
@@ -369,6 +369,14 @@ export const LAYER_CONFIGS = [
     fillRgba: [52, 211, 153, 0],
     lineRgba: [52, 211, 153, 0],
     description: "GLODAP v2 gridded ocean carbon climatology — dissolved inorganic carbon, total alkalinity, pH and more at standard depths. Research-grade, ~1° resolution.",
+  },
+  {
+    id: "glodap-points",
+    label: "GLODAPv3 bottle measurements",
+    color: "#f8fafc",
+    fillRgba: [248, 250, 252, 200],
+    lineRgba: [15, 23, 42, 200],
+    description: "Individual GLODAPv3 (2026) bottle casts — the real measurements behind the ocean-carbon field (GLODAPv2.2016b mapped). Coloured in the field's scale at the selected variable and depth; grey where no acceptable bottle lies within that depth's window.",
   },
   {
     id: "marine-carbon",

@@ -34,7 +34,7 @@ Copyright is **not** for sale — this is licensing, not assignment.
    any right to upstream data.
 
    One exception, stated plainly because a buyer would otherwise rely on the sentence above:
-   `backend/tests/fixtures/` holds ~2 MB of **real** upstream excerpts across 22 sources —
+   `backend/tests/fixtures/` holds ~2 MB of **real** upstream excerpts across 23 sources —
    GEOTRACES seawater rows, ONC ADCP profiles, GLODAP and SOCAT NetCDF slices among
    them. They are there so the parsers are tested against the shapes they actually meet, and
    they travel under their own upstream terms like everything else. They are not mine to

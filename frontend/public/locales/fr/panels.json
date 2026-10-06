@@ -5,6 +5,7 @@
       "display": "Affichage",
       "field": "Champ",
       "hexagons": "Hexagones",
+      "measurements": "Mesures",
       "variable": "Variable",
       "depth": "Profondeur",
       "decade": "Décennie",
@@ -216,7 +217,15 @@
       "decade": "Décennie"
     },
     "oceanCarbon": {
-      "toggle": "Carbone océanique (GLODAP)"
+      "toggle": "Carbone océanique (GLODAP)",
+      "points": {
+        "versionNote": "Points : échantillons en bouteille GLODAPv3 (2026). Champ : climatologie cartographiée GLODAPv2.2016b, TCO₂ et pH normalisés à 2002. Les points sont les valeurs mesurées l'année du prélèvement.",
+        "greyNote": "Gris : aucune bouteille acceptable (indicateur WOCE 2) dans la plage {{window}} autour de cette profondeur.",
+        "cantNote": "Les bouteilles ne mesurent pas le CO₂ anthropique — c'est une grandeur cartographiée. Les points sont gris.",
+        "yearFrom": "De",
+        "yearTo": "À",
+        "loading": "Chargement des mesures…"
+      }
     },
     "oceanCo2Surface": {
       "toggle": "CO₂ océanique de surface (SOCAT)"
@@ -521,6 +530,7 @@
       "methane-seeps": "Inventaire mondial des sites d'émissions de méthane du fond marin issus de la base de données SEAFLEA (NRL / NOAA NCEI), compilé par Phrampus et al. (2020). Chaque point représente un site confirmé, coloré par type (bulles de gaz, hydrates, monticules, pockmarks, communautés chimiosynthétiques, substrat carbonaté). Remarque : compilation figée en février 2019 — les découvertes ultérieures ne sont pas incluses. La couverture est biaisée par l'effort de recherche : 59 % des enregistrements proviennent d'un seul relevé du golfe du Mexique et la mer du Nord centrale n'en compte aucun — une zone vide signifie aucun relevé, pas aucune émission.",
       "geotraces": "Profils verticaux dans la colonne d'eau d'éléments traces dissous (Mn, Fe, Co, Ni, Cu) issus du programme GEOTRACES IDP2025 — les métaux concentrés dans les nodules polymétalliques et les encroûtements cobaltifères. Sélectionnez un élément ; chaque point est une station colorée selon sa concentration maximale. Cliquez pour le profil concentration/profondeur. Données de recherche, couverture spatiale limitée.",
       "ocean-carbon": "Système de carbone inorganique dissous en mer (CID, alcalinité totale, pH, CO₂ anthropique) issu de la climatologie 1° GLODAPv2.2016b. Sélectionnez une variable et une profondeur (0–4000 m) ; le champ de couleur montre la distribution mondiale. Passez en vue Hexagones pour lire des valeurs exactes au clic. Produit statique — données de campagnes antérieures à 2016 uniquement.",
+      "glodap-points": "Casts à bouteilles individuels GLODAPv3 (2026) — les mesures réelles derrière le champ Ocean Carbon. Chaque point est un cast, coloré selon l'échelle du champ pour la variable et la profondeur choisies ; gris lorsqu'aucune bouteille acceptable ne se trouve dans la fenêtre de cette profondeur. Valeurs brutes des bouteilles : le champ (GLODAPv2.2016b) est normalisé à 2002, pas les bouteilles.",
       "ocean-co2-surface": "Fugacité du CO₂ (fCO₂) à la surface de l'océan, densité d'observation, température de surface de la mer et salinité issues de la base SOCAT v2026 — trajectoires de navires validées, agrégées sur une grille 1° par décennie. Utilisez le sélecteur de variable pour basculer entre fCO₂, densité, SST et salinité ; le sélecteur de décennie pour parcourir les années 1970–2020. Passez en vue Hexagones pour lire des valeurs exactes au clic. Attention : produit non interpolé — environ 21 % des cellules 1° contiennent des données, concentrées le long des routes des navires.",
       "sios-svalbard": "Jeux de données observationnels in situ du catalogue SIOS (Svalbard Integrated Arctic Earth Observing System) — mesures océanographiques, atmosphériques, cryosphériques et biologiques collectées autour du Svalbard et dans l'Arctique élargi. Chaque point renvoie à la page de destination du jeu de données. Couche de découverte uniquement : métadonnées et liens, pas les mesures elles-mêmes. Couverture limitée aux observations in situ ; la télédétection et les produits modélisés sont hors du périmètre de cette couche.",
       "marine-carbon": "Une grille hexagonale unique réunissant tous les champs océaniques liés au carbone — cliquez sur une cellule pour voir ensemble le CO₂ de surface, le carbone intérieur, l'oxygène et la climatologie physique, chacun étiqueté par sa source. Lecture co-localisée, pas une valeur combinée unique.",
@@ -1610,6 +1620,59 @@
       "noData": "Aucune observation satellitaire ce mois-là (nuages, glace de mer, nuit polaire ou terre).",
       "notCovered": "Hors de la grille, qui s'arrête à 89,875° de latitude.",
       "failed": "Impossible de charger les valeurs satellitaires."
+    }
+  },
+  "glodapCast": {
+    "loading": "Chargement du cast…",
+    "missing": "Ce cast n'existe plus dans l'import GLODAPv3 actuel.",
+    "error": "Le cast n'a pas pu être chargé pour le moment. Le service est indisponible ou saturé.",
+    "retry": "Réessayer",
+    "productNote": "{{points}}, cast à bouteilles · champ : {{field}}",
+    "variable": "Variable",
+    "cantFallback": "Les bouteilles ne contiennent pas de CO₂ anthropique (Cant est une grandeur cartographiée). Le graphique montre le DIC.",
+    "depthAxis": "Profondeur (m)",
+    "chartAria": "Profil de {{variable}} sur ce cast",
+    "legend": "Blanc : bouteilles acceptables (indicateur WOCE 2). Anneau ambre : la bouteille retenue à la profondeur choisie.",
+    "legendField": "Vert en pointillés : le champ cartographié à cette position.",
+    "noAcceptable": "Aucun échantillon acceptable (indicateur WOCE 2) pour {{variable}} sur ce cast : rien à tracer.",
+    "sectionValues": "À la profondeur choisie",
+    "sectionCast": "Cast",
+    "sectionSource": "Source et crédits",
+    "atDepth": "{{variable}}, bouteille à {{depth}} m",
+    "noBottleInWindow": "aucune bouteille acceptable dans {{window}}",
+    "fieldHere": "{{variable}}, champ à {{depth}} m",
+    "noField": "pas de valeur du champ ici",
+    "cruise": "Campagne (EXPOCODE)",
+    "ship": "Navire",
+    "stationCast": "Station / cast",
+    "castNotGiven": "non indiqué",
+    "date": "Date",
+    "dayPrecision": "date seule, heure non enregistrée",
+    "position": "Position",
+    "spreadLabel": "Dispersion des positions",
+    "spread": "bouteilles réparties sur {{km}} km",
+    "bottomDepth": "Profondeur du fond",
+    "flags": "Échantillons",
+    "flagCounts": "{{good}} acceptables (indicateur 2) · {{other}} avec un autre indicateur, p. ex. interpolés ou calculés (indicateur 0) — non tracés",
+    "qc": "Contrôle qualité secondaire",
+    "qc1": "réussi",
+    "qc0": "non appliqué",
+    "noQc": "cette variable n'a pas de contrôle qualité secondaire dans GLODAPv3",
+    "source": "Jeu de données GLODAPv3 (NCEI)",
+    "cruiseDoi": "DOI de la campagne",
+    "var": {
+      "tco2": "DIC (TCO₂)",
+      "talk": "Alcalinité totale",
+      "phtsinsitutp": "pH (échelle totale, in situ)",
+      "cant": "CO₂ anthropique (Cant)",
+      "temperature": "Température",
+      "salinity": "Salinité",
+      "oxygen": "Oxygène",
+      "nitrate": "Nitrate",
+      "silicate": "Silicate",
+      "phosphate": "Phosphate",
+      "phts25p0": "pH (échelle totale, 25 °C)",
+      "fco2": "fCO₂ (20 °C)"
     }
   }
 }

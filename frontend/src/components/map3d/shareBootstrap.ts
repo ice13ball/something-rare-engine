@@ -42,8 +42,12 @@ export function resolveInitialCamera(
  * With no share link, today's behaviour is preserved unchanged: restore the
  * saved active set, then auto-enable any `allLayerIds` entry NOT present in
  * `knownLayers` (a layer that shipped after this visitor's last save) —
- * except `seamounts`, which is opt-in only.
+ * except the OPT_IN_ONLY layers: `seamounts`, and `glodap-points` (default_on:false;
+ * switching it on is a display-mode decision — it REPLACES the ocean-carbon field —
+ * so a returning visitor must not lose the field because a layer shipped).
  */
+const OPT_IN_ONLY: ReadonlySet<string> = new Set(["seamounts", "glodap-points"]);
+
 export function resolveInitialLayers(
   // `layers` may be absent OR explicitly null — `decodeShareState` uses null for
   // "the payload carried no layer list", and both must mean the same thing here.
@@ -66,7 +70,7 @@ export function resolveInitialLayers(
   const active = new Set<LayerId>(saved.activeLayers);
   const known = new Set(saved.knownLayers ?? []);
   for (const id of allLayerIds) {
-    if (!known.has(id) && id !== ("seamounts" as LayerId)) active.add(id);
+    if (!known.has(id) && !OPT_IN_ONLY.has(id)) active.add(id);
   }
   return active;
 }

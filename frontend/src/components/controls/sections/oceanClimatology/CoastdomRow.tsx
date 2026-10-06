@@ -59,7 +59,7 @@ export function CoastdomRow({ expandedFilter, toggleExpand, toggle, flyToLayer }
             <FilterResetLink
               show={range !== null}
               onReset={() => setRange(null)}
-              label={t("common:reset" as any)}
+              label={t("common:actions.reset" as any)}
             />
           </div>
           {bounds ? (

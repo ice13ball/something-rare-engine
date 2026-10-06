@@ -60,6 +60,8 @@ _TAG_RULES: list[tuple[str, str]] = [
     ("/v1/bathymetry", "Detail lookups"),  # per-feature confidence/gmrt/lookup enrichment
     ("/v1/live", "Detail lookups"),
     ("/v1/oceansites", "Detail lookups"),  # per-mooring deployments / GDAC historical record
+    ("/v1/glodap/cast/", "Detail lookups"),  # one bottle cast by key (before the "/v1/glodap" prefix below)
+    ("/v1/glodap", "Sea layers"),            # casts document / cruises / meta of the GLODAPv3 points layer
     ("/v1/map", "Sea layers"),
     ("/v2/map", "Land layers"),
     ("/v2/export", "Export"),            # area-export download + count endpoints
@@ -198,6 +200,74 @@ _OCEANSITES_HISTORY_EXAMPLE = {
 }
 
 CURATED: dict[str, dict] = {
+    "/v1/glodap/casts": {
+        "description": (
+            "Every GLODAPv3 (2026) bottle cast with at least one WOCE-flag-2 value, as columnar arrays "
+            "(`keys`, `lon`, `lat`, `year`) plus, per ocean-carbon variable (`dic`, `talk`, `ph`) and display depth, "
+            "the nearest acceptable bottle value inside that depth's window, or null. Units match the ocean-carbon "
+            "field (µmol/kg; pH total scale, in-situ). ~11 MB raw, served gzip. "
+            "The example holds one cast and two depths. "
+            "503 + Retry-After while the layer has not loaded or the database is unavailable. "
+            "CC BY 4.0 — cite GLODAPv3."),
+        "example": {
+            "product": "GLODAPv3 (2026)", "n": 1, "keys": ["49UF20150620_4511_1"],
+            "lon": [137.0087], "lat": [9.9897], "year": [2015],
+            "values": {"dic": {"0": [1894.4], "4000": [2320.3]},
+                       "talk": {"0": [2220.6], "4000": [2412.8]},
+                       "ph": {"0": [8.056], "4000": [7.7694]}},
+        },
+    },
+    "/v1/glodap/cast/{cast_key}": {
+        "description": (
+            "One GLODAPv3 cast by its stable key EXPOCODE_station_cast (where the source gives no cast number, "
+            "`cast_no` is null and the key ends in `_nc`): every bottle's depth, pressure and values "
+            "with the WOCE flag beside each value (2 acceptable, 0 interpolated/calculated, 9 no data) and the "
+            "secondary-QC flag, cruise DOI and ship, plus the GLODAPv2.2016b field value at this spot. "
+            "`citations` carries the GLODAPv3 dataset, the ESSD paper and the ship-name (NVS, CC BY 4.0) credits. "
+            "The example is abbreviated to three bottles, one variable and one level; its `field` number is illustrative. "
+            "404 if the key is unknown; 503 + Retry-After if the database is unavailable."),
+        "example": {
+            "cast_key": "49UF20150620_4511_1", "expocode": "49UF20150620", "station": "4511", "cast_no": 1,
+            "ship_name": "Keifu Maru", "platform_code": "49UF", "lat": 9.9897, "lon": 137.0087,
+            "obs_date": "2015-06-30", "obs_time": "2015-06-30T10:51:00+00:00", "time_precision": "minute",
+            "year": 2015, "region": 8, "doi": "https://doi.org/10.25921/9y9k-z931",
+            "bottom_depth_m": 5081.4, "pos_spread_km": 0.0,
+            "depth_m": [0.0, 10.0, 4984.0], "pressure_dbar": [0.0, 10.5, 5071.4], "bottle": [99.0, 21995.0, 21960.0],
+            "variables": {"tco2": {"values": [1894.4, 1895.1, 2315.0], "flags": [2, 2, 2], "qc": 1,
+                                   "units": "µmol/kg"}},
+            "levels": {"dic": {"0": [1894.4, 0.0]}},
+            "field": {"dic": {"0": 1890.0}},
+            "citation": "Lange, N., Lauvset, S. K., Carter, B. R., et al. (2026). The Global Ocean Data Analysis "
+                        "Project version 3 (GLODAPv3) … https://doi.org/10.25921/m6tp-mj50",
+            "source_url": "https://doi.org/10.25921/m6tp-mj50", "product": "GLODAPv3 (2026)",
+            "field_product": "GLODAPv2.2016b mapped climatology (TCO2 and pH normalised to 2002)",
+        },
+    },
+    "/v1/glodap/cruises": {
+        "description": (
+            "GLODAPv3 cruises (1,181) as a GeoJSON FeatureCollection: expocode, ship, cruise DOI, date span, "
+            "cast count. 503 + Retry-After while the layer has not loaded or the database is unavailable."),
+        "example": {"type": "FeatureCollection", "features": [{
+            "type": "Feature", "geometry": {"type": "Point", "coordinates": [137.0087, 9.9897]},
+            "properties": {"expocode": "49UF20150620", "ship_name": "Keifu Maru", "platform_code": "49UF",
+                           "doi": "https://doi.org/10.25921/9y9k-z931", "first_date": "2015-06-30",
+                           "last_date": "2015-06-30", "n_casts": 1, "first_cast_key": "49UF20150620_4511_1"}}]},
+    },
+    "/v1/glodap/meta": {
+        "description": (
+            "Product, citations, licence, counts, year span, depth windows and the variable mapping used to "
+            "colour points, plus `health` (status ok / running / failing / not_loaded, the last failure, the "
+            "last load's rejected rows). The example is abbreviated."),
+        "example": {
+            "product": "GLODAPv3 (2026)", "licence": "CC BY 4.0", "n_casts": 1, "n_casts_drawn": 1,
+            "n_samples": 37, "year_min": 2015, "year_max": 2015, "loaded_at": "2026-10-06T12:00:00+00:00",
+            "depth_windows": {"0": [0.0, 10.0], "4000": [3750.0, 4250.0]},
+            "field_to_bottle": {"dic": "tco2", "talk": "talk", "ph": "phtsinsitutp", "cant": None},
+            "health": {"status": "ok", "failure": None, "failed_at": None, "deferred": None,
+                       "last_run_at": "2026-10-06T03:00:00+00:00", "last_decision": "unchanged",
+                       "last_rejects": {}, "last_rejects_at": "2026-10-06T12:00:00+00:00", "swap_note": None},
+        },
+    },
     "/v1/oceansites/{ref}/history": {
         "description": (
             "Historical record of one OceanSITES mooring, read from the files linked to it: "

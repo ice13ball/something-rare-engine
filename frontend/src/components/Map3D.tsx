@@ -100,6 +100,7 @@ import {
 } from "./map3d/depthCache";
 import { BASEMAP, MAP_VIEW, tooltipStyle } from "./map3d/viewState";
 import { useLayerFetcher } from "./map3d/useLayerFetcher";
+import { glodapPoints, glodapColor, carbonDrawing, glodapYearBounds, type GlodapCastsDoc, type GlodapPoint } from "../utils/glodapPoints";
 import { useLayerData } from "./map3d/useLayerData";
 
 // Re-exported so existing consumers (including src/__tests__/map3d-helpers.test.ts,
@@ -342,6 +343,9 @@ const NO_FLY_TO = [
   "ocean-acidification",
   "coral-acid-exposure",
   "cumulative-human-impact",
+  // Placeholder from the registry step (2026-10-06): the point layer exists as a toggle
+  // before its deck layer. Move it into flyConfigs if the points layer gets a fly-to.
+  "glodap-points",
 ] as const satisfies readonly LayerId[];
 
 export function Map3D() {
@@ -423,6 +427,7 @@ export function Map3D() {
   const carbonVariable     = useMapStore((s) => s.carbonVariable);
   const carbonDepth        = useMapStore((s) => s.carbonDepth);
   const carbonDisplayMode  = useMapStore((s) => s.carbonDisplayMode);
+  const glodapYearRange    = useMapStore((s) => s.glodapYearRange);
   const acidificationVariable     = useMapStore((s) => s.acidificationVariable);
   const acidificationDepth        = useMapStore((s) => s.acidificationDepth);
   const acidificationDisplayMode  = useMapStore((s) => s.acidificationDisplayMode);
@@ -593,9 +598,9 @@ export function Map3D() {
   const [layerOrder, , enabledLayerIds] = useLayerConfig();
   useEffect(() => { setEnabledLayerIds(enabledLayerIds); }, [enabledLayerIds, setEnabledLayerIds]);
 
-  const { fetchLayer, fetchGuarded, failedLayers, setFailedLayers, retryGuardedLayers } = useLayerFetcher();
+  const { fetchLayer, fetchGuarded, fetchJsonGuarded, failedLayers, setFailedLayers, retryGuardedLayers } = useLayerFetcher();
   const {
-    eezData, protectedSitesData, seamountsData, oceansitesData, oncData, chessData,
+    eezData, protectedSitesData, seamountsData, oceansitesData, glodapCruisesData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
     oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
@@ -620,7 +625,7 @@ export function Map3D() {
       claims: claimsData, reserved: reservedData, relinquished: relinquishedData,
       seamounts: seamountsData, argo: argoData, vents: ventsData,
       eez: eezData, protectedSites: protectedSitesData, hotspots: hotspotsData,
-      oceansites: oceansitesData, onc: oncData, chess: chessData,
+      oceansites: oceansitesData, glodapCruises: glodapCruisesData, onc: oncData, chess: chessData,
       cables: cablesData, oncCables: oncCablesData, ooiCables: ooiCablesData, noaaCables: noaaCablesData, nzCables: nzCablesData, auCables: auCablesData, oncInstruments: oncInstrumentsData, ports: portsData,
       deepdataStations: deepdataStationsData,
       hydrophones: hydrophoneData,
@@ -644,7 +649,7 @@ export function Map3D() {
       permafrostThaw: permafrostThawData,
     };
     setSearchDataVersion(v => v + 1);
-  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
+  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, glodapCruisesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
 
   const mapRef = useRef<any>(null);
 
@@ -1184,8 +1189,9 @@ export function Map3D() {
   }, [carbonActive]);
 
   // Slice the carbon field PNG into BitmapLayer tiles — identical approach to woaTiles.
+  // Not fetched in Measurements mode: the points replace the field, so its bitmap would never be drawn.
   useEffect(() => {
-    if (!carbonActive) { setCarbonTiles(null); return; }
+    if (!carbonActive || carbonDisplayMode === "points") { setCarbonTiles(null); return; }
     let cancelled = false;
     setCarbonTiles(null); // drop previous variable/depth tiles so none linger with a stale texture
     (async () => {
@@ -1222,7 +1228,25 @@ export function Map3D() {
       }
     })();
     return () => { cancelled = true; };
-  }, [carbonActive, carbonVariable, carbonDepth]);
+  }, [carbonActive, carbonDisplayMode === "points", carbonVariable, carbonDepth]);
+
+  // ── GLODAP Measurements (points): the cast column document ────────────────
+  // Measurements are the THIRD display mode of the ocean-carbon layer and replace the field and the hexes;
+  // the colours come from the field's variable/depth selectors and ramp. `glodap-points` stays the points'
+  // toggle / z-order id, and the store keeps it in `activeLayers` exactly while the mode is "points".
+  const glodapActive = activeLayers.has("glodap-points");
+  const carbonDraw = carbonDrawing(carbonActive, carbonDisplayMode, glodapActive);
+  const [glodapDoc, setGlodapDoc] = useState<GlodapCastsDoc | null>(null);
+  const glodapFetchedRef = useRef(false);
+  useEffect(() => {
+    if (carbonDraw.points)
+      fetchJsonGuarded<GlodapCastsDoc>(glodapFetchedRef, "/api/v1/glodap/casts", setGlodapDoc, "GLODAP Measurements");
+  }, [carbonDraw.points, fetchJsonGuarded]);
+  const glodapData = useMemo(
+    () => (glodapDoc && carbonDraw.points ? glodapPoints(glodapDoc, carbonVariable, carbonDepth, glodapYearRange) : []),
+    [glodapDoc, carbonDraw.points, carbonVariable, carbonDepth, glodapYearRange]);
+  const glodapVm = carbonMeta?.variables.find((v) => v.key === carbonVariable);
+  const glodapBounds = useMemo(() => glodapYearBounds(glodapDoc), [glodapDoc]);
 
   // ── Carbon hex grid ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -2147,6 +2171,7 @@ export function Map3D() {
     // not need. Reproduced on production 2026-09-15 — see linkLayerActivation.
     const next = nextActiveForLink(
       liveActive, wanted, wantedPoints, isOpenableLayer, isPointLayer,
+      (l) => OPENABLE_LOOKUP[l]?.alsoActivate ?? [],
     );
     if (next) {
       setActiveLayers(next as Set<LayerId>);
@@ -3389,6 +3414,12 @@ export function Map3D() {
       });
       return;
     }
+    if (lid0 === "glodap-points") {
+      const p = info.object as GlodapPoint | undefined;
+      if (!p) return;
+      setSelectedFeature({ id: p.key, layer: "glodap-points", properties: { cast_key: p.key } });
+      return;
+    }
     if (lid0 === "ocean-carbon-hexes") {
       const p = info.object?.properties;
       if (!p) return;
@@ -3672,7 +3703,7 @@ export function Map3D() {
       opacity: 0.72,
     })) : [],
 
-    carbonActive && carbonDisplayMode === "field" && carbonTiles ? carbonTiles.map((tile, i) => new BitmapLayer({
+    carbonDraw.field && carbonTiles ? carbonTiles.map((tile, i) => new BitmapLayer({
       id: `ocean-carbon-bitmap-${carbonVariable}-${carbonDepth}-${i}`,
       image: tile.image,
       bounds: tile.bounds,
@@ -4161,7 +4192,7 @@ export function Map3D() {
       updateTriggers: { getFillColor: [seabedHexData] },
     }),
 
-    carbonActive && carbonDisplayMode === "hexes" && carbonHexData && new PolygonLayer({
+    carbonDraw.hexes && carbonHexData && new PolygonLayer({
       id: "ocean-carbon-hexes",
       data: carbonHexData.features,
       getPolygon: (f: any) => f.geometry.coordinates[0],
@@ -4175,6 +4206,22 @@ export function Map3D() {
       pickable: true,
       onClick: handleClick,
     }),
+
+    carbonDraw.points && glodapDoc ? new ScatterplotLayer<GlodapPoint>({
+      id: "glodap-points",
+      data: glodapData,
+      getPosition: (p) => p.position,
+      getRadius: (p) => (p.value === null ? 2 : 3.5),
+      radiusUnits: "pixels",
+      getFillColor: (p) => glodapColor(p.value, glodapVm),
+      stroked: true, getLineColor: [15, 23, 42, 160], lineWidthUnits: "pixels", getLineWidth: 0.5,
+      pickable: true,
+      onClick: handleClick,
+      updateTriggers: {
+        getFillColor: [carbonVariable, carbonDepth, glodapVm?.vmin, glodapVm?.vmax, glodapVm?.ramp],
+        getRadius: [carbonVariable, carbonDepth],
+      },
+    }) : null,
 
     acidActive && acidificationDisplayMode === "hexes" && acidHexData && new PolygonLayer({
       id: "ocean-acidification-hexes",
@@ -5814,6 +5861,8 @@ export function Map3D() {
         oceanColourMeta={ocMeta}
         oxygenMeta={oxygenMeta}
         carbonMeta={carbonMeta}
+        glodapYearBounds={glodapBounds}
+        glodapLoading={carbonDraw.points && !glodapDoc && !failedLayers.includes("GLODAP Measurements")}
         co2Meta={co2Meta}
       />
 

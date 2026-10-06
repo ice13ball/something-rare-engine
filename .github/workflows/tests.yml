@@ -8,18 +8,33 @@ name: Tests
 # production without a single automated check — not even a type check. A gate that
 # inherits the deploy filter reproduces the hole it exists to close.
 #
-# Duplication note: a push touching frontend/ triggers the deploy workflow, which
-# calls this one; `paths-ignore` below keeps this workflow's own push trigger from
-# firing for the same commit. A push touching BOTH trees creates two runs, but they
-# share the `concurrency` group below, so the standalone one is CANCELLED and the
-# tests execute inside the deploy run as jobs prefixed `test /`. That is why every
-# main push shows a "Tests" run cancelled after ~2s — it is the duplicate, not a
-# failed gate. `gh run view <deploy-run-id>` is where the real result lives.
+# ⛔ `main` IS NOT A PUSH TRIGGER, deliberately (since 2026-10-06). `main` is a
+# fast-forward copy of `dev`: the same SHA has already been tested by the `dev` push,
+# and the local push guard refuses a `main` push until GitHub shows both test jobs
+# green for it. A trigger on `main` would run the whole suite a third time on free
+# minutes that are limited — and would make `deploy-gcp.yml` pointless, because
+# its `check` job skips `test` for an already-green SHA while this trigger would
+# run the suite anyway. When `main` DOES need tests (a frontend commit with no green
+# proof, or a manual dispatch), `deploy-gcp.yml` calls this workflow itself.
+# Trade-off: a backend-only commit that reaches `main` WITHOUT going through `dev`
+# is no longer tested by a push run. The `dev:main` rule exists to prevent that case.
+#
+# Duplication note (dev): a push to `dev` touching frontend/ triggers the dev deploy
+# workflow, which calls this one; `paths-ignore` below keeps this workflow's own push
+# trigger from firing for the same commit. A push touching BOTH trees creates two
+# runs, but they share the `concurrency` group below, so the standalone one is
+# CANCELLED and the tests execute inside the deploy run as jobs prefixed `test /`.
+# That is why a dev push shows a "Tests" run cancelled after ~2s — it is the
+# duplicate, not a failed gate. `gh run view <deploy-run-id>` is where the real
+# result lives. The `check` job of deploy-gcp.yml reads exactly these job results
+# (plain or `test /`-prefixed, a cancelled one counts for nothing) to decide that a
+# SHA reaching `main` was already tested; renaming a job here therefore needs the
+# names in backend/scripts/ci_already_green.py changed too (a test enforces it).
 
 on:
   pull_request:
   push:
-    branches: [dev, main]
+    branches: [dev]
     paths-ignore:
       - "frontend/**"
   workflow_call:

@@ -29,6 +29,7 @@ from typing import Any, Awaitable, Callable
 import db
 from domains import acoustic, arctic, biodiversity, cables, fields
 from domains import aoc2025_poc
+from domains import glodap_points
 from domains import svalbard_fjords_pp
 from domains import geo_context, geochem, isa, offshore, onc, pangaea_water, seafloor, sensors
 from domains import oceansites_history
@@ -183,6 +184,8 @@ SYNC_SOURCES: dict[str, Callable[[], Awaitable[Any]]] = {
     "coastdom": lambda: pangaea_water.sync_coastdom(force=True),
     "greenland-pp": lambda: pangaea_water.sync_greenland_pp(force=True),
     "aoc2025-poc": lambda: aoc2025_poc.sync_aoc2025_poc(force=True),
+    # GLODAPv3 bottles: the import runs in glodap_bottles_worker (own cgroup). The API only records the request.
+    "glodap-bottles": lambda: glodap_points.request_refresh(),
     "svalbard-fjords-pp": lambda: svalbard_fjords_pp.sync_svalbard_fjords_pp(force=True),
     "sios":    lambda: arctic.sync_sios(force=True),
     "arcade":  lambda: arctic.sync_arcade(force=True),

@@ -29,6 +29,8 @@ export const LAYER_TO_SUBGROUP: Record<string, string> = {
   "ocean-currents": "sea_sensors",
   // sea_woa
   "woa-climatology": "sea_woa", "ocean-nutrients-model": "sea_woa", "ocean-colour-satellite": "sea_woa", "ocean-carbon": "sea_woa",
+  // GLODAPv3 bottle casts: a child toggle of ocean-carbon (its panel switch), so it expands the same group
+  "glodap-points": "sea_woa",
   "ocean-co2-surface": "sea_woa", "wod-oxygen": "sea_woa", "memento": "sea_woa",
   "geotraces": "sea_woa", "mosaic-sediment": "sea_woa", "methane-seeps": "sea_woa",
   "oxygen-deox": "sea_woa", "arctic-rivers": "sea_woa",

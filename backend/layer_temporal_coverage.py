@@ -329,6 +329,17 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-09-08",
     ),
     Coverage(
+        layer_id="glodap-points",
+        start_year=1972, end_year=2023,
+        kind="observations",
+        # Measured on GLODAPv3_Merged_Master_File.csv (2026-10-06): sample years 1972-2023, 75,198 casts.
+        # ⛔ Not the field's 1972-2013 frame: the points are GLODAPv3, the field is v2.2016b.
+        wording="GLODAPv3 (Lange et al. 2026) comprises data from 1181 cruises, spanning 1972-2023 "
+                "(ESSD preprint abstract). The points hold sample dates 1972 to 2023.",
+        source_url="https://doi.org/10.25921/m6tp-mj50",
+        verified_on="2026-10-06",
+    ),
+    Coverage(
         layer_id="ocean-co2-surface",
         start_year=1957, end_year=2026,
         kind="compilation",

@@ -104,6 +104,9 @@ const CLOSED_VOCABULARIES: Partial<Record<ShareableFilterField, readonly string[
   tailingsRiskFilters: [...TAILINGS_HAZARD_VALUES, "other", "unrated"],
 };
 
+/** GLODAP Measurements year window — a two-string range like coastdom's, carried only when narrowed. */
+export const GLODAP_YEAR_RANGE_KEY = "glodapYearRange";
+
 const SHAREABLE_SET: ReadonlySet<string> = new Set(SHAREABLE_FILTER_FIELDS);
 
 export function isShareableFilterField(key: string): key is ShareableFilterField {
@@ -123,6 +126,8 @@ export function collectShareableFilters(state: MapStore): Record<string, string[
   // Not a Set, so outside SHAREABLE_FILTER_FIELDS: a two-string range, only when narrowed.
   const yr = encodeYearRange(state.coastdomYearRange);
   if (yr) out[COASTDOM_YEAR_RANGE_KEY] = yr;
+  const gyr = encodeYearRange(state.glodapYearRange);
+  if (gyr) out[GLODAP_YEAR_RANGE_KEY] = gyr;
   return out;
 }
 
@@ -144,6 +149,11 @@ export function applyShareableFilters(payload: Record<string, unknown>): void {
     if (key === COASTDOM_YEAR_RANGE_KEY) {
       const r = decodeYearRange(value);
       if (r) patch.coastdomYearRange = r;
+      continue;
+    }
+    if (key === GLODAP_YEAR_RANGE_KEY) {
+      const r = decodeYearRange(value);
+      if (r) patch.glodapYearRange = r;
       continue;
     }
     if (!isShareableFilterField(key)) continue;

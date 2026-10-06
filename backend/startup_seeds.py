@@ -71,6 +71,9 @@ LAYER_DEFAULTS_PY = [
     {"id": "memento",                "order_idx": 2078, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "ocean-carbon",           "order_idx": 77, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "ocean-co2-surface",      "order_idx": 78, "default_on": False, "modes": ["ocean","continue"]},
+    # Point layer, above every field (68-78). 2093, not a free 2081/2082: a database not yet
+    # UPDATEd still holds the fields at the old 2075-2082. KEEP IN SYNC with layerConfig.ts.
+    {"id": "glodap-points",          "order_idx": 2093, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "marine-carbon",          "order_idx": 70,   "default_on": False, "modes": ["ocean","continue"]},
     {"id": "surface-water",          "order_idx": 2100, "default_on": False, "modes": ["land"]},
     {"id": "forest-loss",            "order_idx": 2200, "default_on": False, "modes": ["land"]},
