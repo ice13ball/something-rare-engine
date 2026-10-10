@@ -25,7 +25,11 @@
       "seamounts": "Góry podwodne",
       "contractors": "Wykonawcy",
       "stations": "Stacje monitoringu"
-    }
+    },
+    "argoProfiles_one": "{{count}} profil",
+    "argoProfiles_few": "{{count}} profile",
+    "argoProfiles_many": "{{count}} profili",
+    "argoProfiles_other": "{{count}} profilu"
   },
   "tooltips": {
     "clearFilters": "Wyczyść filtry",

@@ -316,7 +316,7 @@
     },
     "oxygen-deox": {
       "label": "Tlen oceaniczny i deoksygenacja",
-      "description": "Najnowszy rozpuszczony tlen z pływaków BGC-Argo ISAS (2014–2018) oraz widok zmiany (Δ) porównujący go z bazą World Ocean Atlas WOA23 z lat 1971–2000 („Climate Normal”).",
+      "description": "Najnowszy rozpuszczony tlen z pływaków BGC-Argo ISAS (2014–2018) oraz widok zmiany (Δ) porównujący go z bazą World Ocean Atlas WOA23 z lat 1971–2000 („Climate Normal”). Przełącznik Wyświetlanie ma trzecią opcję, Pomiary, która pokazuje profile tlenu BGC-Argo z Argo GDAC (wartości skorygowane z dobrą flagą jakości) w skali „Bieżący O₂” pola.",
       "reading": "Widok bieżący: niebieski = wysoki O₂, czerwony = niski (strefy minimum tlenowego). Widok Δ: czerwony = utrata tlenu względem lat 1971–2000, niebieski = przyrost.",
       "limitations": "Orientacyjny regionalny wzorzec zmiany tlenu, a nie skalibrowany trend. Pole bieżące (optody Argo, 2014–2018) i baza z lat 1971–2000 (statkowe Winkler/CTD) różnią się przyrządem i metodą, więc część pozornej zmiany wynika z tej różnicy. Kliknięcie mapy zwraca wartość bieżącą, bazową i ich różnicę dla najbliższej komórki siatki; kolorowe pole pod spodem jest wstępnie wygenerowanym obrazem, więc kliknięcie próbkuje tę komórkę, a nie dokładny piksel.",
       "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk, Prigent-Mazella i Gaillard 2023, SEANOE 10.17882/52367 (CC-BY 4.0); metoda: Kolodziejczyk i in. 2024, ESSD 16:5191; baza WOA23, NOAA NCEI.",
@@ -439,7 +439,7 @@
       "label": "Węgiel w oceanie (GLODAP)",
       "source": "Key, R.M. et al. (2015) Global Ocean Data Analysis Project Version 2 (GLODAPv2) — produkt siatkowy. CDIAC, https://doi.org/10.3334/CDIAC/OTG.NDP093_GLODAPv2 · glodap.info/index.php/mapped-data-product/",
       "updateFreq": "Statyczny (wydanie GLODAPv2.2016b)",
-      "description": "Globalna klimatologia układu węglowego oceanu oparta na skontrolowanych jakościowo pomiarach okrętowych zebranych przez konsorcjum GLODAP. Cztery zmienne są interpolowane na siatce 1° dla 33 poziomów głębokości metodą DIVA: nieorganiczny węgiel rozpuszczony (DIC), zasadowość całkowita (TAlk), pH oraz antropogeniczny CO₂ (Cant). Są to fundamentalne wielkości wyznaczające zakwaszenie oceanów i zdolność oceanu do pochłaniania atmosferycznego CO₂ — również w głębokich wodach będących celem górnictwa dna morskiego.",
+      "description": "Globalna klimatologia układu węglowego oceanu oparta na skontrolowanych jakościowo pomiarach okrętowych zebranych przez konsorcjum GLODAP. Cztery zmienne są interpolowane na siatce 1° dla 33 poziomów głębokości metodą DIVA: nieorganiczny węgiel rozpuszczony (DIC), zasadowość całkowita (TAlk), pH oraz antropogeniczny CO₂ (Cant). Są to fundamentalne wielkości wyznaczające zakwaszenie oceanów i zdolność oceanu do pochłaniania atmosferycznego CO₂ — również w głębokich wodach będących celem górnictwa dna morskiego. Przełącznik Wyświetlanie ma trzecią opcję, Pomiary, która pokazuje próbki butelkowe GLODAPv3 (jedna kropka na profil) w skali samego pola.",
       "reading": "Barwa koduje wartość wybranej zmiennej na wybranej głębokości. Użyj selektora Zmiennej, by przełączać między DIC (µmol/kg), zasadowością całkowitą (µmol/kg), pH i antropogenicznym CO₂ Cant (µmol/kg). Użyj selektora Głębokości, by przechodzić między poziomami od 0 do 4000 m. Dokładne wartości liczbowe są dostępne wyłącznie w widoku sześciokątów — przełącz na Sześciokąty i kliknij komórkę.",
       "limitations": "Rozdzielczość pozioma 1°; interpolacja DIVA wygładza gradienty drobnoskalowe i wprowadza artefakty w obszarach ubogich w dane (Ocean Południowy, Arktyka). Produkt siatkowy zamrożony na wersji GLODAPv2.2016b — nie odzwierciedla obserwacji po 2016 r. ani przyspieszającego trendu zakwaszenia z ostatniej dekady. Pole barwne PNG to wstępnie wyrenderowana tekstura RGBA; wartości liczbowe nie są dostępne przez kliknięcie w widoku pola."
     },
@@ -463,6 +463,52 @@
         {
           "name": "Nazwy statków — NERC Vocabulary Server (NVS), BODC, kolekcja C17, CC BY 4.0",
           "url": "https://vocab.nerc.ac.uk/collection/C17/current/"
+        }
+      ]
+    },
+    "argo-oxygen-points": {
+      "label": "Pomiary tlenu BGC-Argo",
+      "source": "Argo (2000). Argo float data and metadata from Global Data Assembly Centre (Argo GDAC). SEANOE, doi:10.17882/42182, CC BY 4.0 · These data were collected and made freely available by the International Argo Program and the national programs that contribute to it (https://argo.ucsd.edu, https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.",
+      "updateFreq": "Na żywo z Argo GDAC, odświeżane co tydzień (profile od 2002 do dziś)",
+      "description": "Pojedyncze profile tlenu rozpuszczonego z pływaków BGC-Argo, czytane z centrum danych Argo (GDAC) i odświeżane co tydzień: rzeczywiste pomiary stojące za polem tlenu oceanicznego. Włączane przełącznikiem „Pomiary” w panelu „Tlen w oceanie i deoksygenacja”.",
+      "reading": "Każda kropka to jeden profil pływaka, pokolorowany w skali „Bieżący O₂” pola wartością najbliższego dobrego skorygowanego tlenu w oknie wybranej głębokości (powierzchnia 0–10 m; 200 m: 175–225 m; pozostałe poziomy: podobny pas wokół głębokości). Szary: brak dobrej wartości w tym oknie. Głębokość jest liczona z ciśnienia (UNESCO 1983); wartości w µmol/kg. Wyszukanie numeru WMO pływaka otwiera jego ostatni rysowany profil.",
+      "limitations": "Pole to średnia ISAS20 2014–2018, zbudowana ze starszej migawki danych Argo, więc pojedynczy profil może się od niej różnić sezonem, wirami i rokiem. Wartości skorygowane w trybie czasu rzeczywistego (tryb A) nie przeszły kontroli w trybie opóźnionym, a świeże profile mogą jeszcze zostać poprawione. Profil zachowuje najwyżej 150 poziomów, przerzedzonych wg głębokości; poziomy, którymi mapa koloruje kropki, są zawsze zachowane.",
+      "selectionCriteria": "Na mapę trafia tylko DOXY_ADJUSTED z flagą jakości 1 lub 2, z profili, których tryb danych tlenu to opóźniony (D) lub skorygowany w czasie rzeczywistym (A). Surowy tlen z czasu rzeczywistego (R), flagi 3, 4, 5 i 8 oraz profile ze złą pozycją lub datą są zapisane, ale nigdy nie rysowane jako pomiary; panel profilu je zlicza.",
+      "dataSources": [
+        {
+          "name": "Argo GDAC — Argo (2000), SEANOE doi:10.17882/42182, CC BY 4.0",
+          "url": "https://doi.org/10.17882/42182"
+        },
+        {
+          "name": "Argo GDAC synthetic-profile files (data-argo.ifremer.fr)",
+          "url": "https://data-argo.ifremer.fr/"
+        },
+        {
+          "name": "Acknowledging Argo — argo.ucsd.edu",
+          "url": "https://argo.ucsd.edu/data/acknowledging-argo/"
+        }
+      ]
+    },
+    "socat-points": {
+      "label": "Pomiary SOCAT v2026 powierzchniowego CO₂",
+      "source": "Bakker, D. C. E., Alin, S. R., Bates, N., et al. (2026) Surface Ocean CO₂ Atlas Database Version 2026 (SOCATv2026), NCEI Accession 0315110. NOAA NCEI, doi:10.25921/8dba-fr90, CC BY 4.0 · Bakker, D. C. E., et al. (2016) A multi-decade record of high-quality fCO₂ data in version 3 of the Surface Ocean CO₂ Atlas (SOCAT). Earth System Science Data 8, 383–413, doi:10.5194/essd-8-383-2016 · Podziękowanie, o które prosi SOCAT (oryginał angielski): “The Surface Ocean CO₂ Atlas (SOCAT) is an international effort, endorsed by the SCOR Infrastructural Project International Ocean Carbon Coordination Project (IOCCP) and the Surface Ocean Lower-Atmosphere Study (SOLAS), to deliver a uniform, quality-controlled surface ocean CO₂ database. The many researchers and funding agencies responsible for the collection of data and quality control are thanked for their contributions to SOCAT.”",
+      "updateFreq": "Wydanie statyczne (SOCAT v2026); przypięty plik v2026 jest sprawdzany ponownie najwyżej raz w miesiącu i wykrywany jest poprawiony plik v2026; nowe wydanie SOCAT (v2027) włączane jest ręcznie",
+      "description": "44 018 204 obserwacji fCO₂ z pomiarów prowadzonych w trakcie rejsu, z 8 310 rejsów (1957–2026) w SOCAT v2026: pomiary ze statków i kotwiczonych boi stojące za polem powierzchniowego CO₂ oceanu. Włącza się opcją „Pomiary” w panelu Powierzchniowe CO₂ oceanu.",
+      "reading": "Przy małym przybliżeniu warstwa pokazuje uproszczone trasy rejsów (linie i punkty; punkt to średnia obserwacji z odcinka trasy); od zbliżenia 9 każda kropka to średnia wszystkich obserwacji z jednego roku w jednej małej komórce mapy (ok. 300 m szerokości na równiku przy zbliżeniu 9, ku biegunom mniej, a przy większym zbliżeniu drobniej), a kliknięcie wyświetla ich listę. Kropki mają skalę kolorów pola dla wybranej zmiennej (fCO₂, SST lub zasolenie); w widoku gęstości wszystkie mają jeden kolor. Szary: poza wybraną dekadą, przed 1970 albo brak wartości dla wybranej zmiennej. Filtr zakresu lat ukrywa punkty. Odwzorowanie mapy kończy się na ±85° szerokości: obserwacje poza tą granicą są rysowane na jej krawędzi.",
+      "limitations": "Inny produkt niż pole: pole to średnia dekadowa na siatce 1°, kropki to pojedyncze pomiary z datą ich wykonania, więc różnice są normalne. fCO₂ to wartość przeliczona (fCO₂rec); kod algorytmu każdej obserwacji (1–14) opisuje dokumentacja SOCAT (Bakker i in. 2016). Zasolenia brakuje w 2 287 508 obserwacjach, a SST w 5 224 (te kropki są szare dla danej zmiennej). Flaga QC ocenia cały rejs: A i B – dokładność lepsza niż 2 µatm, C i D – dokładność lepsza niż 5 µatm (akcesja NCEI 0315110).",
+      "selectionCriteria": "Na mapę trafiają tylko obserwacje z flagą WOCE 2 dla fCO₂, pochodzące z rejsów o fladze QC zbioru od A do D. Rejsy z flagą E oraz obserwacje z inną flagą WOCE są zapisane, ale nigdy nie rysowane.",
+      "dataSources": [
+        {
+          "name": "SOCAT v2026 — NOAA NCEI, akcesja 0315110 (doi:10.25921/8dba-fr90, CC BY 4.0)",
+          "url": "https://doi.org/10.25921/8dba-fr90"
+        },
+        {
+          "name": "Bakker i in. 2016, Earth System Science Data 8, 383–413 (doi:10.5194/essd-8-383-2016)",
+          "url": "https://doi.org/10.5194/essd-8-383-2016"
+        },
+        {
+          "name": "Dokumentacja SOCAT i zasady korzystania z danych — socat.info",
+          "url": "https://socat.info/index.php/version-2026/"
         }
       ]
     },
@@ -797,6 +843,50 @@
       "description": "Stężenie chlorofilu-a i produkcja pierwotna obserwowane z kosmosu przez połączone czujniki barwy oceanu (Copernicus-GlobColour), pokazane jako średnie miesięczne na siatce 0,25°. To obserwacje satelitarne, tutaj uśrednione z siatki 4 km: 36 komórek źródłowych każdej komórki 0,25° jest uśrednianych z pominięciem brakujących, a komórka bez obserwacji pozostaje pusta.",
       "reading": "Wybierz zmienną i miesiąc; skalę odczytasz pod selektorami (obie są logarytmiczne, więc niskie wartości, które dominują na otwartym oceanie, pozostają rozróżnialne). Chmury, lód morski i noc polarna zostawiają luki, które są puste, nigdy zerowe. Kliknij mapę, by poznać dokładną wartość najbliższej komórki, odsetek komórek źródłowych za nią i produkt, który dostarczył ten miesiąc.",
       "limitations": "Chlorofil satelitarny widzi tylko warstwę powierzchniową i tylko tam, gdzie jest światło i brak chmur; wartości przybrzeżne i z wysokich szerokości są najmniej pewne. Produkcja pierwotna to całka po słupie wody wyliczona modelem z chlorofilu satelitarnego (mg m⁻² na dobę) i nie można jej porównywać z powierzchniową stawką objętościową z warstwy modelowej. Produkt niemal w czasie rzeczywistym jest mniej przetworzony niż wieloletni i miesiąc może się zmienić po jego zastąpieniu. Przechowywany jest tylko najnowszy miesiąc i 11 poprzednich."
+    },
+    "plankton-occurrences": {
+      "label": "Plankton (OBIS)",
+      "description": "Miejsca, w których obserwowano plankton, według Ocean Biodiversity Information System (OBIS): widłonogi, kryl (Euphausiacea), okrzemki, kokolitofory i bruzdnice. Przy oddaleniu obserwacje są sumowane w oczkach siatki 1°, a potem 0,25°; od powiększenia 7 każda kropka to jedno miejsce poboru. Kolor pokazuje grupę z największą liczbą pasujących obserwacji, wielkość kropki — liczbę obserwacji. Filtry (grupa, dekada, przedział głębokości, eDNA) są stosowane dokładnie na serwerze: miejsce pojawia się tylko wtedy, gdy ma rekord spełniający wszystkie naraz.",
+      "reading": "kolor = dominująca grupa · wielkość = liczba obserwacji (skala log) · sam obrys = wykryte DNA (eDNA), żaden organizm nie został policzony · kliknij oczko siatki, aby przybliżyć, kliknij miejsce, aby zobaczyć grupy, gatunki, lata, głębokości, licencje i zbiory danych",
+      "limitations": "Mapa pokazuje, gdzie szukano, a nie gdzie żyje plankton: Continuous Plankton Recorder dominuje na Północnym Atlantyku, a tam, gdzie pływało niewiele rejsów, mapa jest uboga. Rekordy eDNA (około jednej trzeciej) oznaczają, że DNA grupy znaleziono w próbce wody, a nie że policzono organizm. Około jednej trzeciej rekordów nie ma głębokości; są pokazywane jako „bez głębokości”, nigdy jako powierzchnia. Okrzemek bentosowych nie da się po nazwie oddzielić od planktonowych i są uwzględnione. Część danych ma licencję CC-BY-NC (wyłącznie użytek niekomercyjny); panel po kliknięciu podaje licencję każdego zbioru. Rekordy z datą z przyszłości (błąd źródła) są traktowane jako niedatowane.",
+      "source": "OBIS — Ocean Biodiversity Information System (IOC-UNESCO); cytowania zbiorów w panelu po kliknięciu",
+      "updateFreq": "Comiesięczny pełny import",
+      "colorRamp": [
+        {
+          "label": "Widłonogi"
+        },
+        {
+          "label": "Kryl (Euphausiacea)"
+        },
+        {
+          "label": "Okrzemki"
+        },
+        {
+          "label": "Kokolitofory"
+        },
+        {
+          "label": "Bruzdnice"
+        }
+      ]
+    },
+    "wod-casts": {
+      "label": "Pomiary WOD23 (stacje)",
+      "source": "Mishonov, A. V., Boyer, T. P., Baranova, O. K., Bouchard, C. N., Cross, S., Garcia, H. E., Locarnini, R. A., Paver, C. R., Reagan, J. R., Wang, Z., Seidov, D., Grodsky, A. I., Beauchamp, J. G. (2024) World Ocean Database 2023. C. Bouchard, Technical Ed., NOAA Atlas NESDIS 97, 206 pp., doi:10.25923/z885-h264. NOAA NCEI, publiczne użycie bez ograniczeń.",
+      "updateFreq": "Wydanie statyczne (WOD23: dane stacji, CTD i pławy profilujące); źródło NCEI jest sprawdzane co kwartał, a nowe wydanie jest włączane ręcznie",
+      "description": "Pojedyncze stacje (casty) z World Ocean Database 2023 (stacje OSD z butelek i o niskiej rozdzielczości, CTD i XCTD, pławy profilujące): rzeczywiste pomiary stojące za polem Klimatologia oceanu. Włącza się je opcją „Pomiary” w panelu Klimatologia oceanu.",
+      "reading": "Jedna kropka oznacza wszystkie stacje wybranych lat w jednej małej komórce mapy (drobniejszej po przybliżeniu); kliknięcie wyświetla ich listę i otwiera jedną z nich. Kropka jest kolorowana średnią zaakceptowanych wartości jej stacji dla wybranej zmiennej w oknie wybranej głębokości, w skali kolorów pola. Szary: brak zaakceptowanej wartości w oknie głębokości albo zmienna, której stacje nie niosą (AOU i nasycenie tlenem to wielkości pochodne z WOA). N* jest wyprowadzane z azotanów i fosforanów samej stacji. Filtr zakresu lat wybiera, które stacje są liczone.",
+      "limitations": "Inny produkt niż pole: pole jest obiektywnie analizowaną średnią roczną, kropki to pojedyncze stacje, tak jak zmierzone i datowane, więc się różnią. Używane są tylko wartości z flagą jakości WOD 0 (zaakceptowane), na poziomie najbliższym wybranej głębokości w jej oknie; stacje bez daty lub bez zaakceptowanej wartości są przechowywane, ale nie rysowane. Panel pokazuje najwyżej 100 poziomów na zmienną; wszystkie flagi są zachowane, kolorowane są tylko wartości zaakceptowane. Stacja bez zapisanej godziny jest pokazywana samą datą. Na mapie szerokość geograficzna jest ograniczona do ±85°.",
+      "selectionCriteria": "Na mapę trafiają tylko stacje z datą i co najmniej jedną zaakceptowaną wartością (flaga WOD 0). Pozostałe są przechowywane, nigdy nie rysowane.",
+      "dataSources": [
+        {
+          "name": "World Ocean Database 2023 — NOAA NCEI (doi:10.25923/z885-h264)",
+          "url": "https://doi.org/10.25923/z885-h264"
+        },
+        {
+          "name": "World Ocean Database — strona produktu NOAA NCEI",
+          "url": "https://www.ncei.noaa.gov/products/world-ocean-database"
+        }
+      ]
     }
   },
   "header": {
@@ -1048,7 +1138,8 @@
     "generalTitle": "Ogólne",
     "fresh_apiResponses": "buforowane po stronie serwera; przeglądarka może dodać dodatkową warstwę buforowania",
     "fresh_nutrients_model": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy",
-    "fresh_ocean_colour": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy"
+    "fresh_ocean_colour": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy",
+    "fresh_plankton": "Comiesięczny pełny import z OBIS (data ostatniego importu)"
   },
   "verify": {
     "primaryTitle": "Źródła pierwotne",
@@ -1172,14 +1263,21 @@
       "seabedSubstrate": "Podłoże dna morskiego (Dutkiewicz 2015)",
       "arcticSedimentCarbon": "Węgiel w osadach arktycznych: zweryfikuj wartości stacji w repozytorium Bolin Centre CASCADE (doi.org/10.17043/cascade-2), posługując się nazwą stacji.",
       "coastdom": "CoastDOM: pobierz tabelę źródłową z doi.org/10.1594/PANGAEA.964012 i znajdź próbkę po miejscu, dacie i głębokości pokazanych w panelu; wartości są serwowane dosłownie, z jednostkami źródła.",
-      "greenlandPrimaryProduction": "Produkcja pierwotna Morza Grenlandzkiego: porównaj stację po etykiecie zdarzenia na doi.org/10.1594/PANGAEA.965985."
+      "greenlandPrimaryProduction": "Produkcja pierwotna Morza Grenlandzkiego: porównaj stację po etykiecie zdarzenia na doi.org/10.1594/PANGAEA.965985.",
+      "plankton": "Plankton (OBIS) — każdy zbiór danych miejsca prowadzi do swojej strony w OBIS"
     },
     "nutrients_model_title": "Biogeny i produktywność (model)",
     "nutrients_model": "Porównaj komórkę z przeglądarką lub usługą pobierania samego produktu:",
     "ocean_colour_title": "Barwa oceanu (satelita)",
     "ocean_colour": "Porównaj komórkę z przeglądarką lub usługą pobierania produktu na",
     "glodapPoints_title": "Pomiary butelkowe GLODAPv3",
-    "glodapPoints": "Źródło: GLODAPv3 (2026), NOAA NCEI, akcesja 0315582, doi:10.25921/m6tp-mj50, CC BY 4.0. Profil sprawdzisz po EXPOCODE rejsu z jego panelu: strona rejsu to cchdo.ucsd.edu/cruise/<EXPOCODE> (CCHDO), a sam rejs znajdziesz w tabeli rejsów NCEI GLODAPv3 (Cruise Summary Table, https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/GLODAPv3/cruise_table_v3.html). Potem znajdź stację i profil w pliku danych rejsu. Porównaj DIC profilu na 200 m z polem w tym miejscu: te same jednostki (µmol/kg), inny rocznik (rok butelki vs mapa znormalizowana do 2002) — punkty to wartości butelkowe GLODAPv3 w stanie zmierzonym, pole to mapa GLODAPv2.2016b, więc różnice są oczekiwane. Nazwy statków pochodzą z NERC Vocabulary Server (NVS), BODC, kolekcja C17, CC BY 4.0."
+    "glodapPoints": "Źródło: GLODAPv3 (2026), NOAA NCEI, akcesja 0315582, doi:10.25921/m6tp-mj50, CC BY 4.0. Profil sprawdzisz po EXPOCODE rejsu z jego panelu: strona rejsu to cchdo.ucsd.edu/cruise/<EXPOCODE> (CCHDO), a sam rejs znajdziesz w tabeli rejsów NCEI GLODAPv3 (Cruise Summary Table, https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/GLODAPv3/cruise_table_v3.html). Potem znajdź stację i profil w pliku danych rejsu. Porównaj DIC profilu na 200 m z polem w tym miejscu: te same jednostki (µmol/kg), inny rocznik (rok butelki vs mapa znormalizowana do 2002) — punkty to wartości butelkowe GLODAPv3 w stanie zmierzonym, pole to mapa GLODAPv2.2016b, więc różnice są oczekiwane. Nazwy statków pochodzą z NERC Vocabulary Server (NVS), BODC, kolekcja C17, CC BY 4.0.",
+    "argoOxygenPoints_title": "Pomiary tlenu BGC-Argo",
+    "argoOxygenPoints": "Źródło: Argo GDAC (Argo, 2000), SEANOE doi:10.17882/42182, CC BY 4.0. Profil sprawdzisz linkiem „Plik danych GDAC” w jego panelu: otwiera on własny plik tego profilu w centrum danych Argo (data-argo.ifremer.fr/dac/<DAC>/<WMO>/profiles/SD<WMO>_<cycle>.nc; przedrostek SD oznacza syntetyczny plik w trybie opóźnionym, SR — w czasie rzeczywistym). Plik zawiera tylko ten jeden cykl (CYCLE_NUMBER, jak w panelu): odczytaj DOXY_ADJUSTED z DOXY_ADJUSTED_QC 1 lub 2 względem PRES_ADJUSTED: mapa używa tylko takich wartości, tylko z profili, których tryb danych DOXY to D lub A, i przelicza ciśnienie na głębokość (UNESCO 1983). Własna strona pływaka to fleetmonitoring.euro-argo.eu/float/<WMO>. Wartość profilu na 200 m to najbliższa dobra wartość w przedziale 175–225 m; sąsiadujące pole ISAS20 to średnia 2014–2018 zbudowana ze starszej migawki danych Argo, więc różnica jest oczekiwana. Podziękowanie, dosłownie: These data were collected and made freely available by the International Argo Program and the national programs that contribute to it (https://argo.ucsd.edu, https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.",
+    "socatPoints_title": "Pomiary SOCAT v2026",
+    "socatPoints": "Źródło: SOCAT v2026, NOAA NCEI, akcesja 0315110, doi:10.25921/8dba-fr90, CC BY 4.0; cytuj także Bakker i in. 2016, doi:10.5194/essd-8-383-2016. Obserwację sprawdzisz po EXPOCODE rejsu podanym w jej panelu: rejs jest wymieniony, wraz z kierownikami naukowymi (PI), flagą QC i DOI danych, w tabeli zbiorów SOCAT v2026 (akcesja NCEI 0315110, https://www.ncei.noaa.gov/data/oceans/ncei/ocads/metadata/0315110.html), a jego wiersze są w pliku syntezy pod tym samym EXPOCODE – tam odczytasz datę, pozycję i fCO₂rec. Sąsiadujące pole powierzchniowego CO₂ to średnia dekadowa komórek 1°, więc pojedyncza obserwacja może się od niego różnić. Kody algorytmów (1–14) opisuje dokumentacja SOCAT (socat.info). Flaga QC według NCEI 0315110: A i B – dokładność lepsza niż 2 µatm, C i D – dokładność lepsza niż 5 µatm.",
+    "wodCasts_title": "Pomiary WOD23",
+    "wodCasts": "Źródło: World Ocean Database 2023, NOAA NCEI, doi:10.25923/z885-h264, publiczne użycie bez ograniczeń. Stację można zweryfikować przez link do akcesji NCEI w panelu, który otwiera rekord archiwalny rejsu lub pławy, z której pochodzą dane, oraz przez link do pliku źródłowego."
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

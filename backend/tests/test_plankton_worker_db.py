@@ -268,3 +268,21 @@ async def test_force_writes_its_own_started_marker_through_the_real_sync(worker_
 def test_cli_force_flag():
     assert w.parse_args(["--force"]).force is True
     assert w.parse_args([]).force is False
+
+
+@needs_db
+async def test_resume_implies_force_and_reaches_the_sync(worker_pool, monkeypatch):
+    """--resume ignores a fresh success like --force and tells the sync to resume; without it nothing is passed."""
+    pool, ran = worker_pool
+    seen = []
+
+    async def sync(**kw):
+        seen.append(kw)
+        return {"outcome": "swapped"}
+    monkeypatch.setattr(w, "sync_plankton_obis", sync)
+    await _row(pool, success_days=2)
+    assert await w.run_once(pool) == "fresh" and not seen
+    assert await w.run_once(pool, resume=True) == "ran"
+    assert seen == [{"resume": True}]
+    assert await w.run_once(pool, force=True) == "ran"
+    assert seen[1] == {}

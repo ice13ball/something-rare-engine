@@ -92,6 +92,7 @@ def _serve(monkeypatch, result):
             raise result
         return result
     monkeypatch.setattr(offshore, "fetch_arcgis_features_url", _fetch)
+    monkeypatch.setattr(offshore, "fetch_anp_layer", _fetch)   # ANP is WFS since 2026-10-09
 
 
 @pytest.mark.parametrize("sync, key", SYNCS, ids=[k for _, k in SYNCS])

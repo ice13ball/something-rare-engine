@@ -50,6 +50,36 @@ describe("the real registry: a GLODAP cast link with no layer list", () => {
   });
 });
 
+describe("the real registry: a BGC-Argo profile link with no layer list", () => {
+  it("ends with argo-oxygen-points AND oxygen-deox on, merged onto whatever was on", () => {
+    const out = nextActiveForLink(
+      new Set(["contracts"]), [["argo-oxygen-points", "aoml_1900722_001"]], [],
+      isOpenableLayer, isPointLayer, (l) => OPENABLE_LOOKUP[l]?.alsoActivate ?? [],
+    );
+    expect([...out!].sort()).toEqual(["argo-oxygen-points", "contracts", "oxygen-deox"]);
+  });
+});
+
+describe("the real registry: a SOCAT observation link with no layer list", () => {
+  it("ends with socat-points AND ocean-co2-surface on, merged onto whatever was on", () => {
+    const out = nextActiveForLink(
+      new Set(["contracts"]), [["socat-points", "33GC20040908~1"]], [],
+      isOpenableLayer, isPointLayer, (l) => OPENABLE_LOOKUP[l]?.alsoActivate ?? [],
+    );
+    expect([...out!].sort()).toEqual(["contracts", "ocean-co2-surface", "socat-points"]);
+  });
+});
+
+describe("the real registry: a WOD cast link with no layer list", () => {
+  it("ends with wod-casts AND woa-climatology on, merged onto whatever was on", () => {
+    const out = nextActiveForLink(
+      new Set(["contracts"]), [["wod-casts", "9000001"]], [],
+      isOpenableLayer, isPointLayer, (l) => OPENABLE_LOOKUP[l]?.alsoActivate ?? [],
+    );
+    expect([...out!].sort()).toEqual(["contracts", "woa-climatology", "wod-casts"]);
+  });
+});
+
 describe("nextActiveForLink", () => {
   it("keeps a layer the link carried but no panel needs", () => {
     // ⛔ THE regression. `ocean-co2-surface` is named by the link and wanted by

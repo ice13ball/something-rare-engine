@@ -69,6 +69,8 @@ const ALWAYS_ON_TOP: Array<[string, string]> = [
   ["argo-drift-", "drift trail of the focused Argo float"],
   ["argo-sensor-fault-ring", "ring marking a faulty float, must stay visible over the float dots"],
   ["vessel-track-", "track of the vessel in focus"],
+  ["socat-selected-", "segment/ring of the SOCAT observation in focus"],
+  ["wod-selected-", "ring of the WOD cast in focus"],
   ["eez-labels", "text labels, readable only on top (unchanged behaviour)"],
   ["ocean-currents-arrows", "reduced-motion fallback of the animated currents canvas overlay (unchanged behaviour)"],
 ];
@@ -125,6 +127,12 @@ describe("every layer the map draws is ordered by its toggle's order_idx", () =>
     expect(found.has("woa-hexes")).toBe(true);
     expect(found.has("memento-hexes")).toBe(true);
     expect(ids.length).toBeGreaterThan(60);
+  });
+
+  it("finds the plankton MVT layer (stage 2) and maps it to its own toggle", () => {
+    const found = ids.filter(({ id }) => id === "plankton-occurrences");
+    expect(found.map((f) => f.file)).toEqual(["Map3D.tsx"]);
+    expect(toggleIdForDeckLayer("plankton-occurrences")).toBe("plankton-occurrences");
   });
 
   it("every constructor has an id this test can read (or is a renderSubLayers child)", () => {
@@ -282,5 +290,20 @@ describe("sortDeckLayers on the real layersRaw shape", () => {
   it("with no config yet it still flattens and keeps the order it was given", () => {
     const raw = [dots("b"), [dots("a"), null], false];
     expect(idsOf(sortDeckLayers(raw, []))).toEqual(["b", "a"]);
+  });
+});
+
+describe("plankton-occurrences sits directly under the OBIS species layer", () => {
+  it("is in the Life & Geology menu group, right after biodiversity-hotspots", () => {
+    const ids = menuGroup("Life & Geology");
+    expect(ids.indexOf("plankton-occurrences")).toBe(ids.indexOf("biodiversity-hotspots") + 1);
+  });
+
+  it("sorts under every biodiversity-hotspots deck layer and above the seamounts, in the real layersRaw shape", () => {
+    const raw = [null, { id: "biodiversity-hotspots" }, [{ id: "biodiversity-hotspots-glow" }, false],
+                 { id: "biodiversity-hotspots-grid-fine" }, [], { id: "plankton-occurrences" }, { id: "seamounts" }];
+    const ids = sortDeckLayers(raw, LAYER_DEFAULTS).map((l) => (l as { id: string }).id);
+    expect(ids).toEqual(["seamounts", "plankton-occurrences", "biodiversity-hotspots",
+                         "biodiversity-hotspots-glow", "biodiversity-hotspots-grid-fine"]);
   });
 });

@@ -33,3 +33,33 @@ def coerce_date(v):
         except ValueError:
             return None
     return None if is_placeholder_date(out) else out
+
+
+class ArcGISError(RuntimeError):
+    """An ArcGIS REST endpoint answered with an `error` body instead of data."""
+
+
+class ArcGISTokenRequired(ArcGISError):
+    """The service went private (code 498/499). Needs a human, not a retry."""
+
+
+def arcgis_features(body: dict, label: str = "") -> list[dict]:
+    """Return `features` from an ArcGIS query response, or raise.
+
+    ⛔ ArcGIS reports errors as HTTP 200 with `{"error": {...}}`, so
+    `raise_for_status()` never fires and `.get("features", [])` turns "this
+    service now requires a token" into "this source has no features". That is
+    how ANP Brazil and GNPC Ghana sat stale for weeks in October 2026 under a
+    "no features with geometry" skip. A body without a `features` key is not
+    an empty answer either — an empty answer still carries `"features": []`.
+    """
+    err = body.get("error") if isinstance(body, dict) else None
+    if err:
+        code = err.get("code")
+        msg = f"{label or 'arcgis'}: error {code} {err.get('message')!r}"
+        if code in (498, 499):
+            raise ArcGISTokenRequired(msg)
+        raise ArcGISError(msg)
+    if not isinstance(body, dict) or "features" not in body:
+        raise ArcGISError(f"{label or 'arcgis'}: response has no 'features' key")
+    return body["features"]

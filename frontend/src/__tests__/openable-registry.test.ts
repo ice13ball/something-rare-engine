@@ -61,7 +61,7 @@ describe("every key the registry promises is a branch the dispatcher has", () =>
     expect(covered.size).toBeGreaterThan(0);
     expect(opted.size).toBeGreaterThan(0);
     expect([...covered].filter((l) => opted.has(l))).toEqual([]);
-    expect(covered.size + opted.size).toBe(65);
+    expect(covered.size + opted.size).toBe(69);
   });
 
   it("an identifier known to rot is marked, not quietly treated as stable", () => {
@@ -86,5 +86,34 @@ describe("alsoActivate names real layers and is wired where the cast link needs 
   });
   it("the GLODAP cast link also switches on the Ocean Carbon field", () => {
     expect(OPENABLE["glodap-points"].alsoActivate).toEqual(["ocean-carbon"]);
+  });
+  it("the BGC-Argo profile link is keyed on the profile key and also switches on the Ocean Oxygen field", () => {
+    const e = OPENABLE["argo-oxygen-points"];
+    expect(e.source).toBe("by-id");
+    expect(e.idStability).toBe("stable");
+    expect(e.byIdPath).toBe("/api/v1/argo-oxygen/profile/");
+    expect(e.idProps).toEqual(["profile_key", "key"]);
+    expect(e.alsoActivate).toEqual(["oxygen-deox"]);
+  });
+  it("the SOCAT observation link is keyed on obs_key, opens at the point zoom and also switches on the Surface CO2 field", () => {
+    const e = OPENABLE["socat-points"];
+    expect(e.source).toBe("by-id");
+    expect(e.idStability).toBe("stable");
+    expect(e.byIdPath).toBe("/api/v1/socat/obs/");
+    expect(e.idProps).toEqual(["obs_key"]);
+    expect(e.zoom).toBe(9);
+    expect(e.geometryFromLatLon).toBe(true);
+    expect(e.alsoActivate).toEqual(["ocean-co2-surface"]);
+  });
+  it("the WOD cast link is keyed on cast_id, opens at zoom 8 and also switches on the WOA climatology", () => {
+    const e = OPENABLE["wod-casts"];
+    expect(e.source).toBe("by-id");
+    expect(e.idStability).toBe("stable");
+    expect(e.byIdPath).toBe("/api/v1/wod/cast/");
+    expect(e.idProps).toEqual(["cast_id"]);
+    expect(e.zoom).toBe(8);
+    expect(e.geometryFromLatLon).toBe(true);
+    expect(OPENABLE_LOOKUP["wod-casts"].dataKey).toBeUndefined();
+    expect(e.alsoActivate).toEqual(["woa-climatology"]);
   });
 });

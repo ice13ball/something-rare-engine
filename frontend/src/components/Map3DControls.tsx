@@ -47,8 +47,18 @@ interface Props {
   // GLODAP Measurements (points): year span of the loaded cast document, and whether it is still loading.
   glodapYearBounds?: { min: number; max: number } | null;
   glodapLoading?: boolean;
+  // BGC-Argo O₂ Measurements (points): year span of the loaded documents, still loading, loaded but nothing in the year window.
+  argoYearBounds?: { min: number; max: number } | null;
+  argoLoading?: boolean;
+  argoEmpty?: boolean;
   // Surface Ocean CO₂ (SOCAT) meta — passed from Map3D once the layer first activates.
   co2Meta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp?: Array<{ pos: number; hex: string }> }>; decades: Array<{ index: number; label: string }> } | null;
+  // SOCAT Measurements (points): year span from /v1/socat/meta (null until it has loaded), and whether it is loading now.
+  socatYearBounds?: { min: number; max: number } | null;
+  socatLoading?: boolean;
+  // WOD Measurements (points): year span from /v1/wod/meta (null until it has loaded), and whether it is loading now.
+  wodYearBounds?: { min: number; max: number } | null;
+  wodLoading?: boolean;
 }
 
 
@@ -67,7 +77,14 @@ export function Map3DControls({
   carbonMeta,
   glodapYearBounds,
   glodapLoading,
+  argoYearBounds,
+  argoLoading,
+  argoEmpty,
   co2Meta,
+  socatYearBounds,
+  socatLoading,
+  wodYearBounds,
+  wodLoading,
 }: Props) {
   const {
     activeLayers, toggleLayer, disableAllLayers,
@@ -384,7 +401,7 @@ export function Map3DControls({
             <SensorsSection expandedFilter={expandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} currentsMeta={currentsMeta} currentsDate={currentsDate} setCurrentsDate={setCurrentsDate} currentsPlaying={currentsPlaying} setCurrentsPlaying={setCurrentsPlaying} />
 
             {/* ── Ocean Climatology ─────────────────────────────────── */}
-            <OceanClimatologySection expandedFilter={expandedFilter} setExpandedFilter={setExpandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} woaMeta={woaMeta} nutrientsMeta={nutrientsMeta} oceanColourMeta={oceanColourMeta} oxygenMeta={oxygenMeta} carbonMeta={carbonMeta} glodapYearBounds={glodapYearBounds} glodapLoading={glodapLoading} co2Meta={co2Meta} />
+            <OceanClimatologySection expandedFilter={expandedFilter} setExpandedFilter={setExpandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} woaMeta={woaMeta} nutrientsMeta={nutrientsMeta} oceanColourMeta={oceanColourMeta} oxygenMeta={oxygenMeta} carbonMeta={carbonMeta} glodapYearBounds={glodapYearBounds} glodapLoading={glodapLoading} argoYearBounds={argoYearBounds} argoLoading={argoLoading} argoEmpty={argoEmpty} co2Meta={co2Meta} socatYearBounds={socatYearBounds} socatLoading={socatLoading} wodYearBounds={wodYearBounds} wodLoading={wodLoading} />
 
             {/* ── Infrastructure ────────────────────────────────────── */}
             {/* ── Infrastructure ────────────────────────────────────── */}

@@ -15,7 +15,8 @@ export type GlodapCastsDoc = {
   values: Record<"dic" | "talk" | "ph", Record<string, (number | null)[]>>;
 };
 export type GlodapPoint = { i: number; key: string; position: [number, number]; year: number; value: number | null };
-type RampMeta = { vmin: number; vmax: number; ramp?: { pos: number; hex: string }[] };
+export type RGBA = [number, number, number, number];
+export type RampMeta = { vmin: number; vmax: number; ramp?: { pos: number; hex: string }[] };
 
 /** No acceptable (WOCE 2) bottle within the selected depth's window, or a variable bottles do not carry (Cant). */
 export const GLODAP_NO_VALUE_RGBA: [number, number, number, number] = [148, 163, 184, 110];

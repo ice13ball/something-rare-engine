@@ -16,6 +16,7 @@ import os
 import pathlib
 import shutil
 import subprocess
+import threading
 
 import numpy as np
 
@@ -278,6 +279,65 @@ def sample(var_key: str, lat: float, lon: float, depth_m: float,
     if val is None or np.isnan(val) or abs(float(val)) > 1e30:  # WOA fill ~9.97e36
         return None
     return float(val)
+
+
+# ── one value from the annual grid, without loading it (the wod-casts panel) ──────────────────────────────
+# netCDF4 / HDF5 is not thread-safe, and the API calls this from asyncio.to_thread: every open and read of
+# netCDF4 below happens under this one lock. netCDF4 is imported inside the function so importing this module
+# (and domains.wod_casts) never loads it. It never touches _GRID_CACHE: the whole grid stays on disk, one
+# element is read per call (preflight ruling P2).
+_NC_LOCK = threading.Lock()
+_NC_COORDS: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}   # path -> (depths, lats, lons): a few KB
+
+
+def _read_annual_point(path: pathlib.Path, an_var: str, lat: float, lon: float, depth_m: float) -> float | None:
+    """One element `an[0, depth, lat, lon]` of one annual file; None for fill / masked / NaN or a missing file."""
+    try:
+        if not path.is_file():
+            return None
+    except OSError:
+        return None
+    # Two locks, always in this order: xarray's HDF5_LOCK (the one _load_grid's netCDF4 engine takes for every
+    # read, in the bake thread or on the loop), then ours. Holding both serialises this reader against the
+    # existing grid loads without touching them. Acquired here, in the caller's thread: the route calls this
+    # through asyncio.to_thread, never on the event loop.
+    try:
+        from xarray.backends.locks import HDF5_LOCK  # lazy
+    except ImportError:
+        HDF5_LOCK = threading.Lock()   # xarray absent: nothing else opens WOA files in this process
+    with HDF5_LOCK, _NC_LOCK:
+        import netCDF4  # lazy: never at import time
+        with netCDF4.Dataset(str(path)) as ds:
+            key = str(path)
+            coords = _NC_COORDS.get(key)
+            if coords is None:
+                coords = (np.asarray(ds.variables["depth"][:], dtype="float64"),
+                          np.asarray(ds.variables["lat"][:], dtype="float64"),
+                          np.asarray(ds.variables["lon"][:], dtype="float64"))
+                _NC_COORDS[key] = coords
+            depths, lats, lons = coords
+            val = ds.variables[an_var][0, _nearest_idx(depths, depth_m), _nearest_idx(lats, lat),
+                                       _nearest_idx(lons, lon)]
+    if np.ma.is_masked(val):
+        return None
+    val = float(val)
+    if not np.isfinite(val) or abs(val) > _FILL_ABS:
+        return None
+    return val
+
+
+def sample_annual_point(var_key: str, lat: float, lon: float, depth_m: float) -> float | None:
+    """Nearest-cell value of the ANNUAL climatology at (lat, lon, depth), read straight from the grid file.
+    The derived N* is `a - k*b` of two reads. None for land, fill, an unknown variable or a missing file."""
+    cfg = WOA_VARS.get(var_key)
+    if cfg is None:
+        return None
+    if is_derived(var_key):
+        d = cfg["derived"]
+        a = sample_annual_point(d["a"], lat, lon, depth_m)
+        b = sample_annual_point(d["b"], lat, lon, depth_m)
+        return None if a is None or b is None else a - float(d["k"]) * b
+    return _read_annual_point(_local_path(var_key, 0), cfg["an_var"], lat, lon, depth_m)
 
 
 def enrich_profile(lat: float, lon: float, month: int,

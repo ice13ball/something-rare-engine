@@ -59,3 +59,11 @@ async def export_client():
         headers={"X-API-Key": os.environ.get("ABYSSAL_API_KEY", "")},
     ) as client:
         yield client
+
+
+@pytest.fixture(autouse=True)
+def _plankton_tiles_in_tmp(tmp_path_factory, monkeypatch):
+    """Every successful plankton swap now pre-bakes map tiles (ingestion/plankton_obis.bake_tiles). A test
+    must never write to /var/cache, and the 5,461-tile production bake would add minutes per import test."""
+    monkeypatch.setenv("PLANKTON_TILE_CACHE_DIR", str(tmp_path_factory.mktemp("plankton-tiles")))
+    monkeypatch.setenv("PLANKTON_PREBAKE_MAX_ZOOM", "1")

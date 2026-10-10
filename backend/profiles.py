@@ -38,7 +38,7 @@ KNOWN_LAYER_IDS: frozenset[str] = frozenset({
     "contracts", "reserved-areas", "relinquished-areas", "apeis",
     "protected-marine-sites", "eez", "offshore-activities",
     # sea_life
-    "biodiversity-hotspots", "hydrothermal-vents", "chess", "seamounts",
+    "biodiversity-hotspots", "plankton-occurrences", "hydrothermal-vents", "chess", "seamounts",
     "tectonic-plates", "bathymetry",
     # sea_analysis
     "monitoring-density", "deepdata-stations", "marine-carbon",
@@ -48,7 +48,7 @@ KNOWN_LAYER_IDS: frozenset[str] = frozenset({
     "argo", "oceansites", "onc", "onc-instruments", "hydrophone-stations",
     "ocean-currents",
     # sea_woa
-    "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "ocean-carbon", "glodap-points", "ocean-co2-surface", "wod-oxygen",
+    "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "ocean-carbon", "glodap-points", "argo-oxygen-points", "socat-points", "wod-casts", "ocean-co2-surface", "wod-oxygen",
     "memento", "geotraces", "mosaic-sediment", "methane-seeps", "oxygen-deox",
     "arctic-rivers", "arctic-catchments", "arctic-sediment-carbon",
     "permafrost-thaw", "sios-svalbard", "seabed-substrate", "coastdom", "greenland-primary-production",

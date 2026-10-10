@@ -69,6 +69,21 @@ export const LAYER_TOOLTIPS_META = {
     sourceUrl: "https://doi.org/10.25921/m6tp-mj50",
     pairsWith: ["ocean-carbon", "woa-climatology", "argo"],
   },
+  "argo-oxygen-points": {
+    source: "Argo GDAC — BGC-Argo synthetic profiles, DOXY_ADJUSTED QC 1/2 (Argo, doi:10.17882/42182, CC BY 4.0)",
+    sourceUrl: "https://doi.org/10.17882/42182",
+    pairsWith: ["oxygen-deox", "woa-climatology", "argo"],
+  },
+  "socat-points": {
+    source: "SOCAT v2026 (Bakker et al. 2026) — individual surface-ocean fCO₂ observations, NOAA NCEI (doi:10.25921/8dba-fr90)",
+    sourceUrl: "https://doi.org/10.25921/8dba-fr90",
+    pairsWith: ["ocean-co2-surface", "ocean-carbon", "woa-climatology"],
+  },
+  "wod-casts": {
+    source: "World Ocean Database 2023 (Mishonov et al. 2024) — individual OSD, CTD and profiling-float casts, NOAA NCEI (doi:10.25923/z885-h264)",
+    sourceUrl: "https://doi.org/10.25923/z885-h264",
+    pairsWith: ["woa-climatology", "ocean-carbon", "argo"],
+  },
   "ocean-acidification": {
     source: "GLODAP v2.2016b OmegaA/OmegaC (Lauvset 2016; Key 2015) — horizon depth platform-derived",
     legendRef: "ocean-acidification",
@@ -140,6 +155,11 @@ export const LAYER_TOOLTIPS_META = {
     source: "Ocean Biodiversity Information System (OBIS) — IOC-UNESCO",
     sourceUrl: "https://obis.org/",
     pairsWith: ["contracts", "hydrothermal-vents", "seamounts"],
+  },
+  "plankton-occurrences": {
+    source: "Ocean Biodiversity Information System (OBIS) — IOC-UNESCO; per-dataset licences and citations in the click panel",
+    sourceUrl: "https://obis.org/",
+    pairsWith: ["biodiversity-hotspots", "ocean-colour-satellite", "woa-climatology"],
   },
   "noise-risk": {
     source: "Derived layer — modelled from contract boundaries (no external citation)",

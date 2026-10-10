@@ -5,7 +5,9 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import DeckGL from "@deck.gl/react";
 import { MVTLayer, TileLayer } from "@deck.gl/geo-layers";
-import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, ColumnLayer, TextLayer, IconLayer, BitmapLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, ColumnLayer, TextLayer, IconLayer, BitmapLayer, PathLayer } from "@deck.gl/layers";
+// @deck.gl/extensions is a direct dependency (the deck.gl umbrella does not re-export DataFilterExtension in 9.2).
+import { DataFilterExtension } from "@deck.gl/extensions";
 import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { PickingInfo, MapViewState } from "@deck.gl/core";
 import { FlyToInterpolator } from "@deck.gl/core";
@@ -70,6 +72,10 @@ import { useLayerConfig, sortDeckLayers } from "../utils/layerConfig";
 import { isLayerHidden } from "../utils/hiddenLayers";
 import { gebcoTileUrl } from "../utils/gebcoTiles";
 import { wodDecadeColor } from "../utils/wodDecades";
+import {
+  PLANKTON_LAYER_NAME, planktonCellZoomTarget, planktonFillColor, planktonLineColor, planktonRadius,
+  planktonTileUrl, planktonVersionFromMeta, planktonVersionUrl,
+} from "../utils/plankton";
 import { seepTypeColorRgba } from "../utils/seepTypes";
 import { thawCategoryColorRgba, thawCategoryLineRgba } from "../utils/thawTypes";
 import { elementColor } from "../utils/geotracesElements";
@@ -100,7 +106,22 @@ import {
 } from "./map3d/depthCache";
 import { BASEMAP, MAP_VIEW, tooltipStyle } from "./map3d/viewState";
 import { useLayerFetcher } from "./map3d/useLayerFetcher";
+import { useArgoOxygenDocs } from "./map3d/useArgoOxygenDocs";
 import { glodapPoints, glodapColor, carbonDrawing, glodapYearBounds, type GlodapCastsDoc, type GlodapPoint } from "../utils/glodapPoints";
+import {
+  argoOxygenPoints, argoOxygenColor, oxygenDrawing, oxygenNeedsFieldTiles,
+  ARGO_FAILED_NAME, type ArgoOxygenPoint,
+} from "../utils/argoOxygenPoints";
+import {
+  socatColor, socatValue, co2Drawing, socatTileUrl, SOCAT_FAILED_NAME, SOCAT_TILE_MAX_ZOOM,
+  type SocatMeta, type SocatProps,
+} from "../utils/socatPoints";
+import { useSocatSelection } from "../store/socatSelection";
+import {
+  wodColor, wodTileVar, woaDrawing, wodTileUrl, WOD_FAILED_NAME, WOD_TILE_MAX_ZOOM,
+  type WodMeta, type WodProps,
+} from "../utils/wodCasts";
+import { useWodSelection } from "../store/wodSelection";
 import { useLayerData } from "./map3d/useLayerData";
 
 // Re-exported so existing consumers (including src/__tests__/map3d-helpers.test.ts,
@@ -343,9 +364,14 @@ const NO_FLY_TO = [
   "ocean-acidification",
   "coral-acid-exposure",
   "cumulative-human-impact",
-  // Placeholder from the registry step (2026-10-06): the point layer exists as a toggle
-  // before its deck layer. Move it into flyConfigs if the points layer gets a fly-to.
+  // Point layers: each has its own deck layer, switched on by the Measurements option of the
+  // parent field's Display switch, and no fly-to target. Move one into flyConfigs if its points get a fly-to.
   "glodap-points",
+  "argo-oxygen-points",
+  // Global cruise tracks (and, zoomed in, one dot per cell-year): no extent to fly to.
+  "socat-points",
+  // Global casts (MVT-only), a dot per cell: no extent to fly to.
+  "wod-casts",
 ] as const satisfies readonly LayerId[];
 
 export function Map3D() {
@@ -389,6 +415,10 @@ export function Map3D() {
   }, [activeLayers, vesselFocus, setVesselFocus]);
 
   const wodDecadeFilters   = useMapStore(s => s.wodDecadeFilters);
+  const planktonGroupFilters  = useMapStore(s => s.planktonGroupFilters);
+  const planktonDecadeFilters = useMapStore(s => s.planktonDecadeFilters);
+  const planktonDepthFilters  = useMapStore(s => s.planktonDepthFilters);
+  const planktonShowEdna      = useMapStore(s => s.planktonShowEdna);
   const mementoGas          = useMapStore(s => s.mementoGas);
   const mementoDisplayMode  = useMapStore(s => s.mementoDisplayMode);
   const mementoGasFilters   = useMapStore(s => s.mementoGasFilters);
@@ -428,6 +458,9 @@ export function Map3D() {
   const carbonDepth        = useMapStore((s) => s.carbonDepth);
   const carbonDisplayMode  = useMapStore((s) => s.carbonDisplayMode);
   const glodapYearRange    = useMapStore((s) => s.glodapYearRange);
+  const argoOxygenYearRange = useMapStore((s) => s.argoOxygenYearRange);
+  const socatYearRange     = useMapStore((s) => s.socatYearRange);
+  const wodYearRange       = useMapStore((s) => s.wodYearRange);
   const acidificationVariable     = useMapStore((s) => s.acidificationVariable);
   const acidificationDepth        = useMapStore((s) => s.acidificationDepth);
   const acidificationDisplayMode  = useMapStore((s) => s.acidificationDisplayMode);
@@ -563,6 +596,23 @@ export function Map3D() {
     tileErrorCountRef.current.set(name, 0);
     setFailedLayers(prev => (prev.includes(name) ? prev.filter(n => n !== name) : prev));
   }, []);
+  // Plankton (OBIS): tiles are keyed on the data version from /tile-version (immutable per version; one cheap row, never /meta's counts). No version
+  // (aggregates not built yet, meta down) = the layer says it is unavailable instead of drawing an empty map.
+  const [planktonVersion, setPlanktonVersion] = useState<string | null>(null);
+  const planktonActive = activeLayers.has("plankton-occurrences");
+  useEffect(() => {
+    if (!planktonActive) return;
+    const ctrl = new AbortController();
+    const fail = () => setFailedLayers(prev => (prev.includes(PLANKTON_LAYER_NAME) ? prev : [...prev, PLANKTON_LAYER_NAME]));
+    fetch(planktonVersionUrl(API), { signal: ctrl.signal })
+      .then(r => (r.ok ? r.json() : null))
+      .then(meta => {
+        const v = planktonVersionFromMeta(meta);
+        if (v) { setPlanktonVersion(v); onTileLayerLoad(PLANKTON_LAYER_NAME); } else fail();
+      })
+      .catch((e) => { if (e?.name !== "AbortError") fail(); });
+    return () => ctrl.abort();
+  }, [planktonActive, tileCacheVersion, onTileLayerLoad]);
   const retryFailedLayers = useCallback(() => {
     tileErrorCountRef.current.clear();
     setFailedLayers([]);
@@ -600,7 +650,7 @@ export function Map3D() {
 
   const { fetchLayer, fetchGuarded, fetchJsonGuarded, failedLayers, setFailedLayers, retryGuardedLayers } = useLayerFetcher();
   const {
-    eezData, protectedSitesData, seamountsData, oceansitesData, glodapCruisesData, oncData, chessData,
+    eezData, protectedSitesData, seamountsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
     oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
@@ -625,7 +675,7 @@ export function Map3D() {
       claims: claimsData, reserved: reservedData, relinquished: relinquishedData,
       seamounts: seamountsData, argo: argoData, vents: ventsData,
       eez: eezData, protectedSites: protectedSitesData, hotspots: hotspotsData,
-      oceansites: oceansitesData, glodapCruises: glodapCruisesData, onc: oncData, chess: chessData,
+      oceansites: oceansitesData, glodapCruises: glodapCruisesData, argoOxygenFloats: argoOxygenFloatsData, onc: oncData, chess: chessData,
       cables: cablesData, oncCables: oncCablesData, ooiCables: ooiCablesData, noaaCables: noaaCablesData, nzCables: nzCablesData, auCables: auCablesData, oncInstruments: oncInstrumentsData, ports: portsData,
       deepdataStations: deepdataStationsData,
       hydrophones: hydrophoneData,
@@ -649,7 +699,7 @@ export function Map3D() {
       permafrostThaw: permafrostThawData,
     };
     setSearchDataVersion(v => v + 1);
-  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, glodapCruisesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
+  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
 
   const mapRef = useRef<any>(null);
 
@@ -995,7 +1045,7 @@ export function Map3D() {
   // is a degenerate quad in mercator and fails to render (the polar gaps). Edges
   // use shared integer pixel boundaries so adjacent tiles never leave seams.
   useEffect(() => {
-    if (!woaActive) { setWoaTiles(null); return; }
+    if (!woaActive || woaDisplayMode === "points") { setWoaTiles(null); return; }
     let cancelled = false;
     setWoaTiles(null); // drop the previous variable/depth tiles so none linger with a stale texture
     (async () => {
@@ -1032,7 +1082,7 @@ export function Map3D() {
       }
     })();
     return () => { cancelled = true; };
-  }, [woaActive, woaVariable, woaDepth]);
+  }, [woaActive, woaDisplayMode === "points", woaVariable, woaDepth]);
 
   // ── Nutrients & productivity (model): meta, then one PNG per variable + month ──
   const bgcActive = activeLayers.has("ocean-nutrients-model");
@@ -1517,8 +1567,9 @@ export function Map3D() {
   }, [co2Active]);
 
   // Slice the CO₂ field PNG into BitmapLayer tiles — identical approach to carbonTiles.
+  // Not fetched in Measurements mode: the points replace the field, so its bitmap would never be drawn.
   useEffect(() => {
-    if (!co2Active) { setCo2Tiles(null); return; }
+    if (!co2Active || co2DisplayMode === "points") { setCo2Tiles(null); return; }
     let cancelled = false;
     setCo2Tiles(null); // drop previous variable/decade tiles so none linger with a stale texture
     (async () => {
@@ -1558,7 +1609,66 @@ export function Map3D() {
       }
     })();
     return () => { cancelled = true; };
-  }, [co2Active, co2Variable, co2Decade]);
+  }, [co2Active, co2DisplayMode === "points", co2Variable, co2Decade]);
+
+  // ── SOCAT Measurements (points): the data version that keys the vector tiles ─────────────────────────
+  // Measurements are the THIRD display mode of Surface Ocean CO₂ and REPLACE the field and the hexes; the colours
+  // come from the field's variable/decade selectors and ramp (`co2Meta`). `socat-points` stays the points' toggle /
+  // z-order id and the store keeps it in `activeLayers` exactly while the mode is "points".
+  // Nothing is drawn before BOTH /v1/co2/meta (the ramp) and /v1/socat/meta (the tile version) have loaded: a
+  // missing ramp would paint every point the "no value" grey, a missing version would request tiles unkeyed.
+  const socatActive = activeLayers.has("socat-points");
+  const co2Draw = co2Drawing(co2Active, co2DisplayMode, socatActive);
+  const [socatMeta, setSocatMeta] = useState<SocatMeta | null>(null);
+  const socatFetchedRef = useRef(false);
+  useEffect(() => {
+    if (co2Draw.points)
+      fetchJsonGuarded<SocatMeta>(socatFetchedRef, "/api/v1/socat/meta", setSocatMeta, SOCAT_FAILED_NAME);
+  }, [co2Draw.points, fetchJsonGuarded]);
+  // /meta answers 200 with tile_version = null after a purge (nothing built): say so instead of drawing nothing.
+  const socatVersion = typeof socatMeta?.tile_version === "string" && socatMeta.tile_version ? socatMeta.tile_version : null;
+  useEffect(() => {
+    if (co2Draw.points && socatMeta && !socatVersion)
+      setFailedLayers((prev) => (prev.includes(SOCAT_FAILED_NAME) ? prev : [...prev, SOCAT_FAILED_NAME]));
+  }, [co2Draw.points, socatMeta, socatVersion, setFailedLayers]);
+  const socatVersionRef = useRef<string | null>(null);
+  socatVersionRef.current = socatVersion;
+  const socatVm = co2Meta?.variables.find((v) => v.key === co2Variable);
+  const socatBounds = useMemo(
+    () => (typeof socatMeta?.year_min === "number" && typeof socatMeta?.year_max === "number" && socatMeta.year_min <= socatMeta.year_max
+      ? { min: socatMeta.year_min, max: socatMeta.year_max } : null),
+    [socatMeta]);
+  const socatSegment = useSocatSelection((s) => s.segment);
+  const socatPoint = useSocatSelection((s) => s.point);
+  const socatPanelOpen = useMapStore((s) => s.selectedFeatures.some((f) => f.layer === "socat-points"));
+
+  // ── WOD Measurements (points): the data version that keys the vector tiles ───────────────────────────
+  // The THIRD display mode of the WOA climatology; Measurements REPLACE the field and the hexes. The ramp, variable
+  // and depth come from the field's own selectors (`woaMeta`); `wod-casts` is the points' toggle / z-order id and
+  // the store keeps it in `activeLayers` exactly while the mode is "points". Nothing is drawn before BOTH
+  // /v1/woa/meta (the ramp) and /v1/wod/meta (the tile version, depths, scales) have loaded.
+  const wodActive = activeLayers.has("wod-casts");
+  const woaDraw = woaDrawing(woaActive, woaDisplayMode, wodActive);
+  const [wodMeta, setWodMeta] = useState<WodMeta | null>(null);
+  const wodFetchedRef = useRef(false);
+  useEffect(() => {
+    if (woaDraw.points)
+      fetchJsonGuarded<WodMeta>(wodFetchedRef, "/api/v1/wod/meta", setWodMeta, WOD_FAILED_NAME);
+  }, [woaDraw.points, fetchJsonGuarded]);
+  // /meta answers 200 with tile_version = null when nothing is built: say so instead of drawing nothing.
+  const wodVersion = typeof wodMeta?.tile_version === "string" && wodMeta.tile_version ? wodMeta.tile_version : null;
+  useEffect(() => {
+    if (woaDraw.points && wodMeta && !wodVersion)
+      setFailedLayers((prev) => (prev.includes(WOD_FAILED_NAME) ? prev : [...prev, WOD_FAILED_NAME]));
+  }, [woaDraw.points, wodMeta, wodVersion, setFailedLayers]);
+  const wodVersionRef = useRef<string | null>(null);
+  wodVersionRef.current = wodVersion;
+  const wodBounds = useMemo(
+    () => (typeof wodMeta?.year_min === "number" && typeof wodMeta?.year_max === "number" && wodMeta.year_min <= wodMeta.year_max
+      ? { min: wodMeta.year_min, max: wodMeta.year_max } : null),
+    [wodMeta]);
+  const wodFocus = useWodSelection((s) => s.focus);
+  const wodPanelOpen = useMapStore((s) => s.selectedFeatures.some((f) => f.layer === "wod-casts"));
 
   // ── CO₂ hex grid ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1583,6 +1693,17 @@ export function Map3D() {
   // ── Ocean Oxygen (ISASO2): fetch meta when layer activates ──────────────────
   const oxygenActive = activeLayers.has("oxygen-deox");
 
+  // ── BGC-Argo O₂ Measurements: the THIRD display mode of oxygen-deox (replaces field and hexes) ──────────────
+  // One document per depth; `argo-oxygen-points` is in activeLayers exactly while the mode is "points" (store).
+  const argoOxygenActive = activeLayers.has("argo-oxygen-points");
+  const oxygenDraw = oxygenDrawing(oxygenActive, oxygenDisplayMode, argoOxygenActive);
+  const oxygenTilesNeeded = oxygenNeedsFieldTiles(oxygenActive, oxygenDisplayMode);
+  // ⛔ Only the SELECTED depth's document is drawn; at most the current + last two stay decoded; a loaded depth is
+  // never refetched (useArgoOxygenDocs).
+  const { doc: argoOxygenDoc, bounds: argoOxygenBounds } = useArgoOxygenDocs(oxygenDraw.points, oxygenDepth, fetchJsonGuarded);
+  const argoOxygenData = useMemo(() => (argoOxygenDoc ? argoOxygenPoints(argoOxygenDoc, argoOxygenYearRange) : []),
+    [argoOxygenDoc, argoOxygenYearRange]);
+
   useEffect(() => {
     if (!oxygenActive || oxygenFetchedRef.current) return;
     oxygenFetchedRef.current = true;
@@ -1599,8 +1720,9 @@ export function Map3D() {
   }, [oxygenActive]);
 
   // Slice the oxygen field PNG into BitmapLayer tiles — identical approach to woaTiles.
+  // Not fetched in Measurements mode: the points replace the field, so its bitmap would never be drawn.
   useEffect(() => {
-    if (!oxygenActive) { setOxygenTiles(null); return; }
+    if (!oxygenTilesNeeded) { setOxygenTiles(null); return; }
     let cancelled = false;
     setOxygenTiles(null); // drop previous view/depth tiles (avoid stale textures)
     (async () => {
@@ -1636,7 +1758,7 @@ export function Map3D() {
       }
     })();
     return () => { cancelled = true; };
-  }, [oxygenActive, oxygenView, oxygenDepth]);
+  }, [oxygenTilesNeeded, oxygenView, oxygenDepth]);
 
   // ── WOA hex grid ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -2669,6 +2791,8 @@ export function Map3D() {
         ? (f: any) => wodDecadeFilters.has(String(f.properties?.decade))
         : undefined,
     },
+    // Filtered on the SERVER: every feature in the tiles is visible, so there is no client predicate to mirror.
+    "plankton-occurrences": { deckLayerId: "plankton-occurrences", idProp: "site_key" },
     "memento": {
       deckLayerId: "memento",
       filter: (mementoGasFilters.size > 0 || mementoDecadeFilters.size > 0)
@@ -2863,6 +2987,8 @@ export function Map3D() {
         "arctic-sediment-carbon": { longitude: 10, latitude: 80, zoom: 2.5 },
         "vme-suitability": { longitude: -20, latitude: 30, zoom: 2 },
         "coral-acid-exposure": { longitude: -20, latitude: 30, zoom: 2 },
+        // No client copy of the tiles: land on the North Atlantic, the densest survey area (CPR).
+        "plankton-occurrences": { longitude: -25, latitude: 52, zoom: 3 },
       };
       const rv = rasterViews[id];
       if (!rv) return;
@@ -3420,6 +3546,61 @@ export function Map3D() {
       setSelectedFeature({ id: p.key, layer: "glodap-points", properties: { cast_key: p.key } });
       return;
     }
+    if (lid0 === "argo-oxygen-points") {
+      const p = info.object as ArgoOxygenPoint | undefined;
+      if (!p) return;
+      setSelectedFeature({ id: p.key, layer: "argo-oxygen-points", properties: { profile_key: p.key } });
+      return;
+    }
+    if (lid0 === "socat-points-mvt") {
+      const p = info.object?.properties as SocatProps | undefined;
+      if (!p) return;
+      // The year filter is a GPU DataFilterExtension filter, which discards filtered fragments in the picking pass
+      // too (deck.gl 9.2.11), so a filtered point should not be picked at all. Kept as a cheap guard in case a
+      // picked feature is stale (tile cached across a range change) or the extension behaves differently.
+      // ⛔ Read the range from the store, not the closure — this callback's dependency list carries no socatYearRange.
+      const yr = useMapStore.getState().socatYearRange;
+      if (yr && (p.y < yr[0] || p.y > yr[1])) return;
+      const first = p.n ?? p.n0;
+      if (!p.e || first == null) return;
+      const obsKey = `${p.e}~${first}`;
+      // The picked tile's own index (deck overzooms past maxZoom, so the viewport zoom is NOT the cell address).
+      const ti = (info as unknown as { tile?: { index?: { x: number; y: number; z: number } } }).tile?.index;
+      setSelectedFeature({
+        id: obsKey,
+        layer: "socat-points",
+        properties: {
+          obs_key: obsKey,
+          lod: p.n == null,
+          cell: p.q == null || !ti ? undefined : `${ti.z}/${ti.x}/${ti.y}/${p.q}`,
+          year: p.y,
+          k: p.k,
+          // LOD piece (z <= 8): the mean the dot is coloured by, decoded (null where the piece has none).
+          lodMean: p.n == null ? { fco2_uatm: socatValue(p, "fco2"), sst_c: socatValue(p, "sst"), sal_pss78: socatValue(p, "salinity") } : undefined,
+          v: socatVersionRef.current ?? undefined,
+        },
+      });
+      return;
+    }
+    if (lid0 === "wod-casts-mvt") {
+      const p = info.object?.properties as WodProps | undefined;
+      if (!p || p.id == null) return;
+      // The picked tile's own index (deck overzooms past maxZoom, so the viewport zoom is NOT the cell address).
+      const ti = (info as unknown as { tile?: { index?: { x: number; y: number; z: number } } }).tile?.index;
+      // ⛔ Read the range from the store, not the closure — this callback's dependency list carries no wodYearRange.
+      const yr = useMapStore.getState().wodYearRange;
+      setSelectedFeature({
+        id: String(p.id),
+        layer: "wod-casts",
+        properties: {
+          cast_id: p.id, k: p.k, a: p.a, b: p.b,
+          cell: p.k > 1 && ti ? `${ti.z}/${ti.x}/${ti.y}/${p.q}` : undefined,
+          years: yr ?? undefined,
+          v: wodVersionRef.current ?? undefined,
+        },
+      });
+      return;
+    }
     if (lid0 === "ocean-carbon-hexes") {
       const p = info.object?.properties;
       if (!p) return;
@@ -3696,7 +3877,7 @@ export function Map3D() {
       pickable: false,
     })) : null,
 
-    oxygenActive && oxygenDisplayMode === "field" && oxygenTiles ? oxygenTiles.map((tile, i) => new BitmapLayer({
+    oxygenDraw.field && oxygenTiles ? oxygenTiles.map((tile, i) => new BitmapLayer({
       id: `oxygen-deox-bitmap-${oxygenView}-${oxygenDepth}-${i}`,
       bounds: tile.bounds,
       image: tile.image,
@@ -4165,7 +4346,7 @@ export function Map3D() {
       onClick: handleClick,
     }),
 
-    oxygenActive && oxygenDisplayMode === "hexes" && oxygenHexData && new PolygonLayer({
+    oxygenDraw.hexes && oxygenHexData && new PolygonLayer({
       id: "oxygen-hexes",
       data: oxygenHexData.features,
       getPolygon: (f: any) => f.geometry.coordinates[0],
@@ -4223,6 +4404,20 @@ export function Map3D() {
       },
     }) : null,
 
+    oxygenDraw.points && argoOxygenDoc ? new ScatterplotLayer<ArgoOxygenPoint>({
+      id: "argo-oxygen-points",
+      data: argoOxygenData,
+      getPosition: (p) => p.position,
+      getRadius: (p) => (p.value === null ? 2 : 3.5),
+      radiusUnits: "pixels",
+      // ⛔ Recent ramp only (argoOxygenColor ignores oxygenView by design): no update trigger on oxygenView.
+      getFillColor: (p) => argoOxygenColor(p.value, oxygenMeta),
+      stroked: true, getLineColor: [15, 23, 42, 160], lineWidthUnits: "pixels", getLineWidth: 0.5,
+      pickable: true,
+      onClick: handleClick,
+      updateTriggers: { getFillColor: [oxygenDepth, oxygenMeta], getRadius: [oxygenDepth] },
+    }) : null,
+
     acidActive && acidificationDisplayMode === "hexes" && acidHexData && new PolygonLayer({
       id: "ocean-acidification-hexes",
       data: acidHexData.features,
@@ -4272,6 +4467,90 @@ export function Map3D() {
       updateTriggers: { getFillColor: [co2Variable, co2Decade, co2Meta] },
       pickable: true,
       onClick: handleClick,
+    }),
+
+    // SOCAT v2026 Measurements: vector tiles (reduced track pieces z0-8, one dot per UTC year and cell from z9).
+    // Keyed on the data version; the year window is a GPU filter on `y` (tiles stay cached); the ramp, variable and
+    // decade come from the field's own selectors. Stacked by order_idx via DECK_TO_TOGGLE ("socat-points-mvt").
+    co2Draw.points && socatVersion && co2Meta && new MVTLayer({
+      id: "socat-points-mvt",
+      data: `${socatTileUrl(socatVersion)}&r=${tileCacheVersion}`,
+      minZoom: 0, maxZoom: SOCAT_TILE_MAX_ZOOM,
+      pointType: "circle",
+      pickable: true,
+      getPointRadius: 2, pointRadiusUnits: "pixels",
+      stroked: true, getLineWidth: 1.5, lineWidthUnits: "pixels",
+      getFillColor: (f: any) => socatColor(f.properties, co2Variable, co2Decade, socatVm),
+      getLineColor: (f: any) => socatColor(f.properties, co2Variable, co2Decade, socatVm),
+      extensions: [new DataFilterExtension({ filterSize: 1 })],
+      getFilterValue: (f: any) => f?.properties?.y ?? 0,
+      filterRange: socatYearRange ?? [socatMeta!.year_min, socatMeta!.year_max],
+      updateTriggers: {
+        getFillColor: [co2Variable, co2Decade, socatVm],
+        getLineColor: [co2Variable, co2Decade, socatVm],
+      },
+      onClick: handleClick,
+      onTileError: () => onTileLayerError(SOCAT_FAILED_NAME),
+      onTileLoad: () => onTileLayerLoad(SOCAT_FAILED_NAME),
+    } as any),
+
+    // The cruise segment of the observation whose panel is open (from the panel's /obs response).
+    socatPanelOpen && socatSegment && socatSegment.length > 1 && new PathLayer({
+      id: "socat-selected-segment",
+      data: [socatSegment],
+      getPath: (d: [number, number][]) => d,
+      getColor: [251, 191, 36, 230],
+      getWidth: 3, widthUnits: "pixels",
+      pickable: false,
+    }),
+    socatPanelOpen && socatPoint && new ScatterplotLayer({
+      id: "socat-selected-point",
+      data: [socatPoint],
+      getPosition: (d: [number, number]) => d,
+      getRadius: 7, radiusUnits: "pixels",
+      filled: false, stroked: true, getLineColor: [251, 191, 36, 255], getLineWidth: 2, lineWidthUnits: "pixels",
+      pickable: false,
+    }),
+
+    // WOD23 casts Measurements: vector tiles (one dot per cell and year range; the cell's casts are listed on click).
+    // Keyed on the data version; the year window is part of the tile URL; the ramp, variable and depth come from
+    // the WOA field's own selectors. Stacked by order_idx via DECK_TO_TOGGLE ("wod-casts-mvt").
+    woaDraw.points && wodVersion && woaMeta && wodMeta && (() => {
+      const { tileVar, measured } = wodTileVar(woaVariable, wodMeta);
+      const depthIndex = wodMeta.depths.indexOf(woaDepth);
+      const vm = woaMeta.variables.find((v) => v.key === woaVariable);
+      const scale = wodMeta.scales[tileVar];
+      return new MVTLayer({
+        id: "wod-casts-mvt",
+        // binary off: in binary mode an ABSENT numeric property (a depth slot with no good value) reads as 0 and would
+        // draw as a real 0; as plain objects it is undefined, so wodValue's `== null` keeps it grey.
+        binary: false,
+        data: `${wodTileUrl(wodVersion, tileVar, wodYearRange)}&r=${tileCacheVersion}`,
+        minZoom: 0, maxZoom: WOD_TILE_MAX_ZOOM,
+        pointType: "circle",
+        pickable: true,
+        getPointRadius: 2.5, pointRadiusUnits: "pixels",
+        stroked: true, getLineWidth: 1, lineWidthUnits: "pixels",
+        getFillColor: (f: any) => wodColor(f.properties, depthIndex, measured, scale, vm),
+        getLineColor: (f: any) => wodColor(f.properties, depthIndex, measured, scale, vm),
+        updateTriggers: {
+          getFillColor: [depthIndex, measured, scale, vm],
+          getLineColor: [depthIndex, measured, scale, vm],
+        },
+        onClick: handleClick,
+        onTileError: () => onTileLayerError(WOD_FAILED_NAME),
+        onTileLoad: () => onTileLayerLoad(WOD_FAILED_NAME),
+      } as any);
+    })(),
+
+    // The cast whose panel is open (its position, from the panel's /cast response).
+    woaDraw.points && wodPanelOpen && wodFocus && new ScatterplotLayer({
+      id: "wod-selected-cast",
+      data: [wodFocus],
+      getPosition: (d: [number, number]) => d,
+      getRadius: 7, radiusUnits: "pixels",
+      filled: false, stroked: true, getLineColor: [251, 191, 36, 255], getLineWidth: 2, lineWidthUnits: "pixels",
+      pickable: false,
     }),
 
     activeLayers.has("noise-risk") && noiseRiskData && new ScatterplotLayer({
@@ -4888,6 +5167,43 @@ export function Map3D() {
       onClick: handleClick,
       onTileError: () => onTileLayerError("WOD Oxygen Profiles"),
       onTileLoad: () => onTileLayerLoad("WOD Oxygen Profiles"),
+    }),
+
+    // Plankton (OBIS) — filtered exactly on the server: 1° grid z0-3, 0.25° grid z4-6, places from z7.
+    // Stacked under the biodiversity layer by order_idx 950 vs 1000 (sortDeckLayers), not by array position.
+    activeLayers.has("plankton-occurrences") && planktonVersion && new MVTLayer({
+      id: "plankton-occurrences",
+      data: planktonTileUrl(API, planktonVersion, {
+        groups: planktonGroupFilters, decades: planktonDecadeFilters, bands: planktonDepthFilters, showEdna: planktonShowEdna,
+      }, tileCacheVersion),
+      minZoom: 0, maxZoom: 12,
+      pointType: "circle",
+      // The cap depends on the tile's zoom (grid spacing), so the radius accessor is set per tile.
+      renderSubLayers: (props: any) => new GeoJsonLayer(props, {
+        getPointRadius: (f: any) => planktonRadius(f.properties?.n, props.tile.index.z),
+      }),
+      pointRadiusUnits: "pixels", pointRadiusMinPixels: 1.5,
+      stroked: true, lineWidthUnits: "pixels", getLineWidth: 1.5,
+      getFillColor: (f: any) => planktonFillColor(f.properties),
+      getLineColor: (f: any) => planktonLineColor(f.properties),
+      pickable: true, autoHighlight: true, highlightColor: [255, 255, 255, 80],
+      onClick: (info: PickingInfo, event: any) => {
+        const p = info.object?.properties;
+        if (p && !p.site_key && info.coordinate) {
+          // A grid cell has no panel (spec: out of scope): zoom into it, to the next band.
+          setViewState({
+            ...viewStateRef.current,
+            longitude: info.coordinate[0], latitude: info.coordinate[1],
+            zoom: planktonCellZoomTarget(viewStateRef.current.zoom as number),
+            transitionDuration: 1000, transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
+          });
+          return true;
+        }
+        handleClick(info, event);
+        return true;
+      },
+      onTileError: () => onTileLayerError(PLANKTON_LAYER_NAME),
+      onTileLoad: () => onTileLayerLoad(PLANKTON_LAYER_NAME),
     }),
 
     // MEMENTO (GEOMAR) — CH₄/N₂O research cruise casts, colour-coded by selected gas value.
@@ -5863,7 +6179,14 @@ export function Map3D() {
         carbonMeta={carbonMeta}
         glodapYearBounds={glodapBounds}
         glodapLoading={carbonDraw.points && !glodapDoc && !failedLayers.includes("GLODAP Measurements")}
+        argoYearBounds={argoOxygenBounds}
+        argoLoading={oxygenDraw.points && !argoOxygenDoc && !failedLayers.includes(ARGO_FAILED_NAME)}
+        argoEmpty={!!argoOxygenDoc && argoOxygenData.length === 0}
         co2Meta={co2Meta}
+        socatYearBounds={socatBounds}
+        socatLoading={co2Draw.points && !socatMeta && !failedLayers.includes(SOCAT_FAILED_NAME)}
+        wodYearBounds={wodBounds}
+        wodLoading={woaDraw.points && !wodMeta && !failedLayers.includes(WOD_FAILED_NAME)}
       />
 
       <DetailPanel />

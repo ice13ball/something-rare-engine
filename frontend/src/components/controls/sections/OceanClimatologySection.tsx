@@ -41,10 +41,17 @@ interface Props {
   carbonMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
   glodapYearBounds?: { min: number; max: number } | null;
   glodapLoading?: boolean;
+  argoYearBounds?: { min: number; max: number } | null;
+  argoLoading?: boolean;
+  argoEmpty?: boolean;
   co2Meta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; ramp?: Array<{ pos: number; hex: string }> }>; decades: Array<{ index: number; label: string }> } | null;
+  socatYearBounds?: { min: number; max: number } | null;
+  socatLoading?: boolean;
+  wodYearBounds?: { min: number; max: number } | null;
+  wodLoading?: boolean;
 }
 
-export function OceanClimatologySection({ expandedFilter, setExpandedFilter, toggleExpand, toggle, flyToLayer, woaMeta, nutrientsMeta, oceanColourMeta, oxygenMeta, carbonMeta, glodapYearBounds, glodapLoading, co2Meta }: Props) {
+export function OceanClimatologySection({ expandedFilter, setExpandedFilter, toggleExpand, toggle, flyToLayer, woaMeta, nutrientsMeta, oceanColourMeta, oxygenMeta, carbonMeta, glodapYearBounds, glodapLoading, argoYearBounds, argoLoading, argoEmpty, co2Meta, socatYearBounds, socatLoading, wodYearBounds, wodLoading }: Props) {
   const { t } = useTranslation(["panels", "common"]);
 
   return (
@@ -55,6 +62,8 @@ export function OceanClimatologySection({ expandedFilter, setExpandedFilter, tog
                 toggleExpand={toggleExpand}
                 toggle={toggle}
                 woaMeta={woaMeta}
+                wodYearBounds={wodYearBounds}
+                wodLoading={wodLoading}
               />
 
               <OceanNutrientsModelRow
@@ -89,6 +98,8 @@ export function OceanClimatologySection({ expandedFilter, setExpandedFilter, tog
                 toggleExpand={toggleExpand}
                 toggle={toggle}
                 co2Meta={co2Meta}
+                socatYearBounds={socatYearBounds}
+                socatLoading={socatLoading}
               />
 
               <WodOxygenRow
@@ -132,6 +143,9 @@ export function OceanClimatologySection({ expandedFilter, setExpandedFilter, tog
                 toggleExpand={toggleExpand}
                 toggle={toggle}
                 oxygenMeta={oxygenMeta}
+                argoYearBounds={argoYearBounds}
+                argoLoading={argoLoading}
+                argoEmpty={argoEmpty}
               />
               <ArcticRiversRow
                 expandedFilter={expandedFilter}

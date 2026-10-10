@@ -277,8 +277,8 @@ describe("currentsDate shape", () => {
 describe("the registry's shape is real", () => {
   // sabotaž: add or remove an entry from DISPLAY_FIELDS or DISPLAY_OPT_OUT_FIELDS
   // without updating this test → ten test
-  it("has 37 covered fields and 8 opted-out fields", () => {
-    expect(Object.keys(DISPLAY_FIELDS).length).toBe(37);
+  it("has 38 covered fields and 8 opted-out fields", () => {
+    expect(Object.keys(DISPLAY_FIELDS).length).toBe(38);
     expect(DISPLAY_OPT_OUT_FIELDS.length).toBe(8);
   });
 

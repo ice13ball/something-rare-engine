@@ -316,7 +316,7 @@
     },
     "oxygen-deox": {
       "label": "Ozeansauerstoff & Sauerstoffverlust",
-      "description": "Aktueller gelöster Sauerstoff aus ISAS-BGC-Argo-Floats (2014–2018), plus eine Änderungsansicht (Δ) im Vergleich zur WOA23-Basislinie 1971–2000 („Climate Normal“).",
+      "description": "Aktueller gelöster Sauerstoff aus ISAS-BGC-Argo-Floats (2014–2018), plus eine Änderungsansicht (Δ) im Vergleich zur WOA23-Basislinie 1971–2000 („Climate Normal“). Die Anzeige-Umschaltung hat eine dritte Option, Messungen, die BGC-Argo-Sauerstoffprofile aus dem Argo-GDAC (korrigierte Werte mit gutem Qualitätsflag) in der Skala „Aktueller O₂“ des Feldes zeigt.",
       "reading": "Aktuelle Ansicht: Blau = hoher O₂, Rot = niedrig (Sauerstoffminimumzonen). Δ-Ansicht: Rot = Sauerstoffverlust gegenüber 1971–2000, Blau = Zunahme.",
       "limitations": "Indikatives regionales Muster der Sauerstoffänderung, kein kalibrierter Trend. Das aktuelle Feld (Argo-Optoden, 2014–2018) und die Basislinie 1971–2000 (schiffsgestützte Winkler/CTD) unterscheiden sich in Instrument und Methode, sodass ein Teil der scheinbaren Änderung diesen Unterschied widerspiegelt. Ein Klick auf die Karte liefert den aktuellen Wert, die Basislinie und ihre Differenz für die nächstgelegene Gitterzelle; das farbige Feld dahinter ist ein vorgerendertes Bild, ein Klick tastet also diese Zelle ab, nicht das exakte Pixel.",
       "source": "ISAS20 BGC-Argo O₂ — Kolodziejczyk, Prigent-Mazella & Gaillard 2023, SEANOE 10.17882/52367 (CC-BY 4.0); Methode: Kolodziejczyk et al. 2024, ESSD 16:5191; Basislinie WOA23, NOAA NCEI.",
@@ -439,7 +439,7 @@
       "label": "Ozeankohlenstoff (GLODAP)",
       "source": "Key, R.M. et al. (2015) Global Ocean Data Analysis Project Version 2 (GLODAPv2) — Rasterdatenprodukt. CDIAC, https://doi.org/10.3334/CDIAC/OTG.NDP093_GLODAPv2 · glodap.info/index.php/mapped-data-product/",
       "updateFreq": "Statisch (GLODAPv2.2016b-Version)",
-      "description": "Globale Klimatologie des ozeanischen Kohlenstoffsystems auf Basis qualitätskontrollierter Schiffsmessungen des GLODAP-Konsortiums. Vier Variablen werden mit der DIVA-Methode auf einem 1°-Gitter für 33 Tiefenniveaus kartiert: gelöster anorganischer Kohlenstoff (DIC), Gesamtalkalität (TAlk), pH und anthropogenes CO₂ (Cant). Dies sind die grundlegenden Größen für die Ozeanversauerung und die Fähigkeit des Ozeans, atmosphärisches CO₂ aufzunehmen — auch in den Tiefseegewässern, die vom Tiefseebergbau betroffen sind.",
+      "description": "Globale Klimatologie des ozeanischen Kohlenstoffsystems auf Basis qualitätskontrollierter Schiffsmessungen des GLODAP-Konsortiums. Vier Variablen werden mit der DIVA-Methode auf einem 1°-Gitter für 33 Tiefenniveaus kartiert: gelöster anorganischer Kohlenstoff (DIC), Gesamtalkalität (TAlk), pH und anthropogenes CO₂ (Cant). Dies sind die grundlegenden Größen für die Ozeanversauerung und die Fähigkeit des Ozeans, atmosphärisches CO₂ aufzunehmen — auch in den Tiefseegewässern, die vom Tiefseebergbau betroffen sind. Die Anzeige-Umschaltung hat eine dritte Option, Messungen, die GLODAPv3-Flaschenproben (ein Punkt pro Cast) in der eigenen Skala des Feldes zeigt.",
       "reading": "Die Farbe kodiert den Wert der gewählten Variable auf der gewählten Tiefe. Verwenden Sie den Variablen-Selektor, um zwischen DIC (µmol/kg), Gesamtalkalität (µmol/kg), pH und anthropogenem CO₂ Cant (µmol/kg) umzuschalten. Verwenden Sie den Tiefen-Selektor, um die Ebenen von 0 bis 4000 m zu durchlaufen. Genaue numerische Werte sind nur in der Hexagon-Ansicht verfügbar — wechseln Sie zu Hexagone und klicken Sie auf eine Zelle.",
       "limitations": "Horizontale Auflösung 1°; die DIVA-Interpolation glättet feinskalige Gradienten und erzeugt Artefakte in datenspärlichen Regionen (Südpolarmeer, Arktis). Das Rasterprodukt ist auf GLODAPv2.2016b eingefroren — es spiegelt keine Beobachtungen nach 2016 oder den sich beschleunigenden Versauerungstrend des vergangenen Jahrzehnts wider. Das PNG-Farbfeld ist eine vorberechnete RGBA-Textur; numerische Werte sind im Feldmodus nicht per Klick abrufbar."
     },
@@ -463,6 +463,52 @@
         {
           "name": "Schiffsnamen — NERC Vocabulary Server (NVS), BODC, Kollektion C17, CC BY 4.0",
           "url": "https://vocab.nerc.ac.uk/collection/C17/current/"
+        }
+      ]
+    },
+    "argo-oxygen-points": {
+      "label": "BGC-Argo-Sauerstoffmessungen",
+      "source": "Argo (2000). Argo float data and metadata from Global Data Assembly Centre (Argo GDAC). SEANOE, doi:10.17882/42182, CC BY 4.0 · These data were collected and made freely available by the International Argo Program and the national programs that contribute to it (https://argo.ucsd.edu, https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.",
+      "updateFreq": "Live aus dem Argo-GDAC, wöchentlich aktualisiert (Profile von 2002 bis heute)",
+      "description": "Einzelne Profile des gelösten Sauerstoffs von BGC-Argo-Floats, aus dem Argo-Datenzentrum (GDAC) gelesen und wöchentlich aktualisiert: die echten Messungen hinter dem Ozean-Sauerstoff-Feld. Einschalten über „Messungen“ im Panel „Ozean-Sauerstoff & Desoxygenierung“.",
+      "reading": "Jeder Punkt ist ein Float-Profil, eingefärbt in der Skala „Aktueller O₂“ des Feldes mit dem nächstgelegenen guten korrigierten Sauerstoffwert im Fenster der gewählten Tiefe (Oberfläche 0–10 m; 200 m: 175–225 m; die übrigen Stufen ein ähnliches Band um die Tiefe). Grau: kein guter Wert in diesem Fenster. Die Tiefe wird aus dem Druck berechnet (UNESCO 1983); Werte in µmol/kg. Die Suche nach der WMO-Nummer eines Floats öffnet sein letztes gezeichnetes Profil.",
+      "limitations": "Das Feld ist das ISAS20-Mittel 2014–2018, aus einem älteren Argo-Stand gebaut; ein einzelnes Profil kann daher nach Jahreszeit, Wirbeln und Jahr abweichen. Korrigierte Werte aus der Echtzeitverarbeitung (Modus A) haben keine Prüfung im verzögerten Modus durchlaufen, und neue Profile können noch überarbeitet werden. Ein Profil behält höchstens 150 Stufen, nach Tiefe ausgedünnt; die Stufen, mit denen die Karte einfärbt, bleiben immer erhalten.",
+      "selectionCriteria": "Nur DOXY_ADJUSTED mit Gütekennzeichen 1 oder 2 aus Profilen, deren Sauerstoff-Datenmodus verzögert (D) oder in Echtzeit korrigiert (A) ist, erreicht die Karte. Roher Echtzeit-Sauerstoff (R), Kennzeichen 3, 4, 5 und 8 sowie Profile mit schlechter Position oder schlechtem Datum werden gespeichert, aber nie als Messungen gezeichnet; das Profil-Panel zählt sie.",
+      "dataSources": [
+        {
+          "name": "Argo GDAC — Argo (2000), SEANOE doi:10.17882/42182, CC BY 4.0",
+          "url": "https://doi.org/10.17882/42182"
+        },
+        {
+          "name": "Argo GDAC synthetic-profile files (data-argo.ifremer.fr)",
+          "url": "https://data-argo.ifremer.fr/"
+        },
+        {
+          "name": "Acknowledging Argo — argo.ucsd.edu",
+          "url": "https://argo.ucsd.edu/data/acknowledging-argo/"
+        }
+      ]
+    },
+    "socat-points": {
+      "label": "SOCAT-v2026-Messungen des Oberflächen-CO₂",
+      "source": "Bakker, D. C. E., Alin, S. R., Bates, N., et al. (2026) Surface Ocean CO₂ Atlas Database Version 2026 (SOCATv2026), NCEI Accession 0315110. NOAA NCEI, doi:10.25921/8dba-fr90, CC BY 4.0 · Bakker, D. C. E., et al. (2016) A multi-decade record of high-quality fCO₂ data in version 3 of the Surface Ocean CO₂ Atlas (SOCAT). Earth System Science Data 8, 383–413, doi:10.5194/essd-8-383-2016 · Von SOCAT erbetene Danksagung (englisches Original): “The Surface Ocean CO₂ Atlas (SOCAT) is an international effort, endorsed by the SCOR Infrastructural Project International Ocean Carbon Coordination Project (IOCCP) and the Surface Ocean Lower-Atmosphere Study (SOLAS), to deliver a uniform, quality-controlled surface ocean CO₂ database. The many researchers and funding agencies responsible for the collection of data and quality control are thanked for their contributions to SOCAT.”",
+      "updateFreq": "Statische Veröffentlichung (SOCAT v2026); die festgelegte v2026-Datei wird höchstens monatlich erneut geprüft und eine korrigierte v2026-Datei wird erkannt; eine neue SOCAT-Veröffentlichung (v2027) wird von Hand eingespielt",
+      "description": "44.018.204 fCO₂-Beobachtungen im Fahrtbetrieb aus 8.310 Expeditionen (1957–2026) in SOCAT v2026: die Messungen von Schiffen und Verankerungen hinter dem Feld Oberflächen-CO₂ im Ozean. Einschalten mit „Messungen“ im Bedienfeld Oberflächen-CO₂.",
+      "reading": "Weit herausgezoomt zeigt die Ebene vereinfachte Fahrtrouten (Linien und Punkte; ein Punkt ist der Mittelwert der Beobachtungen entlang eines Fahrtabschnitts); ab Zoomstufe 9 ist jeder Punkt der Mittelwert aller Beobachtungen eines Jahres in einer kleinen Kartenzelle (bei Zoom 9 am Äquator etwa 300 m breit, zu den Polen hin schmaler, beim weiteren Hineinzoomen feiner), ein Klick listet sie auf. Die Punkte übernehmen die Farbskala des Feldes für die gewählte Variable (fCO₂, SST oder Salzgehalt); in der Dichteansicht haben alle dieselbe Farbe. Grau: außerhalb des gewählten Jahrzehnts, vor 1970 oder kein Wert für die gewählte Variable. Der Jahresbereichsfilter blendet Punkte aus. Die Kartenprojektion endet bei ±85° Breite: Beobachtungen jenseits davon werden an diesem Rand gezeichnet.",
+      "limitations": "Ein anderes Produkt als das Feld: Das Feld ist ein Jahrzehnt-Mittel auf einem 1°-Gitter, die Punkte sind Einzelmessungen mit ihrem tatsächlichen Datum — Abweichungen sind daher zu erwarten. fCO₂ ist der neu berechnete Wert (fCO₂rec); der Algorithmuscode jeder Beobachtung (1–14) ist in der SOCAT-Dokumentation beschrieben (Bakker et al. 2016). Bei 2.287.508 Beobachtungen fehlt der Salzgehalt, bei 5.224 die SST (diese Punkte sind in der jeweiligen Variable grau). Das QC-Flag bewertet eine ganze Expedition: A und B besser als 2 µatm, C und D besser als 5 µatm (NCEI-Accession 0315110).",
+      "selectionCriteria": "Nur Beobachtungen mit fCO₂-WOCE-Flag 2 aus Expeditionen mit dem Datensatz-QC-Flag A bis D gelangen auf die Karte. Expeditionen mit Flag E und Beobachtungen mit jedem anderen WOCE-Flag werden gespeichert, aber nie gezeichnet.",
+      "dataSources": [
+        {
+          "name": "SOCAT v2026 — NOAA NCEI Accession 0315110 (doi:10.25921/8dba-fr90, CC BY 4.0)",
+          "url": "https://doi.org/10.25921/8dba-fr90"
+        },
+        {
+          "name": "Bakker et al. 2016, Earth System Science Data 8, 383–413 (doi:10.5194/essd-8-383-2016)",
+          "url": "https://doi.org/10.5194/essd-8-383-2016"
+        },
+        {
+          "name": "SOCAT-Dokumentation und Datennutzungserklärung — socat.info",
+          "url": "https://socat.info/index.php/version-2026/"
         }
       ]
     },
@@ -797,6 +843,50 @@
       "description": "Chlorophyll-a-Konzentration und Primärproduktion, aus dem All von zusammengeführten Ozeanfarbsensoren (Copernicus-GlobColour) beobachtet, als Monatsmittel auf einem 0,25°-Gitter. Das sind Satellitenbeobachtungen, hier aus dem 4-km-Gitter gemittelt: Die 36 Quellzellen jeder 0,25°-Zelle werden ohne fehlende Zellen gemittelt, und eine Zelle ohne Beobachtung bleibt leer.",
       "reading": "Wählen Sie eine Variable und einen Monat; die Skala lesen Sie unter den Auswahlfeldern ab (beide sind logarithmisch, damit die niedrigen Werte, die den offenen Ozean prägen, unterscheidbar bleiben). Wolken, Meereis und Polarnacht hinterlassen Lücken, die leer sind, nie null. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle, den Anteil der Quellzellen dahinter und das Produkt, das den Monat geliefert hat.",
       "limitations": "Satellitenchlorophyll sieht nur die Oberflächenschicht und nur dort, wo Licht und keine Wolken sind; Küsten- und Hochbreitenwerte sind am unsichersten. Die Primärproduktion ist ein von einem Modell aus Satellitenchlorophyll abgeleitetes Integral über die Wassersäule (mg m⁻² pro Tag) und nicht mit der volumetrischen Oberflächenrate der Modellebene vergleichbar. Das Nahe-Echtzeit-Produkt ist weniger prozessiert als das mehrjährige, und ein Monat kann sich ändern, wenn er ersetzt wird. Nur der neueste Monat und die 11 davor werden behalten."
+    },
+    "plankton-occurrences": {
+      "label": "Plankton (OBIS)",
+      "description": "Orte, an denen Plankton beobachtet wurde, aus dem Ocean Biodiversity Information System (OBIS): Ruderfußkrebse, Krill (Euphausiacea), Kieselalgen, Coccolithophoriden und Dinoflagellaten. Herausgezoomt werden die Beobachtungen in 1°- und dann 0,25°-Rasterzellen summiert; ab Zoomstufe 7 ist jeder Punkt ein Probenort. Die Farbe zeigt die Gruppe mit den meisten passenden Beobachtungen, die Punktgröße die Zahl der Beobachtungen. Die Filter (Gruppe, Jahrzehnt, Tiefenstufe, eDNA) werden exakt auf dem Server angewendet: Ein Ort erscheint nur, wenn er einen Nachweis hat, der alle zugleich erfüllt.",
+      "reading": "Farbe = vorherrschende Gruppe · Größe = Zahl der Beobachtungen (logarithmisch) · nur Umriss = DNA nachgewiesen (eDNA), kein Organismus gezählt · Klick auf eine Rasterzelle zoomt hinein, Klick auf einen Ort zeigt Gruppen, Arten, Jahre, Tiefen, Lizenzen und Datensätze",
+      "limitations": "Die Karte zeigt, wo gesucht wurde, nicht wo Plankton lebt: Der Continuous Plankton Recorder dominiert den Nordatlantik, und wo wenige Expeditionen fuhren, ist die Karte dünn. eDNA-Nachweise (etwa ein Drittel) bedeuten, dass DNA der Gruppe in einer Wasserprobe gefunden wurde, nicht dass ein Organismus gezählt wurde. Etwa ein Drittel der Nachweise hat keine Tiefe; sie erscheinen als „ohne Tiefe“, nie als Oberfläche. Benthische Kieselalgen lassen sich nach dem Namen nicht von planktischen trennen und sind enthalten. Ein Teil der Daten steht unter CC-BY-NC (nur nicht kommerzielle Nutzung); das Klickfenster nennt die Lizenz jedes Datensatzes. Nachweise mit einem Datum in der Zukunft (ein Quellfehler) gelten als undatiert.",
+      "source": "OBIS — Ocean Biodiversity Information System (IOC-UNESCO); Zitate der Datensätze im Klickfenster",
+      "updateFreq": "Monatlicher vollständiger Neuimport",
+      "colorRamp": [
+        {
+          "label": "Ruderfußkrebse"
+        },
+        {
+          "label": "Krill (Euphausiacea)"
+        },
+        {
+          "label": "Kieselalgen"
+        },
+        {
+          "label": "Coccolithophoriden"
+        },
+        {
+          "label": "Dinoflagellaten"
+        }
+      ]
+    },
+    "wod-casts": {
+      "label": "WOD23-Messungen (Stationen)",
+      "source": "Mishonov, A. V., Boyer, T. P., Baranova, O. K., Bouchard, C. N., Cross, S., Garcia, H. E., Locarnini, R. A., Paver, C. R., Reagan, J. R., Wang, Z., Seidov, D., Grodsky, A. I., Beauchamp, J. G. (2024) World Ocean Database 2023. C. Bouchard, Technical Ed., NOAA Atlas NESDIS 97, 206 pp., doi:10.25923/z885-h264. NOAA NCEI, öffentliche Nutzung ohne Einschränkung.",
+      "updateFreq": "Statische Veröffentlichung (WOD23: Stationsdaten, CTD und Profiling-Floats); die NCEI-Quelle wird vierteljährlich geprüft, eine neue Veröffentlichung wird von Hand eingespielt",
+      "description": "Einzelne Stationen (Casts) der World Ocean Database 2023 (OSD-Flaschen- und niedrig aufgelöste Stationen, CTD und XCTD, Profiling-Floats): die realen Messungen hinter dem Feld Ozeanklimatologie. Wird mit „Messungen“ im Bedienfeld Ozeanklimatologie eingeschaltet.",
+      "reading": "Ein Punkt steht für alle Stationen der gewählten Jahre in einer kleinen Kartenzelle (feiner beim Hineinzoomen); ein Klick listet sie auf und öffnet eine. Ein Punkt ist nach dem Mittel der akzeptierten Werte seiner Stationen für die gewählte Variable innerhalb des Fensters der gewählten Tiefe eingefärbt, in der Farbskala des Feldes. Grau: kein akzeptierter Wert im Tiefenfenster oder eine Variable, die die Stationen nicht enthalten (AOU und Sauerstoffsättigung sind aus WOA abgeleitete Größen). N* wird aus Nitrat und Phosphat der Station selbst abgeleitet. Der Jahresbereichsfilter wählt, welche Stationen gezählt werden.",
+      "limitations": "Ein anderes Produkt als das Feld: Das Feld ist ein objektiv analysiertes Jahresmittel, die Punkte sind einzelne, wie gemessen und datiert aufgezeichnete Stationen; sie weichen daher ab. Verwendet werden nur Werte mit WOD-Qualitätsflag 0 (akzeptiert), auf der Stufe, die der gewählten Tiefe innerhalb ihres Fensters am nächsten liegt; Stationen ohne Datum oder ohne akzeptierten Wert werden gespeichert, aber nicht gezeichnet. Pro Variable werden höchstens 100 Stufen im Bedienfeld gezeigt; alle Flags bleiben gespeichert, gefärbt werden nur akzeptierte Werte. Eine Station ohne erfasste Uhrzeit wird nur mit dem Datum gezeigt. Auf der Karte ist die Breite bei ±85° begrenzt.",
+      "selectionCriteria": "Nur Stationen mit Datum und mindestens einem akzeptierten Wert (WOD-Flag 0) erreichen die Karte. Alle anderen Stationen werden gespeichert, aber nie gezeichnet.",
+      "dataSources": [
+        {
+          "name": "World Ocean Database 2023 — NOAA NCEI (doi:10.25923/z885-h264)",
+          "url": "https://doi.org/10.25923/z885-h264"
+        },
+        {
+          "name": "World Ocean Database — NOAA-NCEI-Produktseite",
+          "url": "https://www.ncei.noaa.gov/products/world-ocean-database"
+        }
+      ]
     }
   },
   "header": {
@@ -1048,7 +1138,8 @@
     "generalTitle": "Allgemein",
     "fresh_apiResponses": "serverseitig zwischengespeichert; Ihr Browser kann eine zusätzliche Caching-Schicht hinzufügen",
     "fresh_nutrients_model": "Vom Produzenten monatlich aktualisiert; die Plattform prüft täglich und hält 12 Monate vor",
-    "fresh_ocean_colour": "Vom Produzenten monatlich aktualisiert; diese Plattform prüft täglich und behält 12 Monate"
+    "fresh_ocean_colour": "Vom Produzenten monatlich aktualisiert; diese Plattform prüft täglich und behält 12 Monate",
+    "fresh_plankton": "Monatlicher vollständiger Neuimport aus OBIS (Datum des letzten Imports)"
   },
   "verify": {
     "primaryTitle": "Primärquellen",
@@ -1172,14 +1263,21 @@
       "seabedSubstrate": "Meeresbodensubstrat (Dutkiewicz 2015)",
       "arcticSedimentCarbon": "Arktischer Sedimentkohlenstoff: Stationswerte im Bolin-Centre-CASCADE-Repositorium (doi.org/10.17043/cascade-2) anhand des Stationsnamens überprüfen.",
       "coastdom": "CoastDOM: die Quelltabelle unter doi.org/10.1594/PANGAEA.964012 herunterladen und eine Probe über Ort, Datum und Tiefe aus dem Klickpanel finden; Werte werden unverändert mit den Einheiten der Quelle ausgeliefert.",
-      "greenlandPrimaryProduction": "Primärproduktion der Grönlandsee: eine Station über ihre Event-Bezeichnung unter doi.org/10.1594/PANGAEA.965985 vergleichen."
+      "greenlandPrimaryProduction": "Primärproduktion der Grönlandsee: eine Station über ihre Event-Bezeichnung unter doi.org/10.1594/PANGAEA.965985 vergleichen.",
+      "plankton": "Plankton (OBIS) — jeder Datensatz eines Ortes verlinkt auf seine OBIS-Seite"
     },
     "nutrients_model_title": "Nährstoffe & Produktivität (Modell)",
     "nutrients_model": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter",
     "ocean_colour_title": "Ozeanfarbe (Satellit)",
     "ocean_colour": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter",
     "glodapPoints_title": "GLODAPv3-Flaschenmessungen",
-    "glodapPoints": "Quelle: GLODAPv3 (2026), NOAA NCEI, Accession 0315582, doi:10.25921/m6tp-mj50, CC BY 4.0. Einen Cast prüfen Sie über den EXPOCODE der Expedition aus seinem Panel: die Expeditionsseite ist cchdo.ucsd.edu/cruise/<EXPOCODE> (CCHDO), und die Expedition steht in der NCEI-Tabelle GLODAPv3 Cruise Summary Table (https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/GLODAPv3/cruise_table_v3.html). Danach Station und Cast in der Datendatei der Expedition suchen. Vergleichen Sie den DIC eines Casts in 200 m mit dem Feld an dieser Stelle: gleiche Einheiten (µmol/kg), anderer Jahrgang (Flaschenjahr vs. auf 2002 normierte Karte) — die Punkte sind GLODAPv3-Flaschenwerte wie gemessen, das Feld ist die GLODAPv2.2016b-Karte, Abweichungen sind daher zu erwarten. Die Schiffsnamen sind dem NERC Vocabulary Server (NVS), BODC, Kollektion C17, CC BY 4.0, zugeordnet."
+    "glodapPoints": "Quelle: GLODAPv3 (2026), NOAA NCEI, Accession 0315582, doi:10.25921/m6tp-mj50, CC BY 4.0. Einen Cast prüfen Sie über den EXPOCODE der Expedition aus seinem Panel: die Expeditionsseite ist cchdo.ucsd.edu/cruise/<EXPOCODE> (CCHDO), und die Expedition steht in der NCEI-Tabelle GLODAPv3 Cruise Summary Table (https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/GLODAPv3/cruise_table_v3.html). Danach Station und Cast in der Datendatei der Expedition suchen. Vergleichen Sie den DIC eines Casts in 200 m mit dem Feld an dieser Stelle: gleiche Einheiten (µmol/kg), anderer Jahrgang (Flaschenjahr vs. auf 2002 normierte Karte) — die Punkte sind GLODAPv3-Flaschenwerte wie gemessen, das Feld ist die GLODAPv2.2016b-Karte, Abweichungen sind daher zu erwarten. Die Schiffsnamen sind dem NERC Vocabulary Server (NVS), BODC, Kollektion C17, CC BY 4.0, zugeordnet.",
+    "argoOxygenPoints_title": "BGC-Argo-Sauerstoffmessungen",
+    "argoOxygenPoints": "Quelle: Argo-GDAC (Argo, 2000), SEANOE doi:10.17882/42182, CC BY 4.0. Ein Profil prüfen Sie mit dem Link „GDAC-Datei“ in seinem Panel: er öffnet die eigene Datei dieses Profils im Argo-Datenzentrum (data-argo.ifremer.fr/dac/<DAC>/<WMO>/profiles/SD<WMO>_<cycle>.nc; das Präfix SD kennzeichnet die synthetische Datei im verzögerten Modus, SR die in Echtzeit). Die Datei enthält nur diesen Zyklus (CYCLE_NUMBER, wie im Panel): lesen Sie DOXY_ADJUSTED mit DOXY_ADJUSTED_QC 1 oder 2 gegen PRES_ADJUSTED: die Karte nutzt nur diese Werte, nur aus Profilen mit DOXY-Datenmodus D oder A, und rechnet den Druck in Tiefe um (UNESCO 1983). Die eigene Seite des Floats ist fleetmonitoring.euro-argo.eu/float/<WMO>. Der Wert eines Profils bei 200 m ist der nächstgelegene gute Wert innerhalb von 175–225 m; das danebenliegende ISAS20-Feld ist das 2014–2018-Mittel aus einem älteren Argo-Stand, Abweichungen sind daher zu erwarten. Danksagung, wörtlich: These data were collected and made freely available by the International Argo Program and the national programs that contribute to it (https://argo.ucsd.edu, https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.",
+    "socatPoints_title": "SOCAT-v2026-Messungen",
+    "socatPoints": "Quelle: SOCAT v2026, NOAA NCEI Accession 0315110, doi:10.25921/8dba-fr90, CC BY 4.0; zusätzlich zitieren: Bakker et al. 2016, doi:10.5194/essd-8-383-2016. Eine Beobachtung lässt sich über den EXPOCODE der Expedition aus ihrem Bedienfeld gegenprüfen: Die Expedition steht mit ihren Hauptverantwortlichen (PI), dem QC-Flag und dem Daten-DOI in der SOCAT-v2026-Datensatztabelle (NCEI-Accession 0315110, https://www.ncei.noaa.gov/data/oceans/ncei/ocads/metadata/0315110.html), ihre Zeilen stehen in der Synthesedatei unter demselben EXPOCODE; dort lassen sich Datum, Position und fCO₂rec nachlesen. Das Feld Oberflächen-CO₂ daneben ist ein Jahrzehnt-Mittel von 1°-Zellen, eine einzelne Beobachtung weicht daher erwartungsgemäß davon ab. Die Algorithmuscodes (1–14) sind in der SOCAT-Dokumentation erklärt (socat.info). QC-Flag laut NCEI 0315110: A und B besser als 2 µatm, C und D besser als 5 µatm.",
+    "wodCasts_title": "WOD23-Messungen",
+    "wodCasts": "Quelle: World Ocean Database 2023, NOAA NCEI, doi:10.25923/z885-h264, öffentliche Nutzung ohne Einschränkung. Eine Station lässt sich über den NCEI-Accession-Link im Bedienfeld gegenprüfen, der den Archiveintrag der Fahrt oder des Floats öffnet, aus dem die Daten stammen, sowie über den Link zur Quelldatei."
   },
   "footer": "ISA · OBIS · ChEssBase · Argo · InterRidge · MarineRegions · UNESCO · OceanOPS · ONC · IIASA · BirdLife · UNEP-WCMC · NASA FIRMS · OpenAQ · Global Dam Watch · JRC",
   "dataReference": {

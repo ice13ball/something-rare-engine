@@ -1060,6 +1060,7 @@ async def seo_sitemap_seamounts():
 _LAYER_PAGE_TABLES: list[tuple[str, str]] = [
     ("mining_contracts", "contracts"), ("hydrothermal_vents", "hydrothermal-vents"),
     ("seamounts", "seamounts"), ("biodiversity_hotspots", "biodiversity-hotspots"),
+    ("plankton_sites", "plankton-occurrences"),   # places, not 24 M rows: count(*) here runs per sitemap request
     ("reserved_areas", "reserved-areas"), ("apeis", "apeis"),
     ("relinquished_areas", "relinquished-areas"), ("argo_profiles", "argo"),
     ("eez", "eez"), ("protected_marine_sites", "protected-marine-sites"),

@@ -56,7 +56,7 @@ export interface DisplayField {
 export const DISPLAY_FIELDS = {
   woaVariable: { layer: "woa-climatology", default: "oxygen", check: "slug" },
   woaDepth: { layer: "woa-climatology", default: 500, check: "depth" },
-  woaDisplayMode: { layer: "woa-climatology", default: "field", values: ["field", "hexes"] },
+  woaDisplayMode: { layer: "woa-climatology", default: "field", values: ["field", "hexes", "points"] },
   // The variable goes into a request PATH (`/api/v1/bgc-model/${var}/${month}.png`),
   // hence `slug`; its legal values come from the backend's /meta. null month =
   // "latest available", which a recipient resolves against their own /meta.
@@ -67,7 +67,7 @@ export const DISPLAY_FIELDS = {
   oceanColourMonth: { layer: "ocean-colour-satellite", default: null, check: "isoMonth" },
   oxygenView: { layer: "oxygen-deox", default: "change", values: ["recent", "change"] },
   oxygenDepth: { layer: "oxygen-deox", default: 500, check: "depth" },
-  oxygenDisplayMode: { layer: "oxygen-deox", default: "field", values: ["field", "hexes"] },
+  oxygenDisplayMode: { layer: "oxygen-deox", default: "field", values: ["field", "hexes", "points"] },
   carbonVariable: { layer: "ocean-carbon", default: "dic", check: "slug" },
   carbonDepth: { layer: "ocean-carbon", default: 0, check: "depth" },
   carbonDisplayMode: { layer: "ocean-carbon", default: "field", values: ["field", "hexes", "points"] },
@@ -78,7 +78,7 @@ export const DISPLAY_FIELDS = {
   marineCarbonDepth: { layer: "marine-carbon", default: 0, check: "depth" },
   co2Variable: { layer: "ocean-co2-surface", default: "fco2", check: "slug" },
   co2Decade: { layer: "ocean-co2-surface", default: 5, check: "index" },
-  co2DisplayMode: { layer: "ocean-co2-surface", default: "field", values: ["field", "hexes"] },
+  co2DisplayMode: { layer: "ocean-co2-surface", default: "field", values: ["field", "hexes", "points"] },
   chiDisplayMode: { layer: "cumulative-human-impact", default: "field", values: ["field", "hexes"] },
   vmeView: { layer: "vme-suitability", default: "suitability", values: ["suitability", "uncertainty"] },
   seabedDisplayMode: { layer: "seabed-substrate", default: "field", values: ["field", "hexes"] },
@@ -101,6 +101,8 @@ export const DISPLAY_FIELDS = {
   // (`Set<string>` fields) cannot see it. It changes which fires the recipient
   // is shown, which is the only test that decides whether a link must carry it.
   firesNearMiningOnly: { layer: "fires", default: false, check: "boolean" },
+  // Same reason as firesNearMiningOnly: a FILTER held as a boolean. false = eDNA records hidden on the map.
+  planktonShowEdna: { layer: "plankton-occurrences", default: true, check: "boolean" },
 } as const satisfies Record<string, DisplayField>;
 
 /** Widened alias for lookup by a plain string — same reason as OPENABLE_LOOKUP. */

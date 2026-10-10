@@ -819,6 +819,7 @@ const LAYER_META = {
   'apeis':               { label: 'Protected Areas (APEIs)',     source: 'International Seabed Authority (ISA)',          category: 'ocean', desc: 'Areas of Particular Environmental Interest designated to protect representative deep-sea habitats from mining.' },
   'relinquished-areas':  { label: 'Relinquished Areas',          source: 'International Seabed Authority (ISA)',          category: 'ocean', desc: 'Former mining exploration areas voluntarily returned to the ISA.' },
   'biodiversity-hotspots': { label: 'Biodiversity Hotspots',     source: 'Ocean Biodiversity Information System (OBIS)',  category: 'ocean', desc: 'Deep-sea species observation density from the global OBIS network, highlighting areas of exceptional marine biodiversity.' },
+  'plankton-occurrences': { label: 'Plankton Observations (OBIS)', source: 'Ocean Biodiversity Information System (OBIS)', category: 'ocean', desc: 'Where copepods, krill, diatoms, coccolithophores and dinoflagellates have been observed, from the global OBIS network — filter by group, decade, depth and eDNA, and see which species, licences and datasets each place holds.' },
   // ⛔ No hard-coded count here. This description used to open "19,617
   // underwater mountains" while the same page printed "Currently tracking
   // 37,889 features" three lines below it, from the live backend. 19,617 is

@@ -72,6 +72,7 @@ LIFE_AND_GEOLOGY_LAYERS = (
     "seamounts",               # Seamounts
     "tectonic-plates",         # Tectonic Plates
     "bathymetry",              # Seafloor Bathymetry
+    "plankton-occurrences",    # Plankton (OBIS) — stage-2 map layer, 2026-10
 )
 
 #: Every row of the left menu's "Sensors & Monitoring" group, in menu order.

@@ -31,6 +31,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const [oceansitesData, setOceansitesData] = useState<FeatureCollection | null>(null);
   // GLODAPv3 cruises (1,181 points) — held only for global search; the casts themselves are Map3D's own document.
   const [glodapCruisesData, setGlodapCruisesData] = useState<FeatureCollection | null>(null);
+  const [argoOxygenFloatsData, setArgoOxygenFloatsData] = useState<FeatureCollection | null>(null);
   const [oncData, setOncData] = useState<FeatureCollection | null>(null);
   const [chessData, setChessData] = useState<FeatureCollection | null>(null);
   const [cablesData, setCablesData] = useState<FeatureCollection | null>(null);
@@ -69,6 +70,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const seamountsFetchedRef = useRef(false);
   const oceansitesFetchedRef = useRef(false);
   const glodapCruisesFetchedRef = useRef(false);
+  const argoOxygenFloatsFetchedRef = useRef(false);
   const oncFetchedRef = useRef(false);
   const chessFetchedRef = useRef(false);
   const cablesFetchedRef = useRef(false);
@@ -117,6 +119,8 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
       fetchGuarded(oceansitesFetchedRef, "/api/v1/map/oceansites", setOceansitesData, "OceanSITES Moorings");
     if (activeLayers.has("glodap-points"))
       fetchGuarded(glodapCruisesFetchedRef, "/api/v1/glodap/cruises", setGlodapCruisesData, "GLODAP Cruises");
+    if (activeLayers.has("argo-oxygen-points"))
+      fetchGuarded(argoOxygenFloatsFetchedRef, "/api/v1/argo-oxygen/floats", setArgoOxygenFloatsData, "Argo O₂ floats");
     if (activeLayers.has("onc"))
       fetchGuarded(oncFetchedRef, "/api/v1/map/onc", setOncData, "ONC Observatories");
     if (activeLayers.has("chess"))
@@ -186,7 +190,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   }, [activeLayers, fetchGuarded]);
 
   return {
-    eezData, protectedSitesData, seamountsData, oceansitesData, glodapCruisesData, oncData, chessData,
+    eezData, protectedSitesData, seamountsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
     oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,

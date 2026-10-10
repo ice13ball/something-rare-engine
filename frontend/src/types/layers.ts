@@ -21,12 +21,13 @@ export const SEA_LAYER_IDS = [
   "tectonic-plates", "vessel-events", "ais-live", "monitoring-density", "offshore-activities",
   "deepdata-stations", "hydrophone-stations", "bathymetry", "ocean-currents",
   "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "oxygen-deox", "wod-oxygen", "memento", "geotraces", "methane-seeps",
-  "ocean-carbon", "glodap-points", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
+  "ocean-carbon", "glodap-points", "argo-oxygen-points", "socat-points", "wod-casts", "ocean-co2-surface", "sios-svalbard", "marine-carbon", "arctic-catchments",
   "seabed-substrate", "arctic-sediment-carbon", "mosaic-sediment", "vme-suitability",
   "ocean-acidification", "coral-acid-exposure", "cumulative-human-impact",
   "marhys", "coastdom", "greenland-primary-production",
   "greenland-sea-poc-aoc2025",
   "svalbard-fjords-primary-production",
+  "plankton-occurrences",
 ] as const;
 
 export type SeaLayerId = (typeof SEA_LAYER_IDS)[number];
@@ -105,6 +106,14 @@ export const LAYER_CONFIGS = [
     fillRgba: [255, 159, 0, 180],
     lineRgba: [255, 159, 0, 255],
     description: "Rare deep-sea species observations (corals, sponges) from OBIS",
+  },
+  {
+    id: "plankton-occurrences",
+    label: "Plankton (OBIS)",
+    color: "#f97316",
+    fillRgba: [249, 115, 22, 200],
+    lineRgba: [255, 255, 255, 90],
+    description: "Where plankton was observed (OBIS): copepods, krill, diatoms, coccolithophores, dinoflagellates",
   },
   {
     id: "relinquished-areas",
@@ -377,6 +386,30 @@ export const LAYER_CONFIGS = [
     fillRgba: [248, 250, 252, 200],
     lineRgba: [15, 23, 42, 200],
     description: "Individual GLODAPv3 (2026) bottle casts — the real measurements behind the ocean-carbon field (GLODAPv2.2016b mapped). Coloured in the field's scale at the selected variable and depth; grey where no acceptable bottle lies within that depth's window.",
+  },
+  {
+    id: "argo-oxygen-points",
+    label: "BGC-Argo oxygen measurements",
+    color: "#e0f2fe",
+    fillRgba: [224, 242, 254, 200],
+    lineRgba: [15, 23, 42, 200],
+    description: "Individual BGC-Argo dissolved-oxygen profiles (Argo GDAC, adjusted values flagged good) — the real measurements behind the Ocean Oxygen field (ISAS20). Coloured in the field's Recent O₂ scale at the selected depth; grey where the profile has no good value in that depth's window.",
+  },
+  {
+    id: "socat-points",
+    label: "SOCAT surface CO\u2082 measurements",
+    color: "#fde68a",
+    fillRgba: [248, 250, 252, 200],
+    lineRgba: [15, 23, 42, 200],
+    description: "Individual SOCATv2026 surface-ocean fCO\u2082 observations \u2014 the real measurements behind the Surface CO\u2082 field. Zoomed out it shows simplified cruise tracks; from zoom 9 each dot is the mean of one year\u2019s observations in a small cell, coloured for the selected variable (grey outside the selected decade, before 1970 or without a value).",
+  },
+  {
+    id: "wod-casts",
+    label: "WOD measurements (casts)",
+    color: "#7dd3fc",
+    fillRgba: [248, 250, 252, 200],
+    lineRgba: [15, 23, 42, 200],
+    description: "Individual World Ocean Database 2023 casts (OSD, CTD, profiling floats) \u2014 the real measurements behind the Ocean Climatology field. Each dot is one cast, coloured for the selected variable at the selected depth.",
   },
   {
     id: "marine-carbon",

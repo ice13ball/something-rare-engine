@@ -25,6 +25,7 @@ from domains.blog import seed_blog_if_empty
 from schema.acoustic import ensure_acoustic_stations
 from schema.aoc2025_poc import ensure_aoc2025_poc
 from schema.svalbard_fjords_pp import ensure_svalbard_fjords_pp
+from schema.argo_doxy import ensure_argo_doxy
 from schema.arctic import ensure_mosaic, ensure_cascade, ensure_sios, ensure_arctic_catchments
 from schema.biodiversity import ensure_biodiversity_enrichment, ensure_hotspot_grid, ensure_noise_cetacean_grids, ensure_vents_and_chess, ensure_sio_bic, ensure_deepdata, ensure_mbari, ensure_noaa_corals, ensure_worms
 from schema.blog import ensure_blog
@@ -32,6 +33,8 @@ from schema.cables import ensure_cables
 from schema.core import ensure_core, ensure_argo_long_form, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback, ensure_sync_queue
 from schema.fields import ensure_vme
 from schema.glodap_bottles import ensure_glodap_bottles
+from schema.socat_points import ensure_socat_points
+from schema.wod_casts import ensure_wod_casts
 from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea, ensure_marhys
 from schema.isa import ensure_mining_contracts_columns, ensure_isa_seed, ISA_CONTRACT_SEED
 from schema.offshore import ensure_ports, ensure_offshore_activities
@@ -100,5 +103,8 @@ async def ensure_schema() -> None:
         await ensure_openaq_request_budget(conn)  # openaq_request_budget (per-UTC-day OpenAQ request counter)
         await ensure_plankton(conn)  # plankton_datasets, plankton_occurrences (filled by plankton_obis_worker)
         await ensure_glodap_bottles(conn)  # glodap_casts, glodap_cruises, glodap_bottle_source (filled by glodap_bottles_worker)
+        await ensure_socat_points(conn)  # socat_segments, socat_lod, socat_cruises, socat_points_source (filled by socat_points_worker)
+        await ensure_argo_doxy(conn)  # argo_doxy_profiles, argo_doxy_empty, argo_doxy_source (filled by argo_doxy_worker)
+        await ensure_wod_casts(conn)  # wod_casts, wod_cast_points, wod_cells, wod_files, wod_casts_source (filled by the WOD casts loader)
 
     log.info("Schema ready")

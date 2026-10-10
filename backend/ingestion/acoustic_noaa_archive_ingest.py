@@ -244,6 +244,34 @@ PROGRAMS: dict[str, dict[str, Any]] = {
         "portal":    "https://www.boem.gov/renewable-energy/state-activities/maryland",
         "skip_mobile_platforms": True,   # measured 2026-09-15: 1 deployment → 0 stations, see the Null Island guard
     },
+    # ── Added 2026-10-07 ────────────────────────────────────────────────────
+    # The archive published three more MBARC prefixes. All three carry the same
+    # `{prog}/audio/{deployment}/metadata/*.json` tree and Schema A as
+    # mbarc_socal / mbarc_arctic / mbarc_flip, so the existing walker reads them
+    # unchanged. Measured 2026-10-07 with `_discover_metadata_jsons` +
+    # `_extract_record` on the live bucket; no deployment is mobile, none sits at
+    # (0, 0), none overlaps `navy/` or `mbarc_arctic/` by DATA_COLLECTION_NAME.
+    "mbarc_bering": {
+        "display":   "MBARC Bering",
+        "operator":  "US Navy Marine Bioacoustics Research Collaboration — Bering and Beaufort Seas",
+        "prefix":    "mbarc_bering/audio/",
+        "portal":    "https://www.navfac.navy.mil/",
+        "skip_mobile_platforms": True,   # measured 2026-10-07: 11 deployments → 4 stations (all Mooring)
+    },
+    "mbarc_onslowbay": {
+        "display":   "MBARC Onslow Bay",
+        "operator":  "US Navy Marine Bioacoustics Research Collaboration — Onslow Bay (USWTR)",
+        "prefix":    "mbarc_onslowbay/audio/",
+        "portal":    "https://www.navfac.navy.mil/",
+        "skip_mobile_platforms": True,   # measured 2026-10-07: 9 deployments → 5 stations (all Mooring)
+    },
+    "mbarc_ps": {
+        "display":   "MBARC PS",
+        "operator":  "US Navy Marine Bioacoustics Research Collaboration — PS sites",
+        "prefix":    "mbarc_ps/audio/",
+        "portal":    "https://www.navfac.navy.mil/",
+        "skip_mobile_platforms": True,   # measured 2026-10-07: 11 deployments → 11 stations (all Mooring)
+    },
 }
 
 # ⛔ Every top-level prefix in the bucket is either walked above or listed
@@ -265,7 +293,8 @@ NOT_INGESTED: dict[str, str] = {
         "MARS hydrophone reaches us through acoustic_mars_ingest instead.",
     "mbarc_cencal":
         "holds only `products/`; zero metadata files. Its sibling prefixes "
-        "mbarc_socal / mbarc_arctic / mbarc_flip DO carry audio and are walked.",
+        "mbarc_socal / mbarc_arctic / mbarc_flip / mbarc_bering / mbarc_onslowbay / "
+        "mbarc_ps DO carry audio and are walked.",
     "soundcoop":
         "15 site folders at the prefix root, no `audio/` tree and zero metadata "
         "files to depth 4. The site names (AEON5, ARCTIC-A..C, NRS01, NRS11, "
@@ -287,14 +316,16 @@ NOT_INGESTED: dict[str, str] = {
 # still counts as covering it — and listing esons as "not ingested" would be
 # the false reason this whole structure exists to prevent.
 
-# The bucket's top-level prefixes as listed on 2026-09-15. Held as data so the
+# The bucket's top-level prefixes as listed on 2026-10-07 (29 on 2026-09-15; the
+# archive added mbarc_bering, mbarc_onslowbay and mbarc_ps since — all three
+# walked, see PROGRAMS). Held as data so the
 # classification above can be checked without a network call, and so a program
 # the archive ADDS shows up as a diff rather than as silence.
 BUCKET_PREFIXES_SEEN = (
     "MD_WEA_CPOD", "adeon", "aeon", "afsc", "big_query_metadata", "boem",
     "coastal_studies_institute", "cornell", "dclde", "esons", "fram", "jasco",
-    "listen", "mbarc_arctic", "mbarc_cencal", "mbarc_flip", "mbarc_socal",
-    "mbari", "navy", "nefsc", "nps", "nrs", "onms", "pifsc", "rutgers_njrmi",
+    "listen", "mbarc_arctic", "mbarc_bering", "mbarc_cencal", "mbarc_flip",
+    "mbarc_onslowbay", "mbarc_ps", "mbarc_socal", "mbari", "navy", "nefsc", "nps", "nrs", "onms", "pifsc", "rutgers_njrmi",
     "sanctsound", "sefsc", "soundcoop", "swfsc",
 )
 

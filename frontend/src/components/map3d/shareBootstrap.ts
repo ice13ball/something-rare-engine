@@ -42,11 +42,12 @@ export function resolveInitialCamera(
  * With no share link, today's behaviour is preserved unchanged: restore the
  * saved active set, then auto-enable any `allLayerIds` entry NOT present in
  * `knownLayers` (a layer that shipped after this visitor's last save) —
- * except the OPT_IN_ONLY layers: `seamounts`, and `glodap-points` (default_on:false;
- * switching it on is a display-mode decision — it REPLACES the ocean-carbon field —
- * so a returning visitor must not lose the field because a layer shipped).
+ * except the OPT_IN_ONLY layers: `seamounts`, and `glodap-points` / `argo-oxygen-points` / `socat-points` / `wod-casts`
+ * (default_on:false; switching one on is a display-mode decision — it REPLACES the
+ * ocean-carbon / oxygen-deox / woa-climatology field — so a returning visitor must not lose the field
+ * because a layer shipped).
  */
-const OPT_IN_ONLY: ReadonlySet<string> = new Set(["seamounts", "glodap-points"]);
+const OPT_IN_ONLY: ReadonlySet<string> = new Set(["seamounts", "glodap-points", "argo-oxygen-points", "socat-points", "wod-casts"]);
 
 export function resolveInitialLayers(
   // `layers` may be absent OR explicitly null — `decodeShareState` uses null for

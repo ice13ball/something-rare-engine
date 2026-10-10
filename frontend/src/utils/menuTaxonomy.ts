@@ -17,7 +17,7 @@ export const LAYER_TO_SUBGROUP: Record<string, string> = {
   // sea_life
   "biodiversity-hotspots": "sea_life", "hydrothermal-vents": "sea_life",
   "chess": "sea_life", "seamounts": "sea_life", "tectonic-plates": "sea_life",
-  "bathymetry": "sea_life",
+  "bathymetry": "sea_life", "plankton-occurrences": "sea_life",
   // sea_analysis
   "monitoring-density": "sea_analysis", "deepdata-stations": "sea_analysis",
   "marine-carbon": "sea_analysis", "vme-suitability": "sea_analysis",
@@ -31,6 +31,12 @@ export const LAYER_TO_SUBGROUP: Record<string, string> = {
   "woa-climatology": "sea_woa", "ocean-nutrients-model": "sea_woa", "ocean-colour-satellite": "sea_woa", "ocean-carbon": "sea_woa",
   // GLODAPv3 bottle casts: a child toggle of ocean-carbon (its panel switch), so it expands the same group
   "glodap-points": "sea_woa",
+  // BGC-Argo O2 profiles: the Measurements option of oxygen-deox, same group
+  "argo-oxygen-points": "sea_woa",
+  // SOCAT v2026 observation points: the Measurements option of ocean-co2-surface, same group
+  "socat-points": "sea_woa",
+  // WOD23 casts: the Measurements option of woa-climatology, same group
+  "wod-casts": "sea_woa",
   "ocean-co2-surface": "sea_woa", "wod-oxygen": "sea_woa", "memento": "sea_woa",
   "geotraces": "sea_woa", "mosaic-sediment": "sea_woa", "methane-seeps": "sea_woa",
   "oxygen-deox": "sea_woa", "arctic-rivers": "sea_woa",

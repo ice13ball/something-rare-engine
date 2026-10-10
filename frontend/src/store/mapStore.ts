@@ -8,7 +8,9 @@ import type { FeatureCollection } from "geojson";
 import type { DatasetStats } from "../utils/argoAlarms";
 import type { AoiSelection } from "../utils/aoiGeometry";
 import { initialEnabledIds } from "../utils/layerConfig";
+import { PLANKTON_DECADES, PLANKTON_DEPTH_BANDS, PLANKTON_GROUPS } from "../utils/plankton";
 import type { YearRange, YearBounds } from "../utils/coastdomYearFilter";
+import type { OxygenDisplayMode } from "../utils/argoOxygenPoints";
 
 // Arctic Catchments — variable selector type (display state, not a filter)
 export type ArcticCatchmentVariable = "ocs_mean" | "oc_tot" | "runoff_mean" | "pf_frac" | "t_2m_mean";
@@ -19,6 +21,13 @@ export type CascadeDisplayMode = "field" | "stations";
 /** Ocean Carbon: the mapped field, its hex view, or the GLODAPv3 bottle Measurements drawn instead of both. */
 export type CarbonDisplayMode = "field" | "hexes" | "points";
 const GLODAP_POINTS_ID: LayerId = "glodap-points";
+const ARGO_OXYGEN_POINTS_ID: LayerId = "argo-oxygen-points";
+const SOCAT_POINTS_ID: LayerId = "socat-points";
+const WOD_CASTS_ID: LayerId = "wod-casts";
+/** WOA climatology: the mapped field, its hex view, or the WOD Measurements (casts) drawn instead of both. */
+export type WoaDisplayMode = "field" | "hexes" | "points";
+/** Surface Ocean CO₂: the mapped field, its hex view, or the SOCAT v2026 Measurements drawn instead of both. */
+export type Co2DisplayMode = "field" | "hexes" | "points";
 
 export interface SelectedFeature {
   id: string | number;
@@ -169,6 +178,19 @@ export interface MapStore {
   // WOD Oxygen — decade filter. Empty set = show all.
   wodDecadeFilters: Set<string>;
   toggleWodDecadeFilter: (v: string) => void;
+  // Plankton (OBIS) real filters (DO add to resetAllFilters). Empty set = show all. Applied on the SERVER
+  // (tile URL); closed vocabularies in utils/plankton.ts.
+  planktonGroupFilters: Set<string>;
+  togglePlanktonGroupFilter: (v: string) => void;
+  planktonDecadeFilters: Set<string>;
+  togglePlanktonDecadeFilter: (v: string) => void;
+  planktonDepthFilters: Set<string>;
+  togglePlanktonDepthFilter: (v: string) => void;
+  // A filter held as a boolean (shared through displayRegistry, like firesNearMiningOnly). true = eDNA drawn.
+  planktonShowEdna: boolean;
+  togglePlanktonShowEdna: () => void;
+  // Back to the defaults (everything shown). resetAllFilters uses the same defaults; the layer row calls this.
+  resetPlanktonFilters: () => void;
 
   // MEMENTO (GEOMAR CH₄/N₂O) — display state (NOT filters; not in resetAllFilters)
   mementoGas: "ch4" | "n2o";
@@ -285,8 +307,12 @@ export interface MapStore {
   setWoaVariable: (v: string) => void;
   woaDepth: number;
   setWoaDepth: (d: number) => void;
-  woaDisplayMode: "field" | "hexes";
-  setWoaDisplayMode: (m: "field" | "hexes") => void;
+  // "points" = the WOD Measurements; they REPLACE the field/hexes. `wod-casts` is in `activeLayers` exactly then.
+  woaDisplayMode: WoaDisplayMode;
+  setWoaDisplayMode: (m: WoaDisplayMode) => void;
+  // WOD Measurements (points) — year window; null = every year. Reset by resetAllFilters, carried in a share link.
+  wodYearRange: YearRange | null;
+  setWodYearRange: (r: YearRange | null) => void;
 
   // Nutrients & productivity (model) — display state (NOT a filter; not reset by resetAllFilters)
   nutrientsVariable: string;
@@ -307,7 +333,7 @@ export interface MapStore {
   setCarbonDepth: (d: number) => void;
   // "points" = the GLODAPv3 Measurements: they REPLACE the field/hexes (Michal, 2026-10-06). The layer id
   // `glodap-points` stays the points' toggle / z-order / share-link id, and the store keeps the two in step:
-  // `glodap-points` is in `activeLayers` exactly while the mode is "points" (see `_carbonModeFor`).
+  // `glodap-points` is in `activeLayers` exactly while the mode is "points" (see `_modeFor`).
   carbonDisplayMode: CarbonDisplayMode;
   setCarbonDisplayMode: (m: CarbonDisplayMode) => void;
   // GLODAP Measurements (points) — year window; null = every year. A real filter: reset by
@@ -342,16 +368,28 @@ export interface MapStore {
   setCo2Variable: (v: string) => void;
   co2Decade: number;
   setCo2Decade: (d: number) => void;
-  co2DisplayMode: "field" | "hexes";
-  setCo2DisplayMode: (m: "field" | "hexes") => void;
+  // "points" = the SOCAT v2026 Measurements; they REPLACE field/hexes. `socat-points` is in `activeLayers`
+  // exactly while the mode is "points" (see `_modeFor`).
+  co2DisplayMode: Co2DisplayMode;
+  setCo2DisplayMode: (m: Co2DisplayMode) => void;
+  // SOCAT Measurements (points) — year window; null = every year. Reset by resetAllFilters, carried in a share link.
+  socatYearRange: YearRange | null;
+  setSocatYearRange: (r: YearRange | null) => void;
 
   // Oxygen Deoxgenation — display mode (NOT a filter; not reset by resetAllFilters)
   oxygenView: "recent" | "change";
   setOxygenView: (v: "recent" | "change") => void;
   oxygenDepth: number;
   setOxygenDepth: (d: number) => void;
-  oxygenDisplayMode: "field" | "hexes";
-  setOxygenDisplayMode: (m: "field" | "hexes") => void;
+  // "points" = the BGC-Argo DOXY Measurements; they REPLACE field/hexes. `argo-oxygen-points` is in
+  // `activeLayers` exactly while the mode is "points" (see `_modeFor`). `oxygenView` is NOT touched by the mode:
+  // the points always use the Recent O₂ ramp and the user's Recent/Δ choice comes back with the field.
+  oxygenDisplayMode: OxygenDisplayMode;
+  setOxygenDisplayMode: (m: OxygenDisplayMode) => void;
+  // Argo O₂ Measurements (points) — year window; null = every year. A real filter: reset by
+  // resetAllFilters and carried in a share link (filterRegistry.ts).
+  argoOxygenYearRange: YearRange | null;
+  setArgoOxygenYearRange: (r: YearRange | null) => void;
 
   // Seabed Substrate — display mode (NOT a filter; not reset by resetAllFilters)
   seabedDisplayMode: "field" | "hexes";
@@ -446,6 +484,16 @@ export type ScalarStateKey = {
 
 export type FilterSetKey = { [K in keyof MapStore]: MapStore[K] extends Set<string> ? K : never }[keyof MapStore];
 
+/** The plankton filters' defaults (everything shown) — one source for resetAllFilters and resetPlanktonFilters. */
+function planktonFilterDefaults() {
+  return {
+    planktonGroupFilters: new Set<string>(),
+    planktonDecadeFilters: new Set<string>(),
+    planktonDepthFilters: new Set<string>(),
+    planktonShowEdna: true,
+  };
+}
+
 function _makeToggle(
   set: (fn: (s: MapStore) => Partial<MapStore>) => void,
   key: FilterSetKey,
@@ -458,6 +506,24 @@ function _makeToggle(
     });
 }
 
+/** Plankton chips start all lit (empty set = everything) and a click HIDES that value — unlike _makeToggle,
+ *  where the first click shows only the clicked value. The full set folds back to empty (canonical URL);
+ *  the last lit chip cannot be switched off, because an empty set would mean "everything" again. */
+function _makeHideToggle(
+  set: (fn: (s: MapStore) => Partial<MapStore>) => void,
+  key: FilterSetKey,
+  vocab: readonly string[],
+) {
+  return (value: string) =>
+    set((s) => {
+      const cur = s[key] as Set<string>;
+      const next = new Set(cur.size === 0 ? vocab : cur);
+      next.has(value) ? next.delete(value) : next.add(value);
+      if (next.size === 0) return {};
+      return { [key]: next.size === vocab.length ? new Set<string>() : next } as Partial<MapStore>;
+    });
+}
+
 /** Intersect a desired active-set with the enabled set. null enabled = allow all. */
 function _gateActive(enabled: Set<string> | null, layers: Set<LayerId>): Set<LayerId> {
   if (!enabled) return layers;
@@ -465,18 +531,24 @@ function _gateActive(enabled: Set<string> | null, layers: Set<LayerId>): Set<Lay
 }
 
 /**
- * The carbon display mode that agrees with an active-set: `glodap-points` in the set means Measurements,
- * and a Measurements mode whose layer was switched off (or pruned as disabled/hidden) falls back to the field.
- * Every path that writes `activeLayers` runs through this, so a link, a search hit or the layer list that
- * switches the points on never leaves the field drawn underneath them.
+ * The display mode that agrees with an active-set, for each field that has a Measurements layer: the points id
+ * in the set means Measurements ("points"), and a "points" mode whose layer was switched off (or pruned as
+ * disabled/hidden) falls back to the field. Every path that writes `activeLayers` runs through this, so a link,
+ * a search hit or the layer list that switches the points on never leaves the field drawn underneath them.
  */
-function _carbonModeFor(active: ReadonlySet<string>, mode: CarbonDisplayMode): CarbonDisplayMode {
-  if (active.has(GLODAP_POINTS_ID)) return "points";
-  return mode === "points" ? "field" : mode;
+function _modeFor<M extends string>(active: ReadonlySet<string>, mode: M, pointsId: string): M {
+  if (active.has(pointsId)) return "points" as M;
+  return (mode === "points" ? "field" : mode) as M;
 }
 
-function _withMode(active: Set<LayerId>, mode: CarbonDisplayMode): { activeLayers: Set<LayerId>; carbonDisplayMode: CarbonDisplayMode } {
-  return { activeLayers: active, carbonDisplayMode: _carbonModeFor(active, mode) };
+function _withMode(active: Set<LayerId>, s: Pick<MapStore, "carbonDisplayMode" | "oxygenDisplayMode" | "co2DisplayMode" | "woaDisplayMode">) {
+  return {
+    activeLayers: active,
+    carbonDisplayMode: _modeFor(active, s.carbonDisplayMode, GLODAP_POINTS_ID),
+    oxygenDisplayMode: _modeFor(active, s.oxygenDisplayMode, ARGO_OXYGEN_POINTS_ID),
+    co2DisplayMode: _modeFor(active, s.co2DisplayMode, SOCAT_POINTS_ID),
+    woaDisplayMode: _modeFor(active, s.woaDisplayMode, WOD_CASTS_ID),
+  };
 }
 
 export const useMapStore = create<MapStore>((set) => ({
@@ -522,10 +594,10 @@ export const useMapStore = create<MapStore>((set) => ({
       enabledLayerIds: ids,
       // Prune anything already active that just became non-enabled (handles the
       // race where WelcomeOverlay seeded before the config finished loading).
-      ..._withMode(_gateActive(ids, s.activeLayers), s.carbonDisplayMode),
+      ..._withMode(_gateActive(ids, s.activeLayers), s),
     })),
   setActiveLayers: (layers) =>
-    set((s) => _withMode(_gateActive(s.enabledLayerIds, layers), s.carbonDisplayMode)),
+    set((s) => _withMode(_gateActive(s.enabledLayerIds, layers), s)),
   toggleLayer: (id) =>
     set((s) => {
       // Never activate a non-enabled layer; always allow deactivation.
@@ -534,9 +606,9 @@ export const useMapStore = create<MapStore>((set) => ({
       }
       const next = new Set(s.activeLayers);
       next.has(id) ? next.delete(id) : next.add(id);
-      return _withMode(next, s.carbonDisplayMode);
+      return _withMode(next, s);
     }),
-  disableAllLayers: () => set((s) => _withMode(new Set(), s.carbonDisplayMode)),
+  disableAllLayers: () => set((s) => _withMode(new Set(), s)),
 
   hiddenContractors: new Set(),
   toggleContractor: (key) =>
@@ -601,6 +673,15 @@ export const useMapStore = create<MapStore>((set) => ({
 
   wodDecadeFilters: new Set<string>(),
   toggleWodDecadeFilter: _makeToggle(set, "wodDecadeFilters"),
+  planktonGroupFilters: new Set<string>(),
+  togglePlanktonGroupFilter: _makeHideToggle(set, "planktonGroupFilters", PLANKTON_GROUPS),
+  planktonDecadeFilters: new Set<string>(),
+  togglePlanktonDecadeFilter: _makeHideToggle(set, "planktonDecadeFilters", PLANKTON_DECADES),
+  planktonDepthFilters: new Set<string>(),
+  togglePlanktonDepthFilter: _makeHideToggle(set, "planktonDepthFilters", PLANKTON_DEPTH_BANDS),
+  planktonShowEdna: true,
+  togglePlanktonShowEdna: () => set(s => ({ planktonShowEdna: !s.planktonShowEdna })),
+  resetPlanktonFilters: () => set(planktonFilterDefaults()),
 
   mementoGas: "n2o",
   setMementoGas: (g) => set({ mementoGas: g }),
@@ -649,7 +730,16 @@ export const useMapStore = create<MapStore>((set) => ({
   woaDepth: 500,
   setWoaDepth: (d) => set({ woaDepth: d }),
   woaDisplayMode: "field",
-  setWoaDisplayMode: (m) => set({ woaDisplayMode: m }),
+  setWoaDisplayMode: (m) =>
+    set((s) => {
+      // Measurements only while their layer can be on (enabled in layer_config, not hidden here).
+      if (m === "points" && s.enabledLayerIds && !s.enabledLayerIds.has(WOD_CASTS_ID)) return {};
+      const next = new Set(s.activeLayers);
+      if (m === "points") next.add(WOD_CASTS_ID); else next.delete(WOD_CASTS_ID);
+      return { woaDisplayMode: m, activeLayers: next };
+    }),
+  wodYearRange: null,
+  setWodYearRange: (r) => set({ wodYearRange: r }),
 
   nutrientsVariable: "no3",
   setNutrientsVariable: (v) => set({ nutrientsVariable: v }),
@@ -701,14 +791,32 @@ export const useMapStore = create<MapStore>((set) => ({
   co2Decade: 5,
   setCo2Decade: (d) => set({ co2Decade: d }),
   co2DisplayMode: "field",
-  setCo2DisplayMode: (m) => set({ co2DisplayMode: m }),
+  setCo2DisplayMode: (m) =>
+    set((s) => {
+      // Measurements only while their layer can be on (enabled in layer_config, not hidden here).
+      if (m === "points" && s.enabledLayerIds && !s.enabledLayerIds.has(SOCAT_POINTS_ID)) return {};
+      const next = new Set(s.activeLayers);
+      if (m === "points") next.add(SOCAT_POINTS_ID); else next.delete(SOCAT_POINTS_ID);
+      return { co2DisplayMode: m, activeLayers: next };
+    }),
+  socatYearRange: null,
+  setSocatYearRange: (r) => set({ socatYearRange: r }),
 
   oxygenView: "change",
   setOxygenView: (v) => set({ oxygenView: v }),
   oxygenDepth: 500,
   setOxygenDepth: (d) => set({ oxygenDepth: d }),
   oxygenDisplayMode: "field",
-  setOxygenDisplayMode: (m) => set({ oxygenDisplayMode: m }),
+  setOxygenDisplayMode: (m) =>
+    set((s) => {
+      // Measurements only while their layer can be on (enabled in layer_config, not hidden here).
+      if (m === "points" && s.enabledLayerIds && !s.enabledLayerIds.has(ARGO_OXYGEN_POINTS_ID)) return {};
+      const next = new Set(s.activeLayers);
+      if (m === "points") next.add(ARGO_OXYGEN_POINTS_ID); else next.delete(ARGO_OXYGEN_POINTS_ID);
+      return { oxygenDisplayMode: m, activeLayers: next };
+    }),
+  argoOxygenYearRange: null,
+  setArgoOxygenYearRange: (r) => set({ argoOxygenYearRange: r }),
 
   // seabedDisplayMode is NOT in resetAllFilters — display state only
   seabedDisplayMode: "field",
@@ -836,6 +944,7 @@ export const useMapStore = create<MapStore>((set) => ({
     tailingsStatusFilters: new Set<string>(),
     deepdataStationContractorFilters: new Set<string>(),
     wodDecadeFilters: new Set<string>(),
+    ...planktonFilterDefaults(),
     aisShipTypeFilters:  new Set<string>(),
     aisFlagFilters:      new Set<string>(),
     offshoreActivityFilters: new Set<string>(),
@@ -851,6 +960,9 @@ export const useMapStore = create<MapStore>((set) => ({
     mosaicDecadeFilters: new Set<string>(),
     coastdomYearRange: null,
     glodapYearRange: null,
+    argoOxygenYearRange: null,
+    socatYearRange: null,
+    wodYearRange: null,
   }),
 
   layerProgress: new Map(),

@@ -45,6 +45,7 @@ LAYER_DEFAULTS_PY = [
     {"id": "contracts",              "order_idx": 800,  "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "seamounts",              "order_idx": 900,  "default_on": False, "modes": ["ocean","continue"]},
     {"id": "biodiversity-hotspots",  "order_idx": 1000, "default_on": True,  "modes": ["ocean","continue"]},
+    {"id": "plankton-occurrences",   "order_idx": 950,  "default_on": False, "modes": ["ocean","continue"]},
     {"id": "monitoring-density",     "order_idx": 1100, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "noise-risk",             "order_idx": 1200, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "hydrophone-stations",    "order_idx": 1250, "default_on": False, "modes": ["ocean","continue"]},
@@ -74,6 +75,11 @@ LAYER_DEFAULTS_PY = [
     # Point layer, above every field (68-78). 2093, not a free 2081/2082: a database not yet
     # UPDATEd still holds the fields at the old 2075-2082. KEEP IN SYNC with layerConfig.ts.
     {"id": "glodap-points",          "order_idx": 2093, "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "argo-oxygen-points",     "order_idx": 2094, "default_on": False, "modes": ["ocean","continue"]},
+    # SOCAT v2026 observation points; Measurements REPLACE the ocean-co2-surface field. KEEP IN SYNC with layerConfig.ts.
+    {"id": "socat-points",           "order_idx": 2095, "default_on": False, "modes": ["ocean","continue"]},
+    # WOD23 casts; Measurements REPLACE the woa-climatology field. KEEP IN SYNC with layerConfig.ts.
+    {"id": "wod-casts",              "order_idx": 2096, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "marine-carbon",          "order_idx": 70,   "default_on": False, "modes": ["ocean","continue"]},
     {"id": "surface-water",          "order_idx": 2100, "default_on": False, "modes": ["land"]},
     {"id": "forest-loss",            "order_idx": 2200, "default_on": False, "modes": ["land"]},

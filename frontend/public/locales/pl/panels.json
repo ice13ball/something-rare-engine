@@ -190,13 +190,31 @@
       "hexes": "Heksagony"
     },
     "woaClimatology": {
-      "toggle": "Klimatologia oceanu (WOA)"
+      "toggle": "Klimatologia oceanu (WOA)",
+      "points": {
+        "productNote": "Pomiary: stacje WOD23 (OSD, CTD, pławy profilujące), tak jak zmierzone i datowane — inny produkt niż pole WOA23, obiektywnie analizowana średnia roczna. Pomiary zastępują pole i sześciokąty.",
+        "greyNote": "Szary: brak dobrej wartości w oknie głębokości {{window}} m albo zmienna, której stacje nie niosą.",
+        "derivedNote": "AOU i nasycenie O₂ to wielkości pochodne z WOA, bez wartości dla pojedynczej stacji; kropki są szare, a panel stacji pokazuje rozpuszczony O₂.",
+        "nstarNote": "N* jest wyprowadzane z azotanów i fosforanów stacji na tym samym poziomie.",
+        "yearFrom": "Od",
+        "yearTo": "Do",
+        "loading": "Wczytywanie pomiarów…"
+      }
     },
     "wodOxygen": {
       "toggle": "Historyczne profile tlenu (WOD)"
     },
     "oxygenDeox": {
-      "toggle": "Tlen w oceanie i deoksygenacja"
+      "toggle": "Tlen w oceanie i deoksygenacja",
+      "points": {
+        "versionNote": "Punkty: profile tlenu z pływaków BGC-Argo z bieżącego centrum danych Argo (wartości skorygowane, oznaczone jako dobre). Pole: średnia ISAS20 2014–2018, zbudowana ze starszej migawki danych Argo.",
+        "recentScaleNote": "Pomiary to bezwzględne stężenie O₂, więc mają skalę „Bieżący O₂ (2014–2018)”. Pojedynczy profil nie ma odniesienia z lat 1971–2000, więc nie pokazujemy dla niego zmiany.",
+        "greyNote": "Szary: brak dobrej skorygowanej wartości tlenu w przedziale {{window}} wokół tej głębokości.",
+        "loading": "Wczytywanie pomiarów…",
+        "empty": "Brak profili w tym zakresie lat.",
+        "yearFrom": "Od",
+        "yearTo": "Do"
+      }
     },
     "methaneSeeps": {
       "toggle": "Wycieki metanu (SEAFLEA)"
@@ -228,7 +246,15 @@
       }
     },
     "oceanCo2Surface": {
-      "toggle": "CO₂ powierzchniowego oceanu (SOCAT)"
+      "toggle": "CO₂ powierzchniowego oceanu (SOCAT)",
+      "points": {
+        "versionNote": "Pomiary: obserwacje SOCAT v2026, takie, jak je wykonano, z datami. Pole i sześciokąty: siatkowe średnie dekadowe SOCAT v2026 — inny produkt.",
+        "greyNote": "Szary: brak wartości dla wybranej zmiennej albo poza wybraną dekadą (dla lat 1957–1969 nie ma pola dekadowego do porównania).",
+        "densityNote": "Gęstość: wszystkie kropki mają ten sam kolor — gęstość pola jest liczona dla dekady, więc kropki poza wybraną dekadą są szare.",
+        "yearFrom": "Od",
+        "yearTo": "Do",
+        "loading": "Wczytywanie pomiarów…"
+      }
     },
     "siosSvalbard": {
       "toggle": "SIOS Svalbard (Arktyka)"
@@ -363,6 +389,9 @@
     },
     "oceanColourSatellite": {
       "toggle": "Barwa oceanu (satelita)"
+    },
+    "planktonOccurrences": {
+      "toggle": "Plankton (OBIS)"
     }
   },
   "filters": {
@@ -481,6 +510,28 @@
         "closed": "CLOSED — wycofana na stałe",
         "registered": "REGISTERED — zgłoszona, nigdy nie postawiona"
       }
+    },
+    "plankton": {
+      "groupHeading": "Grupa",
+      "decadeHeading": "Dekada",
+      "depthHeading": "Głębokość",
+      "group": {
+        "copepoda": "Widłonogi",
+        "euphausiacea": "Kryl",
+        "diatoms": "Okrzemki",
+        "coccolithophores": "Kokolitofory",
+        "dinoflagellates": "Bruzdnice"
+      },
+      "noDate": "Bez daty",
+      "before1950": "Przed 1950",
+      "depth": {
+        "0": "0–200 m",
+        "1": "200–1000 m",
+        "2": "> 1000 m",
+        "3": "Bez głębokości"
+      },
+      "showEdna": "Pokaż rekordy eDNA",
+      "ednaNote": "eDNA = DNA grupy wykryte w próbce wody, a nie policzony organizm. Kropki z samym obrysem to miejsca wyłącznie z rekordami eDNA."
     }
   },
   "tooltip": {
@@ -523,14 +574,16 @@
       "offshore-activities": "Wydane przez rządy koncesje offshore w krajowych EEZ — bloki naftowe i gazowe, farmy wiatrowe na morzu, licencje na wydobycie z dna morza oraz licencje CCS (wychwytywanie i składowanie dwutlenku węgla). Filtruj według rodzaju działalności i kraju, aby zobaczyć, kto posiada licencje i gdzie.",
       "ocean-currents": "Animowane prądy oceaniczne (powierzchnia lub 1000 m) z Copernicus Marine. Cząstki płyną wzdłuż aktualnego pola prądów; przełącznik głębokości zmienia widok między dryfem powierzchniowym a głębszą warstwą niosącą pióropusze osadów z górnictwa głębinowego.",
       "woa-climatology": "Siatkowa klimatologia oceanu (średnia długookresowa) z World Ocean Atlas 2023 — temperatura, zasolenie, tlen, AOU, nasycenie O₂ i składniki odżywcze na 8 standardowych głębokościach. Wybierz zmienną i głębokość; barwa pokazuje wartość średnią (odczytaj ją ze skali pod selektorem). Rozdzielczość 1°; okres bazowy różni się zależnie od zmiennej (T/S 1991–2020, O₂ 1971–2000, składniki odżywcze 1965–2022). N* (azotany − 16 × fosforany) jest wyliczane z dwóch z nich: wartość ujemna oznacza mniej azotanów niż fosforanów przy stosunku 16:1, w jakim zużywa je plankton.",
-      "oxygen-deox": "Rozpuszczony tlen oceaniczny z pływaków BGC-Argo ISAS. „Bieżący O₂” pokazuje średnią z lat 2014–2018 na wybranej głębokości (niebieski = wysoki, czerwony = niski / strefy minimum tlenowego). „Deoksygenacja Δ” pokazuje zmianę względem bazy World Ocean Atlas WOA23 z lat 1971–2000 (czerwony = utrata O₂, niebieski = przyrost). Orientacyjny wzorzec regionalny, a nie skalibrowany trend — bieżące pole z optod Argo i statkowa baza z lat 1971–2000 różnią się metodą.",
+      "oxygen-deox": "Rozpuszczony tlen oceaniczny z pływaków BGC-Argo ISAS. „Bieżący O₂” pokazuje średnią z lat 2014–2018 na wybranej głębokości (niebieski = wysoki, czerwony = niski / strefy minimum tlenowego). „Deoksygenacja Δ” pokazuje zmianę względem bazy World Ocean Atlas WOA23 z lat 1971–2000 (czerwony = utrata O₂, niebieski = przyrost). Orientacyjny wzorzec regionalny, a nie skalibrowany trend — bieżące pole z optod Argo i statkowa baza z lat 1971–2000 różnią się metodą. Przełącznik Wyświetlanie ma trzecią opcję, Pomiary, która pokazuje profile tlenu BGC-Argo z Argo GDAC (wartości skorygowane z dobrą flagą jakości) w skali „Bieżący O₂” pola.",
       "wod-oxygen": "Surowe historyczne profile rozpuszczonego tlenu z NOAA World Ocean Database (globalnie). Każda kropka to jedno sondowanie statku/pływaka, zabarwione według dekady; kliknij, aby zobaczyć rzeczywisty profil głębokość–tlen. Możliwy do zbadania surowy materiał obejmujący ~stulecie — niejednorodne metody i QC, pokazane tak jak w źródle. Przerzedzone do próbki przy dużym oddaleniu; przybliż, aby zobaczyć każde sondowanie.",
       "arctic-rivers": "Obserwowany przepływ i biogeochemia w ujściach wielkich rzek arktycznych (6 rzek ArcticGRO + PANGAEA Kanada). Każda kropka = stacja monitoringu; kliknij, aby zobaczyć okres obserwacji i szeregi czasowe rozpuszczonego węgla organicznego, substancji odżywczych oraz przepływu z dnia poboru. Opublikowane pomiary, próbkowanie ~6×/rok, w rozdzielczości miesięcznej.",
       "memento": "Baza GEOMAR MEMENTO — pomiary metanu (CH₄) i podtlenku azotu (N₂O) w oceanie z rejsów badawczych na całym świecie. Każda kropka to jeden profil pomiarowy (kast); kolor odpowiada powierzchniowemu stężeniu wybranego gazu (turkus = niskie, magenta = wysokie). Przełącznikiem gazu zmieniasz CH₄ / N₂O. Uwaga: gęstość pomiarów jest nierównomierna — transekty oceaniczne są dobrze pokryte, obszary przybrzeżne i polarne słabiej.",
       "methane-seeps": "Globalna baza lokalizacji wycieków metanu ze dna morskiego z bazy SEAFLEA (NRL / NOAA NCEI), opracowana przez Phrampus i in. (2020). Każda kropka to potwierdzone miejsce wycieku, pokolorowane według typu (bąble gazowe, hydraty gazowe, kopce, pockmarki, zbiorowiska chemosyntetyczne, twarde podłoże węglanowe). Uwaga: kompilacja zamrożona w lutym 2019 r. — nowe odkrycia po tej dacie nie są uwzględnione. Pokrycie jest obciążone rozkładem badań: 59% rekordów pochodzi z jednego przeglądu Zatoki Meksykańskiej, a centralne Morze Północne nie ma żadnego — pusty obszar oznacza brak badań, a nie brak wycieków.",
       "geotraces": "Profile pionowe pierwiastków śladowych w toni wodnej (Mn, Fe, Co, Ni, Cu) z programu GEOTRACES IDP2025 — metale skoncentrowane w polimetalicznych konkrecjach i skorupach kobaltonośnych. Wybierz pierwiastek; każdy punkt to stacja, pokolorowana według szczytowego stężenia. Kliknij, aby zobaczyć profil stężenia w funkcji głębokości. Dane badawcze, pokrycie nierównomierne.",
-      "ocean-carbon": "Morski nieorganiczny układ węglowy (DIC, zasadowość całkowita, pH, antropogeniczny CO₂) z 1° klimatologii GLODAPv2.2016b. Wybierz zmienną i głębokość (0–4000 m); barwa pokazuje globalny rozkład. Przełącz na sześciokąty, aby odczytać dokładne wartości po kliknięciu. Produkt statyczny — dane z rejsów sprzed 2016 r.",
+      "ocean-carbon": "Morski nieorganiczny układ węglowy (DIC, zasadowość całkowita, pH, antropogeniczny CO₂) z 1° klimatologii GLODAPv2.2016b. Wybierz zmienną i głębokość (0–4000 m); barwa pokazuje globalny rozkład. Przełącz na sześciokąty, aby odczytać dokładne wartości po kliknięciu. Samo pole to produkt statyczny — dane z rejsów sprzed 2016 r. Przełącznik Wyświetlanie ma trzecią opcję, Pomiary, która pokazuje próbki butelkowe GLODAPv3 (jedna kropka na profil) w skali samego pola.",
       "glodap-points": "Pojedyncze profile butelkowe GLODAPv3 (2026) — rzeczywiste pomiary stojące za polem Ocean Carbon. Każda kropka to jeden profil, pokolorowana w skali pola dla wybranej zmiennej i głębokości; szara, gdy w oknie tej głębokości nie ma poprawnej butelki. Surowe wartości z butelek: pole (GLODAPv2.2016b) jest znormalizowane do 2002, butelki nie.",
+      "argo-oxygen-points": "Rzeczywiste profile tlenu z pływaków BGC-Argo (wartości skorygowane, oznaczone jako dobre), w skali „Bieżący O₂” warstwy „Tlen w oceanie i deoksygenacja” na wybranej głębokości.",
+      "socat-points": "Pojedyncze obserwacje fCO₂ w powierzchniowej wodzie oceanu z SOCAT v2026, pochodzące ze statków badawczych, statków handlowych (tzw. ships of opportunity) i kotwiczonych boi — rzeczywiste pomiary stojące za polem powierzchniowego CO₂ oceanu. Każda kropka jest pokolorowana w skali pola dla wybranej zmiennej; szara poza wybraną dekadą, przed 1970 lub gdy zmienna nie ma wartości; filtr zakresu lat ukrywa punkty. Przy małym przybliżeniu warstwa pokazuje uproszczone trasy rejsów; od zbliżenia 9 każda kropka to średnia obserwacji z jednego roku w małej komórce. Wartości zmierzone, tak jak zapisano: pole to średnia dekadowa komórki 1°, czyli inny produkt.",
       "ocean-co2-surface": "Prężność CO₂ (fCO₂) na powierzchni oceanu, gęstość obserwacji, temperatura powierzchni morza i zasolenie z bazy SOCAT v2026 — skontrolowanej jakościowo bazy trajektorii statków, zagregowanej w siatkę 1° z podziałem na dekady. Użyj selektora zmiennej, by przełączać między fCO₂, gęstością, SST i zasoleniem; selektora dekady, by przeglądać lata 70.–20. XXI w. Przełącz na sześciokąty, aby odczytać dokładne wartości po kliknięciu. Uwaga: produkt bez interpolacji — dane obejmują ok. 21% komórek 1°, skupionych wzdłuż tras statków.",
       "sios-svalbard": "Dane obserwacyjne in situ z katalogu SIOS (Svalbard Integrated Arctic Earth Observing System) — pomiary oceanograficzne, atmosferyczne, kriosferyczne i biologiczne z rejonu Svalbardu i szerzej Arktyki. Każdy punkt prowadzi do strony zbioru danych. Warstwa odkrywcza: zawiera metadane i odnośniki, nie same pomiary. Zasięg ograniczony do obserwacji in situ; dane teledetekcyjne i modelowane są poza zakresem tej warstwy.",
       "marine-carbon": "Jedna siatka sześciokątów łącząca wszystkie pola oceaniczne związane z węglem — kliknij komórkę, by zobaczyć razem powierzchniowy CO₂, węgiel wgłębny, tlen i klimatologię fizyczną, każda wartość opisana źródłem. Odczyt współmiejscowy, nie pojedyncza wartość zbiorcza.",
@@ -552,7 +605,9 @@
       "greenland-sea-poc-aoc2025": "Węgiel organiczny w postaci cząstek na 32 stacjach, rejs Atlantic-Arctic Ocean Change (AOC2025), Morze Grenlandzkie, 19–31 maja 2025 (Instytut Oceanologii PAN, CC-BY 4.0). Metadane źródła podają zakres czasowy, który nie zgadza się z tytułem ani danymi — pokazane, nie poprawione.",
       "svalbard-fjords-primary-production": "Produkcja pierwotna in situ, Kongsfjorden i Hornsund (Svalbard), 1994–2019 (Instytut Oceanologii PAN). © IO PAN, użyte za zgodą — źródło nie publikuje otwartej licencji. Metadane źródła podają liczby stacji i inkubacji różne od danych — pokazane, nie poprawione.",
       "ocean-nutrients-model": "Wynik modelu, nie pomiary: powierzchniowe azotany, chlorofil-a, produkcja pierwotna netto (tempo objętościowe przy powierzchni, a nie całka po słupie wody) oraz N* (azotany − 16 × fosforany) z globalnego modelu biogeochemicznego Copernicus Marine (PISCES, 0,25°). Średnie miesięczne dla najnowszego dostępnego miesiąca i 11 poprzednich. Kliknij mapę, aby zobaczyć dokładną wartość z najbliższej komórki.",
-      "ocean-colour-satellite": "Obserwacje satelitarne: chlorofil-a i produkcja pierwotna (całka po słupie wody) z barwy oceanu Copernicus-GlobColour, średnie miesięczne uśrednione do 0,25°. Chmury, lód morski i noc polarna zostawiają luki. Kliknij mapę, by poznać dokładną wartość najbliższej komórki."
+      "ocean-colour-satellite": "Obserwacje satelitarne: chlorofil-a i produkcja pierwotna (całka po słupie wody) z barwy oceanu Copernicus-GlobColour, średnie miesięczne uśrednione do 0,25°. Chmury, lód morski i noc polarna zostawiają luki. Kliknij mapę, by poznać dokładną wartość najbliższej komórki.",
+      "plankton-occurrences": "Miejsca, w których obserwowano plankton (OBIS): widłonogi, kryl, okrzemki, kokolitofory i bruzdnice. Kolor = dominująca grupa, wielkość = liczba obserwacji, sam obrys = wykryte DNA (eDNA). Filtry: grupa, dekada, głębokość i eDNA; kliknij miejsce, aby zobaczyć gatunki, lata, głębokości, licencje i zbiory danych.",
+      "wod-casts": "Pojedyncze stacje World Ocean Database 2023 (OSD, CTD, pławy profilujące) — rzeczywiste pomiary stojące za polem Klimatologia oceanu. Każda kropka to średnia stacji w jednej małej komórce, pokolorowana w skali pola dla wybranej zmiennej na wybranej głębokości; szara tam, gdzie w oknie tej głębokości nie ma dobrej wartości. Pomiary tak, jak zapisano: pole jest obiektywnie analizowaną średnią roczną, czyli innym produktem."
     },
     "densityScaleLabel": "Rekordy na komórkę",
     "argoReadingHeading": "Jak odczytywać pomiary",
@@ -1340,8 +1395,8 @@
     "licenseLabel": "Licencja"
   },
   "oxygen": {
-    "viewRecent": "Bieżący O₂",
-    "viewChange": "Deoksygenacja Δ",
+    "viewRecent": "Bieżący O₂ (2014–2018)",
+    "viewChange": "Deoksygenacja Δ (vs 1971-2000)",
     "depthLabel": "Głębokość"
   },
   "siosSvalbard": {
@@ -1679,6 +1734,211 @@
       "phosphate": "Fosforany",
       "phts25p0": "pH (skala całkowita, 25 °C)",
       "fco2": "fCO₂ (20 °C)"
+    }
+  },
+  "argoProfile": {
+    "loading": "Wczytywanie profilu…",
+    "title": "Pływak {{wmo}}, cykl {{cycle}}",
+    "ascending": "profil wynurzania",
+    "descending": "profil zanurzania",
+    "atDepth": "Na głębokości {{depth}} m",
+    "profileValue": "Profil, tlen skorygowany (QC 1–2)",
+    "pickValue": "{{value}} {{units}} na {{depth}} m ({{pres}} dbar)",
+    "pickValueNoPres": "{{value}} {{units}} na {{depth}} m",
+    "noValue": "Brak dobrej skorygowanej wartości w przedziale {{window}}",
+    "fieldRecent": "Pole (średnia ISAS20 2014–2018) w tym miejscu",
+    "oxygen": "Tlen",
+    "depthAxis": "Głębokość (m)",
+    "chartAria": "Profil tlenu z pływaka, dla porównania ze średnią ISAS20",
+    "chartCaption": "Linia ciągła: tlen skorygowany, oznaczony jako dobry (QC 1–2). Przerywana: średnia ISAS20 2014–2018 w tym miejscu. Głębokość z ciśnienia (UNESCO 1983).",
+    "noChart": "Ten profil nie ma dobrych skorygowanych wartości tlenu, więc nie ma czego narysować.",
+    "sectionProfile": "Profil",
+    "float": "Pływak (WMO)",
+    "dac": "Centrum danych (DAC)",
+    "cycle": "Cykl",
+    "date": "Data",
+    "noDate": "data nieznana",
+    "position": "Pozycja",
+    "positionQc": "jakość pozycji (QC) {{qc}}",
+    "dataMode": "Tryb danych",
+    "pressure": "Ciśnienie",
+    "levels": "Poziomy",
+    "goodCount": "{{good}} dobrych z {{total}} poziomów w źródle",
+    "flaggedCount_one": "{{count}} wartość skorygowana oznaczona jako wątpliwa lub zła wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "flaggedCount_few": "{{count}} wartości skorygowane oznaczone jako wątpliwe lub złe wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "flaggedCount_many": "{{count}} wartości skorygowanych oznaczonych jako wątpliwe lub złe wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "flaggedCount_other": "{{count}} wartości skorygowane oznaczone jako wątpliwe lub złe wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "rawCount_one": "{{count}} wartość tylko surowa wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "rawCount_few": "{{count}} wartości tylko surowe wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "rawCount_many": "{{count}} wartości tylko surowych wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "rawCount_other": "{{count}} wartości tylko surowe wśród zapisanych poziomów ({{stored}}) — nie na wykresie",
+    "mode": {
+      "delayed": "tryb opóźniony (skorygowane naukowo)",
+      "adjusted": "skorygowane w czasie rzeczywistym",
+      "realtime": "czas rzeczywisty, tylko dane surowe — nie rysowane na mapie"
+    },
+    "presSource": {
+      "adjusted": "ciśnienie skorygowane",
+      "raw": "ciśnienie surowe",
+      "mixed": "ciśnienie skorygowane tam, gdzie jest"
+    },
+    "notDrawn": "Ten profil nie jest rysowany na mapie (brak dobrej skorygowanej wartości albo jego pozycja lub czas są oznaczone jako wadliwe).",
+    "sectionSource": "Źródło i uznanie autorstwa",
+    "dataFile": "Plik danych GDAC",
+    "sourceHome": "DOI zbioru (SEANOE)",
+    "fieldProductLabel": "Pole: {{product}}",
+    "missing": "Tego profilu nie ma już w danych Argo (mógł zostać przetworzony ponownie).",
+    "unavailable": "Profil jest chwilowo niedostępny.",
+    "retry": "Spróbuj ponownie"
+  },
+  "planktonSite": {
+    "title": "Obserwacje planktonu w tym miejscu",
+    "loading": "Wczytywanie miejsca…",
+    "missing": "Tego miejsca nie ma w bieżącym imporcie planktonu (dane są przebudowywane co miesiąc).",
+    "error": "Nie można teraz wczytać miejsca. Usługa jest niedostępna lub przeciążona.",
+    "retry": "Spróbuj ponownie",
+    "noMatch": "Żadna obserwacja w tym miejscu nie pasuje do aktywnych filtrów.",
+    "observations": "Obserwacje",
+    "years": "Lata",
+    "noYears": "brak datowanych rekordów",
+    "undated": "{{n}} bez daty",
+    "depth": "Głębokość",
+    "noDepths": "brak zapisanej głębokości",
+    "noDepth": "{{n}} bez głębokości",
+    "edna": "eDNA",
+    "ednaShare": "{{n}} ({{pct}} %) — DNA w próbce wody, organizmu nie widziano",
+    "groups": "Grupy",
+    "topSpecies": "Najczęstsze gatunki",
+    "licences": "Licencje",
+    "ncNote": "Część tych rekordów ma licencję CC-BY-NC: wyłącznie użytek niekomercyjny. Licencja każdego zbioru jest podana niżej.",
+    "datasets": "Zbiory danych ({{n}})"
+  },
+  "wodCast": {
+    "loading": "Wczytywanie stacji…",
+    "missing": "Tej stacji nie ma już w bieżącym imporcie WOD23 (został wczytany ponownie).",
+    "error": "Nie udało się teraz wczytać stacji. Usługa jest niedostępna lub zajęta.",
+    "retry": "Spróbuj ponownie",
+    "productNote": "Stacja {{product}}. Pole Klimatologia oceanu jest obiektywnie analizowaną średnią roczną — innym produktem.",
+    "unmeasuredNote": "AOU i nasycenie O₂ to wielkości pochodne z WOA; stacja ma T, S i O₂ — pokazano: rozpuszczony O₂.",
+    "var": {
+      "temperature": "Temperatura",
+      "salinity": "Zasolenie",
+      "oxygen": "Rozpuszczony O₂",
+      "phosphate": "Fosforany",
+      "silicate": "Krzemiany",
+      "nitrate": "Azotany",
+      "nstar": "N*"
+    },
+    "depthAxis": "Głębokość (m)",
+    "chartAria": "Profil zmiennej {{variable}} stacji",
+    "legend": "Biały: zaakceptowane wartości stacji; bursztynowy pierścień: poziom, którego kropka używa na wybranej głębokości.",
+    "legendField": "Zielona linia przerywana: pole WOA23 w tym miejscu (klimatologia, inny produkt).",
+    "noAcceptable": "Ta stacja nie ma zaakceptowanej wartości zmiennej {{variable}} do narysowania.",
+    "sectionValues": "Na wybranej głębokości",
+    "atDepth": "{{variable}} na {{depth}} m",
+    "measuredAt": "{{value}} zmierzone na {{z}} m",
+    "noValueInWindow": "brak dobrej wartości w oknie {{window}} m",
+    "depthNotDrawn": "Mapa rysuje stacje na ośmiu standardowych głębokościach; {{depth}} m nie jest jedną z nich, więc nie ma wartości do pokazania.",
+    "fieldHere": "Pole WOA23 tutaj ({{variable}}, {{depth}} m)",
+    "noField": "brak (poza siatką)",
+    "fieldNote": "Klimatologia — inny produkt: obiektywnie analizowana średnia roczna komórki 1°, nie ten pomiar.",
+    "sectionCast": "Stacja",
+    "instrument": "Przyrząd · zbiór danych",
+    "date": "Data",
+    "dateNone": "data niezapisana",
+    "timeNone": "godzina niezapisana",
+    "monthPrecision": "dzień i godzina niezapisane",
+    "yearPrecision": "miesiąc, dzień i godzina niezapisane",
+    "position": "Pozycja",
+    "cruise": "Rejs",
+    "cruiseShort": "rejs",
+    "origCruise": "Rejs wg autora danych",
+    "platform": "Platforma",
+    "vehicle": "Nośnik",
+    "wmo": "Identyfikator WMO (pława)",
+    "realTime": "Tryb danych",
+    "realTimeYes": "czas rzeczywisty",
+    "realTimeNo": "tryb opóźniony",
+    "country": "Kraj",
+    "institute": "Instytut",
+    "project": "Projekt",
+    "tInstrument": "Przyrząd do temperatury",
+    "o2Instrument": "Przyrząd do tlenu",
+    "levelsSummary": "Poziomy zmiennej {{variable}}",
+    "levelsShown": "Pokazano {{n}} z {{m}} poziomów źródłowych",
+    "colDepth": "Głębokość (m)",
+    "colValue": "Wartość",
+    "colFlag": "Flaga WOD",
+    "sectionSource": "Źródło i autorstwo",
+    "accession": "Akcesja NCEI",
+    "sourceFile": "Plik źródłowy",
+    "wodLink": "World Ocean Database",
+    "cell": {
+      "loading": "Wczytywanie stacji stojących za tą kropką…",
+      "missing": "Tych stacji nie ma już w danych (zostały wczytane ponownie). Przybliż albo wybierz kropkę jeszcze raz.",
+      "error": "Nie udało się teraz wczytać stacji stojących za tą kropką.",
+      "summary": "{{k}} stacji w tej komórce ({{from}}–{{to}})",
+      "meanNote": "Kropka jest ich średnią. Wybierz stację, aby zobaczyć jej profil.",
+      "truncated": "Pokazano {{shown}} najnowszych z {{k}} stacji (sumy są dokładne)."
+    }
+  },
+  "socatObs": {
+    "loading": "Wczytuję obserwację…",
+    "missing": "Tej obserwacji nie ma już w bieżącym imporcie SOCAT v2026.",
+    "error": "Nie udało się teraz wczytać obserwacji. Usługa jest niedostępna lub przeciążona.",
+    "retry": "Spróbuj ponownie",
+    "productNote": "Obserwacja SOCAT v2026. Pole powierzchniowego CO₂ oceanu to siatkowa średnia dekadowa — inny produkt.",
+    "lod": "Średnia z {{k}} obserwacji z tego odcinka trasy — przybliż, aby zobaczyć mniejsze komórki; kliknij kropkę, aby wyświetlić jej obserwacje.",
+    "lodMeanLabel": "Średnia {{variable}} (ten odcinek trasy)",
+    "sectionValues": "Ta obserwacja",
+    "fco2": "fCO₂ (przeliczone)",
+    "sst": "Temperatura powierzchni morza",
+    "salinity": "Zasolenie (PSS-78)",
+    "time": "Czas",
+    "position": "Pozycja",
+    "fco2Src": "Algorytm fCO₂",
+    "fco2SrcValue": "kod {{code}}",
+    "sectionSeries": "{{variable}} wzdłuż tego odcinka rejsu",
+    "seriesNote": "{{n}} obserwacji w tym odcinku; bursztynowy okrąg: wybrana.",
+    "var": {
+      "fco2_uatm": "fCO₂ (µatm)",
+      "sst_c": "Temperatura powierzchni morza (°C)",
+      "sal_pss78": "Zasolenie (PSS-78)"
+    },
+    "sectionField": "Pole w tym miejscu",
+    "fieldLabel": "Siatkowa średnia dekadowa fCO₂",
+    "fieldNone": "brak (przed 1970 lub poza siatką)",
+    "fieldNote": "Inny produkt: średnia dekadowa komórki 1°, a nie ten pomiar.",
+    "sectionCruise": "Rejs",
+    "expocode": "Rejs (EXPOCODE)",
+    "platform": "Platforma",
+    "pis": "Kierownik(cy) naukowi",
+    "qc": "Flaga QC SOCAT",
+    "version": "Wersja zbioru danych",
+    "qcMeaning": {
+      "A": "szacowana dokładność lepsza niż 2 µatm",
+      "B": "szacowana dokładność lepsza niż 2 µatm",
+      "C": "szacowana dokładność lepsza niż 5 µatm",
+      "D": "szacowana dokładność lepsza niż 5 µatm"
+    },
+    "qcNote": "Flaga QC ocenia cały rejs, a nie tę jedną obserwację. Rysowane są tylko rejsy z flagą A–D (dokładność lepsza niż 5 µatm). Źródło: akcesja NCEI 0315110.",
+    "sectionSource": "Źródło i autorstwo",
+    "socatLink": "SOCAT v2026 (NCEI)",
+    "sourceDoi": "DOI danych rejsu",
+    "accession": "Akcesja NCEI",
+    "cell": {
+      "loading": "Wczytuję obserwacje stojące za tą kropką…",
+      "missing": "Tych obserwacji nie ma już w danych (zostały wczytane od nowa). Przybliż mapę lub wybierz kropkę jeszcze raz.",
+      "error": "Nie udało się teraz wczytać obserwacji stojących za tą kropką.",
+      "summary": "{{k}} obserwacji z {{c}} rejsu/rejsów w tej komórce o boku ok. {{size}} m w roku {{year}} (kropka na mapie = ich średnia)",
+      "meanLabel": "Średnia {{variable}}",
+      "meanNote": "Średnia z {{k}} obserwacji w tej komórce w roku {{year}} — wartość, według której kropka jest pokolorowana. Poniższa lista pokazuje pojedyncze obserwacje.",
+      "cruises": "Rejsy",
+      "cruiseObs": "{{n}} obs.",
+      "cruisesTruncated": "Pokazano {{shown}} z {{c}} rejsów.",
+      "observations": "Obserwacje",
+      "observationsTruncated": "Pokazano pierwsze {{shown}} z {{k}} obserwacji (sumy są dokładne).",
+      "meanNoteDensity": "Średnia z {{k}} obserwacji w tej komórce w roku {{year}}. W widoku gęstości wszystkie kropki mają ten sam kolor; poniższa lista pokazuje pojedyncze obserwacje."
     }
   }
 }

@@ -35,6 +35,29 @@ same-lock holders), so check `systemctl status plankton-obis` first. Leftover `p
 tables of the killed run are dropped by the next run's build_staging.
 Without `--force` nothing changes.
 
+RESUME. `--resume` (implies --force) continues an interrupted run on the staging tables it left, instead
+of starting from zero: it does NOT call build_staging (that would DROP the loaded rows). It needs
+plankton_occurrences_new and plankton_datasets_new; without them it logs a warning and does a normal full
+run. The done set is the ledger plankton_progress_new (one row per fully loaded dataset, written in the
+same transaction as its load, so it is exact). A run that predates the ledger has none: then the done set
+is the distinct dataset_id in plankton_occurrences_new, and the ledger is created and seeded from those
+counts. ⚠️ That fallback assumes the stop happened while NO COPY was running: the old code loaded in
+50k-row autocommitted batches, so a dataset cut off mid-load would count as done with a partial set of
+rows. Before stopping such a run, check pg_stat_activity of the import's backend (no COPY running,
+state idle/`active` on a non-COPY statement) — the check is the operator's. Failed datasets are never
+in the ledger, so a resume retries them. Datasets already loaded keep their rows and licence as loaded.
+A resumed run that fails keeps its staging (hours of work) for the next --resume; the following full run
+drops it.
+
+AGGREGATES-ONLY. `--aggregates-only` runs NO import: under the same advisory lock it rebuilds the stage-2 map
+aggregates (plankton_sites / _site_facets / _grid_facets / _tile_version) from the LIVE plankton_occurrences,
+swaps only them in, and pre-bakes the default tiles. Used once when the map layer is first deployed, and for
+repairs. It writes no plankton-obis sync_log row (the import's freshness is unchanged).
+
+PARALLELISM. Extract children run up to PLANKTON_PARALLEL (default 3; 1 = strictly sequential) at once,
+admitted by S3 object size and a live memory guard (plankton_obis.ExtractStream); loads into Postgres stay
+one at a time on one connection.
+
 The import takes advisory lock 4242001 with a BLOCKING wait, like obis_sync_worker
 and vme_bake_worker, so the three heavy jobs never run concurrently. The wait is
 unbounded here by design; the unit's TimeoutStartSec is the bound.
@@ -52,7 +75,8 @@ from dotenv import load_dotenv
 
 import db
 import log_redaction
-from ingestion.plankton_obis import SOURCE, STARTED_PREFIX, STARTED_STALE_HOURS, sync_plankton_obis
+from ingestion.plankton_obis import (SOURCE, STARTED_PREFIX, STARTED_STALE_HOURS, bake_tiles,
+                                     rebuild_aggregates_from_live, sync_plankton_obis)
 from schema.plankton import SWAPPED_PARTIAL_PREFIX
 from sync_log import log_sync_skipped
 
@@ -107,10 +131,12 @@ async def _decide(conn) -> str | None:
     return None
 
 
-async def run_once(pool, force: bool = False) -> str:
+async def run_once(pool, force: bool = False, resume: bool = False) -> str:
     """Returns "ran" | "fresh" | "backoff" | "running" | "low-memory".
     `force` skips both `_decide` checks (due / marker / back-off); lock, memory check and the
-    run's own marker are unchanged."""
+    run's own marker are unchanged. `resume` (the CLI makes it imply `force`) continues the staging
+    tables a stopped run left; see the module docstring."""
+    force = force or resume
     db.pool = pool
     # ONE connection for the whole critical section: session-level advisory locks are
     # released when a pooled connection goes back (see vme_bake_worker.py).
@@ -136,25 +162,52 @@ async def run_once(pool, force: bool = False) -> str:
             if decision:
                 log.info("plankton-obis: %s after waiting for the lock — nothing to do", decision)
                 return decision
-            res = await sync_plankton_obis()
+            res = await sync_plankton_obis(resume=True) if resume else await sync_plankton_obis()
             log.info("plankton-obis: %s", res)
             return "ran"
         finally:
             await lock_conn.execute("SELECT pg_advisory_unlock($1)", LOCK_KEY)
 
 
+async def rebuild_map(pool) -> str:
+    """--aggregates-only: under advisory lock LOCK_KEY (so it never overlaps an import, obis-sync or
+    vme-bake), rebuild the stage-2 aggregates from the live table. Returns "aggregates"."""
+    db.pool = pool
+    async with pool.acquire() as lock_conn:
+        log.info("plankton-obis: --aggregates-only, waiting for advisory lock %d", LOCK_KEY)
+        await lock_conn.execute("SELECT pg_advisory_lock($1)", LOCK_KEY)
+        try:
+            version = await rebuild_aggregates_from_live(lock_conn)
+            log.info("plankton-obis: aggregates rebuilt from the live table, version %s", version)
+            await bake_tiles()          # still under the lock: no import can swap underneath the bake
+        finally:
+            await lock_conn.execute("SELECT pg_advisory_unlock($1)", LOCK_KEY)
+    return "aggregates"
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--force", action="store_true",
                     help="import now: skip the due check and any started marker (lock and memory check stay)")
-    return ap.parse_args(argv)
+    ap.add_argument("--resume", action="store_true",
+                    help="continue the staging tables of a stopped run (implies --force); see the docstring")
+    ap.add_argument("--aggregates-only", action="store_true",
+                    help="no import: rebuild the map aggregates from the live table and pre-bake the tiles")
+    ns = ap.parse_args(argv)
+    if ns.aggregates_only and (ns.force or ns.resume):
+        ap.error("--aggregates-only runs no import: it cannot be combined with --force or --resume")
+    ns.force = ns.force or ns.resume
+    return ns
 
 
-async def main(force: bool = False):
+async def main(force: bool = False, resume: bool = False, aggregates_only: bool = False):
     load_dotenv()
     pool = await asyncpg.create_pool(os.environ["DATABASE_URL"], min_size=1, max_size=3)
     try:
-        await run_once(pool, force=force)
+        if aggregates_only:
+            await rebuild_map(pool)
+        else:
+            await run_once(pool, force=force, resume=resume)
     finally:
         await pool.close()
 
@@ -165,4 +218,4 @@ if __name__ == "__main__":
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     # Own process, own logging setup — see backend/log_redaction.py.
     log_redaction.install()
-    asyncio.run(main(force=cli.force))
+    asyncio.run(main(force=cli.force, resume=cli.resume, aggregates_only=cli.aggregates_only))

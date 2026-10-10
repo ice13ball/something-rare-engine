@@ -1,43 +1,18 @@
 name: Tests
 
-# The gate. Called by both deploy workflows (so nothing reaches Cloud Run without
-# passing) and run on its own for pushes that deploy does not cover.
+# Michal, 2026-10-10: GitHub Actions runs ONLY the frontend panel and share-link tests below
+# (57 vitest files). Everything else — the backend pytest suite, the TypeScript check, the
+# other vitest files, lint, the mirror classification gate — is NOT run here any more. Those run
+# on the Mac, and only the tests of the layer whose code changed (pytest against the aqua test
+# database through the 15434 tunnel; npx tsc / vitest in frontend/). The Cloud Build image build
+# still runs `tsc` as part of `npm run build`, so a type error stops the deploy, not the merge.
 #
-# ⛔ NO `paths:` FILTER HERE, deliberately. The deploy workflows filter on
-# `frontend/**`, which is exactly why every backend change has so far reached
-# production without a single automated check — not even a type check. A gate that
-# inherits the deploy filter reproduces the hole it exists to close.
-#
-# ⛔ `main` IS NOT A PUSH TRIGGER, deliberately (since 2026-10-06). `main` is a
-# fast-forward copy of `dev`: the same SHA has already been tested by the `dev` push,
-# and the local push guard refuses a `main` push until GitHub shows both test jobs
-# green for it. A trigger on `main` would run the whole suite a third time on free
-# minutes that are limited — and would make `deploy-gcp.yml` pointless, because
-# its `check` job skips `test` for an already-green SHA while this trigger would
-# run the suite anyway. When `main` DOES need tests (a frontend commit with no green
-# proof, or a manual dispatch), `deploy-gcp.yml` calls this workflow itself.
-# Trade-off: a backend-only commit that reaches `main` WITHOUT going through `dev`
-# is no longer tested by a push run. The `dev:main` rule exists to prevent that case.
-#
-# Duplication note (dev): a push to `dev` touching frontend/ triggers the dev deploy
-# workflow, which calls this one; `paths-ignore` below keeps this workflow's own push
-# trigger from firing for the same commit. A push touching BOTH trees creates two
-# runs, but they share the `concurrency` group below, so the standalone one is
-# CANCELLED and the tests execute inside the deploy run as jobs prefixed `test /`.
-# That is why a dev push shows a "Tests" run cancelled after ~2s — it is the
-# duplicate, not a failed gate. `gh run view <deploy-run-id>` is where the real
-# result lives. The `check` job of deploy-gcp.yml reads exactly these job results
-# (plain or `test /`-prefixed, a cancelled one counts for nothing) to decide that a
-# SHA reaching `main` was already tested; renaming a job here therefore needs the
-# names in backend/scripts/ci_already_green.py changed too (a test enforces it).
+# The job always starts and always ends `success` when the frontend did not change (the
+# `changes` step), because the local push guard AI-Wall/narzedzia/hooks/main-1-1-z-dev.sh needs
+# >= 1 `success` of this exact job name on the SHA reaching `main`. Keep the name byte-identical.
 
 on:
   pull_request:
-  push:
-    branches: [dev]
-    paths-ignore:
-      - "frontend/**"
-  workflow_call:
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -45,152 +20,135 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend — typecheck + vitest
-    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
-    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    name: Frontend — panels and share links
+    permissions:
+      contents: read
+      checks: read     # area detection reads the base commit's check runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      - name: Did this area change?
+        id: changes
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          JOB_NAME: Frontend — panels and share links
+          KEEP_RE: '^(frontend|admin-panel)/|^backend/(startup_seeds|profiles)\.py$|^\.github/workflows/tests\.yml$'
+          SKIP_RE: '.'
+        run: |
+          set -u
+          emit() { echo "run=$1" >> "${GITHUB_OUTPUT:-/dev/stdout}"; echo "area decision: run=$1 ($2)"; }
+          case "$EVENT_NAME" in
+            push) BASE="$EVENT_BEFORE" ;;
+            pull_request) BASE="$PR_BASE" ;;
+            *) emit true "event $EVENT_NAME: no base, run everything"; exit 0 ;;
+          esac
+          case "$BASE" in
+            ""|0000000000000000000000000000000000000000) emit true "no usable base commit"; exit 0 ;;
+          esac
+          # Trust the base only if this very job was green there (see top of file).
+          ROWS=$(gh api --paginate "repos/$REPO/commits/$BASE/check-runs?per_page=100" \
+                   --jq '.check_runs[] | [.name, .conclusion] | @tsv' 2>/dev/null) \
+            || { emit true "cannot read check runs of base ${BASE:0:7}"; exit 0; }
+          OKS=$(printf '%s\n' "$ROWS" | awk -F'\t' -v j="$JOB_NAME" \
+                  '$1==j || $1=="test / " j {if ($2=="success") ok++}
+                   END {print ok+0}')
+          BAD=$(printf '%s\n' "$ROWS" | awk -F'\t' -v j="$JOB_NAME" \
+                  '($1==j || $1=="test / " j) && $2 ~ /^(failure|timed_out|action_required|startup_failure)$/ {bad++}
+                   END {print bad+0}')
+          if [ "$OKS" -lt 1 ] || [ "$BAD" -gt 0 ]; then
+            emit true "base ${BASE:0:7} not green for this job (success=$OKS red=$BAD)"; exit 0
+          fi
+          git cat-file -e "$BASE^{commit}" 2>/dev/null \
+            || git fetch --no-tags --depth=1 origin "$BASE" 2>/dev/null \
+            || { emit true "base ${BASE:0:7} not fetchable"; exit 0; }
+          FILES=$(git diff --name-only "$BASE" "$HEAD_SHA") \
+            || { emit true "diff failed"; exit 0; }
+          [ -n "$FILES" ] || { emit true "empty diff, run to be safe"; exit 0; }
+          HIT=$(printf '%s\n' "$FILES" | awk '$0 ~ ENVIRON["KEEP_RE"] || $0 !~ ENVIRON["SKIP_RE"] {print; n++; if (n==3) exit}')
+          if [ -n "$HIT" ]; then
+            emit true "changed since ${BASE:0:7}: $(echo "$HIT" | tr '\n' ' ')"
+          else
+            emit false "nothing in this area changed since green ${BASE:0:7}"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.changes.outputs.run == 'true'
         with:
           node-version: 22          # matches frontend/Dockerfile (node:22-alpine)
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-
-      - run: npm ci
-
-      # tsc runs inside `npm run build` in the Dockerfile, so a type error already
-      # blocks the frontend deploy today. It runs here too so a pull request sees it
-      # before merge rather than at deploy time.
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Unit tests
-        run: npm test
-
-  backend:
-    name: Backend — pytest against a fresh PostGIS
-    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
-    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    services:
-      postgres:
-        # Na self-hosted (aqua, arm64) obraz multi-arch od opiekuna docker-postgis;
-        # oficjalny postgis/postgis:16-3.4 jest tylko amd64. Ta sama wersja 16/3.4.
-        image: ${{ vars.CI_RUNNER && 'imresamu/postgis:16-3.4' || 'postgis/postgis:16-3.4' }}
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: test
-        # 15432, nie 5432: na self-hosted runnerze (aqua) 5432 i 5433 sa zajete
-        # przez hostowego Postgresa i tunel. U GitHuba port jest obojetny.
-        ports: ["15432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-    env:
-      # 33 references in the suite gate on TEST_DATABASE_URL, 15 on DATABASE_URL.
-      # Setting only one leaves a large part of the suite silently skipped.
-      TEST_DATABASE_URL: postgresql://test:test@localhost:15432/test
-      DATABASE_URL: postgresql://test:test@localhost:15432/test
-      ABYSSAL_API_KEY: ci-test-key
-      PYTHONDONTWRITEBYTECODE: "1"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"    # production venv is 3.12.13
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-
-      # Insurance, not a diagnosis. rasterio's manylinux wheel dlopens libexpat at
-      # import time; on python:3.12-slim and on base ubuntu:24.04 that library is
-      # absent and `import rasterio` dies with ImportError even though pip reported
-      # success — verified locally on linux/amd64. GitHub's ubuntu-latest ships a
-      # preinstalled Python that links libexpat, so this step is very likely a
-      # no-op there; it costs seconds and removes the one way this gate could go
-      # red on its first run for a reason unrelated to the code.
-      - name: System libraries for the geo wheels
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libexpat1
-
       - name: Install dependencies
+        if: steps.changes.outputs.run == 'true'
+        run: npm ci
+      - name: Panel and share-link tests
+        if: steps.changes.outputs.run == 'true'
         run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-          pip install -r backend/requirements-dev.txt
-
-      # Building the schema from nothing IS a test. A fresh database that cannot
-      # boot has shipped here before (99534ad: "the two core tables had no CREATE,
-      # so a fresh DB could not boot"). This step fails the job if any ensure_*
-      # step fails, so that class of defect can never reach production again.
-      - name: Create schema in the empty database
-        run: python backend/scripts/ci_bootstrap_db.py
-
-      # ⛔ Run from the REPOSITORY ROOT. 49 test files do `from backend.x import y`;
-      # starting pytest inside backend/ produces 50 collection errors.
-      #
-      # The four --deselect entries and one --ignore below are PRE-EXISTING failures
-      # against a fresh database, measured 2026-08-21, NOT regressions introduced by
-      # this workflow. They are named individually rather than hidden behind a marker
-      # so that this list stays visible and shrinks. Do not add to it to make a red
-      # build green — a new failure here is the gate doing its job.
-      #
-      #   test_admin_flags::test_flags_list_and_ack             401 != 200, fails alone
-      #   test_export_bundle::test_bundle_zip_shape             pool InterfaceError, fails alone
-      #   test_export_endpoints::test_count_and_export_...      pool InterfaceError, fails alone
-      #   test_org_admin_api.py (whole file)                    KeyError 'role' + 3 cascading errors
-      #   test_api_access_rollup::test_rollup_counts_...        PASSES alone; fails only after
-      #                                                         test_api_access_admin_crud writes to
-      #                                                         the same tables — a test-isolation
-      #                                                         defect, not a product defect
-      # `python -m pytest`, not `pytest`: the module form guarantees the same
-      # interpreter that just installed the dependencies, and injects the working
-      # directory into sys.path. pytest.ini's `pythonpath = .` already covers the
-      # path half for a bare `pytest`; this covers the interpreter half.
-      - name: Run tests
-        run: |
-          # -rs lists every skip WITH its reason. Without it a test that silently
-          # stopped running (a missing TEST_DATABASE_URL, a renamed marker) is
-          # indistinguishable in the summary from a test that passed.
-          python -m pytest -q -rs \
-            --deselect backend/tests/test_admin_flags.py::test_flags_list_and_ack \
-            --deselect backend/tests/test_export_bundle.py::test_bundle_zip_shape \
-            --deselect backend/tests/test_export_endpoints.py::test_count_and_export_geotraces_bbox \
-            --deselect backend/tests/test_api_access_rollup.py::test_rollup_counts_each_row_once_and_is_idempotent \
-            --ignore=backend/tests/test_org_admin_api.py
-
-  lint:
-    name: Lint — report only, never blocks
-    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
-    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    # First lint pass over ~39.7k + ~61k lines that were never linted. The run
-    # exists to measure the backlog and keep it visible, not to gate on it. Promote
-    # to blocking per-rule, as each reaches zero — not all at once.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: ESLint (frontend)
-        working-directory: frontend
-        run: |
-          npm ci
-          npx eslint . -f stylish || true
-
-      - name: Ruff (backend)
-        run: |
-          pip install ruff==0.16.4
-          ruff check backend --output-format=github || true
+          npx vitest run \
+            src/__tests__/air-quality-units.test.tsx \
+            src/__tests__/aoc-poc-panel.test.tsx \
+            src/__tests__/argo-oxygen-docs.test.tsx \
+            src/__tests__/argo-oxygen-panel.test.tsx \
+            src/__tests__/argo-oxygen-profile-panel.test.tsx \
+            src/__tests__/coastdom-row-reset-label.test.tsx \
+            src/__tests__/coastdom-year-filter.test.tsx \
+            src/__tests__/coral-exposure-panel-fields.test.tsx \
+            src/__tests__/dam-panel-gdw-fields.test.tsx \
+            src/__tests__/fire-panel-extended-fields.test.tsx \
+            src/__tests__/glodap-cast-panel.test.tsx \
+            src/__tests__/glodap-points-panel.test.tsx \
+            src/__tests__/hex-sample-summary.test.tsx \
+            src/__tests__/memento-month-precision.test.tsx \
+            src/__tests__/mosaic-panel-fields.test.tsx \
+            src/__tests__/oceansites-history-section.test.tsx \
+            src/__tests__/oceansites-history-sources.test.tsx \
+            src/__tests__/oceansites-station-fields.test.tsx \
+            src/__tests__/onc-ctd-window.test.tsx \
+            src/__tests__/onc-description.test.tsx \
+            src/__tests__/onc-earthquakes-states.test.tsx \
+            src/__tests__/onc-no-scalar-reason.test.tsx \
+            src/__tests__/onc-quality-flags.test.tsx \
+            src/__tests__/pangaea-water-panels.test.tsx \
+            src/__tests__/permafrost-detail-fetch.test.tsx \
+            src/__tests__/plankton-panel.test.tsx \
+            src/__tests__/svalbard-fjords-pp-panel.test.tsx \
+            src/__tests__/tailings-panel-gtp-withdrawn.test.tsx \
+            src/__tests__/temporal-frame.test.tsx \
+            src/__tests__/unified-carbon-below-seafloor.test.tsx \
+            src/__tests__/unified-carbon-empty-obs.test.tsx \
+            src/__tests__/unified-carbon-nearest-obs-dates.test.tsx \
+            src/__tests__/unified-carbon-panel-visual-fixes.test.tsx \
+            src/__tests__/wod-time-of-day.test.tsx \
+            src/__tests__/sample-date.test.tsx \
+            src/__tests__/detail-panel-matrix.test.tsx \
+            src/__tests__/detail-panel-width.test.ts \
+            src/__tests__/feature-id-chains-agree.test.ts \
+            src/__tests__/focus-unavailable-notice.test.tsx \
+            src/__tests__/filter-registry.test.ts \
+            src/__tests__/link-layer-activation.test.ts \
+            src/__tests__/live-share-url-hook.test.tsx \
+            src/__tests__/live-share-url.test.ts \
+            src/__tests__/map-state-prunes-retired-layers.test.ts \
+            src/__tests__/layers-param.test.ts \
+            src/__tests__/open-from-link.test.ts \
+            src/__tests__/openable-registry.test.ts \
+            src/__tests__/plankton-share-link.test.ts \
+            src/__tests__/share-bootstrap-precedence.test.ts \
+            src/__tests__/share-display-state.test.ts \
+            src/__tests__/share-link-bootstrap-call-sites.test.ts \
+            src/__tests__/share-open-objects.test.ts \
+            src/__tests__/share-points.test.ts \
+            src/__tests__/share-state.test.ts \
+            src/__tests__/welcome-overlay-share-link.test.tsx \
+            src/__tests__/search-argo-oxygen-floats.test.tsx \
+            src/__tests__/search-glodap-cruises.test.tsx

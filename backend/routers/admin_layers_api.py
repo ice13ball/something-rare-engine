@@ -126,6 +126,12 @@ async def purge_layer(layer_id: str, admin=Depends(require_super_admin)):
                 await conn.execute(f"TRUNCATE TABLE {tbl}")
             await audit.write_audit(conn, admin["username"], "purge", layer_id,
                                     {"tables": list(ops["tables"]), "rows_before": before})
+    # The table is empty but the API process may still hold documents built from it (the argo-oxygen map documents
+    # are keyed on the source's `loaded_at`, which a purge does not touch): without this the map keeps drawing points
+    # whose every click 404s. Same sweep as /ops/cache/clear.
+    from domains import CACHE_CLEARING_DOMAINS
+    for _domain in CACHE_CLEARING_DOMAINS:
+        _domain.clear_caches()
     return {"ok": True, "id": layer_id, "purged": before}
 
 

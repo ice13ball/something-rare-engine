@@ -42,6 +42,7 @@ const SEARCH_EXEMPT = new Map([
   ["carbon-flux", "raster coverage — no per-feature names"],
   ["soil-carbon", "raster coverage — no per-feature names"],
   ["water-risk", "sub-basin risk polygons — no searchable names"],
+  ["plankton-occurrences", "MVT tile layer (grid cells and places) — no per-feature names, held only per viewport"],
   ["kbas", "polygon coverage layer — not indexed for name search"],
 ]);
 

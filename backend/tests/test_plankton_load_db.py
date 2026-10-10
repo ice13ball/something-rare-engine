@@ -3,7 +3,6 @@
 
 """Load, validate, swap of the plankton tables — real PostGIS (needs TEST_DATABASE_URL)."""
 import os
-import pathlib
 import uuid
 
 import asyncpg
@@ -11,33 +10,9 @@ import duckdb
 import pytest
 
 from ingestion import plankton_obis as p
-from plankton_helpers import conn, needs_db  # noqa: F401  (conn is a fixture)
+from plankton_helpers import (  # noqa: F401  (conn is a fixture)
+    _ds, _extract, _fixture_ids, conn, needs_db, reset_plankton as _fresh_live)
 from schema.plankton import GROUPS, ensure_plankton
-
-FIX = pathlib.Path(__file__).parent / "fixtures" / "plankton_obis" / "occurrences.parquet"
-
-
-def _extract(tmp_path):
-    con = p.connect_duckdb(tmp_path)
-    dest = tmp_path / "x.parquet"
-    p.extract_dataset(con, str(FIX), dest)
-    return dest
-
-
-def _ds(ids, licence="cc-by"):
-    return [dict(dataset_id=i, title=f"t{i}", institution=None, licence=licence,
-                 licence_raw="x", url=None, citation=None) for i in ids]
-
-
-def _fixture_ids():
-    return [r[0] for r in duckdb.sql(f"SELECT DISTINCT dataset_id FROM read_parquet('{FIX}')").fetchall()]
-
-
-async def _fresh_live(conn):
-    """Independent of whatever live plankton tables the DB already holds (rolled back at the end)."""
-    for t in ("plankton_occurrences_new", "plankton_datasets_new", "plankton_occurrences", "plankton_datasets"):
-        await conn.execute(f"DROP TABLE IF EXISTS {t} CASCADE")
-    await ensure_plankton(conn)
 
 
 async def _staged(conn, tmp_path, licence="cc-by"):

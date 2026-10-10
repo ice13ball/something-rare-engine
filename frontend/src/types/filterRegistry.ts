@@ -4,6 +4,7 @@
 import type { MapStore, FilterSetKey } from "../store/mapStore";
 import { useMapStore } from "../store/mapStore";
 import { AssertComplete, AssertDisjoint } from "./layerRegistry";
+import { PLANKTON_DECADES, PLANKTON_DEPTH_BANDS, PLANKTON_GROUPS } from "../utils/plankton";
 import { VENT_STATUS_VALUES, CLAIM_RISK_VALUES, MARHYS_SAMPLE_TYPE_VALUES } from "./layers";
 import { TAILINGS_HAZARD_VALUES } from "./landLayers";
 import { COASTDOM_YEAR_RANGE_KEY, decodeYearRange, encodeYearRange } from "../utils/coastdomYearFilter";
@@ -38,6 +39,9 @@ export const SHAREABLE_FILTER_FIELDS = [
   "tailingsStatusFilters",
   "deepdataStationContractorFilters",
   "wodDecadeFilters",
+  "planktonGroupFilters",
+  "planktonDecadeFilters",
+  "planktonDepthFilters",
   "mementoGasFilters",
   "mementoDecadeFilters",
   "geotracesDecadeFilters",
@@ -102,10 +106,20 @@ const CLOSED_VOCABULARIES: Partial<Record<ShareableFilterField, readonly string[
   // blank the layer. A null hazard_raw is never a filter *value* — a row with
   // no rating stays visible regardless, so it needs no vocabulary entry.
   tailingsRiskFilters: [...TAILINGS_HAZARD_VALUES, "other", "unrated"],
+  // Plankton: the server answers 400 to any other value, so a retired one must drop out of the link.
+  planktonGroupFilters: PLANKTON_GROUPS,
+  planktonDecadeFilters: PLANKTON_DECADES,
+  planktonDepthFilters: PLANKTON_DEPTH_BANDS,
 };
 
 /** GLODAP Measurements year window — a two-string range like coastdom's, carried only when narrowed. */
 export const GLODAP_YEAR_RANGE_KEY = "glodapYearRange";
+/** BGC-Argo O₂ Measurements year window — same two-string range as glodap's, carried only when narrowed. */
+export const ARGO_OXYGEN_YEAR_RANGE_KEY = "argoOxygenYearRange";
+/** SOCAT Measurements year window — same two-string range, carried only when narrowed. */
+export const SOCAT_YEAR_RANGE_KEY = "socatYearRange";
+/** WOD Measurements year window — same two-string range, carried only when narrowed. */
+export const WOD_YEAR_RANGE_KEY = "wodYearRange";
 
 const SHAREABLE_SET: ReadonlySet<string> = new Set(SHAREABLE_FILTER_FIELDS);
 
@@ -128,6 +142,12 @@ export function collectShareableFilters(state: MapStore): Record<string, string[
   if (yr) out[COASTDOM_YEAR_RANGE_KEY] = yr;
   const gyr = encodeYearRange(state.glodapYearRange);
   if (gyr) out[GLODAP_YEAR_RANGE_KEY] = gyr;
+  const ayr = encodeYearRange(state.argoOxygenYearRange);
+  if (ayr) out[ARGO_OXYGEN_YEAR_RANGE_KEY] = ayr;
+  const syr = encodeYearRange(state.socatYearRange);
+  if (syr) out[SOCAT_YEAR_RANGE_KEY] = syr;
+  const wyr = encodeYearRange(state.wodYearRange);
+  if (wyr) out[WOD_YEAR_RANGE_KEY] = wyr;
   return out;
 }
 
@@ -154,6 +174,21 @@ export function applyShareableFilters(payload: Record<string, unknown>): void {
     if (key === GLODAP_YEAR_RANGE_KEY) {
       const r = decodeYearRange(value);
       if (r) patch.glodapYearRange = r;
+      continue;
+    }
+    if (key === ARGO_OXYGEN_YEAR_RANGE_KEY) {
+      const r = decodeYearRange(value);
+      if (r) patch.argoOxygenYearRange = r;
+      continue;
+    }
+    if (key === SOCAT_YEAR_RANGE_KEY) {
+      const r = decodeYearRange(value);
+      if (r) patch.socatYearRange = r;
+      continue;
+    }
+    if (key === WOD_YEAR_RANGE_KEY) {
+      const r = decodeYearRange(value);
+      if (r) patch.wodYearRange = r;
       continue;
     }
     if (!isShareableFilterField(key)) continue;

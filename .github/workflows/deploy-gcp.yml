@@ -22,163 +22,37 @@ env:
   IMAGE: YOUR_REGION-docker.pkg.dev/YOUR_GCP_PROJECT_ID/YOUR_ARTIFACT_REPO/frontend
 
 jobs:
-  # ⛔ THE GATE. Nothing below runs until the whole suite has passed FOR THIS EXACT
-  # COMMIT. Before 2026-08-21 this workflow went straight from `git push` to
-  # `gcloud run deploy` with no test of any kind — the only check was `tsc` running
-  # as a side effect of the Docker build. See .github/workflows/tests.yml for what
-  # the suite runs and what it excludes.
-  #
-  # Since 2026-10-06 the suite is not run twice for one release. `main` is a
-  # fast-forward copy of `dev` (the push is refused until GitHub shows both test
-  # jobs green for that SHA), so the run here used to repeat, minute for minute, the
-  # run the commit had already passed on `dev` — and free Actions minutes are
-  # limited. `check` asks GitHub whether that proof already exists; `test` runs only
-  # if it does not, and `deploy` accepts either "test passed" or "already green".
-  #
-  # What still runs the suite here: a manual dispatch (always), a commit that has no
-  # green proof (it never went through `dev`, or a job was red / cancelled / still
-  # running), and any doubt — an API error counts as "no proof".
-  check:
-    name: Already tested on this SHA?
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+  # No test job here (Michal, 2026-10-10). The merge gate is the PR job `Frontend — panels and
+  # share links` (tests.yml); the local push guard refuses `main` without it green on this SHA.
+  # `npm run build` inside Cloud Build runs `tsc`, so a type error stops the deploy.
+  deploy:
+    name: Build & Deploy
+    if: github.repository == 'ice13ball/something-rare'
+    # ⛔ GitHub-hosted on purpose (not vars.CI_RUNNER): this job only uploads ./frontend and submits
+    # frontend/cloudbuild.yaml with --async, ~1 billed minute (Michal 2026-10-10: <= 2 min per deploy).
+    # The build, push, deploy and image prune run in Cloud Build. Watch them:
+    #   gcloud builds list --project=something-rare --limit=3
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
     permissions:
-      contents: read   # sparse checkout of the one script below
-      checks: read     # the check runs of this commit
-    outputs:
-      already_green: ${{ steps.decide.outputs.already_green }}
+      contents: read
+      id-token: write   # Workload Identity Federation
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: backend/scripts/ci_already_green.py
-          sparse-checkout-cone-mode: false
-
-      # The rule lives in the script (unit-tested in backend/tests/test_ci_already_green.py),
-      # not here. Any failure of this step — gh missing, the API down, a malformed
-      # answer — lands on `false`, i.e. "run the tests".
-      - name: Ask GitHub for this commit's check runs
-        id: decide
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.sha }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-          EVENT: ${{ github.event_name }}
-        shell: bash   # explicit, to get `-o pipefail`: a failed `gh` must not look like a result
-        run: |
-          out=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" --paginate --slurp \
-                  | python3 -I backend/scripts/ci_already_green.py --run-id "$RUN_ID" --event "$EVENT") \
-            || out="already_green=false"
-          case "$out" in
-            already_green=true|already_green=false) ;;
-            *) out="already_green=false" ;;
-          esac
-          echo "$out" | tee -a "$GITHUB_OUTPUT"
-
-  test:
-    needs: check
-    # `!cancelled()` and not the default success() so that a failed `check` job
-    # still runs the tests instead of silently skipping them.
-    if: ${{ !cancelled() && needs.check.outputs.already_green != 'true' }}
-    uses: ./.github/workflows/tests.yml
-
-  deploy:
-    name: Build & Deploy
-    needs: [check, test]
-    # Deploy when the suite passed here, or was skipped BECAUSE the commit was
-    # already green. A failed or cancelled `test` never deploys (`skipped` for any
-    # other reason does not either: the second arm demands `already_green`).
-    # `!cancelled()` is required, otherwise a skipped `test` skips this job too.
-    #
-    # Skip cleanly on a fork instead of failing loudly on GCP auth — the
-    # workload identity provider and service account below only exist in the
-    # upstream project (see README: "infra values are placeholders").
-    if: >-
-      ${{ !cancelled()
-          && github.repository == 'ice13ball/something-rare'
-          && (needs.test.result == 'success'
-              || (needs.test.result == 'skipped' && needs.check.outputs.already_green == 'true')) }}
-    # Przelacznik bez commitu: Settings -> Variables -> CI_RUNNER=pi5 kieruje
-    # job na self-hosted runner (aqua). Brak zmiennej = GitHub-hosted.
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    permissions:
-      contents: read
-      id-token: write   # required for Workload Identity Federation
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+          sparse-checkout: frontend
+      - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/YOUR_GCP_PROJECT_NUMBER/locations/global/workloadIdentityPools/YOUR_POOL/providers/YOUR_PROVIDER
           service_account: YOUR_DEPLOYER_SA@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com
-
-      # Pi 5 nie ma gcloud w obrazie (ubuntu-latest u GitHuba ma). Ten krok pobiera
-      # SDK pod architekture runnera i daje docker-credential-gcloud, bez ktorego
-      # `gcloud auth configure-docker` konfiguruje helper, ktorego nie ma na PATH.
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-
-      - name: Build and push Docker image
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          skip_install: true   # the runner image ships gcloud; installing it cost ~26 s per run
+      - name: Submit the Cloud Build (async)
         env:
-          COMMIT_SHA: ${{ github.sha }}
-        working-directory: frontend
+          SHA: ${{ github.sha }}
         run: |
-          # buildx, nie `docker build`: na Pi (arm64) musi powstac obraz amd64 dla
-          # Cloud Run. Emulacji nie ma i nie trzeba — etap runtime w Dockerfile tylko
-          # kopiuje pliki, nie uruchamia zadnego procesu amd64. --push zamiast
-          # --load + docker push: obraz innej architektury nie wchodzi do lokalnego
-          # magazynu demona, idzie prosto do rejestru.
-          docker buildx build \
-            --platform linux/amd64 \
-            --tag "$IMAGE:$COMMIT_SHA" \
-            --tag "$IMAGE:latest" \
-            --push \
-            .
-
-      - name: Deploy to Cloud Run
-        env:
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          gcloud run deploy "$SERVICE" \
-            --image="$IMAGE:$COMMIT_SHA" \
-            --region="$REGION" \
-            --platform=managed \
-            --min-instances=0 \
-            --max-instances=10 \
-            --memory=512Mi \
-            --cpu=1 \
-            --timeout=30 \
-            --set-secrets="ABYSSAL_API_KEY=ABYSSAL_API_KEY:latest,VPS_API_URL=VPS_API_URL:latest,INDEXNOW_KEY=INDEXNOW_KEY:latest" \
-            --quiet
-          # Note: allUsers invoker binding was set once manually and persists on the service.
-
-      - name: Show service URL
-        run: |
-          gcloud run services describe "$SERVICE" \
-            --region="$REGION" \
-            --format="value(status.url)"
-
-      - name: Delete old images (keep current + 1 previous)
-        run: |
-          set -euo pipefail
-          ALL=$(gcloud artifacts docker images list "$IMAGE" \
-            --project="$PROJECT_ID" \
-            --sort-by="~CREATE_TIME" \
-            --format='value(version)')
-          fail=0
-          echo "$ALL" | tail -n +3 | while read -r digest; do
-            [ -z "$digest" ] && continue
-            echo "Deleting $digest"
-            if ! gcloud artifacts docker images delete "$IMAGE@$digest" \
-                  --project="$PROJECT_ID" --delete-tags --quiet; then
-              echo "::warning::Failed to delete $digest"
-              fail=$((fail+1))
-            fi
-          done
-          # Repo-level cleanup policy is the safety net (keep-recent-2 + delete >1h)
-          echo "Inline cleanup finished. Repo policy will catch any stragglers."
+          gcloud builds submit frontend --project="$PROJECT_ID" --async \
+            --config=frontend/cloudbuild.yaml \
+            --gcs-source-staging-dir=gs://something-rare-cloudbuild-src/source \
+            --substitutions="^~^_SERVICE=$SERVICE~_IMAGE=$IMAGE~_SHA=$SHA~_MAX=10~_SECRETS=ABYSSAL_API_KEY=ABYSSAL_API_KEY:latest,VPS_API_URL=VPS_API_URL:latest,INDEXNOW_KEY=INDEXNOW_KEY:latest~_ENVVARS="

@@ -4,8 +4,9 @@
 import { useTranslation } from "react-i18next";
 import { useMapStore } from "../../../../store/mapStore";
 import type { LayerId } from "../../../../types/layers";
-import { LayerRow } from "../../rows";
+import { LayerRow, FilterResetLink } from "../../rows";
 import { useFieldLayerToggle } from "./useFieldLayerToggle";
+import { WOD_PICK_VARS, wodWindowLabel } from "../../../../utils/wodCasts";
 
 interface Props {
   expandedFilter: LayerId | null;
@@ -13,15 +14,41 @@ interface Props {
   toggleExpand: (id: LayerId) => void;
   toggle: (id: LayerId) => void;
   woaMeta?: { variables: Array<{ key: string; label: string; units: string; vmin: number; vmax: number; cmap: string; baseline: string; depths: number[]; ramp?: Array<{ pos: number; hex: string }> }>; depths: number[] } | null;
+  // Year span of the WOD casts (from /v1/wod/meta; null until loaded) and whether it is loading now.
+  wodYearBounds?: { min: number; max: number } | null;
+  wodLoading?: boolean;
 }
 
-export function WoaClimatologyRow({ expandedFilter, setExpandedFilter, toggleExpand, toggle, woaMeta }: Props) {
+const SELECT_CLS =
+  "bg-white/5 text-white/90 text-[12px] font-mono rounded px-2 py-1 border border-white/10 focus:outline-none focus:border-cyan-400/40";
+
+export function WoaClimatologyRow({ expandedFilter, setExpandedFilter, toggleExpand, toggle, woaMeta, wodYearBounds, wodLoading = false }: Props) {
   const {
     activeLayers,
     woaVariable, setWoaVariable,
     woaDepth, setWoaDepth,
     woaDisplayMode, setWoaDisplayMode,
+    wodYearRange, setWodYearRange,
+    enabledLayerIds,
   } = useMapStore();
+
+  // Measurements are the THIRD option of the display switch (Field / Hexagons / Measurements) and REPLACE the field
+  // (Michal's standing ruling, as for SOCAT). The store keeps the `wod-casts` layer id (share links, z-order) in step.
+  const pointsOn = woaDisplayMode === "points";
+  // Offered only while the layer can be turned on (same rule as OceanCo2SurfaceRow): a visible dead option is the bug.
+  const pointsAvailable = !enabledLayerIds || enabledLayerIds.has("wod-casts");
+  const bounds = wodYearBounds ?? null;
+  // A stored range can outlive the data it was set on (a share link, a refreshed load); clamp for display only.
+  const from = bounds ? Math.max(bounds.min, Math.min(wodYearRange?.[0] ?? bounds.min, bounds.max)) : 0;
+  const to = bounds ? Math.min(bounds.max, Math.max(wodYearRange?.[1] ?? bounds.max, bounds.min)) : 0;
+  const years = bounds ? Array.from({ length: bounds.max - bounds.min + 1 }, (_, i) => bounds.min + i) : [];
+  // Both ends back at the bounds store null, so "all years" is one state and stays out of the share link.
+  const update = (nextFrom: number, nextTo: number) => {
+    if (!bounds) return;
+    const a = Math.min(nextFrom, nextTo);
+    const b = Math.max(nextFrom, nextTo);
+    setWodYearRange(a <= bounds.min && b >= bounds.max ? null : [a, b]);
+  };
 
   const { t } = useTranslation(["panels", "common"]);
 
@@ -36,19 +63,22 @@ export function WoaClimatologyRow({ expandedFilter, setExpandedFilter, toggleExp
                 onToggle={() => toggleFieldLayer("woa-climatology")}
                 expanded={expandedFilter === "woa-climatology"}
                 onExpandToggle={() => toggleExpand("woa-climatology")}
+                filterActive={pointsOn && wodYearRange !== null}
                 filterContent={
                   woaMeta ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-1">
                         <span className="text-[11px] font-mono text-white/70 uppercase tracking-wide">{t("controls.fieldLayer.display")}</span>
                         <div className="flex gap-1">
-                          {(["field", "hexes"] as const).map((m) => (
+                          {(pointsAvailable ? ["field", "hexes", "points"] as const : ["field", "hexes"] as const).map((m) => (
                             <button
                               key={m}
+                              aria-pressed={woaDisplayMode === m}
+                              aria-describedby={m === "points" ? "wod-product-note" : undefined}
                               onClick={() => setWoaDisplayMode(m)}
                               className={`flex-1 text-[12px] font-mono rounded px-2 py-1 border transition-colors ${woaDisplayMode === m ? "bg-cyan-400/20 border-cyan-400/50 text-cyan-300" : "bg-white/5 border-white/10 text-white/80 hover:bg-white/10"}`}
                             >
-                              {m === "field" ? t("controls.fieldLayer.field") : t("controls.fieldLayer.hexagons")}
+                              {m === "field" ? t("controls.fieldLayer.field") : m === "hexes" ? t("controls.fieldLayer.hexagons") : t("controls.fieldLayer.measurements")}
                             </button>
                           ))}
                         </div>
@@ -105,6 +135,47 @@ export function WoaClimatologyRow({ expandedFilter, setExpandedFilter, toggleExp
                           </div>
                         );
                       })()}
+                      {pointsAvailable && (
+                        <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
+                          <p id="wod-product-note" className="text-[11px] text-white/60 leading-snug">{t("layers.woaClimatology.points.productNote")}</p>
+                          {pointsOn && (
+                            <>
+                              <p className="text-[11px] text-white/60">{t("layers.woaClimatology.points.greyNote", { window: wodWindowLabel(woaDepth) })}</p>
+                              {!(WOD_PICK_VARS as readonly string[]).includes(woaVariable) && (
+                                <p className="text-[11px] text-white/60">{t("layers.woaClimatology.points.derivedNote")}</p>)}
+                              {woaVariable === "nstar" && (
+                                <p className="text-[11px] text-white/60">{t("layers.woaClimatology.points.nstarNote")}</p>)}
+                              {wodLoading && <p className="text-[11px] text-white/50">{t("layers.woaClimatology.points.loading")}</p>}
+                              {bounds && (
+                                <div className="flex items-center gap-2">
+                                  <select
+                                    aria-label={t("layers.woaClimatology.points.yearFrom")}
+                                    value={from}
+                                    onChange={(e) => update(Number(e.target.value), to)}
+                                    className={SELECT_CLS}
+                                  >
+                                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                                  </select>
+                                  <span className="text-white/50">–</span>
+                                  <select
+                                    aria-label={t("layers.woaClimatology.points.yearTo")}
+                                    value={to}
+                                    onChange={(e) => update(from, Number(e.target.value))}
+                                    className={SELECT_CLS}
+                                  >
+                                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                                  </select>
+                                  <FilterResetLink
+                                    show={wodYearRange !== null}
+                                    onReset={() => setWodYearRange(null)}
+                                    label={t("common:actions.reset")}
+                                  />
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : null
                 }

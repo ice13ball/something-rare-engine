@@ -25,7 +25,9 @@
       "seamounts": "Monts sous-marins",
       "contractors": "Contractants",
       "stations": "Stations de surveillance"
-    }
+    },
+    "argoProfiles_one": "{{count}} profil",
+    "argoProfiles_other": "{{count}} profils"
   },
   "tooltips": {
     "clearFilters": "Effacer les filtres",

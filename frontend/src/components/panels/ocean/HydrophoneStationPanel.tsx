@@ -72,6 +72,10 @@ export const HYDROPHONE_SOURCE_LABEL: Record<string, string> = {
   // the PROGRAMS comment). Keying this uppercase would silently fall back
   // to the raw source string instead of a label.
   md_wea_cpod: "Maryland WEA C-POD",
+  // Added 2026-10-07 — labels copied from PROGRAMS[key]["display"].
+  mbarc_bering:    "MBARC Bering",
+  mbarc_onslowbay: "MBARC Onslow Bay",
+  mbarc_ps:        "MBARC PS",
 };
 
 export function HydrophoneStationPanel({ properties: p }: { properties: Record<string, unknown> }) {

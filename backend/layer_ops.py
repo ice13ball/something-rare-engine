@@ -31,7 +31,7 @@ class LayerOps(TypedDict):
     sync_source: str | None   # _SYNC_SOURCES action key (force-sync + pause), None if no sync
     log_source: str | None    # sync_log.source key for last-sync lookup
     tables: tuple[str, ...] | None   # data table(s); None for baked field/raster layers
-    count_sql: str | None            # row-count query; None when tables is None
+    count_sql: str | None            # row-count query; None when tables is None (socat-points: tables None, count from its source row)
 
 
 LAYER_OPS: dict[str, LayerOps] = {
@@ -82,6 +82,20 @@ LAYER_OPS: dict[str, LayerOps] = {
     "biodiversity-hotspots": {"sync_source": "obis", "log_source": "biodiversity_hotspots",
                              "tables": ("biodiversity_hotspots",),
                              "count_sql": "SELECT count(*) FROM biodiversity_hotspots"},
+    # Plankton (OBIS) map, stage 2. Health = the monthly import's sync_log row. ⛔ tables=None, no purge: the
+    # data comes back only through a ~12 h worker run, and there is no Force Sync (the import must never run
+    # inside abyssal-api).
+    # SOCAT v2026 points. ⛔ tables=None, no admin purge (C5): a TRUNCATE would leave socat_points_source.tile_version
+    # and serve the purged tiles from disk. Purge = psql (TRUNCATE + tile_version = NULL + cache clear), see the rule file.
+    "socat-points":        {"sync_source": "socat-points", "log_source": "socat-points",
+                             "tables": None,
+                             "count_sql": "SELECT n_rows_stored FROM socat_points_source WHERE id = 1"},
+    # WOD23 casts. ⛔ tables=None, no admin purge: same tile-version-on-disk reason as socat-points. Count = n_drawn of the source row.
+    "wod-casts":           {"sync_source": "wod-casts", "log_source": "wod-casts",
+                             "tables": None,
+                             "count_sql": "SELECT n_drawn FROM wod_casts_source WHERE id = 1"},
+    "plankton-occurrences": {"sync_source": None, "log_source": "plankton-obis",
+                             "tables": None, "count_sql": None},
 
     # --- derived rollup: refreshed matview, no own sync_log row ---
     "monitoring-density":  {"sync_source": "monitoring-density-grid", "log_source": None,
@@ -193,6 +207,9 @@ LAYER_OPS: dict[str, LayerOps] = {
     "glodap-points":       {"sync_source": "glodap-bottles", "log_source": "glodap-bottles",
                              "tables": ("glodap_casts", "glodap_cruises"),
                              "count_sql": "SELECT count(*) FROM glodap_casts"},
+    "argo-oxygen-points":  {"sync_source": "argo-doxy", "log_source": "argo-doxy",
+                             "tables": ("argo_doxy_profiles",),
+                             "count_sql": "SELECT count(*) FROM argo_doxy_profiles"},
     # Preview layer, dev-only (owner decision 2026-09-25).
     "greenland-sea-poc-aoc2025": {"sync_source": "aoc2025-poc", "log_source": "aoc2025-poc",
                              "tables": ("aoc2025_poc_samples",),

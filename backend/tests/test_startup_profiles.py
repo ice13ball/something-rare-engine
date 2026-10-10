@@ -180,3 +180,7 @@ def test_serialize_profiles_includes_views():
     }]
     out = json.loads(main.serialize_profiles(rows))
     assert out[0]["views"]["geotraces"]["displayMode"] == "hexes"
+
+
+def test_plankton_is_a_known_menu_layer():
+    assert "plankton-occurrences" in profiles.KNOWN_LAYER_IDS

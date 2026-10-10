@@ -62,6 +62,18 @@ _TAG_RULES: list[tuple[str, str]] = [
     ("/v1/oceansites", "Detail lookups"),  # per-mooring deployments / GDAC historical record
     ("/v1/glodap/cast/", "Detail lookups"),  # one bottle cast by key (before the "/v1/glodap" prefix below)
     ("/v1/glodap", "Sea layers"),            # casts document / cruises / meta of the GLODAPv3 points layer
+    ("/v1/argo-oxygen/profile/", "Detail lookups"),  # one BGC-Argo DOXY profile by key (before the prefix below)
+    ("/v1/argo-oxygen", "Sea layers"),       # per-depth points documents / floats / meta of the Argo O2 points layer
+    ("/v1/socat/tiles", "Tiles"),            # SOCAT v2026 points map MVT
+    ("/v1/socat/obs/", "Detail lookups"),    # one observation by key (before the "/v1/socat" prefix below)
+    ("/v1/socat/cell/", "Detail lookups"),   # what one point feature stands for
+    ("/v1/socat", "Sea layers"),             # meta of the SOCAT v2026 points layer
+    ("/v1/wod/tiles", "Tiles"),              # WOD23 casts map MVT
+    ("/v1/wod/cell/", "Detail lookups"),     # which casts one dot stands for (before the "/v1/wod" prefix below)
+    ("/v1/wod/cast/", "Detail lookups"),     # one cast by id
+    ("/v1/wod", "Sea layers"),               # meta of the WOD23 casts layer
+    ("/v1/plankton/tiles", "Tiles"),          # plankton map MVT (stage 2)
+    ("/v1/plankton/site/", "Detail lookups"),  # one plankton place (click panel)
     ("/v1/map", "Sea layers"),
     ("/v2/map", "Land layers"),
     ("/v2/export", "Export"),            # area-export download + count endpoints
@@ -267,6 +279,227 @@ CURATED: dict[str, dict] = {
                        "last_run_at": "2026-10-06T03:00:00+00:00", "last_decision": "unchanged",
                        "last_rejects": {}, "last_rejects_at": "2026-10-06T12:00:00+00:00", "swap_note": None},
         },
+    },
+    "/v1/socat/obs/{obs_key}": {
+        "description": (
+            "One SOCAT v2026 underway fCO2 observation by its key EXPOCODE~N (N = 0-based row ordinal within the "
+            "cruise): time (UTC), position, fCO2rec, SST, salinity, the fCO2rec algorithm code and WOCE flag, its "
+            "track segment (up to 512 observations, as arrays, to draw the highlighted track and a value-vs-time "
+            "curve), the cruise (platform, PIs, dataset QC flag A-D, DOIs) and the gridded decadal fCO2 of the "
+            "field layer at that spot. `citations` and `acknowledgement` carry the SOCAT credit "
+            "(Bakker et al. 2026, https://doi.org/10.25921/8dba-fr90; CC BY 4.0). Longitudes are folded to -180..180. The example is abbreviated to "
+            "three segment rows. 404 if the key is unknown; 400 if malformed; 503 + Retry-After if the database "
+            "is unavailable or the layer is not built."),
+        "example": {
+            "obs_key": "76XL20160724~1", "expocode": "76XL20160724", "ordinal": 1,
+            "time": "2016-08-26T02:52:00Z", "lon": -159.52907, "lat": 74.72898,
+            "fco2_uatm": 368.343, "sst_c": 0.7, "sal_pss78": None, "fco2_src": 1, "fco2_flag": 2,
+            "segment": {"ord0": 0, "n_obs": 3, "index": 1,
+                        "time": ["2016-08-26T02:50:00Z", "2016-08-26T02:52:00Z", "2016-08-26T02:56:00Z"],
+                        "lon": [-159.52788, -159.52907, -159.53086], "lat": [74.72843, 74.72898, 74.73018],
+                        "fco2_uatm": [367.794, 368.343, 367.835], "sst_c": [0.7, 0.7, 0.7],
+                        "sal_pss78": [None, None, None], "fco2_flag": [2, 2, 2]},
+            "field": {"fco2_decadal_uatm": 362.1},
+            "cruise": {"expocode": "76XL20160724", "platform_name": "Xue Long", "qc_flag": "D",
+                       "source_doi": "https://doi.org/10.25921/76ms-xp32", "n_obs": 3},
+            "source_url": "https://doi.org/10.25921/8dba-fr90", "licence": "CC BY 4.0",
+        },
+    },
+    "/v1/socat/cell/{z}/{x}/{y}/{q}": {
+        "description": (
+            "What one SOCAT v2026 map dot stands for. From zoom 9 a dot is all observations of one UTC `year` "
+            "inside one cell `q` (0-65535, counted from the tile's north-west corner, 256 x 256 per tile) of tile "
+            "z/x/y. Returns exact totals (`n_obs`, `n_cruises`, mean fCO2 / SST / salinity), the cell's bounds, "
+            "the field layer's decadal fCO2 at the cell centre, the cruises (capped at 100 by observation count) "
+            "and the observations ordered by time (capped at 1,000; `*_truncated` says when a cap applied), each "
+            "with an `obs_key` for /v1/socat/obs. Immutable when `v` is the live tile version. The example is "
+            "abbreviated. 400 if the address is malformed (z must be 9-12, q 0-65535, `year` four digits); 404 "
+            "if the cell holds no drawable observation in that year; 503 + Retry-After if the database is "
+            "unavailable, the layer is not built, or the lookup timed out. CC BY 4.0 - cite Bakker et al. 2026, "
+            "https://doi.org/10.25921/8dba-fr90 (SOCAT v2026) and Bakker et al. 2016, "
+            "https://doi.org/10.5194/essd-8-383-2016."),
+        "example": {
+            "z": 9, "x": 262, "y": 171, "q": 7715, "year": 2002, "version": "20261009120000-010941",
+            "cell": {"west": 4.3149, "south": 51.1259, "east": 4.3176, "north": 51.1277},
+            "n_obs": 2, "n_cruises": 1, "mean": {"fco2_uatm": 7300.5, "sst_c": 11.2, "sal_pss78": 30.1},
+            "first_time": "2002-11-04T08:00:00Z", "last_time": "2002-11-04T08:02:00Z",
+            "field": {"fco2_decadal_uatm": 360.4},
+            "cruises": [{"expocode": "11BE20021104", "platform_name": "Belgica", "qc_flag": "D", "n_obs": 2,
+                         "obs_key": "11BE20021104~10", "first_time": "2002-11-04T08:00:00Z",
+                         "last_time": "2002-11-04T08:02:00Z"}],
+            "cruises_truncated": False,
+            "observations": [{"obs_key": "11BE20021104~10", "time": "2002-11-04T08:00:00Z", "lon": 4.3151,
+                              "lat": 51.1276, "fco2_uatm": 7290.1, "sst_c": 11.2, "sal_pss78": 30.1}],
+            "observations_truncated": False,
+            "source_url": "https://doi.org/10.25921/8dba-fr90", "licence": "CC BY 4.0",
+        },
+    },
+    "/v1/socat/meta": {
+        "description": (
+            "SOCAT v2026 points layer: product, release, licence (CC BY 4.0), citations and the SOCAT "
+            "acknowledgement sentence, observation / cruise / segment counts, year span, tile version and load "
+            "time, plus `health` (status ok / failing / not_loaded, the last failure, the last load's rejected "
+            "rows). CC BY 4.0 - cite Bakker et al. 2026, https://doi.org/10.25921/8dba-fr90 (SOCAT v2026) and "
+            "Bakker et al. 2016, https://doi.org/10.5194/essd-8-383-2016. The example is abbreviated."),
+        "example": {
+            "product": "SOCAT v2026 (Surface Ocean CO2 Atlas)", "release": "v2026", "licence": "CC BY 4.0",
+            "source_url": "https://doi.org/10.25921/8dba-fr90", "n_observations": 44018204, "n_rejected": 0,
+            "n_cruises": 8310, "year_min": 1957, "year_max": 2026, "loaded_at": "2026-10-09T12:00:00+00:00",
+            "tile_version": "20261009120000-010941", "point_min_zoom": 9,
+            "health": {"status": "ok", "failure": None, "failed_at": None, "last_run_at": "2026-10-09T12:00:00+00:00",
+                       "last_decision": "swapped", "last_rejects": {}, "last_rejects_at": "2026-10-09T12:00:00+00:00",
+                       "swap_note": None},
+        },
+    },
+    "/v1/wod/cell/{z}/{x}/{y}/{q}": {
+        "description": (
+            "Which WOD23 casts one map dot stands for. Below zoom 6 a dot is all casts of the selected years in one "
+            "cell of a coarse grid, from zoom 6 in one cell `q` of the tile's 256 x 256 grid (both counted from the "
+            "tile's north-west corner; `q` runs 0 to cells-per-tile minus 1). Returns the exact number of casts "
+            "(`n_casts`, matching the dot's `k`), their year span, the cell's bounds and the casts newest first "
+            "(capped at 1,000; `truncated` says when the cap applied), each with the `cast_id` that opens "
+            "/v1/wod/cast. `y0`/`y1` (four-digit years, both or neither) must be the ones the tile was drawn "
+            "with. Immutable when `v` is the live tile version. The example is abbreviated and sits at zoom 0 over "
+            "the fixture cast 22708857. 400 if the address or the years are malformed; 404 if the address is "
+            "outside the pyramid or the cell holds no drawable cast; 503 + Retry-After if the database is "
+            "unavailable, the layer is not built, or the lookup timed out. Public use without restriction (NOAA "
+            "NCEI) - cite Mishonov et al. (2024), https://doi.org/10.25923/z885-h264."),
+        "example": {
+            "z": 0, "x": 0, "y": 0, "q": 2307, "version": "20261009120000-010941", "years": None,
+            "cell": {"west": -84.375, "south": -11.178402, "east": -78.75, "north": -5.615986},
+            "n_casts": 1, "year_min": 2024, "year_max": 2024,
+            "casts": [{"cast_id": 22708857, "instrument": "pfl", "dataset": "profiling float",
+                       "date": "2024-07-15", "time_precision": "second", "year": 2024, "cruise": "FR017070",
+                       "wmo_id": "6902961", "platform": None,
+                       "vehicle": "PROVOR (free-drifting hydrographic profiler, IFREMER/MARTEC, France)",
+                       "lat": -10.776062, "lon": -82.912605}],
+            "truncated": False,
+            "source_url": "https://www.ncei.noaa.gov/products/world-ocean-database",
+            "licence": "Public use without restriction (NOAA NCEI)",
+        },
+    },
+    "/v1/wod/cast/{cast_id}": {
+        "description": (
+            "One WOD23 cast (OSD bottle/net, CTD or profiling float) by its WOD unique cast id: instrument, dataset, "
+            "cruise, platform, vehicle, WMO id, institute, project, country, date and (only when the source recorded "
+            "one, `time_precision` = second) UTC time, position, the NCEI accession of the originator's data and the "
+            "source file, `levels` (per variable code t, s, o, p, i, n: [depth m, value, WOD flag] for every "
+            "stored non-missing level, at most 100 per variable; flag 0 = accepted), `picks` (the accepted value "
+            "nearest each of the 8 display depths inside its window, null where none; nstar = nitrate - 16 "
+            "phosphate), `field` (the World Ocean Atlas 2023 annual climatology of `var` at the cast's position at "
+            "the same 8 depths, null where the grid has no value) and `flag_meanings`. Units are those of the "
+            "source: degree_C, practical salinity (WOD declares no unit), umol/kg for oxygen and nutrients. `var` "
+            "(default temperature) and `depth` (one of the display depths) only select what the response marks as "
+            "the field of interest. The example is abbreviated to three levels of temperature; its `field` numbers are illustrative. "
+            "404 if the cast is unknown; 400 if the id, `var` or `depth` is malformed; 503 + Retry-After if the "
+            "database is unavailable or the layer is not built. Public use without restriction (NOAA NCEI) - cite "
+            "Mishonov et al. (2024), https://doi.org/10.25923/z885-h264."),
+        "example": {
+            "cast_id": 22708857, "instrument": "pfl", "dataset": "profiling float", "cruise": "FR017070",
+            "orig_cruise": None, "platform": None,
+            "vehicle": "PROVOR (free-drifting hydrographic profiler, IFREMER/MARTEC, France)",
+            "wmo_id": "6902961", "institute": "MERCATOR-CORIOLIS MISSION GROUP (GMMC)", "project": None,
+            "country": "FRANCE", "date": "2024-07-15", "time": "14:12:11", "time_precision": "second",
+            "lat": -10.776062, "lon": -82.912605, "access_no": 42682,
+            "accession_url": "https://www.ncei.noaa.gov/archive/accession/42682",
+            "levels": {"t": [[0.0, 19.418, 0], [50.00835, 19.42, 0], [99.80574, 14.772, 0]]},
+            "picks": {"temperature": [19.418, 19.42, 14.772, 13.096, 8.337, 4.567, 3.102, 2.346],
+                      "oxygen": [209.38072, 186.56409, 3.581871, 1.856771, 3.71315, 49.953197, 77.962616, 97.57389],
+                      "nitrate": [None] * 8, "nstar": [None] * 8},
+            "field": {"variable": "oxygen", "selected_depth": 0,
+                      "values": {"0": 241.2, "50": 238.9, "100": 160.4, "200": 40.1, "500": 12.3, "1000": 38.7,
+                                 "1500": 80.2, "2000": 114.6}},
+            "flag_meanings": {"Temperature": {"0": "accepted"}},
+            "source_url": "https://www.ncei.noaa.gov/products/world-ocean-database",
+            "licence": "Public use without restriction (NOAA NCEI)",
+        },
+    },
+    "/v1/wod/meta": {
+        "description": (
+            "WOD23 casts layer: product, licence (public use without restriction, NOAA NCEI), citation, the "
+            "variables and display depths with their windows and integer scales, the first zoom drawn from "
+            "individual casts, tile version and load time, the cast arithmetic per instrument (casts in the source, "
+            "stored, drawn and the reject counters that account for the difference) and `health` (status ok / "
+            "failing / not_loaded, the last failure, the files that failed, are blocked or have gone missing). "
+            "`health` is read live; the rest changes only with a load. The example is abbreviated."),
+        "example": {
+            "product": "World Ocean Database 2023 (WOD23) — OSD, CTD, PFL", "release": "WOD23",
+            "licence": "Public use without restriction (NOAA NCEI)",
+            "n_stored": 21, "n_drawn": 21, "year_min": 1970, "year_max": 2024,
+            "loaded_at": "2026-10-09T12:00:00+00:00", "tile_version": "20261009120000-010941", "point_min_zoom": 6,
+            "variables": ["temperature", "salinity", "oxygen", "phosphate", "silicate", "nitrate", "nstar"],
+            "depths": [0, 50, 100, 200, 500, 1000, 1500, 2000],
+            "windows": [[0.0, 10.0], [40.0, 60.0], [90.0, 110.0], [175.0, 225.0], [450.0, 550.0],
+                        [950.0, 1050.0], [1425.0, 1575.0], [1900.0, 2100.0]],
+            "scales": {"temperature": 100, "salinity": 100, "oxygen": 10, "phosphate": 100, "silicate": 10,
+                       "nitrate": 10, "nstar": 10},
+            "lod_counts": {"0": 21, "1": 21, "2": 21},
+            "arithmetic": {"pfl": {"files": 1, "source": 4, "stored": 4, "drawn": 4, "rejects": {}}},
+            "health": {"status": "ok", "failure": None, "failed_at": None, "last_run_at": "2026-10-09T12:00:00+00:00",
+                       "last_decision": "complete", "last_rejects": {}, "last_rejects_at": "2026-10-09T12:00:00+00:00",
+                       "failed_files": 0, "blocked_files": 0, "missing_files": 0, "files": []},
+        },
+    },
+    "/v1/argo-oxygen/points/{depth}": {
+        "description": (
+            "Every BGC-Argo profile drawn by the argo-oxygen-points layer at one display depth of the oxygen-deox "
+            "field (0, 50, 100, 200, 500, 1000, 1500, 2000 m), as columnar arrays: `floats` holds "
+            "`<dac>_<wmo>` prefixes, `fi` indexes them, `cycle` and the row indices in `descending` complete "
+            "the profile key `<dac>_<wmo>_<cycle:03d>[D]`. Only profiles in delayed or adjusted data mode with a "
+            "good level (DOXY_ADJUSTED, Argo QC 1 or 2) are listed; `value` is the one nearest to the depth inside "
+            "`window` (metres, from pressure by UNESCO 1983), rounded to 1 µmol/kg, or null when the profile has "
+            "no good level in that window. ~12 MB raw per depth, served gzip. The example holds two of the "
+            "profiles. 404 for another depth; 503 + Retry-After while not loaded or the database is unavailable. "
+            "CC BY 4.0 — acknowledge Argo, doi:10.17882/42182."),
+        "example": {"product": "BGC-Argo DOXY, Argo GDAC synthetic profiles (current)", "depth": 500,
+                    "window": [450.0, 550.0], "units": "µmol/kg", "n": 2, "floats": ["aoml_1900722"],
+                    "fi": [0, 0], "cycle": [1, 2], "descending": [], "lon": [73.389, 73.528],
+                    "lat": [-40.316, -40.39], "year": [2006, 2006], "value": [218, 220]},
+    },
+    "/v1/argo-oxygen/profile/{profile_key}": {
+        "description": (
+            "One BGC-Argo DOXY profile by its stable key `<dac>_<wmo>_<cycle:03d>[D]`: thinned levels (one per "
+            "depth bin, at most 150) with pressure, depth, adjusted and raw DOXY and the Argo QC flag beside each "
+            "value, the data mode, the value picked at every display depth, the ISAS20 2014–2018 field value at "
+            "this spot (recent only; no change is computed for one profile), the GDAC file and float links, and "
+            "the Argo acknowledgement. Profiles that are stored but not drawn (real-time mode, no good level, bad "
+            "position or time) are served too, with `drawable` false. 404 if the key is malformed or unknown; "
+            "503 + Retry-After if the database is unavailable. The example is abbreviated to three levels "
+            "(first, 500 m, last of 70); its `field_recent` number is illustrative."),
+        "example": {"profile_key": "aoml_1900722_001", "argo_profile_id": "1900722_001", "dac": "aoml",
+                    "platform_number": "1900722", "cycle_number": 1, "direction": "A", "doxy_mode": "D",
+                    "lat": -40.316, "lon": 73.389, "position_qc": 1, "profile_time": "2006-10-22T02:16:24+00:00",
+                    "drawable": True, "units": "µmol/kg", "n_levels_source": 71, "n_levels": 70, "n_good": 70,
+                    "levels": {"pres_dbar": [6.0, 500.2, 2000.0], "depth_m": [5.953771, 495.7539, 1975.176],
+                               "doxy_adj": [259.6237, 218.1551, 179.9346], "doxy_adj_qc": [1, 1, 1],
+                               "doxy_raw": [230.894, 189.939, 151.541], "doxy_raw_qc": [3, 3, 3]},
+                    "at_depth": {"0": [259.6237, 5.953771], "500": [218.1551, 495.7539]},
+                    "field_recent": {"500": 205.0},
+                    "source_url": "https://data-argo.ifremer.fr/dac/aoml/1900722/profiles/SD1900722_001.nc",
+                    "float_url": "https://fleetmonitoring.euro-argo.eu/float/1900722"},
+    },
+    "/v1/argo-oxygen/floats": {
+        "description": ("BGC-Argo floats with at least one drawn DOXY profile, as a GeoJSON FeatureCollection at "
+                        "the latest profile's position: WMO, DAC, latest profile key and date, profile count. "
+                        "503 + Retry-After while not loaded or the database is unavailable."),
+        "example": {"type": "FeatureCollection", "features": [{"type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [73.528, -40.39]},
+                    "properties": {"wmo": "1900722", "dac": "aoml", "last_profile_key": "aoml_1900722_002",
+                                   "last_date": "2006-11-01", "n_profiles": 2}}]},
+    },
+    "/v1/argo-oxygen/meta": {
+        "description": ("Product, licence, citations (the Argo acknowledgement and the GDAC dataset), GDAC state date, "
+                        "year span, depth windows, QC notes, the count arithmetic (indexed → stored → not drawn by "
+                        "reason → drawn), the rules version, and `health` (status ok / running / failing / "
+                        "not_loaded, the last failure, the last run's rejected rows, deletions held back). The "
+                        "example is abbreviated."),
+        "example": {"product": "BGC-Argo DOXY, Argo GDAC synthetic profiles (current)", "licence": "CC BY 4.0",
+                    "arithmetic": {"index_doxy": 14, "rejected": {"no_doxy_values": 1}, "failed_floats": 0,
+                                   "no_usable_doxy": 1, "stored": 13, "not_yet_stored": 0,
+                                   "not_drawn": {"realtime_only": 2, "no_good_adjusted": 2,
+                                                 "bad_position": 1, "bad_time": 0}, "drawn": 8},
+                    "rules_version": {"code": 1, "last_complete_run": 1, "profiles_on_other_version": 0},
+                    "health": {"status": "ok", "failure": None, "deletions_held": None}},
     },
     "/v1/oceansites/{ref}/history": {
         "description": (

@@ -9,6 +9,7 @@ the live fetch helper is thin and not unit-tested.
 """
 from __future__ import annotations
 import httpx
+from parse_util import arcgis_features
 
 SERVICE = ("https://services2.arcgis.com/C8EMgrsFcRFL6LrL/arcgis/rest/services/"
            "SEAFLEAs_Web_Map_WFL1/FeatureServer/6/query")
@@ -110,7 +111,7 @@ def fetch_seaflea_geojson(page_size: int = 8000) -> dict:
                 "orderByFields": "OBJECTID",
             })
             r.raise_for_status()
-            batch = r.json().get("features", [])
+            batch = arcgis_features(r.json(), label="seaflea")
             feats.extend(batch)
             if len(batch) < page_size:
                 break

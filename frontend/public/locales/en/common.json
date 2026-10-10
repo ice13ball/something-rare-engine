@@ -25,7 +25,9 @@
       "seamounts": "Seamounts",
       "contractors": "Contractors",
       "stations": "Monitoring Stations"
-    }
+    },
+    "argoProfiles_one": "{{count}} profile",
+    "argoProfiles_other": "{{count}} profiles"
   },
   "tooltips": {
     "clearFilters": "Clear filters",

@@ -340,6 +340,41 @@ COVERAGE: tuple[Coverage, ...] = (
         verified_on="2026-10-06",
     ),
     Coverage(
+        layer_id="argo-oxygen-points",
+        start_year=2002, end_year=None,
+        kind="observations",
+        # Measured on the GDAC synthetic-profile index 2026-10-06: DOXY profiles 2002-2026 (394,492). The first
+        # production import (2026-10-07, /v1/argo-oxygen/meta) drew profiles 2002-2026 (A/D, adjusted QC 1/2):
+        # 318,846 drawn of 389,702 stored, so "2002 to the present" is the drawn span too.
+        # ⛔ Not the field's 2014-2018 frame.
+        wording="BGC-Argo dissolved-oxygen profiles from the Argo GDAC, 2002 to the present, refreshed weekly; "
+                "the Ocean Oxygen field they sit on is the ISAS20 2014-2018 mean.",
+        source_url="https://doi.org/10.17882/42182",
+        verified_on="2026-10-06",
+    ),
+    Coverage(
+        layer_id="socat-points",
+        start_year=1957, end_year=2026,
+        kind="observations",
+        # Same release as the ocean-co2-surface row below (SOCATv2026, released 2026-06-16); the points hold the
+        # observation dates themselves, so a modeller may filter by period. loaded_at is per import, in /v1/socat/meta.
+        wording="SOCATv2026, temporalCoverage 1957-10-22/2026-01-31 (NCEI Accession "
+                "0315110), released 2026-06-16. The points hold the observation dates "
+                "1957 to 2026.",
+        source_url="https://doi.org/10.25921/8dba-fr90",
+        verified_on="2026-10-09",
+    ),
+    Coverage(
+        layer_id="wod-casts",
+        start_year=1772, end_year=2026,
+        kind="observations",
+        # Census of the 2026-10 import (years 1772-2026); the live span is /v1/wod/meta year_min/year_max.
+        wording="World Ocean Database 2023 casts (OSD, CTD incl. XCTD, profiling floats); NCEI updates the "
+                "yearly files quarterly. The casts hold their own observation dates, 1772 to 2026.",
+        source_url="https://doi.org/10.25923/z885-h264",
+        verified_on="2026-10-09",
+    ),
+    Coverage(
         layer_id="ocean-co2-surface",
         start_year=1957, end_year=2026,
         kind="compilation",
@@ -633,6 +668,19 @@ COVERAGE: tuple[Coverage, ...] = (
                 "only a small fraction of those stations, not all of them.",
         source_url="https://openaq.org/about/",
         verified_on="2026-09-08",
+    ),
+    Coverage(
+        layer_id="plankton-occurrences",
+        # 1817 = the earliest year in plankton_occurrences, measured on production 2026-10-07 (3 records; the
+        # 19th century is sparse, under 160 records a year, until surveys start in 1902). Open end: re-imported monthly.
+        start_year=1817, end_year=None,
+        kind="observations",
+        wording="OBIS occurrence records from 1817 (sparse until 1902). In decade classes, measured on the 2026-10-07 import: before 1950 "
+                "239,157; 1950s 341,547; 1960s 773,259; 1970s 1,151,371; 1980s 1,471,588; 1990s 1,853,955; "
+                "2000s 2,226,580; 2010s 10,667,419; 2020s 3,288,802; undated 2,109,438. 94 records carry a "
+                "future year (a source error, max 2029) and are counted as undated. Re-imported monthly.",
+        source_url="https://obis.org/",
+        verified_on="2026-10-07",
     ),
     Coverage(
         layer_id="biodiversity-hotspots",

@@ -31,6 +31,8 @@ ACOUSTIC_SOURCES = (
     # Added 2026-09-15 with the eight new NOAA-archive programs.
     "afsc", "cornell", "mbarc_socal", "mbarc_arctic", "mbarc_flip", "swfsc",
     "rutgers_njrmi", "md_wea_cpod",
+    # Added 2026-10-07 with three more MBARC prefixes of the NOAA archive.
+    "mbarc_bering", "mbarc_onslowbay", "mbarc_ps",
 )
 
 
@@ -101,6 +103,7 @@ async def ensure_acoustic_stations(conn) -> None:
     #   HAUSGARTEN reuses the existing 'fram' enum; no new enum needed for it.
     # Phase 4: added ims (CTBTO IMS Hydroacoustic Network) — 23 total.
     # 2026-09-15: added 8 more NOAA-archive programs — see ACOUSTIC_SOURCES.
+    # 2026-10-07: added 3 more (mbarc_bering, mbarc_onslowbay, mbarc_ps).
     #
     # ⛔ No longer swallowed. This ran inside `except Exception: log.warning`,
     # which is the worst possible place for a swallow: if the constraint is not

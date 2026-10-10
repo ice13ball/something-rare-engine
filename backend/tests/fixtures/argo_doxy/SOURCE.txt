@@ -1,0 +1,46 @@
+BGC-Argo synthetic profiles (Sprof) - real excerpt: 14 profiles from 12 floats, values unchanged.
+Source: Argo GDAC, https://data-argo.ifremer.fr/dac/<dac>/<wmo>/<wmo>_Sprof.nc
+Index:  https://data-argo.ifremer.fr/argo_synthetic-profile_index.txt.gz (original lines of the 14 profiles)
+Downloaded 2026-10-06. Full-file sizes and sha256 (file as published, before the cut):
+  aoml/1900722_Sprof.nc 514501 B sha256 25ed1fcfebad5fb59a93dfe607e4dc9e66baaf362350a66d8535092064830605
+  aoml/1902751_Sprof.nc 461995 B sha256 98feecd1e8a0095f50b6c6728040e7b0669c56a021e7bd24b2c07725ddead9c8
+  coriolis/1902751_Sprof.nc 20705501 B sha256 db79ee0c91ad9b7e115427e0bfcf5cba71961b61ebfb97f116aba8fb3328e9f1
+  coriolis/3902120_Sprof.nc 95950537 B sha256 61d5dc5a6becb615833624ced9077c95fd6db3ce7417cf9a62a8b04b5c84878f
+  kiost/2900791_Sprof.nc 599315 B sha256 44c03303ca23bb4e8fa79d7ec4dbff8ff5622c45ccc48130fadc31ec951b1920
+  coriolis/7902223_Sprof.nc 8855727 B sha256 e15f54d22d6f28d8bb4d9a6e8cefa1eb9643fcfe4c4c17e534085a1761280f05
+  bodc/3901580_Sprof.nc 24280786 B sha256 996c14f690740c7ff40f3e16761788543a9a0cda4529e6a6b97e757f3479e4aa
+  aoml/5906436_Sprof.nc 3243985 B sha256 aae346895d29bfbc30fdd0b27bf4c15b9c9c41c092c74a00ec9695f0cf50dca5
+  coriolis/6901510_Sprof.nc 18792992 B sha256 d58821b810d99a99cdfda633a6434257e35d96d4c8c097655c65e16006c3dce2
+  aoml/5900421_Sprof.nc 364845 B sha256 ff14d85d99513e9a06b3a39c350a6fcaa8d7b8c5c79d940ad4679959529bda44
+  aoml/5904670_Sprof.nc 1771536 B sha256 82a575f6bb73349f5e33ead00592772abc1689a7576d15df02c371169db88411
+  aoml/1901466_Sprof.nc 3279093 B sha256 54d5fc1272db6e8a450ae51102af3af2dca8b84a54e955671c40d8b0cafa243a
+Cut: only the selected N_PROF entries; N_LEVELS trimmed after the last level that is non-fill in PRES, DOXY or
+DOXY_ADJUSTED of any kept profile; variables PLATFORM_NUMBER CYCLE_NUMBER DIRECTION DATA_CENTRE JULD JULD_QC
+LATITUDE LONGITUDE POSITION_QC STATION_PARAMETERS PARAMETER_DATA_MODE PRES PRES_QC PRES_ADJUSTED PRES_ADJUSTED_QC
+DOXY DOXY_QC DOXY_ADJUSTED DOXY_ADJUSTED_QC DATE_UPDATE, with their original attributes.
+Licence: CC BY 4.0 (SEANOE doi:10.17882/42182). Acknowledgement: "These data were collected and made freely
+available by the International Argo Program and the national programs that contribute to it.
+(https://argo.ucsd.edu, https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing
+System." Argo (2000). Argo float data and metadata from Global Data Assembly Centre (Argo GDAC). SEANOE.
+https://doi.org/10.17882/42182
+Counts below are over levels that carry a value (not fill) unless the text says "flag on fill"; they were
+re-read from the committed excerpt on 2026-10-06; the main ones are asserted by
+backend/tests/test_argo_doxy_sprof.py.
+Profiles chosen for one trap each:
+  aoml_1900722_001/002   D mode; raw QC 3 x70 + 4 x1; adjusted values QC 1 x70 (the 71st level has a raw value
+                         flagged 4 and an adjusted slot that is fill with flag 4); 71 levels
+  aoml_1902751_001       R mode, raw QC 3 x66, no adjusted value; same WMO_CCC as coriolis_1902751_001 (two DACs,
+                         two floats)
+  coriolis_1902751_001   DOXY mode D
+  coriolis_3902120_001D  descending, D mode, adjusted all fill (flag 4 on fill x865), raw QC 4 x865, POSITION_QC 8
+  coriolis_3902120_002D  descending; raw QC 3 x2211 + 4 x14; adjusted QC 1 x2086 + 8 x125 (thinning)
+  kiost_2900791_053      R mode, raw QC 3 x20, 4 x3, 2 x1 (a raw "probably good" value, never drawn)
+  coriolis_7902223_027   A mode, adjusted QC 1 x217 + 3 x9; 3 good levels at negative pressure (min -0.70 dbar)
+  bodc_3901580_002D      D mode, adjusted QC 1 x960 + 8 x7; shallowest DOXY level -0.1 dbar, flagged good
+  aoml_5906436_112       D mode, adjusted QC 1 x68; POSITION_QC 9, latitude and longitude fill
+  coriolis_6901510_006   D mode, POSITION_QC 4; adjusted all fill (flag 4 on fill x319), raw QC 4 x319
+  aoml_5900421_005       D mode, adjusted QC 1 x71, deepest good level 1997.2 dbar at 40.6 S
+  aoml_5904670_038       DOXY listed, D mode, no DOXY value at all (POSITION_QC 8)
+  aoml_1901466_000       cycle 000, A mode, adjusted QC 1 x451
+Expected after a load: 13 stored, 8 drawable (not drawable: aoml_1902751_001, kiost_2900791_053,
+coriolis_3902120_001D, aoml_5906436_112, coriolis_6901510_006).

@@ -211,7 +211,8 @@ async def test_an_exception_mid_run_logs_type_and_message_alerts_and_leaves_live
 
 
 @needs_db
-async def test_datasets_are_processed_one_at_a_time_and_each_extract_is_deleted(conn, tmp_path):
+async def test_datasets_are_processed_one_at_a_time_and_each_extract_is_deleted(conn, tmp_path, monkeypatch):
+    monkeypatch.setenv("PLANKTON_PARALLEL", "1")          # the old strictly sequential behaviour
     await _setup(conn)
     src = _split_fixture(tmp_path)
     alive_at_next_dataset = []
@@ -373,11 +374,13 @@ async def test_a_failure_to_list_nothing_attempted_is_not_a_failure(conn, tmp_pa
 
 
 @needs_db
+@pytest.mark.parametrize("par", ["1", "3"])
 @pytest.mark.parametrize("exc", [asyncpg.exceptions.ConnectionDoesNotExistError("connection was closed"),
                                  asyncpg.InterfaceError("connection is closed"),
                                  ConnectionResetError("reset")])
 async def test_a_lost_connection_ends_the_run_without_touching_the_remaining_datasets(
-        conn, tmp_path, alerts, monkeypatch, exc):
+        conn, tmp_path, alerts, monkeypatch, exc, par):
+    monkeypatch.setenv("PLANKTON_PARALLEL", par)
     await _setup(conn)
     src = _split_fixture(tmp_path)
     extracted, loaded = [], []
@@ -394,12 +397,15 @@ async def test_a_lost_connection_ends_the_run_without_touching_the_remaining_dat
     monkeypatch.setattr(p, "load_extract", dead)
     res = await _run(tmp_path, src)
     assert res["outcome"] == "error"
-    assert len(extracted) == 1 and len(loaded) == 1       # NOT one per dataset
+    # NOT one per dataset: one load, and at most the children already in flight (<= PLANKTON_PARALLEL)
+    assert len(loaded) == 1 and 1 <= len(extracted) <= int(par) < len(IDS)
     assert len(alerts) == 1 and "datasets failed" not in alerts[0][1]     # diagnosed as an error, not a data problem
 
 
 @needs_db
-async def test_a_closed_connection_after_a_failure_ends_the_run(conn, tmp_path, alerts, monkeypatch):
+@pytest.mark.parametrize("par", ["1", "3"])
+async def test_a_closed_connection_after_a_failure_ends_the_run(conn, tmp_path, alerts, monkeypatch, par):
+    monkeypatch.setenv("PLANKTON_PARALLEL", par)
     await _setup(conn)
     src = _split_fixture(tmp_path)
     extracted = []
@@ -421,7 +427,7 @@ async def test_a_closed_connection_after_a_failure_ends_the_run(conn, tmp_path, 
         res = await _run(tmp_path, src)
     finally:
         monkeypatch.undo()
-    assert res["outcome"] == "error" and len(extracted) == 1
+    assert res["outcome"] == "error" and len(closed) == 1 and 1 <= len(extracted) <= int(par) < len(IDS)
 
 
 @needs_db
@@ -634,3 +640,15 @@ async def test_a_leftover_staging_pair_with_rows_is_dropped_at_the_start_of_a_ru
     assert await conn.fetchval("SELECT count(*) FROM plankton_occurrences WHERE dataset_id = $1", ghost) == 0
     assert await conn.fetchval("SELECT count(*) FROM plankton_datasets WHERE dataset_id = $1", ghost) == 0
     assert not await conn.fetchval("SELECT to_regclass('plankton_occurrences_new')")
+
+
+@needs_db
+async def test_a_successful_import_pre_bakes_the_map(conn, tmp_path, alerts, monkeypatch):
+    calls = []
+
+    async def spy():
+        calls.append("bake")
+    monkeypatch.setattr(p, "bake_tiles", spy)
+    await _setup(conn)
+    res = await _run(tmp_path, _split_fixture(tmp_path))
+    assert res["outcome"] == "swapped" and calls == ["bake"]

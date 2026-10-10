@@ -31,6 +31,9 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   { id: "contracts",              order_idx: 800,  default_on: true,  modes: ["ocean","continue"] },
   { id: "seamounts",              order_idx: 900,  default_on: false, modes: ["ocean","continue"] },
   { id: "biodiversity-hotspots",  order_idx: 1000, default_on: true,  modes: ["ocean","continue"] },
+  // OBIS plankton (stage 2): under the OBIS species dots (1000), above the seamounts (900).
+  // Pinned by deck-layer-z-order.test.ts.
+  { id: "plankton-occurrences",   order_idx: 950,  default_on: false, modes: ["ocean","continue"] },
   { id: "monitoring-density",     order_idx: 1100, default_on: false, modes: ["ocean","continue"] },
   { id: "noise-risk",             order_idx: 1200, default_on: false, modes: ["ocean","continue"] },
   { id: "hydrophone-stations",    order_idx: 1250, default_on: false, modes: ["ocean","continue"] },
@@ -76,6 +79,11 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   // Point layer (bottle casts) in the point band, above every field at 68-78. 2093 and not a
   // free 2081/2082: databases not yet UPDATEd still hold the fields at the old 2075-2082.
   { id: "glodap-points",          order_idx: 2093, default_on: false, modes: ["ocean","continue"] },
+  { id: "argo-oxygen-points",     order_idx: 2094, default_on: false, modes: ["ocean","continue"] },
+  // SOCAT v2026 observation points; Measurements REPLACE the ocean-co2-surface field. KEEP IN SYNC with startup_seeds.py.
+  { id: "socat-points",           order_idx: 2095, default_on: false, modes: ["ocean","continue"] },
+  // WOD23 casts; Measurements REPLACE the woa-climatology field. KEEP IN SYNC with startup_seeds.py.
+  { id: "wod-casts",              order_idx: 2096, default_on: false, modes: ["ocean","continue"] },
   { id: "marine-carbon",          order_idx: 70,   default_on: false, modes: ["ocean","continue"] },
   { id: "sios-svalbard",          order_idx: 2083, default_on: false, modes: ["ocean","continue"] },
   { id: "arctic-catchments",      order_idx: 2084, default_on: false, modes: ["ocean","continue"] },
@@ -107,6 +115,10 @@ export const DECK_TO_TOGGLE: Record<string, string> = {
   "offshore-activities-mvt":        "offshore-activities",
   "mining-contracts-mvt":           "contracts",
   "marine-carbon-hexes":            "marine-carbon",
+  // The SOCAT points' vector-tile deck layer; without this the z-order falls back to 9999 (above everything).
+  "socat-points-mvt":               "socat-points",
+  // The WOD casts' vector-tile deck layer; same z-order trap as above.
+  "wod-casts-mvt":                  "wod-casts",
   // Hex aggregations of layers that also draw individual stations. Without
   // these two, clicking a GEOTRACES station showed its layer's time frame and
   // clicking a GEOTRACES hex of the same layer showed nothing.

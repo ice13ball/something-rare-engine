@@ -78,6 +78,9 @@ const LAYER_STRUCT = [
   { id: "reservedAreas",       layerId: "reserved-areas",       color: "#00ff9f", symbol: "polygon", syncKey: "reserved_areas" },
   { id: "apeis",               layerId: "apeis",                color: "#bf5fff", symbol: "polygon", syncKey: "apeis" },
   { id: "obisSpecies",         layerId: "biodiversity-hotspots",color: "#3ce664", symbol: "dot",     syncKey: "biodiversity_hotspots" },
+  { id: "plankton-occurrences", layerId: "plankton-occurrences", color: "#f97316", symbol: "dot", syncKey: "plankton-obis",
+    // Positional with layers["plankton-occurrences"].colorRamp[i].label; order = PLANKTON_GROUPS.
+    colorRampHex: ["#f97316", "#f43f5e", "#facc15", "#38bdf8", "#c084fc"] },
   { id: "seamounts",           layerId: "seamounts",            color: "#7eb8f7", symbol: "column",  syncKey: "seamounts" },
   { id: "argoFloats",          layerId: "argo",                 color: "#00e5ff", symbol: "column",  syncKey: "argo_profiles" },
   { id: "hydrothermalVents",   layerId: "hydrothermal-vents",   color: "#ff2323", symbol: "triangle",syncKey: "hydrothermal_vents" },
@@ -151,6 +154,9 @@ const LAYER_STRUCT = [
     colorRampHex: ["#38bdf8", "#f97316", "#ef4444", "#a78bfa", "#fbbf24", "#34d399", "#e879f9", "#22d3ee", "#94a3b8"] },
   { id: "ocean-carbon", layerId: "ocean-carbon", color: "#38b2ac", symbol: "square", syncKey: "glodap-carbon" },
   { id: "glodap-points", layerId: "glodap-points", color: "#f8fafc", symbol: "dot", syncKey: "glodap-bottles" },
+  { id: "argo-oxygen-points", layerId: "argo-oxygen-points", color: "#e0f2fe", symbol: "dot", syncKey: "argo-doxy" },
+  { id: "socat-points", layerId: "socat-points", color: "#fde68a", symbol: "dot", syncKey: "socat-points" },
+  { id: "wod-casts", layerId: "wod-casts", color: "#7dd3fc", symbol: "dot", syncKey: "wod-casts" },
   { id: "ocean-co2-surface", layerId: "ocean-co2-surface", color: "#06b6d4", symbol: "square", syncKey: "socat-co2" },
   { id: "sios-svalbard", layerId: "sios-svalbard", color: "#7dd3fc", symbol: "dot", syncKey: "sios" },
   { id: "arctic-catchments", layerId: "arctic-catchments", color: "#7dd3fc", symbol: "polygon", syncKey: "arcade" },
@@ -833,6 +839,9 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                 <ul className="space-y-1.5">
                   <li><span className="text-white/90">Argo Floats</span> — {t("dates.fresh_argo")}{syncDates["argo_profiles"] && <span className="text-white/75 font-mono ml-1">({syncDates["argo_profiles"]})</span>}</li>
                   <li><span className="text-white/90">OBIS Species (Deep)</span> — {t("dates.fresh_obis")}{syncDates["biodiversity_hotspots"] && <span className="text-white/75 font-mono ml-1">({syncDates["biodiversity_hotspots"]})</span>}</li>
+                  {layerShown("plankton-occurrences") && (
+                  <li><span className="text-white/90">{t("layers.plankton-occurrences.label")}</span> — {t("dates.fresh_plankton")}{syncDates["plankton-obis"] && <span className="text-white/75 font-mono ml-1">({syncDates["plankton-obis"]})</span>}</li>
+                  )}
                   <li><span className="text-white/90">Chemosynthetic Sites</span> — {t("dates.fresh_chess")}{syncDates["chess"] && <span className="text-white/75 font-mono ml-1">({syncDates["chess"]})</span>}</li>
                   <li><span className="text-white/90">OceanSITES</span> — {t("dates.fresh_oceansites")}{syncDates["oceansites-obs"] && <span className="text-white/75 font-mono ml-1">({syncDates["oceansites-obs"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Currents</span> — {t("dates.fresh_currents")}{syncDates["currents-surface"] && <span className="text-white/75 font-mono ml-1">({syncDates["currents-surface"]})</span>}</li>
@@ -842,6 +851,15 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li><span className="text-white/90">Ocean Carbon (GLODAP)</span> — Static (GLODAPv2.2016b release; observations 1972–2013){syncDates["glodap-carbon"] && <span className="text-white/75 font-mono ml-1">({syncDates["glodap-carbon"]})</span>}</li>
                   {layerShown("glodap-points") && (
                   <li><span className="text-white/90">GLODAPv3 Bottle Measurements</span> — Static release (GLODAPv3, 2026; casts 1972–2023); the source is checked for a new version at most monthly{syncDates["glodap-bottles"] && <span className="text-white/75 font-mono ml-1">({syncDates["glodap-bottles"]})</span>}</li>
+                  )}
+                  {layerShown("argo-oxygen-points") && (
+                  <li><span className="text-white/90">BGC-Argo Oxygen Measurements</span> — Live Argo GDAC, refreshed weekly (profiles 2002 to present){syncDates["argo-doxy"] && <span className="text-white/75 font-mono ml-1">({syncDates["argo-doxy"]})</span>}</li>
+                  )}
+                  {layerShown("socat-points") && (
+                  <li><span className="text-white/90">SOCAT v2026 Surface CO₂ Measurements</span> — Static release (SOCAT v2026; observations 1957–2026); the pinned v2026 file is re-checked at most monthly and a corrected v2026 file is detected; a new SOCAT release (v2027) is switched in by hand{syncDates["socat-points"] && <span className="text-white/75 font-mono ml-1">({syncDates["socat-points"]})</span>}</li>
+                  )}
+                  {layerShown("wod-casts") && (
+                  <li><span className="text-white/90">WOD23 Measurements (casts)</span> — World Ocean Database 2023 (OSD, CTD, profiling floats); the NCEI source is checked quarterly and a new release is switched in by hand{syncDates["wod-casts"] && <span className="text-white/75 font-mono ml-1">({syncDates["wod-casts"]})</span>}</li>
                   )}
                   <li><span className="text-white/90">Surface Ocean CO₂ (SOCAT)</span> — Static (SOCATv2026 release){syncDates["socat-co2"] && <span className="text-white/75 font-mono ml-1">({syncDates["socat-co2"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Oxygen &amp; Deoxygenation</span> — Static (ISAS 2014–2018 release){syncDates["oxygen-deox"] && <span className="text-white/75 font-mono ml-1">({syncDates["oxygen-deox"]})</span>}</li>
@@ -980,6 +998,7 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                       <li>{t("verify.sources.oceansitesMoorings")} → <span className="text-cyan-400">ocean-ops.org</span></li>
                       <li>{t("verify.sources.oncInstruments")} → <span className="text-cyan-400">data.oceannetworks.ca</span></li>
                       <li>{t("verify.sources.obisSpecies")} → <span className="text-cyan-400">obis.org</span></li>
+                      <li>{t("verify.sources.plankton")} → <span className="text-cyan-400">obis.org/dataset/&lt;dataset id&gt;</span></li>
                       <li>{t("verify.sources.wod")} → <span className="text-cyan-400">ncei.noaa.gov/products/world-ocean-database</span></li>
                       <li>{t("verify.sources.pangaea")} → <span className="text-cyan-400">pangaea.de</span></li>
                       <li>{t("verify.sources.bcoDmo")} → <span className="text-cyan-400">bco-dmo.org</span></li>
@@ -1075,6 +1094,24 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   <li>
                     <span className="text-white/90 font-medium">{t("verify.glodapPoints_title")}</span>
                     <p className="mt-0.5">{t("verify.glodapPoints")}</p>
+                  </li>
+                  )}
+                  {layerShown("argo-oxygen-points") && (
+                  <li>
+                    <span className="text-white/90 font-medium">{t("verify.argoOxygenPoints_title")}</span>
+                    <p className="mt-0.5">{t("verify.argoOxygenPoints")}</p>
+                  </li>
+                  )}
+                  {layerShown("socat-points") && (
+                  <li>
+                    <span className="text-white/90 font-medium">{t("verify.socatPoints_title")}</span>
+                    <p className="mt-0.5">{t("verify.socatPoints")}</p>
+                  </li>
+                  )}
+                  {layerShown("wod-casts") && (
+                  <li>
+                    <span className="text-white/90 font-medium">{t("verify.wodCasts_title")}</span>
+                    <p className="mt-0.5">{t("verify.wodCasts")}</p>
                   </li>
                   )}
                   <li>

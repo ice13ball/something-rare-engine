@@ -39,7 +39,7 @@ from urllib.parse import urlparse
 
 import db
 import httpx
-from parse_util import coerce_date as _coerce_date
+from parse_util import arcgis_features, coerce_date as _coerce_date
 from sync_log import log_sync as _log_sync, log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
@@ -114,6 +114,10 @@ def clear_offshore_tile_cache():
     ondemand = _sv2._RASTER_CACHE_DIR / "offshore-activities" / "_ondemand"
     _shutil.rmtree(ondemand, ignore_errors=True)
     _sv2._RASTER_MEM.clear()
+    # ⛔ The map draws offshore from MVT tiles, not the PNGs above. Without this
+    # line every offshore sync left the cached MVT tiles in place: on 2026-10-09
+    # a z5 tile from 2026-09-20 still served 109 ANP rows the reload had deleted.
+    _sv2.clear_layer_tile_cache("offshore-activities")
     if db.pool is not None:
         asyncio.create_task(_baker.schedule_bake(db.pool))
 
@@ -140,7 +144,7 @@ async def fetch_arcgis_features_url(url: str, out_fields: str = "*", extra_param
                 **(extra_params or {}),
             }
             r = await _get_with_retry(client, url, params=params, label="arcgis page")
-            features = r.json().get("features", [])
+            features = arcgis_features(r.json(), label=url)
             all_features.extend(features)
             if len(features) < 1000:
                 break
@@ -566,34 +570,57 @@ async def sync_nzpam_offshore() -> int:
 
 # ── Phase 5: ANP (Brazil) ────────────────────────────────────────────────────
 
-async def sync_anp_brazil() -> int:
-    """Fetch Brazilian offshore oil/gas data from ANP open data (two layers).
+ANP_WFS = (
+    "https://gishub.anp.gov.br/geoserver/BD_ANP/ows"
+    "?service=WFS&version=2.0.0&request=GetFeature"
+    "&outputFormat=application/json&srsName=EPSG:4326"
+)
 
-    Layer 7 (BLOCOS_EXPLORATORIOS_SIRGASPolygon): exploration blocks.
+async def fetch_anp_layer(type_name: str) -> list[dict]:
+    async with httpx.AsyncClient(timeout=120) as client:
+        r = await _get_with_retry(
+            client, ANP_WFS,
+            params={"typeNames": f"BD_ANP:{type_name}", "cql_filter": "AMBIENTE LIKE 'M%'"},
+            label=f"anp wfs {type_name}",
+        )
+    body = r.json()   # a WFS ExceptionReport is XML, so this raises on it
+    features = body.get("features")
+    if features is None:
+        raise ValueError(f"anp wfs {type_name}: response has no 'features' key")
+    matched = body.get("numberMatched")
+    if isinstance(matched, int) and matched != len(features):
+        raise ValueError(f"anp wfs {type_name}: got {len(features)} of {matched} (server cap?)")
+    return features
+
+
+async def sync_anp_brazil() -> int:
+    """Fetch Brazilian offshore oil/gas data from ANP's own GeoServer (two WFS layers).
+
+    BLOCOS_EXPLORATORIOS_SIRGAS: exploration blocks.
       Fields: COD_BLOCO (code), NOM_BLOCO (name), NOM_BACIA (basin),
               OPERADOR_C (operator), COD_FASE_C (E/P/D phase).
-    Layer 6 (CAMPOS_PRODUCAO_SIRGASPolygon): production fields.
+    CAMPOS_PRODUCAO_SIRGAS: production fields.
       Fields: COD_CAMPO, NOM_CAMPO (name), OPERADOR_C, ETAPA (stage), MED_LAMINA (depth_m).
-    Both filtered to AMBIENTE='M' (maritime/offshore). Layer-6 source_ids are prefixed
-    'prod_' to avoid collision with layer-7 numeric IDs.
+    Field source_ids are 'prod_<COD_CAMPO>' to avoid collision with block codes.
+
+    ⛔ Source moved 2026-10-09: the ArcGIS Online item Mapa_OeG_WFL1 went private
+    (499 Token Required, answered as HTTP 200). gishub.anp.gov.br is ANP's own
+    server, linked from gov.br "Acervo de dados". Licence: ANP open data,
+    CC BY-ND 3.0 (see DATA-LICENCES.md).
+    ⛔ AMBIENTE is space-padded ('M ', 'T '): `AMBIENTE = 'M'` matches NOTHING,
+    with no error. Filter with LIKE 'M%'.
     """
-    ANP_BASE = (
-        "https://services2.arcgis.com/Az8bZXFPk4TfCJlZ/arcgis/rest/services/"
-        "Mapa_OeG_WFL1/FeatureServer"
-    )
     rows: list[dict] = []
     _layers_total = 0
     _layers_failed = 0
     _last_exc_name = ""
 
-    # Layer 7 — exploration blocks
+    # Exploration blocks
     _layers_total += 1
     try:
-        features_l7 = await fetch_arcgis_features_url(
-            f"{ANP_BASE}/7/query", out_fields="*", extra_params={"where": "AMBIENTE='M'"}
-        )
+        features_l7 = await fetch_anp_layer("BLOCOS_EXPLORATORIOS_SIRGAS")
     except Exception as exc:
-        log.warning("anp-brazil: layer 7 fetch failed — %s", exc)
+        log.warning("anp-brazil: blocks fetch failed — %s", exc)
         features_l7 = []
         _layers_failed += 1
         _last_exc_name = type(exc).__name__
@@ -607,7 +634,7 @@ async def sync_anp_brazil() -> int:
         status = {"E": "exploration", "P": "production", "D": "development"}.get(phase, phase.lower() or "active")
         rows.append({
             "source": "anp",
-            "source_id": str(props.get("COD_BLOCO") or props.get("FID") or ""),
+            "source_id": str(props.get("COD_BLOCO") or f.get("id") or ""),
             "activity_type": "oil_gas",
             "name": props.get("NOM_BLOCO") or props.get("COD_BLOCO"),
             "operator": props.get("OPERADOR_C"),
@@ -620,14 +647,12 @@ async def sync_anp_brazil() -> int:
             "geom": geom,
         })
 
-    # Layer 6 — production fields
+    # Production fields
     _layers_total += 1
     try:
-        features_l6 = await fetch_arcgis_features_url(
-            f"{ANP_BASE}/6/query", out_fields="*", extra_params={"where": "AMBIENTE='M'"}
-        )
+        features_l6 = await fetch_anp_layer("CAMPOS_PRODUCAO_SIRGAS")
     except Exception as exc:
-        log.warning("anp-brazil: layer 6 fetch failed — %s", exc)
+        log.warning("anp-brazil: fields fetch failed — %s", exc)
         features_l6 = []
         _layers_failed += 1
         _last_exc_name = type(exc).__name__
@@ -646,7 +671,7 @@ async def sync_anp_brazil() -> int:
             status = "production"
         rows.append({
             "source": "anp",
-            "source_id": f"prod_{props.get('FID') or props.get('COD_CAMPO') or ''}",
+            "source_id": f"prod_{props.get('COD_CAMPO') or f.get('id') or ''}",
             "activity_type": "oil_gas",
             "name": props.get("NOM_CAMPO") or str(props.get("COD_CAMPO") or ""),
             "operator": props.get("OPERADOR_C"),
@@ -854,7 +879,7 @@ async def fetch_arcgis_no_ssl(url: str, out_fields: str = "*", extra_params: dic
                 **(extra_params or {}),
             }
             r = await _get_with_retry(client, url, params=params, label="arcgis page")
-            features = r.json().get("features", [])
+            features = arcgis_features(r.json(), label=url)
             all_features.extend(features)
             if len(features) < 1000:
                 break

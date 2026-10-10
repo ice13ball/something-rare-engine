@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 import asyncpg
 import db
 import httpx
+from parse_util import arcgis_features
 from auth import get_api_key
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
@@ -81,7 +82,7 @@ async def fetch_arcgis_features(layer_id: int, out_fields: str) -> list[dict]:
             }
             r = await client.get(url, params=params)
             r.raise_for_status()
-            features = r.json().get("features", [])
+            features = arcgis_features(r.json(), label=url)
             all_features.extend(features)
             if len(features) < 1000:
                 break

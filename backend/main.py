@@ -53,7 +53,10 @@ from domains import fields
 from domains import plankton
 from domains import geo_context
 from domains import geochem
+from domains import argo_oxygen_points
 from domains import glodap_points
+from domains import socat_points
+from domains import wod_casts
 from domains import oceansites_history
 from domains import aoc2025_poc, pangaea_water
 from domains import svalbard_fjords_pp
@@ -403,6 +406,9 @@ app.include_router(arctic.router)
 app.include_router(biodiversity.router)
 app.include_router(geochem.router)
 app.include_router(glodap_points.router)
+app.include_router(socat_points.router)
+app.include_router(wod_casts.router)
+app.include_router(argo_oxygen_points.router)
 app.include_router(pangaea_water.router)
 app.include_router(aoc2025_poc.router)
 app.include_router(svalbard_fjords_pp.router)
@@ -1052,6 +1058,9 @@ _SOURCE_TO_ACTION: dict[str, str] = {
     "greenland-pp":           "greenland-pp",
     "aoc2025-poc":            "aoc2025-poc",
     "glodap-bottles":         "glodap-bottles",
+    "socat-points":           "socat-points",
+    "wod-casts":              "wod-casts",
+    "argo-doxy":              "argo-doxy",
     "svalbard-fjords-pp":     "svalbard-fjords-pp",
     "mosaic":                 "mosaic",
     "vme-sdm":                "vme-sdm",
@@ -1384,6 +1393,7 @@ _INVENTORY: list[tuple[str, str, str, str, str | None, str, str]] = [
     ("marhys",          "MARHYS (vent fluid chemistry)",     "ocean-bio", "marhys_samples",          "marhys",          "MARHYS 4.0 (Diehl & Bach 2024, PANGAEA)",         "https://doi.org/10.1594/PANGAEA.972999"),
     ("geotraces",       "Trace metals (GEOTRACES IDP2025)",  "ocean-bio", "geotraces_stations",      "geotraces",       "GEOTRACES IDP2025 via BODC",                      "https://www.bodc.ac.uk/geotraces/"),
     ("wod-oxygen",      "Historical oxygen profiles (WOD)",  "ocean-bio", "wod_oxygen_profiles",     "wod-oxygen",      "NOAA NCEI — World Ocean Database 2023",           "https://www.ncei.noaa.gov/products/world-ocean-database"),
+    ("plankton",        "Plankton occurrences (OBIS)",       "ocean-bio", "plankton_occurrences",    "plankton-obis",   "OBIS — Ocean Biodiversity Information System (IOC-UNESCO)", "https://obis.org/"),
     ("cascade",         "Arctic sediment carbon (CASCADE)",  "ocean-bio", "cascade_stations",        "cascade",         "CASCADE v2 — Bolin Centre (Martens et al. 2021)", "https://doi.org/10.17043/cascade-2"),
     ("coastdom",        "Coastal dissolved organic matter (CoastDOM v1)", "ocean-bio", "coastdom_samples_current", "coastdom", "CoastDOM v1 (PANGAEA)", "https://doi.org/10.1594/PANGAEA.964012"),
     ("greenland-pp",    "Greenland Sea primary production",  "ocean-bio", "greenland_pp_stations_current", "greenland-pp", "Greenland Sea GPP 2021–2022 (PANGAEA)", "https://doi.org/10.1594/PANGAEA.965985"),

@@ -98,6 +98,49 @@ describe("layer precedence — a link's layer list is authoritative, never merge
     expect(kept.has("glodap-points" as LayerId)).toBe(true);
   });
 
+  it("argo-oxygen-points is opt-in like glodap-points: a returning visitor who never knew it does not get it, and oxygen-deox opens in Field mode", () => {
+    const ids = ["oxygen-deox", "argo", "argo-oxygen-points", "brand-new-layer"] as unknown as LayerId[];
+    const saved = { activeLayers: ["oxygen-deox", "argo"] as unknown as LayerId[], knownLayers: ["oxygen-deox", "argo"] as LayerId[] };
+    const r = resolveInitialLayers(null, saved, ids)!;
+    expect(r.has("argo-oxygen-points" as LayerId)).toBe(false);
+    expect(r.has("brand-new-layer" as LayerId)).toBe(true);        // ordinary new layers still auto-enable
+    // a visitor who DID switch it on (known + active) keeps it
+    const kept = resolveInitialLayers(null, { activeLayers: ["oxygen-deox", "argo-oxygen-points"] as unknown as LayerId[],
+      knownLayers: ["oxygen-deox", "argo-oxygen-points"] as LayerId[] }, ids)!;
+    expect(kept.has("argo-oxygen-points" as LayerId)).toBe(true);
+  });
+
+  it("socat-points is opt-in like glodap-points: a returning visitor who never knew it does not get it, and ocean-co2-surface opens in Field mode", () => {
+    const ids = ["ocean-co2-surface", "argo", "socat-points", "brand-new-layer"] as unknown as LayerId[];
+    const saved = { activeLayers: ["ocean-co2-surface", "argo"] as unknown as LayerId[], knownLayers: ["ocean-co2-surface", "argo"] as LayerId[] };
+    const r = resolveInitialLayers(null, saved, ids)!;
+    expect(r.has("socat-points" as LayerId)).toBe(false);
+    expect(r.has("brand-new-layer" as LayerId)).toBe(true);        // ordinary new layers still auto-enable
+    useMapStore.setState({ activeLayers: new Set(), co2DisplayMode: "field", enabledLayerIds: null } as any);
+    useMapStore.getState().setActiveLayers(r);
+    expect(useMapStore.getState().co2DisplayMode).toBe("field");
+    expect(useMapStore.getState().activeLayers.has("ocean-co2-surface" as LayerId)).toBe(true);
+    // a visitor who DID switch it on (known + active) keeps it
+    const kept = resolveInitialLayers(null, { activeLayers: ["ocean-co2-surface", "socat-points"] as unknown as LayerId[],
+      knownLayers: ["ocean-co2-surface", "socat-points"] as LayerId[] }, ids)!;
+    expect(kept.has("socat-points" as LayerId)).toBe(true);
+  });
+
+  it("wod-casts is opt-in like socat-points: a returning visitor who never knew it does not get it, and woa-climatology opens in Field mode", () => {
+    const ids = ["woa-climatology", "argo", "wod-casts", "brand-new-layer"] as unknown as LayerId[];
+    const saved = { activeLayers: ["woa-climatology", "argo"] as unknown as LayerId[], knownLayers: ["woa-climatology", "argo"] as LayerId[] };
+    const r = resolveInitialLayers(null, saved, ids)!;
+    expect(r.has("wod-casts" as LayerId)).toBe(false);
+    expect(r.has("brand-new-layer" as LayerId)).toBe(true);
+    useMapStore.setState({ activeLayers: new Set(), woaDisplayMode: "field", enabledLayerIds: null } as any);
+    useMapStore.getState().setActiveLayers(r);
+    expect(useMapStore.getState().woaDisplayMode).toBe("field");
+    expect(useMapStore.getState().activeLayers.has("woa-climatology" as LayerId)).toBe(true);
+    const kept = resolveInitialLayers(null, { activeLayers: ["woa-climatology", "wod-casts"] as unknown as LayerId[],
+      knownLayers: ["woa-climatology", "wod-casts"] as LayerId[] }, ids)!;
+    expect(kept.has("wod-casts" as LayerId)).toBe(true);
+  });
+
   it("returns null (do nothing) when there is neither a link nor saved state", () => {
     expect(resolveInitialLayers(null, null, ALL_IDS)).toBeNull();
   });

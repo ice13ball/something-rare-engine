@@ -520,6 +520,12 @@ export const LAYER_FIXTURES: LayerFixture[] = [
   },
   { layer: "wod-oxygen", id: "TEST-WOD-1", properties: {} },
   { layer: "glodap-points", id: "49UF20150620_4511_1", properties: { cast_key: "49UF20150620_4511_1" } },
+  { layer: "argo-oxygen-points", id: "aoml_1900722_001", properties: { profile_key: "aoml_1900722_001" } },
+  // A cold-link / single-observation click: no cell address, so the panel fetches only /obs.
+  { layer: "socat-points", id: "33GC20040908~1", properties: { obs_key: "33GC20040908~1", lod: false, year: 2004, k: 1 } },
+  // A cold-link click: no cell address (k absent), so the panel fetches only /cast.
+  { layer: "wod-casts", id: "9000001", properties: { cast_id: 9000001 } },
+  { layer: "plankton-occurrences", id: "10.200000,50.200000", properties: { site_key: "10.200000,50.200000", n: 6, top_group: "copepoda" } },
   { layer: "memento", id: "TEST-MEMENTO-1", properties: {} },
   {
     layer: "memento-hexes",
@@ -643,4 +649,8 @@ export const LAYER_FIXTURES: LayerFixture[] = [
 // 77 -> 78 on 2026-10-01: `ocean-nutrients-model` point panel added.
 // 78 -> 79 on 2026-10-01: `ocean-colour-satellite` point panel added.
 // 79 -> 80 on 2026-10-06: `glodap-points` cast panel added.
-export const EXPECTED_LAYER_COUNT = 80;
+// 80 -> 81 on 2026-10-07: `argo-oxygen-points` profile panel added.
+// 81 -> 82: `plankton-occurrences` place panel added.
+// 82 -> 83: `socat-points` observation panel added.
+// 83 -> 84: `wod-casts` cast panel added.
+export const EXPECTED_LAYER_COUNT = 84;

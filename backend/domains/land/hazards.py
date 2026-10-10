@@ -25,6 +25,7 @@ from fastapi.responses import Response
 
 import db
 import openaq_guard
+from parse_util import arcgis_features
 import sync_log
 from auth import get_api_key
 from domains.land.common import _log_land_sync, _pg_conn_string
@@ -971,7 +972,7 @@ async def _sync_water_risk(force: bool = False) -> int:
             }
             resp = await client.get(_AQUEDUCT_BASE, params=params)
             resp.raise_for_status()
-            features = resp.json().get("features", [])
+            features = arcgis_features(resp.json(), label="water_risk")
             all_features.extend(features)
             log.info("water_risk: fetched %d features (offset %d)", len(features), offset)
             if len(features) < 750:

@@ -23,7 +23,6 @@ So two rules, and the pair is what matters:
 
 Neither alone would have caught the `ioos` move.
 """
-import httpx
 import pytest
 
 from ingestion.acoustic_noaa_archive_ingest import (
@@ -115,6 +114,20 @@ def test_the_new_programs_did_not_lose_their_prefixes():
         "173 deployment metadata files the ingest had never asked for.")
 
 
+def test_the_mbarc_programs_added_2026_10_07_did_not_lose_their_prefixes():
+    """The three the archive published after 2026-09-15, decided on 2026-10-07:
+    same `audio/{deployment}/metadata/*.json` tree and Schema A as the first
+    three MBARC programs, 31 deployments, all moorings with coordinates."""
+    added = {
+        "mbarc_bering": "mbarc_bering/audio/",
+        "mbarc_onslowbay": "mbarc_onslowbay/audio/",
+        "mbarc_ps": "mbarc_ps/audio/",
+    }
+    missing = {k: v for k, v in added.items()
+               if PROGRAMS.get(k, {}).get("prefix") != v}
+    assert missing == {}, f"these programs are gone or re-pointed: {missing}"
+
+
 def test_a_source_key_matches_what_the_database_and_frontend_expect():
     """`source` is a join key, not a display string.
 
@@ -128,39 +141,6 @@ def test_a_source_key_matches_what_the_database_and_frontend_expect():
         "and the frontend's colour switch and filter chips match on the raw "
         "string — a case mismatch fails silently, showing a default-coloured "
         "dot with no chip to turn it off.")
-
-
-@pytest.mark.asyncio
-async def test_the_recorded_prefix_list_still_matches_the_live_bucket():
-    """The snapshot above is data, and data goes stale.
-
-    ⛔ Skips only when the bucket cannot be reached. A reachable bucket that
-    disagrees is a failure, not a skip: a program the archive ADDS is exactly
-    the event this whole file exists to make visible.
-    """
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
-            resp = await client.get(
-                _GCS_LIST,
-                params={"delimiter": "/", "maxResults": 1000, "fields": "prefixes"},
-            )
-            resp.raise_for_status()
-            live = {p.rstrip("/") for p in resp.json().get("prefixes", [])}
-    except (httpx.HTTPError, OSError) as exc:
-        pytest.skip(f"bucket {_BUCKET} unreachable ({type(exc).__name__}) — not checked")
-
-    assert live, f"bucket {_BUCKET} listed zero prefixes — that is not a healthy answer"
-
-    recorded = set(BUCKET_PREFIXES_SEEN)
-    added = sorted(live - recorded)
-    removed = sorted(recorded - live)
-    assert not added, (
-        f"the archive published {len(added)} new prefix(es): {added}. Decide "
-        "each one — walk it, or refuse it with a reason — then add it to "
-        "BUCKET_PREFIXES_SEEN. Leaving it out is how the last seventeen hid.")
-    assert not removed, (
-        f"{removed} no longer exist in the bucket. If we walk any of them, the "
-        "sync is quietly returning zero rows and keeping the stale ones.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

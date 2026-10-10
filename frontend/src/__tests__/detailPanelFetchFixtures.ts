@@ -633,3 +633,118 @@ export const GLODAP_CAST = {
   product: "GLODAPv3 (2026)",
   field_product: "GLODAPv2.2016b mapped climatology (TCO2 and pH normalised to 2002)",
 };
+
+// BGC-Argo DOXY profile — shape of `/api/v1/argo-oxygen/profile/{key}` (backend/domains/argo_oxygen_points.py
+// `get_profile_payload`). Level 2 (60 m) carries an adjusted value flagged 3 (counted, never charted); level 4
+// (2000 m) has a raw value only (QC 4). Citations are the backend's CITATIONS verbatim.
+export const ARGO_OXYGEN_ACKNOWLEDGEMENT =
+  "These data were collected and made freely available by the International Argo Program and the national programs "
+  + "that contribute to it. (https://argo.ucsd.edu, https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.";
+export const ARGO_OXYGEN_PROFILE = {
+  profile_key: "aoml_1900722_001", argo_profile_id: "1900722_001", dac: "aoml", platform_number: "1900722",
+  cycle_number: 1, direction: "A", lat: -40.316, lon: 73.389, position_qc: 1,
+  profile_time: "2006-10-22T02:16:24+00:00", juld_qc: 1, year: 2006, doxy_mode: "D", pres_source: "adjusted",
+  n_levels_source: 71, n_levels: 4, n_good: 70, drawable: true, units: "µmol/kg",
+  levels: {
+    pres_dbar: [6, 60, 500, 2000], depth_m: [5.9, 59.5, 495.8, 1974.3],
+    doxy_adj: [259.6, 255.0, 200.1, null], doxy_adj_qc: [1, 3, 1, null],
+    doxy_raw: [230.9, 228.0, 178.0, 146.2], doxy_raw_qc: [3, 3, 3, 4],
+  },
+  at_depth: { "0": [259.6, 5.9], "500": [200.1, 495.8], "2000": null },
+  depth_windows: { "0": [0, 10], "500": [450, 550], "2000": [1900, 2100] },
+  field_recent: { "0": 250.0, "500": 205.0, "2000": 180.0 },
+  field_product: "ISAS20 BGC-Argo 2014–2018 mean (SEANOE doi:10.17882/52367), built from an older Argo snapshot",
+  product: "BGC-Argo DOXY, Argo GDAC synthetic profiles (current)",
+  good_qc: [1, 2], source_url: "https://data-argo.ifremer.fr/dac/aoml/1900722/profiles/SD1900722_001.nc",
+  float_url: "https://fleetmonitoring.euro-argo.eu/float/1900722", source_home: "https://doi.org/10.17882/42182",
+  citations: [
+    ARGO_OXYGEN_ACKNOWLEDGEMENT,
+    "Argo (2000). Argo float data and metadata from Global Data Assembly Centre (Argo GDAC). SEANOE. https://doi.org/10.17882/42182",
+  ],
+  citation: "",
+};
+
+// SOCAT v2026 observation — shape of `/api/v1/socat/obs/{obs_key}` (backend/domains/socat_points.py `get_obs_payload`).
+// Three observations in the segment; the selected one (index 1) has no salinity (null, never 0). Citations and the
+// acknowledgement are the backend's verbatim; the cruise is the fixture-style 33GC20040908 (QC C).
+export const SOCAT_OBS = {
+  obs_key: "33GC20040908~1", expocode: "33GC20040908", ordinal: 1,
+  time: "2004-09-08T10:20:30Z", lon: -70.5, lat: 42.9,
+  fco2_uatm: 365.4, sst_c: 0, sal_pss78: null, fco2_src: 4,
+  fco2_src_note: "fCO2rec_src is the SOCAT algorithm code (0 not generated, 1-14) that produced the recomputed fCO2; see the SOCAT data documentation for the meaning of each code.",
+  fco2_flag: 2,
+  segment: {
+    ord0: 0, n_obs: 3, index: 1,
+    time: ["2004-09-08T10:00:00Z", "2004-09-08T10:20:30Z", "2004-09-08T10:40:00Z"],
+    lon: [-70.4, -70.5, -70.6], lat: [42.8, 42.9, 43.0],
+    fco2_uatm: [360.2, 365.4, 370.1], sst_c: [0.5, 0, -0.5], sal_pss78: [31.2, null, 31.4],
+    fco2_flag: [2, 2, 2],
+  },
+  field: { fco2_decadal_uatm: 372.3 },
+  cruise: {
+    expocode: "33GC20040908", platform_name: "Gulf Challenger", dataset_name: "33GC20040908",
+    pis: "Vandemark, D.", qc_flag: "C", version: "3.0U", source_doi: "10.3334/CDIAC/otg.TSM_UNH_GOM",
+    source_reference: "https://accession.nodc.noaa.gov/0073808", metadata_docs: "33GC20040908/README",
+    first_time: "2004-09-08T10:00:00Z", last_time: "2004-09-08T10:40:00Z", n_obs: 3,
+    west: -70.6, east: -70.4, south: 42.8, north: 43.0, crosses_antimeridian: false,
+  },
+  citations: [
+    "Bakker, D. C. E., Alin, S. R., Bates, N., et al. (2026). Surface Ocean CO2 Atlas Database Version 2026 (SOCATv2026) (NCEI Accession 0315110). NOAA NCEI. https://doi.org/10.25921/8dba-fr90",
+    "Bakker, D. C. E., et al. (2016). A multi-decade record of high-quality fCO2 data in version 3 of the Surface Ocean CO2 Atlas (SOCAT). Earth System Science Data 8, 383-413. https://doi.org/10.5194/essd-8-383-2016",
+  ],
+  citation: "dataset — and — paper",
+  acknowledgement: "The Surface Ocean CO2 Atlas (SOCAT) is an international effort, endorsed by the SCOR Infrastructural Project International Ocean Carbon Coordination Project (IOCCP) and the Surface Ocean Lower-Atmosphere Study (SOLAS), to deliver a uniform, quality-controlled surface ocean CO2 database. The many researchers and funding agencies responsible for the collection of data and quality control are thanked for their contributions to SOCAT.",
+  source_url: "https://doi.org/10.25921/8dba-fr90",
+  metadata_url: "https://www.ncei.noaa.gov/data/oceans/ncei/ocads/metadata/0315110.html",
+  licence: "CC BY 4.0", product: "SOCAT v2026 (Surface Ocean CO2 Atlas)",
+};
+
+// WOD23 cast — shape of `/api/v1/wod/cast/{cast_id}?var=&depth=` (backend/domains/wod_casts.py `_cast_payload`).
+// A CTD cast with temperature and oxygen on four levels; the 0 m temperature is 0 °C (a value, never "no value"),
+// one oxygen level carries flag 1 (listed, never plotted), time_precision "day" (no time of day recorded).
+// `picks` are the server's 8 display-depth values (depths 0, 50, 100, 200, 500, 1000, 1500, 2000); `field.values`
+// the WOA23 oxygen field at the cast's cell (the matrix store default is woaVariable "oxygen", woaDepth 500).
+export const WOD_CAST = {
+  cast_id: 9000001, instrument: "ctd", dataset: "XCTD", cruise: "TEST-CRUISE-1", orig_cruise: "TEST-ORIG-1",
+  platform: "TEST Vessel", vehicle: null, wmo_id: null, institute: "TEST Institute", project: "TEST Project",
+  country: "TEST Country", t_instrument: "TEST thermometer", o2_instrument: null, real_time: null,
+  date: "2004-09-08", time: null, time_precision: "day", lat: 42.9, lon: -70.5,
+  access_no: 12345, accession_url: "https://www.ncei.noaa.gov/archive/accession/12345",
+  source_file_url: "https://www.ncei.noaa.gov/data/oceans/ncei/wod/2004/wod_ctd_2004.nc",
+  levels: {
+    t: [[0, 0, 0], [50, 4.5, 0], [100, 6.25, 0], [200, 8.5, 0]],
+    o: [[0, 300, 0], [50, 280, 0], [100, 250, 1], [200, 220, 0]],
+  },
+  depth_flag: [0, 0, 0, 0], pflag: [0, 255, 0, 255, 255, 255], n_src: [4, 0, 4, 0, 0, 0],
+  picks: {
+    temperature: [0, 4.5, 6.25, 8.5, null, null, null, null],
+    oxygen: [300, 280, null, 220, null, null, null, null],
+  },
+  field: { variable: "oxygen", selected_depth: 500, values: { "0": 310, "50": 290, "100": 260, "200": 230, "500": 150 } },
+  flag_meanings: { Temperature: { "0": "accepted_value", "1": "range_outlier" }, Oxygen: { "0": "accepted_value", "1": "range_outlier" } },
+  product: "World Ocean Database 2023 (WOD23) — OSD, CTD, PFL", licence: "Public use without restriction (NOAA NCEI)",
+  citation: "TEST WOD23 citation", source_url: "https://www.ncei.noaa.gov/products/world-ocean-database",
+};
+
+// Plankton place — shape of `/api/v1/plankton/site/{site_key}` (backend/domains/plankton.py plankton_site).
+export const PLANKTON_SITE = {
+  site_key: "10.200000,50.200000", lon: 10.2, lat: 50.2, total: 6,
+  groups: [{ taxon_group: "copepoda", n: 3 }, { taxon_group: "diatoms", n: 2 }, { taxon_group: "dinoflagellates", n: 1 }],
+  top_species: [
+    { scientific_name: "Calanus finmarchicus", taxon_group: "copepoda", n: 3 },
+    { scientific_name: "Chaetoceros", taxon_group: "diatoms", n: 2 },
+  ],
+  years: { min: 1995, max: 2015, undated: 1 },
+  depth: { min_m: 50, max_m: 1500, no_depth: 2 },
+  edna: { n: 1, share: 0.1667 },
+  licences: [{ licence: "cc-by", n: 4 }, { licence: "cc-by-nc", n: 2 }],
+  datasets: [
+    { dataset_id: "00000000-0000-0000-0000-0000000000aa", title: "Synthetic CC-BY dataset",
+      citation: "Synthetic citation A", url: "https://example.org/a", licence: "cc-by", n: 4,
+      obis_url: "https://obis.org/dataset/00000000-0000-0000-0000-0000000000aa" },
+    { dataset_id: "00000000-0000-0000-0000-0000000000ab", title: "Synthetic CC-BY-NC dataset",
+      citation: "Synthetic citation B", url: "https://example.org/b", licence: "cc-by-nc", n: 2,
+      obis_url: "https://obis.org/dataset/00000000-0000-0000-0000-0000000000ab" },
+  ],
+  datasets_total: 2,
+};

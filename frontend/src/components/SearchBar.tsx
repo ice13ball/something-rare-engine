@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { centroid } from "@turf/turf";
 import type { FeatureCollection, Feature } from "geojson";
 import type { LayerId } from "../types/layers";
@@ -20,9 +21,11 @@ interface SearchConfig {
   layerId: LayerId;
   label: string;
   fields: string[];
-  display: (p: Record<string, unknown>) => { primary: string; secondary: string };
+  display: (p: Record<string, unknown>, t: SearchT) => { primary: string; secondary: string };
   color: string;
 }
+/** The component's `t` (common namespace), for the few entries whose secondary text needs a plural. */
+type SearchT = TFunction<"common">;
 
 /**
  * Layers deliberately absent from global search, grouped by why.
@@ -52,6 +55,11 @@ const NO_SEARCH = [
   "ocean-acidification",
   "coral-acid-exposure",
   "cumulative-human-impact",
+  // SOCAT v2026 Measurements (MVT-only: the client never holds the observations). Cruise search arrives with the
+  // cruise pages, final stage of the SOCAT work; until then there is no name-shaped thing to search.
+  "socat-points",
+  // WOD23 casts (MVT-only: the client never holds them). A cast has no name to search by in this stage.
+  "wod-casts",
   "forest-loss",
   "surface-water",
   "carbon-flux",
@@ -67,6 +75,7 @@ const NO_SEARCH = [
   // only after a click, never as the upfront list search would need).
   "water-risk",
   "wod-oxygen",
+  "plankton-occurrences",
   "offshore-activities",
   "mosaic-sediment",
   "arctic-catchments",
@@ -168,6 +177,18 @@ const SEARCH_CONFIGS = [
       ].filter(Boolean).join(" · "),
     }),
     color: "#f8fafc",
+  },
+  {
+    // Searches FLOATS by WMO number (a few thousand), not the ~390k profiles; a hit opens the float's latest drawn
+    // profile. One WMO can be two floats (1902751 exists under two DACs): both are listed, each with its own DAC.
+    key: "argoOxygenFloats", layerId: "argo-oxygen-points", label: "BGC-Argo O₂ floats",
+    fields: ["wmo"],
+    display: (p, t) => ({
+      primary: `Float ${String(p.wmo ?? "")}`,
+      secondary: [String(p.dac ?? "").toUpperCase(), String(p.last_date ?? "").slice(0, 10),
+                  t("search.argoProfiles", { count: Number(p.n_profiles ?? 0) })].filter(Boolean).join(" · "),
+    }),
+    color: "#e0f2fe",
   },
   {
     key: "onc", layerId: "onc", label: "ONC Observatories",
@@ -492,6 +513,9 @@ export function featureIdFor(layerId: string, p: Record<string, unknown>): strin
   // (EXPOCODE_station_cast) is stable across re-imports. Never a pick index, never the bare expocode
   // (the cast endpoint would 404 on it).
   if (layerId === "glodap-points" && p.first_cast_key != null) return p.first_cast_key as string;
+  // A float has no panel of its own and its WMO alone is ambiguous across DACs (1902751 is two floats): a search
+  // result opens the float's latest drawn profile, whose key (<dac>_<wmo>_<cycle>) is stable across re-imports.
+  if (layerId === "argo-oxygen-points" && p.last_profile_key != null) return p.last_profile_key as string;
   return featureId(p);
 }
 
@@ -536,6 +560,7 @@ function search(
   data: Record<string, FeatureCollection | null>,
   query: string,
   enabledLayerIds: Set<string> | null,
+  t: SearchT,
   maxPerGroup = 5,
 ): SearchResult[] {
   const q = query.toLowerCase().trim();
@@ -555,7 +580,7 @@ function search(
         return val != null && String(val).toLowerCase().includes(q);
       });
       if (!match) continue;
-      const { primary, secondary } = cfg.display(props);
+      const { primary, secondary } = cfg.display(props, t);
       results.push({
         layerId: cfg.layerId,
         label: cfg.label,
@@ -627,7 +652,7 @@ export function SearchBar({ dataRef, dataVersion }: SearchBarProps) {
   }, [debouncedQuery]);
 
   const results = useMemo(() => {
-    const base = search(dataRef.current ?? {}, debouncedQuery, enabledLayerIds);
+    const base = search(dataRef.current ?? {}, debouncedQuery, enabledLayerIds, t);
     // Drop server species already present in the loaded-viewport client results.
     const seen = new Set(
       base.filter(r => r.layerId === "biodiversity-hotspots").map(r => String(r.primary).toLowerCase()),

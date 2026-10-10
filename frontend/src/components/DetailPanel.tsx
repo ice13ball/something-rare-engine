@@ -15,8 +15,12 @@ import { CascadeFieldPanel } from "./panels/seabed/CascadeFieldPanel";
 import { NoiseRiskPanel } from "./panels/density/NoiseRiskPanel";
 import { MonitoringDensityPanel } from "./panels/density/MonitoringDensityPanel";
 import { WodOxygenPanel } from "./panels/fields/WodOxygenPanel";
+import { PlanktonPanel } from "./panels/ocean/PlanktonPanel";
 import { WoaPointPanel } from "./panels/fields/WoaPointPanel";
 import { GlodapCastPanel } from "./panels/fields/GlodapCastPanel";
+import { ArgoOxygenProfilePanel } from "./panels/fields/ArgoOxygenProfilePanel";
+import { SocatObsPanel, type SocatMean } from "./panels/fields/SocatObsPanel";
+import { WodCastPanel } from "./panels/fields/WodCastPanel";
 import { NutrientsModelPanel } from "./panels/fields/NutrientsModelPanel";
 import { OceanColourPanel } from "./panels/fields/OceanColourPanel";
 import { CarbonPointPanel } from "./panels/fields/CarbonPointPanel";
@@ -165,7 +169,13 @@ function PanelContent({ feature }: { feature: SelectedFeature }) {
   if (layer === "permafrost-thaw")            return <PermafrostThawPanel properties={properties} />;
   if (layer === "arctic-rivers")              return <ArcticRiverPanel properties={properties} />;
   if (layer === "wod-oxygen")                 return <WodOxygenPanel id={id} />;
+  if (layer === "plankton-occurrences")       return <PlanktonPanel siteKey={String(properties.site_key ?? id)} />;
   if (layer === "glodap-points")              return <GlodapCastPanel id={String(properties.cast_key ?? id)} />;
+  if (layer === "argo-oxygen-points")         return <ArgoOxygenProfilePanel id={String(properties.profile_key ?? id)} />;
+  if (layer === "socat-points")               return <SocatObsPanel obsKey={String(properties.obs_key ?? id)} cell={properties.cell as string | undefined}
+    year={properties.year as number | undefined} k={properties.k as number | undefined} lod={properties.lod === true} lodMean={properties.lodMean as SocatMean | undefined} version={properties.v as string | undefined} />;
+  if (layer === "wod-casts")                  return <WodCastPanel castId={String(properties.cast_id ?? id)} cell={properties.cell as string | undefined}
+    k={properties.k as number | undefined} years={properties.years as readonly [number, number] | undefined} version={properties.v as string | undefined} />;
   if (layer === "memento")        return <MementoPanel id={id} />;
   if (layer === "memento-hexes")  return <MementoHexPanel properties={properties} />;
   if (layer === "geotraces")      return <GeotracesStationPanel id={id} />;
@@ -239,6 +249,7 @@ const LAYER_TITLE: Record<string, string> = {
   "soil-carbon": "Soil Carbon",
   "surface-water": "Surface Water",
   "wod-oxygen":    "WOD O₂ Profile",
+  "plankton-occurrences": "Plankton (OBIS)",
   "sios-svalbard":  "SIOS Dataset",
   "arctic-rivers": "Arctic River Station",
   "methane-seeps": "Methane Seep",
@@ -253,6 +264,9 @@ const LAYER_TITLE: Record<string, string> = {
   "ocean-carbon":      "Ocean Carbon (GLODAP)",
   "ocean-carbon-hexes": "Ocean Carbon Density",
   "glodap-points":     "GLODAPv3 bottle cast",
+  "argo-oxygen-points": "BGC-Argo oxygen profile",
+  "socat-points":       "SOCAT surface CO₂ observation",
+  "wod-casts":          "World Ocean Database cast",
   "ocean-acidification": "Ocean Acidification (GLODAP Ω)",
   "ocean-acidification-hexes": "Ocean Acidification Density",
   "coral-acid-exposure": "Coral Acidification Exposure",

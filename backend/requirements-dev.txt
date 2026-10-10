@@ -14,3 +14,4 @@
 
 pytest==9.1.1            # same version as the production venv
 pytest-asyncio==1.4.0
+mapbox-vector-tile==2.2.0   # decodes MVT bytes in test_plankton_tiles_db.py (locked version)

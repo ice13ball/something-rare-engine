@@ -185,6 +185,13 @@ export const HYDROPHONE_SOURCE_COLOR: Record<string, [number, number, number, nu
   // lowercase for every program; matching anything else here silently drops
   // this source into the gray fallback below.
   md_wea_cpod: [219,  39, 119, 255], // pink-600 — Maryland WEA C-POD
+  // Added 2026-10-07 — three more MBARC prefixes. NOT the Navy blue family: the
+  // blues were spent on the first three MBARC programs and every blue left sits
+  // within ~40 RGB of one already here. These three are each >=59 from every
+  // entry above and from each other, so a dot still reads as its own source.
+  mbarc_bering:    [190, 242, 100, 255], // lime-300 — Bering / Beaufort
+  mbarc_onslowbay: [126,  34, 206, 255], // purple-700 — Onslow Bay
+  mbarc_ps:        [248, 113, 113, 255], // red-400 — PS sites
 };
 
 const HYDROPHONE_SOURCE_COLOR_DEFAULT: [number, number, number, number] = [156, 163, 175, 255]; // slate fallback

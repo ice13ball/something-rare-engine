@@ -4,7 +4,7 @@
 import type { LayerId } from "../types/layers";
 import type { PersistedViewState } from "./mapState";
 import { VALID_LAYER_IDS } from "./layersParam";
-import { isShareableFilterField, GLODAP_YEAR_RANGE_KEY } from "../types/filterRegistry";
+import { isShareableFilterField, GLODAP_YEAR_RANGE_KEY, ARGO_OXYGEN_YEAR_RANGE_KEY, SOCAT_YEAR_RANGE_KEY, WOD_YEAR_RANGE_KEY } from "../types/filterRegistry";
 import { COASTDOM_YEAR_RANGE_KEY, decodeYearRange } from "./coastdomYearFilter";
 import { isValidDisplayValue } from "../types/displayRegistry";
 
@@ -128,7 +128,7 @@ function validateFilters(f: ShareEnvelope["f"]): Record<string, string[]> | null
   if (!f || typeof f !== "object") return null;
   const out: Record<string, string[]> = {};
   for (const [key, value] of Object.entries(f)) {
-    if (key === COASTDOM_YEAR_RANGE_KEY || key === GLODAP_YEAR_RANGE_KEY) {
+    if (key === COASTDOM_YEAR_RANGE_KEY || key === GLODAP_YEAR_RANGE_KEY || key === ARGO_OXYGEN_YEAR_RANGE_KEY || key === SOCAT_YEAR_RANGE_KEY || key === WOD_YEAR_RANGE_KEY) {
       if (decodeYearRange(value)) out[key] = value as string[];
       continue;
     }

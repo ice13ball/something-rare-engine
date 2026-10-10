@@ -205,7 +205,16 @@
       "decade": "Decade"
     },
     "woaClimatology": {
-      "toggle": "Ocean Climatology (WOA)"
+      "toggle": "Ocean Climatology (WOA)",
+      "points": {
+        "productNote": "Measurements: WOD23 casts (OSD, CTD, profiling floats), as measured and dated — a different product from the WOA23 field, which is an objectively analysed annual mean. Measurements replace the field and the hexagons.",
+        "greyNote": "Grey: no good value in the depth window {{window}} m, or a variable the casts do not carry.",
+        "derivedNote": "AOU and O₂ saturation are WOA derived quantities with no per-cast value; the dots are grey, and a cast's panel shows Dissolved O₂.",
+        "nstarNote": "N* is derived from the cast's own nitrate and phosphate at the same level.",
+        "yearFrom": "From",
+        "yearTo": "To",
+        "loading": "Loading measurements…"
+      }
     },
     "oceanCarbon": {
       "toggle": "Ocean Carbon (GLODAP)",
@@ -219,7 +228,15 @@
       }
     },
     "oceanCo2Surface": {
-      "toggle": "Surface Ocean CO₂ (SOCAT)"
+      "toggle": "Surface Ocean CO₂ (SOCAT)",
+      "points": {
+        "versionNote": "Measurements: SOCAT v2026 observations, as made and dated. Field and hexagons: the SOCAT v2026 gridded decadal means — a different product.",
+        "greyNote": "Grey: no value for the selected variable, or outside the selected decade (1957–1969 has no decadal field to compare with).",
+        "densityNote": "Density: every dot has the same colour — the field's density is per decade, so dots outside the selected decade are grey.",
+        "yearFrom": "From",
+        "yearTo": "To",
+        "loading": "Loading measurements…"
+      }
     },
     "marineCarbon": {
       "toggle": "Marine Carbon (unified)",
@@ -250,7 +267,16 @@
       "toggle": "Historical Oxygen Profiles (WOD)"
     },
     "oxygenDeox": {
-      "toggle": "Ocean Oxygen & Deoxygenation"
+      "toggle": "Ocean Oxygen & Deoxygenation",
+      "points": {
+        "versionNote": "Points: BGC-Argo oxygen profiles from today's Argo data centre (adjusted values flagged good). Field: ISAS20 2014–2018 mean, built from an older Argo snapshot.",
+        "recentScaleNote": "Measurements are absolute O₂, so they use the Recent O₂ (2014–2018) scale. A single profile has no 1971–2000 baseline, so no change is shown for it.",
+        "greyNote": "Grey: no good adjusted oxygen value in the {{window}} range around this depth.",
+        "loading": "Loading measurements…",
+        "empty": "No profiles in this year range.",
+        "yearFrom": "From",
+        "yearTo": "To"
+      }
     },
     "methaneSeeps": {
       "toggle": "Methane Seeps (SEAFLEA)"
@@ -363,6 +389,9 @@
     },
     "oceanColourSatellite": {
       "toggle": "Ocean colour (satellite)"
+    },
+    "planktonOccurrences": {
+      "toggle": "Plankton (OBIS)"
     }
   },
   "filters": {
@@ -481,6 +510,28 @@
         "closed": "CLOSED — retired for good",
         "registered": "REGISTERED — announced, never deployed"
       }
+    },
+    "plankton": {
+      "groupHeading": "Group",
+      "decadeHeading": "Decade",
+      "depthHeading": "Depth",
+      "group": {
+        "copepoda": "Copepods",
+        "euphausiacea": "Krill",
+        "diatoms": "Diatoms",
+        "coccolithophores": "Coccolithophores",
+        "dinoflagellates": "Dinoflagellates"
+      },
+      "noDate": "No date",
+      "before1950": "Before 1950",
+      "depth": {
+        "0": "0–200 m",
+        "1": "200–1000 m",
+        "2": "> 1000 m",
+        "3": "No depth"
+      },
+      "showEdna": "Show eDNA records",
+      "ednaNote": "eDNA = DNA of the group found in a water sample, not an organism counted. Outline-only dots are places with eDNA records only."
     }
   },
   "tooltip": {
@@ -523,14 +574,16 @@
       "offshore-activities": "Government-issued offshore concessions inside national EEZs — oil & gas blocks, offshore wind farms, seabed mining licences, and CCS (carbon capture & storage) licences. Filter by activity type and country to see who is licensed where.",
       "ocean-currents": "Animated surface (or 1000 m) ocean currents from Copernicus Marine. Particles flow along the live current field; the depth toggle switches between surface drift and the deeper layer that carries deep-sea mining sediment plumes.",
       "woa-climatology": "Gridded ocean climatology (long-term average) from the World Ocean Atlas 2023 — temperature, salinity, oxygen, AOU, O₂ saturation and nutrients at 8 standard depths. Pick a variable and depth; the colour shows the average value there (read it off the scale below the selector). 1° resolution; the baseline period differs by variable (T/S 1991–2020, O₂ 1971–2000, nutrients 1965–2022). N* (nitrate − 16 × phosphate) is derived from two of these: negative means less nitrate than phosphate at the 16:1 ratio plankton use.",
-      "oxygen-deox": "Ocean dissolved oxygen from ISAS BGC-Argo floats. ‘Recent O₂’ shows the 2014–2018 average at the chosen depth (blue = high, red = low / oxygen-minimum zones). ‘Deoxygenation Δ’ shows the change versus the WOA23 1971–2000 “Climate Normal” baseline (red = O₂ loss, blue = gain). Indicative regional pattern, not a calibrated trend — the recent Argo-optode field and the ship-based 1971–2000 baseline differ in method.",
+      "oxygen-deox": "Ocean dissolved oxygen from ISAS BGC-Argo floats. ‘Recent O₂’ shows the 2014–2018 average at the chosen depth (blue = high, red = low / oxygen-minimum zones). ‘Deoxygenation Δ’ shows the change versus the WOA23 1971–2000 “Climate Normal” baseline (red = O₂ loss, blue = gain). Indicative regional pattern, not a calibrated trend — the recent Argo-optode field and the ship-based 1971–2000 baseline differ in method. The Display switch has a third option, Measurements, which shows BGC-Argo oxygen profiles from the Argo GDAC (adjusted values flagged good) in the field's Recent O₂ scale.",
       "wod-oxygen": "Raw historical dissolved-oxygen profiles from the NOAA World Ocean Database (global). Each dot is one ship/float cast, coloured by decade; click to see the actual depth–oxygen profile. Inspectable raw evidence spanning ~a century — heterogeneous methods and QC, shown as published. Thinned to a sample at wide zoom; zoom in for every cast.",
       "arctic-rivers": "Observed discharge and biogeochemistry at the great Arctic river mouths (ArcticGRO 6 rivers + PANGAEA Canada). Each dot = a monitoring station; click for the period of record and time series of dissolved organic carbon, nutrients, and sampling-date discharge. Published measurements, ~6×/year sampling, shown at monthly resolution.",
       "memento": "GEOMAR MEMENTO database of surface-ocean methane (CH₄) and nitrous oxide (N₂O) from research cruises worldwide. Each dot is one cast; colour scales by the selected gas surface concentration (teal = low, magenta = high). Use the gas selector to switch between CH₄ and N₂O. Caveat: measurement density is uneven — open-ocean transects are well-covered, coastal and polar regions less so.",
       "geotraces": "GEOTRACES IDP2025 water-column profiles of dissolved trace metals (Mn, Fe, Co, Ni, Cu) — the metals concentrated in seafloor nodules and crusts. Pick an element; each dot is a station coloured by its peak concentration. Click for the concentration-vs-depth profile. Research-grade, sparse coverage.",
       "methane-seeps": "Global inventory of seafloor methane seep sites from the SEAFLEA observed database (NRL / NOAA NCEI), compiled by Phrampus et al. (2020). Each dot is a confirmed seep location coloured by feature type (gas bubbles, gas hydrate, mound, pockmark, chemosynthetic community, carbonate hardground). Caveat: frozen Feb-2019 compilation — no new seep discoveries after that date are included. Coverage is survey-biased: 59% of records come from one Gulf of Mexico survey and the central North Sea has none — a blank area means no survey, not no seeps.",
-      "ocean-carbon": "Seawater dissolved inorganic carbon system (DIC, Total Alkalinity, pH, anthropogenic CO₂) from the GLODAPv2.2016b 1° climatology. Select a variable and depth (0–4000 m); the colour field shows the global distribution. Switch to Hexagons to read exact values on click. Static product — pre-2016 cruise data only.",
+      "ocean-carbon": "Seawater dissolved inorganic carbon system (DIC, Total Alkalinity, pH, anthropogenic CO₂) from the GLODAPv2.2016b 1° climatology. Select a variable and depth (0–4000 m); the colour field shows the global distribution. Switch to Hexagons to read exact values on click. The field is a static product — pre-2016 cruise data only. The Display switch has a third option, Measurements, which shows GLODAPv3 bottle samples (one dot per cast) in the field's own scale.",
       "glodap-points": "Individual GLODAPv3 (2026) bottle casts — the real measurements behind the Ocean Carbon field. Each dot is one cast, coloured in the field's scale at the selected variable and depth; grey where no acceptable bottle lies within that depth's window. Raw bottle values: the field (GLODAPv2.2016b) is normalised to 2002, the bottles are not.",
+      "argo-oxygen-points": "Real BGC-Argo oxygen profiles (adjusted values flagged good), coloured in the Ocean Oxygen field's Recent O₂ scale at the selected depth.",
+      "socat-points": "Individual SOCAT v2026 surface-ocean fCO₂ observations from research ships, ships of opportunity and moorings — the real measurements behind the Surface Ocean CO₂ field. Each dot is coloured in the field's scale for the selected variable; grey outside the selected decade, before 1970 or where the variable has no value; the year-range filter hides points. Zoomed out it shows simplified cruise tracks; from zoom 9 each dot is the mean of one year's observations in a small cell. Measured values as recorded: the field is the decadal mean of a 1° cell, a different product.",
       "ocean-co2-surface": "Surface ocean fugacity of CO₂ (fCO₂), observation density, sea-surface temperature, and salinity from the SOCATv2026 quality-controlled ship-track database, binned onto a 1° decadal grid. Use the variable selector to switch between fCO₂, density, SST, and salinity; use the decade selector to step through the 1970s–2020s. Switch to Hexagons to read exact values on click. Caveat: non-gap-filled product — roughly 21% of 1° cells have data, concentrated along ship tracks.",
       "sios-svalbard": "In-situ observing datasets from the SIOS (Svalbard Integrated Arctic Earth Observing System) catalogue — oceanographic, atmospheric, cryospheric, and biological measurements collected around Svalbard and the wider Arctic. Each point links to the dataset landing page. Discovery layer only: metadata and links, not the measurements themselves. Coverage is in-situ; remote-sensing and modelled products are outside this layer's scope.",
       "marine-carbon": "One hexagon grid uniting every carbon-related ocean field — click a cell to see surface CO₂, interior carbon, oxygen and physical climatology together, each labelled by source. A co-located readout, not a single combined value.",
@@ -552,7 +605,9 @@
       "greenland-sea-poc-aoc2025": "Particulate organic carbon at 32 stations, Atlantic-Arctic Ocean Change cruise (AOC2025), Greenland Sea, 19–31 May 2025 (Institute of Oceanology Polish Academy of Sciences, CC-BY 4.0). The source's own metadata states a temporal extent that does not match its title or its data — shown, not corrected.",
       "svalbard-fjords-primary-production": "In situ primary production, Kongsfjorden & Hornsund (Svalbard), 1994–2019 (Institute of Oceanology Polish Academy of Sciences). © IO PAN, used with permission — the source publishes no open licence. The source's own metadata states station and incubation counts that differ from the data — shown, not corrected.",
       "ocean-nutrients-model": "Model output, not measurements: surface nitrate, chlorophyll-a, net primary production (a volumetric rate at the surface, not a column integral) and N* (nitrate − 16 × phosphate) from the Copernicus Marine global biogeochemical model (PISCES, 0.25°). Monthly means for the newest available month and the 11 before it. Click the map for the exact value of the nearest cell.",
-      "ocean-colour-satellite": "Satellite observations: chlorophyll-a and primary production (a water-column integral) from Copernicus-GlobColour ocean colour, monthly means averaged to 0.25°. Cloud, sea ice and polar night leave gaps. Click the map for the exact value of the nearest cell."
+      "ocean-colour-satellite": "Satellite observations: chlorophyll-a and primary production (a water-column integral) from Copernicus-GlobColour ocean colour, monthly means averaged to 0.25°. Cloud, sea ice and polar night leave gaps. Click the map for the exact value of the nearest cell.",
+      "plankton-occurrences": "Where plankton has been observed (OBIS): copepods, krill, diatoms, coccolithophores and dinoflagellates. Colour = dominant group, size = number of observations, outline only = DNA found (eDNA). Filter by group, decade, depth and eDNA; click a place for species, years, depths, licences and datasets.",
+      "wod-casts": "Individual World Ocean Database 2023 casts (OSD, CTD, profiling floats) — the real measurements behind the Ocean Climatology field. Each dot is the mean of the casts in one small cell, coloured in the field's scale for the selected variable at the selected depth; grey where no good value lies within that depth's window. Casts as measured: the field is an objectively analysed annual mean, a different product."
     },
     "densityScaleLabel": "Records per cell",
     "argoReadingHeading": "How to read the readings",
@@ -1336,8 +1391,8 @@
     "licenseLabel": "License"
   },
   "oxygen": {
-    "viewRecent": "Recent O₂",
-    "viewChange": "Deoxygenation Δ",
+    "viewRecent": "Recent O₂ (2014–2018)",
+    "viewChange": "Deoxygenation Δ (vs 1971-2000)",
     "depthLabel": "Depth"
   },
   "siosSvalbard": {
@@ -1622,6 +1677,65 @@
       "failed": "Could not load the satellite values."
     }
   },
+  "socatObs": {
+    "loading": "Loading observation…",
+    "missing": "This observation is no longer in the current SOCAT v2026 import.",
+    "error": "The observation could not be loaded right now. The service is unavailable or busy.",
+    "retry": "Try again",
+    "productNote": "SOCAT v2026 observation. The Surface Ocean CO₂ field is the gridded decadal mean — a different product.",
+    "lod": "Mean of {{k}} observations along this piece of track — zoom in for smaller cells; click a dot to list its observations.",
+    "lodMeanLabel": "Mean {{variable}} (this track piece)",
+    "sectionValues": "This observation",
+    "fco2": "fCO₂ (recomputed)",
+    "sst": "Sea surface temperature",
+    "salinity": "Salinity (PSS-78)",
+    "time": "Time",
+    "position": "Position",
+    "fco2Src": "fCO₂ algorithm",
+    "fco2SrcValue": "code {{code}}",
+    "sectionSeries": "{{variable}} along this cruise segment",
+    "seriesNote": "{{n}} observations in this segment; amber ring: the selected one.",
+    "var": {
+      "fco2_uatm": "fCO₂ (µatm)",
+      "sst_c": "Sea surface temperature (°C)",
+      "sal_pss78": "Salinity (PSS-78)"
+    },
+    "sectionField": "The field at this place",
+    "fieldLabel": "Gridded decadal mean fCO₂",
+    "fieldNone": "none (before 1970 or outside the grid)",
+    "fieldNote": "A different product: the decadal mean of a 1° cell, not this measurement.",
+    "sectionCruise": "Cruise",
+    "expocode": "Cruise (EXPOCODE)",
+    "platform": "Platform",
+    "pis": "Principal investigator(s)",
+    "qc": "SOCAT QC flag",
+    "version": "Dataset version",
+    "qcMeaning": {
+      "A": "estimated accuracy better than 2 µatm",
+      "B": "estimated accuracy better than 2 µatm",
+      "C": "estimated accuracy better than 5 µatm",
+      "D": "estimated accuracy better than 5 µatm"
+    },
+    "qcNote": "The QC flag grades the whole cruise, not this observation. Only cruises flagged A–D (accuracy better than 5 µatm) are drawn. Source: NCEI accession 0315110.",
+    "sectionSource": "Source and credit",
+    "socatLink": "SOCAT v2026 (NCEI)",
+    "sourceDoi": "Cruise data DOI",
+    "accession": "NCEI accession",
+    "cell": {
+      "loading": "Loading the observations behind this dot…",
+      "missing": "These observations are no longer in the data (it was reloaded). Zoom in or pick the dot again.",
+      "error": "The observations behind this dot could not be loaded right now.",
+      "summary": "{{k}} observations from {{c}} cruise(s) in this ~{{size}} m cell in {{year}} (map dot = their mean)",
+      "meanLabel": "Mean {{variable}}",
+      "meanNote": "Mean of {{k}} observations in this cell in {{year}} — the value the dot is coloured by. The list below shows the individual observations.",
+      "cruises": "Cruises",
+      "cruiseObs": "{{n}} obs.",
+      "cruisesTruncated": "Showing {{shown}} of {{c}} cruises.",
+      "observations": "Observations",
+      "observationsTruncated": "Showing the first {{shown}} of {{k}} observations (totals are exact).",
+      "meanNoteDensity": "Mean of {{k}} observations in this cell in {{year}}. In the density view every dot has the same colour; the list below shows the individual observations."
+    }
+  },
   "glodapCast": {
     "loading": "Loading cast…",
     "missing": "This cast no longer exists in the current GLODAPv3 import.",
@@ -1673,6 +1787,148 @@
       "phosphate": "Phosphate",
       "phts25p0": "pH (total scale, 25 °C)",
       "fco2": "fCO₂ (20 °C)"
+    }
+  },
+  "argoProfile": {
+    "loading": "Loading profile…",
+    "title": "Float {{wmo}}, cycle {{cycle}}",
+    "ascending": "ascending profile",
+    "descending": "descending profile",
+    "atDepth": "At {{depth}} m",
+    "profileValue": "Profile, adjusted oxygen (QC 1–2)",
+    "pickValue": "{{value}} {{units}} at {{depth}} m ({{pres}} dbar)",
+    "pickValueNoPres": "{{value}} {{units}} at {{depth}} m",
+    "noValue": "No good adjusted value in {{window}}",
+    "fieldRecent": "Field (ISAS20 2014–2018 mean) here",
+    "oxygen": "Oxygen",
+    "depthAxis": "Depth (m)",
+    "chartAria": "Oxygen profile of the float, with the ISAS20 mean for comparison",
+    "chartCaption": "Solid: adjusted oxygen flagged good (QC 1–2). Dashed: ISAS20 2014–2018 mean at this spot. Depth from pressure (UNESCO 1983).",
+    "noChart": "No good adjusted oxygen values on this profile, so there is nothing to chart.",
+    "sectionProfile": "Profile",
+    "float": "Float (WMO)",
+    "dac": "Data centre (DAC)",
+    "cycle": "Cycle",
+    "date": "Date",
+    "noDate": "date unknown",
+    "position": "Position",
+    "positionQc": "position QC {{qc}}",
+    "dataMode": "Data mode",
+    "pressure": "Pressure",
+    "levels": "Levels",
+    "goodCount": "{{good}} good of {{total}} levels in the source",
+    "flaggedCount_one": "{{count}} adjusted value flagged questionable or bad among the stored levels ({{stored}}) — not charted",
+    "flaggedCount_other": "{{count}} adjusted values flagged questionable or bad among the stored levels ({{stored}}) — not charted",
+    "rawCount_one": "{{count}} raw-only value among the stored levels ({{stored}}) — not charted",
+    "rawCount_other": "{{count}} raw-only values among the stored levels ({{stored}}) — not charted",
+    "mode": {
+      "delayed": "delayed mode (scientifically adjusted)",
+      "adjusted": "adjusted in real time",
+      "realtime": "real time, raw only — not drawn on the map"
+    },
+    "presSource": {
+      "adjusted": "adjusted pressure",
+      "raw": "raw pressure",
+      "mixed": "adjusted pressure where available"
+    },
+    "notDrawn": "This profile is not drawn on the map (no good adjusted value, or its position or time is flagged).",
+    "sectionSource": "Source and credit",
+    "dataFile": "GDAC data file",
+    "sourceHome": "Dataset DOI (SEANOE)",
+    "fieldProductLabel": "Field: {{product}}",
+    "missing": "This profile no longer exists in the Argo data (it may have been reprocessed).",
+    "unavailable": "Profile temporarily unavailable.",
+    "retry": "Retry"
+  },
+  "planktonSite": {
+    "title": "Plankton observations at this place",
+    "loading": "Loading the place…",
+    "missing": "This place is not in the current plankton import (the data is rebuilt monthly).",
+    "error": "The place could not be loaded right now. The service is unavailable or busy.",
+    "retry": "Try again",
+    "noMatch": "No observation at this place matches the active filters.",
+    "observations": "Observations",
+    "years": "Years",
+    "noYears": "no dated record",
+    "undated": "{{n}} undated",
+    "depth": "Depth",
+    "noDepths": "no depth recorded",
+    "noDepth": "{{n}} without depth",
+    "edna": "eDNA",
+    "ednaShare": "{{n}} ({{pct}} %) — DNA in a water sample, no organism seen",
+    "groups": "Groups",
+    "topSpecies": "Top species",
+    "licences": "Licences",
+    "ncNote": "Part of these records is CC-BY-NC: non-commercial use only. The licence of each dataset is listed below.",
+    "datasets": "Datasets ({{n}})"
+  },
+  "wodCast": {
+    "loading": "Loading cast…",
+    "missing": "This cast is no longer in the current WOD23 import (it was reloaded).",
+    "error": "The cast could not be loaded right now. The service is unavailable or busy.",
+    "retry": "Try again",
+    "productNote": "{{product}} cast. The Ocean Climatology field is an objectively analysed annual mean — a different product.",
+    "unmeasuredNote": "AOU and O₂ saturation are WOA derived quantities; the cast has T, S and O₂ — shown: Dissolved O₂.",
+    "var": {
+      "temperature": "Temperature",
+      "salinity": "Salinity",
+      "oxygen": "Dissolved O₂",
+      "phosphate": "Phosphate",
+      "silicate": "Silicate",
+      "nitrate": "Nitrate",
+      "nstar": "N*"
+    },
+    "depthAxis": "Depth (m)",
+    "chartAria": "{{variable}} profile of the cast",
+    "legend": "White: accepted values of the cast; amber ring: the level the dot uses at the selected depth.",
+    "legendField": "Green dashed: the WOA23 field at this place (a climatology, a different product).",
+    "noAcceptable": "This cast has no accepted {{variable}} value to plot.",
+    "sectionValues": "At the selected depth",
+    "atDepth": "{{variable}} at {{depth}} m",
+    "measuredAt": "{{value}} measured at {{z}} m",
+    "noValueInWindow": "no good value in the {{window}} m window",
+    "depthNotDrawn": "The map draws casts at eight standard depths; {{depth}} m is not one of them, so there is no value to show.",
+    "fieldHere": "WOA23 field here ({{variable}}, {{depth}} m)",
+    "noField": "none (outside the grid)",
+    "fieldNote": "A climatology — a different product: the objectively analysed annual mean of a 1° cell, not this measurement.",
+    "sectionCast": "Cast",
+    "instrument": "Instrument · dataset",
+    "date": "Date",
+    "dateNone": "date not recorded",
+    "timeNone": "time not recorded",
+    "monthPrecision": "day and time not recorded",
+    "yearPrecision": "month, day and time not recorded",
+    "position": "Position",
+    "cruise": "Cruise",
+    "cruiseShort": "cruise",
+    "origCruise": "Originator's cruise",
+    "platform": "Platform",
+    "vehicle": "Vehicle",
+    "wmo": "WMO ID (float)",
+    "realTime": "Data mode",
+    "realTimeYes": "real time",
+    "realTimeNo": "delayed mode",
+    "country": "Country",
+    "institute": "Institute",
+    "project": "Project",
+    "tInstrument": "Temperature instrument",
+    "o2Instrument": "Oxygen instrument",
+    "levelsSummary": "{{variable}} levels",
+    "levelsShown": "{{n}} of {{m}} source levels shown",
+    "colDepth": "Depth (m)",
+    "colValue": "Value",
+    "colFlag": "WOD flag",
+    "sectionSource": "Source and credit",
+    "accession": "NCEI accession",
+    "sourceFile": "Source file",
+    "wodLink": "World Ocean Database",
+    "cell": {
+      "loading": "Loading the casts behind this dot…",
+      "missing": "These casts are no longer in the data (it was reloaded). Zoom in or pick the dot again.",
+      "error": "The casts behind this dot could not be loaded right now.",
+      "summary": "{{k}} casts in this cell ({{from}}–{{to}})",
+      "meanNote": "The dot is their mean. Choose a cast to see its profile.",
+      "truncated": "Showing the newest {{shown}} of {{k}} casts (totals are exact)."
     }
   }
 }

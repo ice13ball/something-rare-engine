@@ -25,7 +25,7 @@ import {
   VME_POINT, CORAL_EXPOSURE_POINT, CORAL_EXPOSURE_SUMMARY, CO2_POINT, OXYGEN_POINT,
   PERMAFROST_THAW_DETAIL, COASTDOM_SAMPLES, PANGAEA_WATER_META,
   AOC_POC_SAMPLES, AOC_POC_META,
-  SVALBARD_FJORDS_PP_SAMPLES, SVALBARD_FJORDS_PP_META, GLODAP_CAST,
+  SVALBARD_FJORDS_PP_SAMPLES, SVALBARD_FJORDS_PP_META, GLODAP_CAST, ARGO_OXYGEN_PROFILE, SOCAT_OBS, WOD_CAST, PLANKTON_SITE,
 } from "./detailPanelFetchFixtures";
 
 // Every panel that fetches does so in a useEffect; the FIRST snapshot per
@@ -66,6 +66,10 @@ const ROUTES: Array<[RegExp, unknown]> = [
   [/\/v2\/map\/monitoring-density\/cell/, MONITORING_DENSITY_CELL],
   [/\/v2\/spatial\/wod-oxygen\/by-id\//, WOD_BY_ID],
   [/\/v1\/glodap\/cast\//, GLODAP_CAST],
+  [/\/v1\/argo-oxygen\/profile\//, ARGO_OXYGEN_PROFILE],
+  [/\/v1\/socat\/obs\//, SOCAT_OBS],
+  [/\/v1\/wod\/cast\//, WOD_CAST],
+  [/\/v1\/plankton\/site\//, PLANKTON_SITE],
   [/\/v2\/spatial\/memento\/by-id\//, MEMENTO_CAST],
   [/\/v2\/spatial\/geotraces\/by-id\//, GEOTRACES_RESPONSE],
   [/\/v2\/spatial\/mosaic\/by-id\//, MOSAIC_RESPONSE],
@@ -154,7 +158,7 @@ afterEach(() => {
 const FETCHING_LAYERS = new Set([
   "mining-contracts-mvt", "hydrothermal-vents-active", "hydrothermal-vents-inactive",
   "onc", "hydrophone-stations", "monitoring-density",
-  "wod-oxygen", "glodap-points", "memento", "geotraces", "mosaic-sediment", "arctic-catchments",
+  "wod-oxygen", "glodap-points", "argo-oxygen-points", "socat-points", "wod-casts", "plankton-occurrences", "memento", "geotraces", "mosaic-sediment", "arctic-catchments",
   "woa-climatology", "ocean-nutrients-model", "ocean-colour-satellite", "ocean-carbon", "ocean-acidification", "cumulative-human-impact",
   "marine-carbon", "vme-suitability", "coral-acid-exposure", "ocean-co2-surface",
   "oxygen-deox", "permafrost-thaw", "coastdom", "greenland-primary-production",

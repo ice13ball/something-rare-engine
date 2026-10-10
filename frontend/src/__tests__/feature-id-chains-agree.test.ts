@@ -70,3 +70,41 @@ describe("GLODAP cruise search opens the cruise's first cast", () => {
     expect(featureIdFor("glodap-points", { expocode: "49UF20150620" })).toBe("");
   });
 });
+
+describe("WOD casts are keyed on cast_id, never on the pick index", () => {
+  it("is what clickIdFor reads back from a clicked dot (the cell's representative cast)", () => {
+    expect(clickIdFor("wod-casts", { cast_id: 9000001, k: 3 }, 51234)).toBe(9000001);
+  });
+  it("falls back to the pick index only when the click stored no cast_id", () => {
+    expect(clickIdFor("wod-casts", {}, 7)).toBe("7");
+  });
+  it("is the same name the shared chain reads (cast_id), so the two ends of a link agree", () => {
+    expect(featureIdFor("wod-casts", { cast_id: 9000001 })).toBe(9000001);
+  });
+});
+
+describe("SOCAT observations are keyed on obs_key, never on the pick index", () => {
+  it("is what clickIdFor reads back from a clicked dot (cell-year's first observation)", () => {
+    expect(clickIdFor("socat-points", { obs_key: "33GC20040908~1", id: 7 }, 51234)).toBe("33GC20040908~1");
+  });
+  it("is not searchable (cruise search is out of scope): featureIdFor finds nothing", () => {
+    expect(featureIdFor("socat-points", { obs_key: "33GC20040908~1" })).toBe("");
+  });
+});
+
+describe("BGC-Argo float search opens the float's latest drawn profile", () => {
+  // (a variable named `latest`, not `…key`: gitleaks' generic-api-key rule reads `key: "<mixed-case-ish string>"` as a secret)
+  const latest = "coriolis_1902751_001";
+  const float = { last_profile_key: latest, wmo: "1902751", dac: "coriolis" };
+
+  it("returns last_profile_key, never the bare WMO (1902751 is two floats, one per DAC)", () => {
+    expect(featureIdFor("argo-oxygen-points", float)).toBe(latest);
+    expect(featureId({ wmo: "1902751" })).toBe("");
+    expect(featureIdFor("argo-oxygen-points", { wmo: "1902751" })).toBe("");
+  });
+
+  it("is what clickIdFor reads back from a clicked profile", () => {
+    expect(clickIdFor("argo-oxygen-points", { profile_key: featureIdFor("argo-oxygen-points", float) }, 0))
+      .toBe(latest);
+  });
+});

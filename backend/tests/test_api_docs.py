@@ -99,3 +99,10 @@ def test_real_app_schema():
     schema = build_openapi(app)
     assert "/v1/map/claims" in schema["paths"]
     assert not any(p.startswith("/admin") for p in schema["paths"])
+
+
+def test_plankton_tile_and_site_routes_have_their_own_tags():
+    from backend.api_docs import _tag_for
+    assert _tag_for("/v1/plankton/tiles/{z}/{x}/{y}.pbf") == "Tiles"
+    assert _tag_for("/v1/plankton/site/{site_key}") == "Detail lookups"
+    assert _tag_for("/v1/plankton/meta") == "Meta"   # P5: the existing meta route is deliberately not re-tagged

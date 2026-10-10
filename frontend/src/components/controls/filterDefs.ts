@@ -145,6 +145,10 @@ export const HYDROPHONE_SOURCE_DEFS = [
   // ⚠️ Lowercase key — matches acoustic_stations.source exactly, NOT the
   // bucket's uppercase MD_WEA_CPOD/ prefix. See HYDROPHONE_SOURCE_LABEL.
   { key: "md_wea_cpod", label: "MD WEA C-POD", color: "#db2777" },
+  // Added 2026-10-07 — colours match HYDROPHONE_SOURCE_COLOR exactly.
+  { key: "mbarc_bering",    label: "MBARC Bering",     color: "#bef264" },
+  { key: "mbarc_onslowbay", label: "MBARC Onslow Bay", color: "#7e22ce" },
+  { key: "mbarc_ps",        label: "MBARC PS",         color: "#f87171" },
 ] as const;
 
 // AIS ship-class filter chips. Labels are plain English (not i18n-keyed) —

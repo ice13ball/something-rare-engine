@@ -51,4 +51,11 @@ def test_every_layer_config_id_should_have_ops():
         if ops["tables"] is not None:
             assert isinstance(ops["tables"], tuple) and ops["count_sql"]
         else:
-            assert ops["count_sql"] is None
+            # socat-points and wod-casts are the exceptions: their row count lives in socat_points_source / wod_casts_source, and the purge must stay psql-only
+            assert ops["count_sql"] is None or lid in {"socat-points", "wod-casts"}
+
+
+def test_plankton_has_health_from_its_import_and_no_purge():
+    # tables=None on purpose: a purge would cost a ~12 h worker run to undo, and there is no Force Sync.
+    assert resolve_ops("plankton-occurrences") == {"sync_source": None, "log_source": "plankton-obis",
+                                                   "tables": None, "count_sql": None}

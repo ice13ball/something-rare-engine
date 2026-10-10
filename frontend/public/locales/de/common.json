@@ -25,7 +25,9 @@
       "seamounts": "Tiefseeberge",
       "contractors": "Auftragnehmer",
       "stations": "Überwachungsstationen"
-    }
+    },
+    "argoProfiles_one": "{{count}} Profil",
+    "argoProfiles_other": "{{count}} Profile"
   },
   "tooltips": {
     "clearFilters": "Filter löschen",

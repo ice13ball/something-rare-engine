@@ -328,6 +328,29 @@ describe("GLODAP casts are keyed on cast_key, never on the pick index", () => {
   it("is not captured by the generic chain: an `id` on the properties never wins", () => {
     expect(clickIdFor("glodap-points", { ...cast, id: 7 }, 3)).toBe("49UF20150620_4511_1");
   });
+  it("a reloaded BGC-Argo link reopens the same profile: `/by-id` by profile_key, panel routed to argo-oxygen-points, camera on its position", async () => {
+    const body = { profile_key: "coriolis_3902120_002D", lat: -23.93, lon: 10.5 };
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => body } as unknown as Response);
+    const id = clickIdFor("argo-oxygen-points", { profile_key: "coriolis_3902120_002D", key: "coriolis_3902120_002D" }, 99);
+    const [layerId, featureId] = openObjectsFor([{ id, layer: "argo-oxygen-points" }])[0];
+    expect([layerId, featureId]).toEqual(["argo-oxygen-points", "coriolis_3902120_002D"]);
+    const t = await openTargetFor(layerId, featureId, null, "");
+    expect((spy.mock.calls[0] as unknown as [string])[0]).toBe("/api/v1/argo-oxygen/profile/coriolis_3902120_002D");
+    expect(t!.routingKey).toBe("argo-oxygen-points");
+    expect(t!.id).toBe("coriolis_3902120_002D");
+    expect(t!.properties.profile_key).toBe("coriolis_3902120_002D");   // the panel reads this
+    expect(t!.zoom).toBe(6);
+    expect(t!.feature.geometry).toEqual({ type: "Point", coordinates: [10.5, -23.93] });
+  });
+  it("an unknown profile (404) is null, for the caller to report", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
+    expect(await openTargetFor("argo-oxygen-points", "aoml_1900722_999", null, "")).toBeNull();
+  });
+  it("argo-oxygen-points links carry the profile key, never the pick index", () => {
+    expect(clickIdFor("argo-oxygen-points", { profile_key: "coriolis_3902120_002D" }, 17)).toBe("coriolis_3902120_002D");
+    expect(clickIdFor("argo-oxygen-points", { key: "aoml_1900722_001" }, 3)).toBe("aoml_1900722_001");
+    expect(clickIdFor("argo-oxygen-points", { profile_key: "aoml_1900722_001", id: 7 }, 3)).toBe("aoml_1900722_001");
+  });
   it("round-trips through the cast key, not the pick index or the row id", () => {
     const id = clickIdFor("glodap-points", { ...cast, id: 7 }, 3);
     expect(openObjectsFor([{ id, layer: "glodap-points" }])).toEqual([["glodap-points", "49UF20150620_4511_1"]]);
@@ -348,6 +371,48 @@ describe("GLODAP casts are keyed on cast_key, never on the pick index", () => {
     expect(t!.zoom).toBe(6);
     // the link can fly there: the bare answer's lat/lon became a Point
     expect(t!.feature.geometry).toEqual({ type: "Point", coordinates: [4.56, 1.23] });
+  });
+
+  it("a reloaded SOCAT link reopens the observation: `/by-id` by obs_key (encodeURIComponent leaves the `~`), panel routed to socat-points, camera on its position", async () => {
+    const body = { obs_key: "33GC20040908~1", lat: 42.9, lon: -70.5, expocode: "33GC20040908" };
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => body } as unknown as Response);
+    const id = clickIdFor("socat-points", { obs_key: "33GC20040908~1", lod: false, year: 2004, k: 5, cell: "10/300/400/77" }, 99);
+    expect(id).toBe("33GC20040908~1");
+    const [layerId, featureId] = openObjectsFor([{ id, layer: "socat-points" }])[0];
+    expect([layerId, featureId]).toEqual(["socat-points", "33GC20040908~1"]);
+    const t = await openTargetFor(layerId, featureId, null, "");
+    expect((spy.mock.calls[0] as unknown as [string])[0]).toBe("/api/v1/socat/obs/33GC20040908~1");
+    expect(t!.routingKey).toBe("socat-points");
+    expect(t!.id).toBe("33GC20040908~1");
+    expect(t!.properties.obs_key).toBe("33GC20040908~1");
+    expect(t!.zoom).toBe(9);
+    expect(t!.feature.geometry).toEqual({ type: "Point", coordinates: [-70.5, 42.9] });
+  });
+
+  it("a reloaded WOD cast link reopens the cast: `/by-id` by cast_id, panel routed to wod-casts, camera on its position", async () => {
+    const body = { cast_id: 9000001, lat: 42.9, lon: -70.5, instrument: "ctd" };
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => body } as unknown as Response);
+    const id = clickIdFor("wod-casts", { cast_id: 9000001, k: 5, a: 1990, b: 2004, cell: "10/300/400/77" }, 99);
+    expect(id).toBe(9000001);
+    const [layerId, featureId] = openObjectsFor([{ id, layer: "wod-casts" }])[0];
+    expect([layerId, featureId]).toEqual(["wod-casts", "9000001"]);
+    const t = await openTargetFor(layerId, featureId, null, "");
+    expect((spy.mock.calls[0] as unknown as [string])[0]).toBe("/api/v1/wod/cast/9000001");
+    expect(t!.routingKey).toBe("wod-casts");
+    expect(t!.id).toBe("9000001");
+    expect(t!.properties.cast_id).toBe(9000001);
+    expect(t!.zoom).toBe(8);
+    expect(t!.feature.geometry).toEqual({ type: "Point", coordinates: [-70.5, 42.9] });
+  });
+
+  it("a cast that no longer exists (404) is null — for the caller to report", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
+    expect(await openTargetFor("wod-casts", "1", null, "")).toBeNull();
+  });
+
+  it("an observation that no longer exists (404) is null — for the caller to report", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
+    expect(await openTargetFor("socat-points", "GONE~0", null, "")).toBeNull();
   });
 
   it("a cast key with reserved characters is encoded in the path", async () => {

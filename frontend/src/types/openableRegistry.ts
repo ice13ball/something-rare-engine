@@ -296,6 +296,43 @@ export const OPENABLE = {
     // its panel), and the panel reads that field's variable/depth.
     alsoActivate: ["ocean-carbon"],
   },
+  "socat-points": {
+    // obs_key = <expocode>~<ordinal>: stable (the pick index is not, and a tile feature has no row id). The click
+    // stores the cell-year's FIRST observation, a real one, so the link always resolves and opens that observation
+    // (no cell list: the cell address depends on the zoom it was clicked at). Not in ID_CHAIN, as GLODAP.
+    source: "by-id", idProps: ["obs_key"],
+    routingKeys: ["socat-points"], routingKey: () => "socat-points",
+    zoom: 9, idStability: "stable",
+    byIdPath: "/api/v1/socat/obs/",
+    geometryFromLatLon: true,
+    // Drawn only as the Measurements mode of the Surface Ocean CO₂ field (its toggle must be on too).
+    alsoActivate: ["ocean-co2-surface"],
+  },
+  "wod-casts": {
+    // cast_id = the WOD cast id: stable across re-imports of the same release (the pick index is not, and a tile
+    // feature carries it as `id`). The click stores the cell's representative cast, a real one, so the link always
+    // resolves and opens that cast (no cell list: the cell address depends on the zoom it was clicked at).
+    // `cast_id` is also in ID_CHAIN; no earlier chain name (mmsi, id, ...) is among the click's properties, so the
+    // two ends agree. Listed here by itself so the by-id lookup does not depend on the chain's order.
+    source: "by-id", idProps: ["cast_id"],
+    routingKeys: ["wod-casts"], routingKey: () => "wod-casts",
+    zoom: 8, idStability: "stable",
+    byIdPath: "/api/v1/wod/cast/",
+    geometryFromLatLon: true,
+    // Drawn only as the Measurements mode of the WOA climatology (its toggle must be on too).
+    alsoActivate: ["woa-climatology"],
+  },
+  "argo-oxygen-points": {
+    // profile_key = <dac>_<wmo>_<cycle:03d>[D]: stable across refreshes (the pick index changes with every year
+    // filter and depth switch). `key` is the same value under the points document's name. Not in ID_CHAIN.
+    source: "by-id", idProps: ["profile_key", "key"],
+    routingKeys: ["argo-oxygen-points"], routingKey: () => "argo-oxygen-points",
+    zoom: 6, idStability: "stable",
+    byIdPath: "/api/v1/argo-oxygen/profile/",
+    geometryFromLatLon: true,
+    // Drawn only as the Measurements mode of the Ocean Oxygen field; the panel reads that field's depth.
+    alsoActivate: ["oxygen-deox"],
+  },
   "mosaic-sediment": {
     source: "by-id", idProps: ["core_id", "id"],
     routingKeys: ["mosaic-sediment"], routingKey: () => "mosaic-sediment",
@@ -400,6 +437,15 @@ export const OPENABLE = {
     routingKeys: ["wod-oxygen"], routingKey: () => "wod-oxygen",
     zoom: 7, idStability: "nieustalone",
     byIdPath: "/api/v2/spatial/wod-oxygen/by-id/",
+  },
+  "plankton-occurrences": {
+    // site_key = lon,lat rounded to 6 decimals: stable across the monthly re-import (site_id is regenerated
+    // by every build). ⛔ Not in ID_CHAIN: the chain is first-match-wins for every layer.
+    source: "by-id", idProps: ["site_key"],
+    routingKeys: ["plankton-occurrences"], routingKey: () => "plankton-occurrences",
+    zoom: 8, idStability: "stable",
+    byIdPath: "/api/v1/plankton/site/",
+    geometryFromLatLon: true,
   },
 } as const satisfies Record<string, OpenableLayer>;
 

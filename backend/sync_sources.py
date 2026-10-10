@@ -29,7 +29,10 @@ from typing import Any, Awaitable, Callable
 import db
 from domains import acoustic, arctic, biodiversity, cables, fields
 from domains import aoc2025_poc
+from domains import argo_oxygen_points
 from domains import glodap_points
+from domains import socat_points
+from domains import wod_casts
 from domains import svalbard_fjords_pp
 from domains import geo_context, geochem, isa, offshore, onc, pangaea_water, seafloor, sensors
 from domains import oceansites_history
@@ -186,6 +189,12 @@ SYNC_SOURCES: dict[str, Callable[[], Awaitable[Any]]] = {
     "aoc2025-poc": lambda: aoc2025_poc.sync_aoc2025_poc(force=True),
     # GLODAPv3 bottles: the import runs in glodap_bottles_worker (own cgroup). The API only records the request.
     "glodap-bottles": lambda: glodap_points.request_refresh(),
+    # SOCAT v2026 points: the import runs in its own worker. The API only records the request.
+    "socat-points": lambda: socat_points.request_refresh(),
+    # WOD23 casts: the import runs in its own worker. The API only records the request.
+    "wod-casts": lambda: wod_casts.request_refresh(),
+    # BGC-Argo DOXY: the import runs in argo_doxy_worker (own cgroup). The API only records the request.
+    "argo-doxy": lambda: argo_oxygen_points.request_refresh(),
     "svalbard-fjords-pp": lambda: svalbard_fjords_pp.sync_svalbard_fjords_pp(force=True),
     "sios":    lambda: arctic.sync_sios(force=True),
     "arcade":  lambda: arctic.sync_arcade(force=True),

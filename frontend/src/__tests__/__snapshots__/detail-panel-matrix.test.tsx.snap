@@ -2086,6 +2086,487 @@ exports[`DetailPanel dispatch matrix > renders argo-floats-3d without throwing a
 </div>
 `;
 
+exports[`DetailPanel dispatch matrix > renders argo-oxygen-points after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          BGC-Argo oxygen profile
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div
+          data-testid="argo-profile-panel"
+        >
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            Float 1900722, cycle 1
+          </h2>
+          <p
+            class="text-white/65 text-xs mb-3"
+          >
+            ascending profile
+             · 
+            BGC-Argo DOXY, Argo GDAC synthetic profiles (current)
+          </p>
+          <svg
+            aria-label="Oxygen profile of the float, with the ISAS20 mean for comparison"
+            class="block bg-black/40 rounded-md mb-2 border border-white/10"
+            data-testid="argo-profile-chart"
+            height="240"
+            role="img"
+            viewBox="0 0 300 240"
+            width="100%"
+          >
+            <rect
+              data-testid="argo-depth-window"
+              fill="rgb(251 191 36)"
+              fill-opacity="0.14"
+              height="17.799999999999983"
+              width="236"
+              x="50"
+              y="176.20000000000002"
+            />
+            <line
+              stroke="white"
+              stroke-opacity="0.18"
+              x1="50"
+              x2="50"
+              y1="16"
+              y2="194"
+            />
+            <line
+              stroke="white"
+              stroke-opacity="0.18"
+              x1="50"
+              x2="286"
+              y1="194"
+              y2="194"
+            />
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="end"
+              x="44"
+              y="19"
+            >
+              0
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="end"
+              x="44"
+              y="108"
+            >
+              250
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="end"
+              x="44"
+              y="197"
+            >
+              500
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="middle"
+              x="50"
+              y="208"
+            >
+              200
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="middle"
+              x="168.00000000000006"
+              y="208"
+            >
+              230
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="middle"
+              x="286"
+              y="208"
+            >
+              260
+            </text>
+            <polyline
+              data-testid="argo-field-curve"
+              fill="none"
+              points="247.9226890756302,16 69.43529411764708,194"
+              stroke="rgb(52 211 153)"
+              stroke-dasharray="4 3"
+              stroke-width="1.2"
+            />
+            <circle
+              cx="247.9226890756302"
+              cy="16"
+              fill="none"
+              r="2.2"
+              stroke="rgb(52 211 153)"
+              stroke-width="1"
+            />
+            <circle
+              cx="69.43529411764708"
+              cy="194"
+              fill="none"
+              r="2.2"
+              stroke="rgb(52 211 153)"
+              stroke-width="1"
+            />
+            <polyline
+              fill="none"
+              points="286,18.1004 50,192.50480000000002"
+              stroke="rgb(248 250 252)"
+              stroke-opacity="0.85"
+              stroke-width="1.4"
+            />
+            <circle
+              cx="286"
+              cy="18.1004"
+              fill="rgb(248 250 252)"
+              r="2"
+            />
+            <circle
+              cx="50"
+              cy="192.50480000000002"
+              fill="rgb(248 250 252)"
+              r="2"
+            />
+            <text
+              fill="rgba(255,255,255,0.5)"
+              font-size="10"
+              text-anchor="middle"
+              transform="translate(11 105) rotate(-90)"
+            >
+              Depth (m)
+            </text>
+            <text
+              fill="rgba(255,255,255,0.5)"
+              font-size="10"
+              text-anchor="middle"
+              x="168"
+              y="234"
+            >
+              Oxygen
+               (µmol/kg)
+            </text>
+          </svg>
+          <p
+            class="text-white/60 text-[11px] mb-3"
+          >
+            Solid: adjusted oxygen flagged good (QC 1–2). Dashed: ISAS20 2014–2018 mean at this spot. Depth from pressure (UNESCO 1983).
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              At 500 m
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Profile, adjusted oxygen (QC 1–2)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                200.1 µmol/kg at 495.8 m (500.0 dbar)
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Field (ISAS20 2014–2018 mean) here
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                205.0 µmol/kg
+              </span>
+            </div>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Profile
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Float (WMO)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                <a
+                  class="text-cyan-300 hover:underline"
+                  href="https://fleetmonitoring.euro-argo.eu/float/1900722"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  1900722
+                   
+                  <span
+                    aria-hidden="true"
+                  >
+                    ↗
+                  </span>
+                </a>
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Data centre (DAC)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                aoml
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Cycle
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                1
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Date
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                2006-10-22 02:16 UTC
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Position
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                -40.316°, 73.389° · position QC 1
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Data mode
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                delayed mode (scientifically adjusted)
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Pressure
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                adjusted pressure
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Levels
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                70 good of 71 levels in the source
+              </span>
+            </div>
+            <p
+              class="text-white/55 text-[11px] leading-snug mt-1"
+            >
+              1 adjusted value flagged questionable or bad among the stored levels (4) — not charted
+            </p>
+            <p
+              class="text-white/55 text-[11px] leading-snug mt-1"
+            >
+              1 raw-only value among the stored levels (4) — not charted
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Source and credit
+            </p>
+            <div
+              class="flex flex-wrap gap-x-3 gap-y-1 text-xs mb-2"
+            >
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://data-argo.ifremer.fr/dac/aoml/1900722/profiles/SD1900722_001.nc"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                GDAC data file
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://doi.org/10.17882/42182"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Dataset DOI (SEANOE)
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+            </div>
+            <p
+              class="text-white/55 text-[11px] leading-snug mb-1"
+            >
+              Field: ISAS20 BGC-Argo 2014–2018 mean (SEANOE doi:10.17882/52367), built from an older Argo snapshot
+            </p>
+            <p
+              class="text-white/55 text-[11px] leading-snug mb-1"
+            >
+              These data were collected and made freely available by the International Argo Program and the national programs that contribute to it. (https://argo.ucsd.edu, https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.
+            </p>
+            <p
+              class="text-white/55 text-[11px] leading-snug mb-1"
+            >
+              Argo (2000). Argo float data and metadata from Global Data Assembly Centre (Argo GDAC). SEANOE. https://doi.org/10.17882/42182
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders argo-oxygen-points without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          BGC-Argo oxygen profile
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <p
+          class="text-white/60 text-xs animate-pulse"
+        >
+          Loading profile…
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`DetailPanel dispatch matrix > renders argo-trail-dot without throwing and matches its snapshot 1`] = `
 <div>
   <div
@@ -15038,6 +15519,304 @@ exports[`DetailPanel dispatch matrix > renders permafrost-thaw without throwing 
 </div>
 `;
 
+exports[`DetailPanel dispatch matrix > renders plankton-occurrences after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Plankton (OBIS)
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div
+          data-testid="plankton-panel"
+        >
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            Plankton observations at this place
+          </h2>
+          <p
+            class="text-white/70 text-xs font-mono mb-2"
+          >
+            50.2000, 10.2000
+          </p>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Observations
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              6
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Years
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              1995–2015 · 1 undated
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              Depth
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              50–1500 m · 2 without depth
+            </span>
+          </div>
+          <div
+            class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+          >
+            <span
+              class="text-white/70 text-[14px] shrink-0"
+            >
+              eDNA
+            </span>
+            <span
+              class="text-white/90 text-[14px] text-right font-mono"
+            >
+              1 (17 %) — DNA in a water sample, no organism seen
+            </span>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Groups
+            </p>
+            <ul
+              class="text-xs text-white/85"
+            >
+              <li
+                class="flex items-center gap-2"
+              >
+                <span
+                  class="inline-block w-2 h-2 rounded-full"
+                  style="background-color: rgb(249, 115, 22);"
+                />
+                Copepods
+                 — 
+                3
+              </li>
+              <li
+                class="flex items-center gap-2"
+              >
+                <span
+                  class="inline-block w-2 h-2 rounded-full"
+                  style="background-color: rgb(250, 204, 21);"
+                />
+                Diatoms
+                 — 
+                2
+              </li>
+              <li
+                class="flex items-center gap-2"
+              >
+                <span
+                  class="inline-block w-2 h-2 rounded-full"
+                  style="background-color: rgb(192, 132, 252);"
+                />
+                Dinoflagellates
+                 — 
+                1
+              </li>
+            </ul>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Top species
+            </p>
+            <ol
+              class="text-xs text-white/85 list-decimal ml-4"
+            >
+              <li>
+                <i>
+                  Calanus finmarchicus
+                </i>
+                 — 
+                3
+              </li>
+              <li>
+                <i>
+                  Chaetoceros
+                </i>
+                 — 
+                2
+              </li>
+            </ol>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Licences
+            </p>
+            <p
+              class="text-xs text-white/85"
+            >
+              CC-BY 4 · CC-BY-NC 2
+            </p>
+            <p
+              class="text-[11px] text-amber-300/90 mt-1"
+            >
+              Part of these records is CC-BY-NC: non-commercial use only. The licence of each dataset is listed below.
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Datasets (2)
+            </p>
+            <ul
+              class="text-xs text-white/85 space-y-1.5"
+            >
+              <li>
+                <a
+                  class="text-cyan-300 hover:underline"
+                  href="https://obis.org/dataset/00000000-0000-0000-0000-0000000000aa"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Synthetic CC-BY dataset
+                </a>
+                 
+                <span
+                  class="text-white/60"
+                >
+                  (
+                  CC-BY
+                  , 
+                  4
+                  )
+                </span>
+                <p
+                  class="text-white/60 text-[11px]"
+                >
+                  Synthetic citation A
+                </p>
+              </li>
+              <li>
+                <a
+                  class="text-cyan-300 hover:underline"
+                  href="https://obis.org/dataset/00000000-0000-0000-0000-0000000000ab"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Synthetic CC-BY-NC dataset
+                </a>
+                 
+                <span
+                  class="text-white/60"
+                >
+                  (
+                  CC-BY-NC
+                  , 
+                  2
+                  )
+                </span>
+                <p
+                  class="text-white/60 text-[11px]"
+                >
+                  Synthetic citation B
+                </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders plankton-occurrences without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          Plankton (OBIS)
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <p
+          class="text-white/60 text-xs animate-pulse"
+        >
+          Loading the place…
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`DetailPanel dispatch matrix > renders plume-origin without throwing and matches its snapshot 1`] = `
 <div>
   <div
@@ -16209,6 +16988,413 @@ exports[`DetailPanel dispatch matrix > renders sios-svalbard without throwing an
           class="text-white/50 text-[11px] mt-3"
         >
           via SIOS data management portal · sios-svalbard.org
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders socat-points after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          SOCAT surface CO₂ observation
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div
+          data-testid="socat-obs-panel"
+        >
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            Gulf Challenger · 33GC20040908
+          </h2>
+          <p
+            class="text-white/65 text-xs mb-3"
+          >
+            SOCAT v2026 observation. The Surface Ocean CO₂ field is the gridded decadal mean — a different product.
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              This observation
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                fCO₂ (recomputed)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                365.4 µatm
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Sea surface temperature
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                0.00 °C
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Salinity (PSS-78)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                —
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Time
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                2004-09-08 10:20:30 UTC
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Position
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                42.9000°, -70.5000°
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                fCO₂ algorithm
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                code 4
+              </span>
+            </div>
+          </div>
+          <p
+            class="text-white/55 text-[11px] leading-snug mb-3"
+          >
+            fCO2rec_src is the SOCAT algorithm code (0 not generated, 1-14) that produced the recomputed fCO2; see the SOCAT data documentation for the meaning of each code.
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              fCO₂ (µatm) along this cruise segment
+            </p>
+            <svg
+              aria-label="fCO₂ (µatm)"
+              class="block bg-black/40 rounded-md mb-1 border border-white/10"
+              data-testid="socat-sparkline"
+              height="90"
+              role="img"
+              viewBox="0 0 300 90"
+              width="100%"
+            >
+              <polyline
+                fill="none"
+                points="8,82 153.54999999999998,43.13131313131335 292,8"
+                stroke="rgb(125 211 252)"
+                stroke-opacity="0.9"
+                stroke-width="1.2"
+              />
+              <circle
+                cx="153.54999999999998"
+                cy="43.13131313131335"
+                data-testid="socat-sparkline-picked"
+                fill="none"
+                r="4"
+                stroke="rgb(251 191 36)"
+                stroke-width="1.6"
+              />
+            </svg>
+            <p
+              class="text-white/55 text-[11px] mb-1"
+            >
+              3 observations in this segment; amber ring: the selected one.
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              The field at this place
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Gridded decadal mean fCO₂
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                372.3 µatm
+              </span>
+            </div>
+            <p
+              class="text-white/55 text-[11px] leading-snug mt-1"
+            >
+              A different product: the decadal mean of a 1° cell, not this measurement.
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Cruise
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Cruise (EXPOCODE)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                33GC20040908
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Platform
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                Gulf Challenger
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Principal investigator(s)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                Vandemark, D.
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                SOCAT QC flag
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                C — estimated accuracy better than 5 µatm
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Dataset version
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                3.0U
+              </span>
+            </div>
+          </div>
+          <p
+            class="text-white/55 text-[11px] leading-snug mb-3"
+          >
+            The QC flag grades the whole cruise, not this observation. Only cruises flagged A–D (accuracy better than 5 µatm) are drawn. Source: NCEI accession 0315110.
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Source and credit
+            </p>
+            <div
+              class="flex flex-wrap gap-x-3 gap-y-1 text-xs mb-2"
+            >
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://doi.org/10.25921/8dba-fr90"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                SOCAT v2026 (NCEI)
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://doi.org/10.3334/CDIAC/otg.TSM_UNH_GOM"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Cruise data DOI
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://accession.nodc.noaa.gov/0073808"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                NCEI accession
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+            </div>
+            <p
+              class="text-white/55 text-[11px] leading-snug mb-1"
+            >
+              Bakker, D. C. E., Alin, S. R., Bates, N., et al. (2026). Surface Ocean CO2 Atlas Database Version 2026 (SOCATv2026) (NCEI Accession 0315110). NOAA NCEI. https://doi.org/10.25921/8dba-fr90
+            </p>
+            <p
+              class="text-white/55 text-[11px] leading-snug mb-1"
+            >
+              Bakker, D. C. E., et al. (2016). A multi-decade record of high-quality fCO2 data in version 3 of the Surface Ocean CO2 Atlas (SOCAT). Earth System Science Data 8, 383-413. https://doi.org/10.5194/essd-8-383-2016
+            </p>
+            <p
+              class="text-white/55 text-[11px] leading-snug mt-2"
+            >
+              The Surface Ocean CO2 Atlas (SOCAT) is an international effort, endorsed by the SCOR Infrastructural Project International Ocean Carbon Coordination Project (IOCCP) and the Surface Ocean Lower-Atmosphere Study (SOLAS), to deliver a uniform, quality-controlled surface ocean CO2 database. The many researchers and funding agencies responsible for the collection of data and quality control are thanked for their contributions to SOCAT.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders socat-points without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          SOCAT surface CO₂ observation
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <p
+          class="text-white/60 text-xs animate-pulse"
+        >
+          Loading observation…
         </p>
       </div>
     </div>
@@ -18617,6 +19803,608 @@ exports[`DetailPanel dispatch matrix > renders woa-climatology without throwing 
           class="text-white/60 text-xs animate-pulse"
         >
           Loading…
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders wod-casts after data loads 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          World Ocean Database cast
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <div
+          data-testid="wod-cast-panel"
+        >
+          <h2
+            class="text-white text-sm font-semibold font-sans leading-tight mb-1"
+          >
+            CTD · XCTD
+          </h2>
+          <p
+            class="text-white/65 text-xs mb-3"
+          >
+            World Ocean Database 2023 (WOD23) — OSD, CTD, PFL cast. The Ocean Climatology field is an objectively analysed annual mean — a different product.
+          </p>
+          <svg
+            aria-label="Dissolved O₂ profile of the cast"
+            class="block bg-black/40 rounded-md mb-2 border border-white/10"
+            data-testid="glodap-profile-chart"
+            height="230"
+            role="img"
+            viewBox="0 0 300 230"
+            width="100%"
+          >
+            <line
+              stroke="white"
+              stroke-opacity="0.18"
+              x1="50"
+              x2="50"
+              y1="16"
+              y2="184"
+            />
+            <line
+              stroke="white"
+              stroke-opacity="0.18"
+              x1="50"
+              x2="286"
+              y1="184"
+              y2="184"
+            />
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="end"
+              x="44"
+              y="19"
+            >
+              0
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="end"
+              x="44"
+              y="103"
+            >
+              100
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="end"
+              x="44"
+              y="187"
+            >
+              200
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="middle"
+              x="50"
+              y="198"
+            >
+              220
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="middle"
+              x="168"
+              y="198"
+            >
+              265
+            </text>
+            <text
+              fill="rgba(255,255,255,0.55)"
+              font-size="9"
+              text-anchor="middle"
+              x="286"
+              y="198"
+            >
+              310
+            </text>
+            <polyline
+              data-testid="glodap-field-curve"
+              fill="none"
+              points="286,16 233.55555555555557,58 154.88888888888889,100 76.22222222222223,184"
+              stroke="rgb(52 211 153)"
+              stroke-dasharray="4 3"
+              stroke-width="1.2"
+            />
+            <circle
+              cx="286"
+              cy="16"
+              fill="none"
+              r="2.2"
+              stroke="rgb(52 211 153)"
+              stroke-width="1"
+            />
+            <circle
+              cx="233.55555555555557"
+              cy="58"
+              fill="none"
+              r="2.2"
+              stroke="rgb(52 211 153)"
+              stroke-width="1"
+            />
+            <circle
+              cx="154.88888888888889"
+              cy="100"
+              fill="none"
+              r="2.2"
+              stroke="rgb(52 211 153)"
+              stroke-width="1"
+            />
+            <circle
+              cx="76.22222222222223"
+              cy="184"
+              fill="none"
+              r="2.2"
+              stroke="rgb(52 211 153)"
+              stroke-width="1"
+            />
+            <polyline
+              fill="none"
+              points="259.77777777777777,16 207.33333333333331,58 50,184"
+              stroke="rgb(248 250 252)"
+              stroke-opacity="0.85"
+              stroke-width="1.4"
+            />
+            <circle
+              cx="259.77777777777777"
+              cy="16"
+              fill="rgb(248 250 252)"
+              r="2"
+            />
+            <circle
+              cx="207.33333333333331"
+              cy="58"
+              fill="rgb(248 250 252)"
+              r="2"
+            />
+            <circle
+              cx="50"
+              cy="184"
+              fill="rgb(248 250 252)"
+              r="2"
+            />
+            <text
+              fill="rgba(255,255,255,0.5)"
+              font-size="10"
+              text-anchor="middle"
+              transform="translate(11 100) rotate(-90)"
+            >
+              Depth (m)
+            </text>
+            <text
+              fill="rgba(255,255,255,0.5)"
+              font-size="10"
+              text-anchor="middle"
+              x="168"
+              y="224"
+            >
+              Dissolved O₂
+               (µmol/kg)
+            </text>
+          </svg>
+          <p
+            class="text-white/60 text-[11px] mb-3"
+          >
+            White: accepted values of the cast; amber ring: the level the dot uses at the selected depth.
+             Green dashed: the WOA23 field at this place (a climatology, a different product).
+          </p>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              At the selected depth
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Dissolved O₂ at 500 m
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                no good value in the 450–550 m window
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                WOA23 field here (Dissolved O₂, 500 m)
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                150 µmol/kg
+              </span>
+            </div>
+            <p
+              class="text-white/55 text-[11px] leading-snug mt-1"
+            >
+              A climatology — a different product: the objectively analysed annual mean of a 1° cell, not this measurement.
+            </p>
+          </div>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Cast
+            </p>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Instrument · dataset
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                CTD · XCTD
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Date
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                2004-09-08 (time not recorded)
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Position
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                42.9000°, -70.5000°
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Cruise
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST-CRUISE-1
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Originator's cruise
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST-ORIG-1
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Platform
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST Vessel
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Country
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST Country
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Institute
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST Institute
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Project
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST Project
+              </span>
+            </div>
+            <div
+              class="flex justify-between gap-4 py-1.5 border-b border-white/5 last:border-0"
+            >
+              <span
+                class="text-white/70 text-[14px] shrink-0"
+              >
+                Temperature instrument
+              </span>
+              <span
+                class="text-white/90 text-[14px] text-right font-mono"
+              >
+                TEST thermometer
+              </span>
+            </div>
+          </div>
+          <details
+            class="mb-3 text-xs"
+            data-testid="wod-level-table"
+          >
+            <summary
+              class="cursor-pointer text-cyan-300"
+            >
+              Dissolved O₂ levels
+               — 4 of 4 source levels shown
+            </summary>
+            <table
+              class="w-full mt-1"
+            >
+              <thead>
+                <tr
+                  class="text-white/55 text-left"
+                >
+                  <th
+                    class="font-normal"
+                  >
+                    Depth (m)
+                  </th>
+                  <th
+                    class="font-normal"
+                  >
+                    Value
+                  </th>
+                  <th
+                    class="font-normal"
+                  >
+                    WOD flag
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  class="text-white/80"
+                >
+                  <td>
+                    0
+                  </td>
+                  <td>
+                    300
+                  </td>
+                  <td>
+                    0 — accepted value
+                  </td>
+                </tr>
+                <tr
+                  class="text-white/80"
+                >
+                  <td>
+                    50
+                  </td>
+                  <td>
+                    280
+                  </td>
+                  <td>
+                    0 — accepted value
+                  </td>
+                </tr>
+                <tr
+                  class="text-white/50"
+                >
+                  <td>
+                    100
+                  </td>
+                  <td>
+                    250
+                  </td>
+                  <td>
+                    1 — range outlier
+                  </td>
+                </tr>
+                <tr
+                  class="text-white/80"
+                >
+                  <td>
+                    200
+                  </td>
+                  <td>
+                    220
+                  </td>
+                  <td>
+                    0 — accepted value
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </details>
+          <div
+            class="mb-4"
+          >
+            <p
+              class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans"
+            >
+              Source and credit
+            </p>
+            <div
+              class="flex flex-wrap gap-x-3 gap-y-1 text-xs mb-2"
+            >
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://www.ncei.noaa.gov/archive/accession/12345"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                NCEI accession
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://www.ncei.noaa.gov/data/oceans/ncei/wod/2004/wod_ctd_2004.nc"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Source file
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+              <a
+                class="text-cyan-300 hover:underline"
+                href="https://www.ncei.noaa.gov/products/world-ocean-database"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                World Ocean Database
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+            </div>
+            <p
+              class="text-white/55 text-[11px] leading-snug mb-1"
+            >
+              TEST WOD23 citation
+            </p>
+            <p
+              class="text-white/55 text-[11px] leading-snug mt-2"
+            >
+              Public use without restriction (NOAA NCEI)
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailPanel dispatch matrix > renders wod-casts without throwing and matches its snapshot 1`] = `
+<div>
+  <div
+    aria-label="Feature details"
+    aria-live="polite"
+  >
+    <div
+      class="fixed z-overlay max-h-[80vh] overflow-y-auto custom-scrollbar rounded-xl border border-white/10 bg-surface-primary shadow-2xl"
+      style="left: 688px; top: 60px; width: 320px;"
+    >
+      <div
+        class="flex items-center justify-between px-4 py-3 border-b border-white/5 cursor-grab active:cursor-grabbing select-none"
+      >
+        <span
+          class="text-white/65 text-[13px] uppercase tracking-widest mb-1.5 font-sans truncate pr-2 mb-0"
+        >
+          World Ocean Database cast
+        </span>
+        <button
+          aria-label="Close"
+          class="text-white/60 hover:text-white text-lg leading-none transition-colors shrink-0"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="px-4 py-4"
+      >
+        <p
+          class="text-white/60 text-xs animate-pulse"
+        >
+          Loading cast…
         </p>
       </div>
     </div>

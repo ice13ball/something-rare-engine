@@ -131,6 +131,9 @@ export function openObjectsFor(
   return out;
 }
 
+/** Mirror of backend `SITE_KEY_RE`: lon,lat to six decimals. */
+const PLANKTON_SITE_KEY_RE = /^-?[0-9]{1,3}\.[0-9]{6},-?[0-9]{1,2}\.[0-9]{6}$/;
+
 /**
  * Ask the server for one feature of a tiled layer.
  *
@@ -150,6 +153,8 @@ export async function fetchOpenTarget(
 ): Promise<OpenTarget | null> {
   const cfg = OPENABLE_LOOKUP[layerId];
   if (!cfg?.byIdPath) return null;
+  // A hand-edited link must not reach the network: the endpoint's own pattern (backend SITE_KEY_RE), checked first.
+  if (layerId === "plankton-occurrences" && !PLANKTON_SITE_KEY_RE.test(featureId)) return null;
   try {
     const r = await fetch(`${api}${cfg.byIdPath}${encodeURIComponent(featureId)}`, { signal });
     if (!r.ok) return null;
@@ -203,7 +208,24 @@ export function clickIdFor(
   props: Record<string, unknown>,
   index: number,
 ): string | number {
-  return layerId === "glodap-points"
+  return layerId === "plankton-occurrences"
+    // ⛔ site_key (lon,lat to 6 decimals): the pick index changes with every filter, and site_id is regenerated
+    // by every monthly import. A grid cell has no site_key and never reaches here (its click zooms in).
+    ? ((props.site_key as string | undefined) ?? String(index))
+    : layerId === "argo-oxygen-points"
+    // ⛔ The pick index changes with every year filter and depth switch (grey points sort first). The profile key
+    // <dac>_<wmo>_<cycle>[D] is the only stable name; the click stores `profile_key`, the document calls it `key`.
+    ? ((props.profile_key as string | undefined) ?? (props.key as string | undefined) ?? String(index))
+    : layerId === "socat-points"
+    // ⛔ The pick index changes with every filter and zoom, and a tile feature has no row id. obs_key
+    // (<expocode>~<ordinal>) is the only stable name; the click stores it as `obs_key` (the cell-year's first
+    // observation, a real one, so a link by-id always resolves).
+    ? ((props.obs_key as string | undefined) ?? String(index))
+    : layerId === "wod-casts"
+    // ⛔ The pick index changes with every filter and zoom; the tile feature's cast id (stored as `cast_id` by the
+    // click) is the only stable name, and a real cast, so a link by-id always resolves.
+    ? ((props.cast_id as string | number | undefined) ?? String(index))
+    : layerId === "glodap-points"
     // ⛔ The pick index changes with every year filter and variable switch (grey points sort first), and the
     // surrogate row id regenerates on every swap. cast_key (EXPOCODE_station_cast) is the only stable name.
     // The click handler stores `cast_key`; the points document calls the same value `key` — accept both.
