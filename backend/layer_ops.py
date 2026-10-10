@@ -279,6 +279,16 @@ LAYER_OPS: dict[str, LayerOps] = {
                              "count_sql": "SELECT count(*) FROM vessel_events"},
 }
 
+# Statements a purge runs in the SAME transaction, after the TRUNCATE of `tables`, for layers whose map reads tables
+# derived from the purged one and keyed on a version row (2026-10-10). Without them the argo-oxygen tiles would keep
+# drawing purged profiles whose every click 404s. Kept beside LAYER_OPS, not in it: LayerOps' keys are pinned.
+PURGE_RESETS: dict[str, tuple[str, ...]] = {
+    "argo-oxygen-points": (
+        "TRUNCATE TABLE argo_doxy_tile_points, argo_doxy_cells",
+        "UPDATE argo_doxy_source SET tile_version = NULL, tile_built_at = NULL WHERE id = 1",
+    ),
+}
+
 
 def resolve_ops(layer_id: str) -> LayerOps | None:
     return LAYER_OPS.get(layer_id)

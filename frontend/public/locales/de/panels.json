@@ -210,6 +210,7 @@
         "versionNote": "Punkte: BGC-Argo-Sauerstoffprofile aus dem aktuellen Argo-Datenzentrum (korrigierte, als gut markierte Werte). Feld: ISAS20-Mittel 2014–2018 aus einem älteren Argo-Stand.",
         "recentScaleNote": "Messungen sind absolutes O₂ und nutzen daher die Skala „Aktueller O₂ (2014–2018)“. Ein einzelnes Profil hat keine Basis 1971–2000, daher wird keine Änderung gezeigt.",
         "greyNote": "Grau: kein guter korrigierter Sauerstoffwert im Bereich {{window}} um diese Tiefe.",
+        "cellNote": "Herausgezoomt (unter Zoomstufe {{zoom}}) ist jeder Punkt der Mittelwert der Profile in seiner Gitterzelle, keine Einzelmessung; ein Klick zoomt hinein. Ab Zoomstufe {{zoom}} ist jeder Punkt ein Profil.",
         "loading": "Messungen werden geladen…",
         "empty": "Keine Profile in diesem Jahresbereich.",
         "yearFrom": "Von",

@@ -326,7 +326,7 @@ CREATE INDEX IF NOT EXISTS acoustic_stations_source_idx ON acoustic_stations (so
 ALTER TABLE acoustic_stations OWNER TO abyssal_user
 ALTER TABLE acoustic_stations ADD COLUMN IF NOT EXISTS license TEXT
 ALTER TABLE acoustic_stations DROP CONSTRAINT IF EXISTS acoustic_stations_source_check
-ALTER TABLE acoustic_stations ADD CONSTRAINT acoustic_stations_source_check CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','navy','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims','afsc','cornell','mbarc_socal','mbarc_arctic','mbarc_flip','swfsc','rutgers_njrmi','md_wea_cpod','mbarc_bering','mbarc_onslowbay','mbarc_ps'))
+ALTER TABLE acoustic_stations ADD CONSTRAINT acoustic_stations_source_check CHECK (source IN ('ooi','imos','mars','palaoa','obsea','km3net','nrs','sanctsound','nefsc','pifsc','sefsc','onms','adeon','boem','aeon','nps','jasco','fram','coastal_studies_institute','ioos','sambah','ims','afsc','cornell','mbarc_socal','mbarc_arctic','mbarc_flip','swfsc','rutgers_njrmi','md_wea_cpod','mbarc_bering','mbarc_onslowbay','mbarc_ps','navy'))
 CREATE TABLE IF NOT EXISTS acoustic_soundscape ( station_id TEXT NOT NULL REFERENCES acoustic_stations(station_id) ON DELETE CASCADE, day DATE NOT NULL, broadband_spl_db REAL, spl_10hz_db REAL, spl_63hz_db REAL, spl_100hz_db REAL, spl_125hz_db REAL, spl_1khz_db REAL, spl_10khz_db REAL, l50_db REAL, l95_db REAL, n_minutes_recorded INTEGER, source_url TEXT, fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (station_id, day) )
 CREATE INDEX IF NOT EXISTS acoustic_soundscape_day_idx ON acoustic_soundscape (day DESC)
 ALTER TABLE acoustic_soundscape OWNER TO abyssal_user
@@ -557,6 +557,13 @@ ALTER TABLE argo_doxy_empty OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS argo_doxy_source ( id smallint PRIMARY KEY CHECK (id = 1), index_bytes bigint, index_date_update_max timestamptz, loaded_at timestamptz, last_complete_at timestamptz, refresh_requested_at timestamptz, rules_version smallint, n_index_doxy integer, n_profiles integer, n_drawable integer, pending_floats integer NOT NULL DEFAULT 0, last_run_at timestamptz, last_decision text, last_failed_at timestamptz, last_failure text, last_rejects jsonb, last_rejects_at timestamptz )
 INSERT INTO argo_doxy_source (id) VALUES (1) ON CONFLICT (id) DO NOTHING
 ALTER TABLE argo_doxy_source OWNER TO abyssal_user
+ALTER TABLE argo_doxy_source ADD COLUMN IF NOT EXISTS tile_version text
+ALTER TABLE argo_doxy_source ADD COLUMN IF NOT EXISTS tile_built_at timestamptz
+CREATE TABLE IF NOT EXISTS argo_doxy_tile_points ( profile_key text NOT NULL, year smallint NOT NULL, key bigint NOT NULL, x real NOT NULL, y real NOT NULL, d smallint[] NOT NULL CHECK (cardinality(d) = 8) )
+ALTER TABLE argo_doxy_tile_points OWNER TO abyssal_user
+CREATE INDEX IF NOT EXISTS argo_doxy_tile_points_key_idx ON argo_doxy_tile_points (key)
+CREATE TABLE IF NOT EXISTS argo_doxy_cells ( level smallint NOT NULL, cell integer NOT NULL, year smallint NOT NULL, n integer NOT NULL, rep text NOT NULL, sx double precision NOT NULL, sy double precision NOT NULL, s double precision[] NOT NULL, c integer[] NOT NULL, CONSTRAINT argo_doxy_cells_pkey PRIMARY KEY (level, cell, year) )
+ALTER TABLE argo_doxy_cells OWNER TO abyssal_user
 CREATE TABLE IF NOT EXISTS wod_casts ( cast_id integer PRIMARY KEY, file_id smallint NOT NULL, instrument text NOT NULL CHECK (instrument IN ('osd','ctd','pfl')), dataset text, lat real NOT NULL, lon real NOT NULL, cast_date date, cast_time timestamptz, time_precision text CHECK (time_precision IN ('second','day','month','year')), year smallint, cruise text, orig_cruise text, platform text, vehicle text, wmo_id text, institute text, project text, country text, t_instrument text, o2_instrument text, real_time text, access_no integer, depth real[] NOT NULL, depth_flag bytea NOT NULL, t real[], s real[], o real[], p real[], i real[], n real[], t_f bytea, s_f bytea, o_f bytea, p_f bytea, i_f bytea, n_f bytea, pflag smallint[] NOT NULL, n_src integer[] NOT NULL, n_good integer NOT NULL )
 ALTER TABLE wod_casts OWNER TO abyssal_user
 CREATE INDEX IF NOT EXISTS wod_casts_file_idx ON wod_casts (file_id)

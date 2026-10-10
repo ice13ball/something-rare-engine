@@ -124,6 +124,8 @@ async def purge_layer(layer_id: str, admin=Depends(require_super_admin)):
             for tbl in ops["tables"]:
                 before[tbl] = await conn.fetchval(f"SELECT count(*) FROM {tbl}")
                 await conn.execute(f"TRUNCATE TABLE {tbl}")
+            for sql in layer_ops.PURGE_RESETS.get(layer_id, ()):
+                await conn.execute(sql)
             await audit.write_audit(conn, admin["username"], "purge", layer_id,
                                     {"tables": list(ops["tables"]), "rows_before": before})
     # The table is empty but the API process may still hold documents built from it (the argo-oxygen map documents

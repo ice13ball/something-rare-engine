@@ -159,7 +159,6 @@ export const HYDROPHONE_SOURCE_COLOR: Record<string, [number, number, number, nu
   adeon:  [139,  92, 246, 255],   // violet-500 — Atlantic deepwater
   boem:   [ 75,  85,  99, 255],   // gray-600 — federal regulatory
   aeon:   [167, 139, 250, 255],   // violet-400 — Atlantic ecosystem
-  navy:   [ 31,  41,  55, 255],   // gray-800 — Navy
   nps:    [ 16, 185, 129, 255],   // emerald-500 — Park Service
   jasco:  [217,  70, 239, 255],   // fuchsia-500 — contractor
   fram:   [225, 211,  20, 255],   // lime-yellow — Arctic ice
@@ -175,7 +174,7 @@ export const HYDROPHONE_SOURCE_COLOR: Record<string, [number, number, number, nu
   // above — all ≥58 apart, no two of these 8 closer than ~71 to each other.
   afsc:   [  6,  95,  70, 255],   // emerald-800 — Alaska
   cornell:[185,  28,  28, 255],   // red-700 ("Cornell red")
-  mbarc_socal:  [ 59, 130, 246, 255], // blue-500 — Navy family (see 'navy' above)
+  mbarc_socal:  [ 59, 130, 246, 255], // blue-500 — Navy family
   mbarc_arctic: [191, 219, 254, 255], // blue-200 — Navy family, icy pale
   mbarc_flip:   [ 30,  64, 175, 255], // blue-800 — Navy family, deep
   swfsc:  [120,  53,  15, 255],   // amber-900 — Southwest Fisheries

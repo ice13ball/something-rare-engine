@@ -381,6 +381,22 @@ def note_write(root: Path) -> None:
     _prune_task = asyncio.get_running_loop().create_task(asyncio.to_thread(prune, root))
 
 
+class PruneCounter:
+    """`note_write` for a cache with its own cap: counts the API's writes, every PRUNE_EVERY-th starts one
+    background prune (never two at once). One instance per cache directory."""
+
+    def __init__(self, cap) -> None:
+        self._cap = cap                      # callable -> bytes, read at prune time (env can point it elsewhere)
+        self._writes = 0
+        self._task: asyncio.Task | None = None
+
+    def note_write(self, root: Path) -> None:
+        self._writes += 1
+        if self._writes % PRUNE_EVERY or (self._task is not None and not self._task.done()):
+            return
+        self._task = asyncio.get_running_loop().create_task(asyncio.to_thread(prune, root, self._cap()))
+
+
 TILE_MAX_ZOOM = 12         # the map's MVTLayer maxZoom; deck.gl overzooms above it, so the route refuses z > 12
 PREBAKE_MAX_ZOOM = 6       # z0-6 = 5,461 tiles of the default view
 

@@ -89,6 +89,61 @@ CREATE TABLE IF NOT EXISTS argo_doxy_source (
 )""", "INSERT INTO argo_doxy_source (id) VALUES (1) ON CONFLICT (id) DO NOTHING",
     "ALTER TABLE argo_doxy_source OWNER TO abyssal_user"]
 
+# ── map tiles (2026-10-10). Both tables are rebuilt by the worker as `<name>_new` and swapped in with a new
+# argo_doxy_source.tile_version (ingestion/argo_doxy_tiles.py), so every name is derived from the table name.
+# ensure_schema creates the empty live tables, so the tile route answers 503 "not built", never a missing table.
+# No statement contains a semicolon or a -- comment: the DDL snapshot splits on ";".
+TILE_POINT_COLUMNS = ("profile_key", "year", "key", "x", "y", "d")
+
+
+def tile_points_ddl(t: str) -> list[str]:
+    """One row per drawable profile: key = wod_casts_rules.morton_key over EPSG:3857 x/y (latitude clamped),
+    d = the 8 display-depth values in whole µmol/kg, NULL element = no good adjusted value in that window."""
+    return [f"""
+CREATE TABLE IF NOT EXISTS {t} (
+  profile_key text NOT NULL,
+  year smallint NOT NULL,
+  key bigint NOT NULL,
+  x real NOT NULL,
+  y real NOT NULL,
+  d smallint[] NOT NULL CHECK (cardinality(d) = {_N})
+)""", f"ALTER TABLE {t} OWNER TO abyssal_user"]
+
+
+def tile_points_index_ddl(t: str) -> list[str]:
+    return [f"CREATE INDEX IF NOT EXISTS {t}_key_idx ON {t} (key)"]
+
+
+def tile_points_index_names(t: str) -> list[str]:
+    return [f"{t}_key_idx"]
+
+
+def cells_ddl(t: str) -> list[str]:
+    """Per (LOD level, cell, year): n profiles, rep = max(profile_key) (a real profile of the cell and year), sums of
+    EPSG:3857 x / y, per display depth the sum (s) and count (c) of the whole-µmol/kg values, NULL when none."""
+    return [f"""
+CREATE TABLE IF NOT EXISTS {t} (
+  level smallint NOT NULL,
+  cell integer NOT NULL,
+  year smallint NOT NULL,
+  n integer NOT NULL,
+  rep text NOT NULL,
+  sx double precision NOT NULL,
+  sy double precision NOT NULL,
+  s double precision[] NOT NULL,
+  c integer[] NOT NULL,
+  CONSTRAINT {t}_pkey PRIMARY KEY (level, cell, year)
+)""", f"ALTER TABLE {t} OWNER TO abyssal_user"]
+
+
+def cells_index_names(t: str) -> list[str]:
+    return [f"{t}_pkey"]
+
+
+# The source row predates the tiles: the columns are added, not part of the CREATE (production already has the table).
+SOURCE_TILE_COLUMNS = ["ALTER TABLE argo_doxy_source ADD COLUMN IF NOT EXISTS tile_version text",
+                       "ALTER TABLE argo_doxy_source ADD COLUMN IF NOT EXISTS tile_built_at timestamptz"]
+
 _COLS = ", ".join(PROFILE_COLUMNS)
 _VALS = ", ".join(f"${i + 1}" for i in range(len(PROFILE_COLUMNS)))
 _SET = ", ".join(f"{c} = EXCLUDED.{c}" for c in PROFILE_COLUMNS if c != "profile_key")
@@ -102,5 +157,7 @@ UPSERT_EMPTY_SQL = ("INSERT INTO argo_doxy_empty (profile_key, gdac_date_update,
 
 
 async def ensure_argo_doxy(conn) -> None:
-    for sql in PROFILES_DDL + EMPTY_DDL + SOURCE_DDL:
+    for sql in (PROFILES_DDL + EMPTY_DDL + SOURCE_DDL + SOURCE_TILE_COLUMNS
+                + tile_points_ddl("argo_doxy_tile_points") + tile_points_index_ddl("argo_doxy_tile_points")
+                + cells_ddl("argo_doxy_cells")):
         await conn.execute(sql)

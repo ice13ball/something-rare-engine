@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useMapStore } from "../../../../store/mapStore";
 import type { LayerId } from "../../../../types/layers";
 import { ARGO_POINTS_VIEW, argoWindowLabel } from "../../../../utils/argoOxygenPoints";
+import { ARGO_POINT_MIN_ZOOM } from "../../../../utils/argoOxygenTiles";
 import { LayerRow, FilterResetLink } from "../../rows";
 import { useFieldLayerToggle } from "./useFieldLayerToggle";
 
@@ -13,7 +14,7 @@ interface Props {
   setExpandedFilter: (f: LayerId | null) => void;
   toggleExpand: (id: LayerId) => void;
   toggle: (id: LayerId) => void;
-  // BGC-Argo O₂ Measurements (points): year span of the loaded documents, still loading, nothing in the year window.
+  // BGC-Argo O₂ Measurements (points): year span (from /meta), still loading, nothing in the year window.
   argoYearBounds?: { min: number; max: number } | null;
   argoLoading?: boolean;
   argoEmpty?: boolean;
@@ -155,6 +156,7 @@ export function OxygenDeoxRow({ expandedFilter, setExpandedFilter, toggleExpand,
                           {pointsOn && (
                             <>
                               <p className="text-[11px] text-white/60">{t("layers.oxygenDeox.points.greyNote", { window: argoWindowLabel(oxygenDepth) })}</p>
+                              <p className="text-[11px] text-white/60 leading-snug">{t("layers.oxygenDeox.points.cellNote", { zoom: ARGO_POINT_MIN_ZOOM })}</p>
                               {argoLoading && <p className="text-[11px] text-white/50">{t("layers.oxygenDeox.points.loading")}</p>}
                               {argoEmpty && <p className="text-[11px] text-white/60">{t("layers.oxygenDeox.points.empty")}</p>}
                               {bounds && (

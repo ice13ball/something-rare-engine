@@ -106,12 +106,14 @@ import {
 } from "./map3d/depthCache";
 import { BASEMAP, MAP_VIEW, tooltipStyle } from "./map3d/viewState";
 import { useLayerFetcher } from "./map3d/useLayerFetcher";
-import { useArgoOxygenDocs } from "./map3d/useArgoOxygenDocs";
 import { glodapPoints, glodapColor, carbonDrawing, glodapYearBounds, type GlodapCastsDoc, type GlodapPoint } from "../utils/glodapPoints";
 import {
-  argoOxygenPoints, argoOxygenColor, oxygenDrawing, oxygenNeedsFieldTiles,
-  ARGO_FAILED_NAME, type ArgoOxygenPoint,
+  argoOxygenColor, oxygenDrawing, oxygenNeedsFieldTiles, ARGO_FAILED_NAME,
 } from "../utils/argoOxygenPoints";
+import {
+  ARGO_DEPTHS, ARGO_TILE_MAX_ZOOM, argoMetaYearBounds, argoRangeEmpty, argoTileUrl, argoTileValue, isArgoCell,
+  type ArgoTileMeta, type ArgoTileProps,
+} from "../utils/argoOxygenTiles";
 import {
   socatColor, socatValue, co2Drawing, socatTileUrl, SOCAT_FAILED_NAME, SOCAT_TILE_MAX_ZOOM,
   type SocatMeta, type SocatProps,
@@ -1693,16 +1695,27 @@ export function Map3D() {
   // ── Ocean Oxygen (ISASO2): fetch meta when layer activates ──────────────────
   const oxygenActive = activeLayers.has("oxygen-deox");
 
-  // ── BGC-Argo O₂ Measurements: the THIRD display mode of oxygen-deox (replaces field and hexes) ──────────────
-  // One document per depth; `argo-oxygen-points` is in activeLayers exactly while the mode is "points" (store).
+  // ── BGC-Argo O₂ Measurements: the THIRD display mode of oxygen-deox, as vector tiles (design 2026-10-10) ────────
+  // `argo-oxygen-points` is in activeLayers exactly while the mode is "points" (store). Nothing is drawn before
+  // /v1/argo-oxygen/meta (tile version, year span, per-year counts) has loaded; the ramp is /v1/oxygen/meta's Recent view.
   const argoOxygenActive = activeLayers.has("argo-oxygen-points");
   const oxygenDraw = oxygenDrawing(oxygenActive, oxygenDisplayMode, argoOxygenActive);
   const oxygenTilesNeeded = oxygenNeedsFieldTiles(oxygenActive, oxygenDisplayMode);
-  // ⛔ Only the SELECTED depth's document is drawn; at most the current + last two stay decoded; a loaded depth is
-  // never refetched (useArgoOxygenDocs).
-  const { doc: argoOxygenDoc, bounds: argoOxygenBounds } = useArgoOxygenDocs(oxygenDraw.points, oxygenDepth, fetchJsonGuarded);
-  const argoOxygenData = useMemo(() => (argoOxygenDoc ? argoOxygenPoints(argoOxygenDoc, argoOxygenYearRange) : []),
-    [argoOxygenDoc, argoOxygenYearRange]);
+  const [argoMeta, setArgoMeta] = useState<ArgoTileMeta | null>(null);
+  const argoMetaFetchedRef = useRef(false);
+  useEffect(() => {
+    if (oxygenDraw.points)
+      fetchJsonGuarded<ArgoTileMeta>(argoMetaFetchedRef, "/api/v1/argo-oxygen/meta", setArgoMeta, ARGO_FAILED_NAME);
+  }, [oxygenDraw.points, fetchJsonGuarded]);
+  // /meta answers 200 with tile_version = null while no tiles are built: say so instead of drawing nothing.
+  const argoTileVersion = typeof argoMeta?.tile_version === "string" && argoMeta.tile_version ? argoMeta.tile_version : null;
+  useEffect(() => {
+    if (oxygenDraw.points && argoMeta && !argoTileVersion)
+      setFailedLayers((prev) => (prev.includes(ARGO_FAILED_NAME) ? prev : [...prev, ARGO_FAILED_NAME]));
+  }, [oxygenDraw.points, argoMeta, argoTileVersion, setFailedLayers]);
+  const argoTileBounds = useMemo(() => argoMetaYearBounds(argoMeta), [argoMeta]);
+  // "No profiles in this year range" comes from /meta's per-year counts: no extra request.
+  const argoEmpty = useMemo(() => argoRangeEmpty(argoMeta, argoOxygenYearRange), [argoMeta, argoOxygenYearRange]);
 
   useEffect(() => {
     if (!oxygenActive || oxygenFetchedRef.current) return;
@@ -3547,9 +3560,10 @@ export function Map3D() {
       return;
     }
     if (lid0 === "argo-oxygen-points") {
-      const p = info.object as ArgoOxygenPoint | undefined;
-      if (!p) return;
-      setSelectedFeature({ id: p.key, layer: "argo-oxygen-points", properties: { profile_key: p.key } });
+      // A profile feature (z >= ARGO_POINT_MIN_ZOOM). A cell's click is handled by the layer (zoom in) and never gets here.
+      const p = info.object?.properties as ArgoTileProps | undefined;
+      if (!p?.k || isArgoCell(p)) return;
+      setSelectedFeature({ id: p.k, layer: "argo-oxygen-points", properties: { profile_key: p.k } });
       return;
     }
     if (lid0 === "socat-points-mvt") {
@@ -4404,19 +4418,52 @@ export function Map3D() {
       },
     }) : null,
 
-    oxygenDraw.points && argoOxygenDoc ? new ScatterplotLayer<ArgoOxygenPoint>({
-      id: "argo-oxygen-points",
-      data: argoOxygenData,
-      getPosition: (p) => p.position,
-      getRadius: (p) => (p.value === null ? 2 : 3.5),
-      radiusUnits: "pixels",
-      // ⛔ Recent ramp only (argoOxygenColor ignores oxygenView by design): no update trigger on oxygenView.
-      getFillColor: (p) => argoOxygenColor(p.value, oxygenMeta),
-      stroked: true, getLineColor: [15, 23, 42, 160], lineWidthUnits: "pixels", getLineWidth: 0.5,
-      pickable: true,
-      onClick: handleClick,
-      updateTriggers: { getFillColor: [oxygenDepth, oxygenMeta], getRadius: [oxygenDepth] },
-    }) : null,
+    // BGC-Argo O₂ Measurements: vector tiles. Below zoom 5 a dot is the mean of the profiles in its grid cell (click zooms
+    // in two levels, no panel); from zoom 5 one dot per profile (click opens its panel). Keyed on the tile version; the
+    // year range is part of the URL; the depth only recolours (every feature carries d0..d7).
+    oxygenDraw.points && argoTileVersion && (() => {
+      const depthIndex = ARGO_DEPTHS.indexOf(oxygenDepth);
+      return new MVTLayer({
+        id: "argo-oxygen-points",
+        // binary off: in binary mode an ABSENT numeric property (a depth with no good value) reads as 0 and would draw
+        // as anoxic water; as plain objects it is undefined, so argoTileValue's `== null` keeps it grey.
+        binary: false,
+        data: `${argoTileUrl(argoTileVersion, argoOxygenYearRange)}&r=${tileCacheVersion}`,
+        minZoom: 0, maxZoom: ARGO_TILE_MAX_ZOOM,
+        pointType: "circle",
+        pickable: true,
+        getPointRadius: (f: any) => (argoTileValue(f.properties, depthIndex) === null ? 2 : 3.5),
+        pointRadiusUnits: "pixels",
+        stroked: true, getLineColor: [15, 23, 42, 160], lineWidthUnits: "pixels", getLineWidth: 0.5,
+        // ⛔ Recent ramp only (argoOxygenColor ignores oxygenView by design): no update trigger on oxygenView.
+        getFillColor: (f: any) => argoOxygenColor(argoTileValue(f.properties, depthIndex), oxygenMeta),
+        updateTriggers: { getFillColor: [depthIndex, oxygenMeta], getPointRadius: [depthIndex] },
+        onClick: (info: PickingInfo, event: any) => {
+          // Drawing mode: do not swallow the click -- returning false lets it reach the <DeckGL onClick>, which adds the
+          // polygon vertex (every other point layer does the same through handleClick's early return).
+          if (useMapStore.getState().selectionMode) return false;
+          const p = info.object?.properties as ArgoTileProps | undefined;
+          if (p && isArgoCell(p)) {
+            // Centre on the cell's own dot (its centroid); the click position is the fallback.
+            const g = (info.object as any)?.geometry?.coordinates;
+            const centre = Array.isArray(g) && Number.isFinite(g[0]) && Number.isFinite(g[1]) ? g : info.coordinate;
+            if (centre) {
+              setViewState({
+                ...viewStateRef.current,
+                longitude: centre[0], latitude: centre[1],
+                zoom: (viewStateRef.current.zoom as number) + 2,
+                transitionDuration: 1000, transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
+              });
+            }
+            return true;
+          }
+          handleClick(info, event);
+          return true;
+        },
+        onTileError: () => onTileLayerError(ARGO_FAILED_NAME),
+        onTileLoad: () => onTileLayerLoad(ARGO_FAILED_NAME),
+      } as any);
+    })(),
 
     acidActive && acidificationDisplayMode === "hexes" && acidHexData && new PolygonLayer({
       id: "ocean-acidification-hexes",
@@ -6179,9 +6226,9 @@ export function Map3D() {
         carbonMeta={carbonMeta}
         glodapYearBounds={glodapBounds}
         glodapLoading={carbonDraw.points && !glodapDoc && !failedLayers.includes("GLODAP Measurements")}
-        argoYearBounds={argoOxygenBounds}
-        argoLoading={oxygenDraw.points && !argoOxygenDoc && !failedLayers.includes(ARGO_FAILED_NAME)}
-        argoEmpty={!!argoOxygenDoc && argoOxygenData.length === 0}
+        argoYearBounds={argoTileBounds}
+        argoLoading={oxygenDraw.points && !argoMeta && !failedLayers.includes(ARGO_FAILED_NAME)}
+        argoEmpty={argoEmpty}
         co2Meta={co2Meta}
         socatYearBounds={socatBounds}
         socatLoading={co2Draw.points && !socatMeta && !failedLayers.includes(SOCAT_FAILED_NAME)}

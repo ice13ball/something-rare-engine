@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 # not import it; the test is what keeps the two honest.
 ACOUSTIC_SOURCES = (
     "ooi", "imos", "mars", "palaoa", "obsea", "km3net", "nrs", "sanctsound",
-    "nefsc", "pifsc", "sefsc", "onms", "adeon", "boem", "aeon", "navy", "nps",
+    "nefsc", "pifsc", "sefsc", "onms", "adeon", "boem", "aeon", "nps",
     "jasco", "fram", "coastal_studies_institute", "ioos", "sambah", "ims",
     # Added 2026-09-15 with the eight new NOAA-archive programs.
     "afsc", "cornell", "mbarc_socal", "mbarc_arctic", "mbarc_flip", "swfsc",
@@ -35,15 +35,26 @@ ACOUSTIC_SOURCES = (
     "mbarc_bering", "mbarc_onslowbay", "mbarc_ps",
 )
 
+# ⛔ Sources the sync NO LONGER emits but whose rows are still in the table.
+# They must stay in the CHECK: `ADD CONSTRAINT ... CHECK` validates every
+# existing row, so leaving 'navy' out would make this DDL fail on production
+# (57 rows) and halt the deploy that applies it. Kept apart from
+# ACOUSTIC_SOURCES on purpose - that tuple is asserted to equal what
+# `station_sources()` can emit, and a retired source emits nothing.
+# 'navy': the NOAA archive removed `navy/` on 2026-10-07 and regrouped its
+# deployments into the mbarc_* prefixes; see BUCKET_PREFIXES_SEEN in
+# ingestion/acoustic_noaa_archive_ingest.py. Rows are deleted only by hand.
+RETIRED_SOURCES = ("navy",)
+
 
 def _sources_sql() -> str:
     """The enum members as a SQL list. Quoting is fixed, not interpolated:
     every member must match `[a-z0-9_]+` or this raises rather than building a
     statement out of whatever arrived."""
-    for s in ACOUSTIC_SOURCES:
+    for s in (*ACOUSTIC_SOURCES, *RETIRED_SOURCES):
         if not s or not all(c.isalnum() or c == "_" for c in s) or s != s.lower():
             raise ValueError(f"ACOUSTIC_SOURCES member {s!r} is not a bare lowercase token")
-    return ",".join(f"'{s}'" for s in ACOUSTIC_SOURCES)
+    return ",".join(f"'{s}'" for s in (*ACOUSTIC_SOURCES, *RETIRED_SOURCES))
 
 
 async def ensure_acoustic_stations(conn) -> None:

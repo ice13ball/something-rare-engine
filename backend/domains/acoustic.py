@@ -17,11 +17,12 @@ dropped from the three sync function names (`_sync_acoustic_stations` ->
 `sync_acoustic_soundscape`, `_sync_noise_risk` -> `sync_noise_risk`), and
 imports/docstring.
 
-**All four endpoints share one auth posture** — `Depends(get_api_key)`, no
+**All five endpoints share one auth posture** — `Depends(get_api_key)`, no
 admin-token-gated endpoints in this domain:
 - `GET /v1/map/noise/risk-grid`
 - `GET /v1/map/noise/stations`
-- `GET /v1/map/hydrophones` (optional `?source=` filter)
+- `GET /v1/map/hydrophones` (optional `?source=` filter; retired sources hidden by default)
+- `GET /v1/map/hydrophones/by-id/{station_id}` — one station, retired included
 - `GET /v1/hydrophones/{station_id}/soundscape` — **parameterised**, the
   first such route this refactor moves. It sits after its three literal
   siblings in registration order (mirroring their position in main.py), so
@@ -58,6 +59,7 @@ import db
 from auth import get_api_key
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
+from schema.acoustic import RETIRED_SOURCES
 from sync_log import log_sync as _log_sync
 from sync_log import log_sync_skipped as _log_sync_skipped
 
@@ -300,7 +302,6 @@ async def sync_acoustic_soundscape(force: bool = False) -> int:
         "adeon":      acoustic_noaa_archive_ingest.fetch_adeon_soundscape,
         "boem":       acoustic_noaa_archive_ingest.fetch_boem_soundscape,
         "aeon":       acoustic_noaa_archive_ingest.fetch_aeon_soundscape,
-        "navy":       acoustic_noaa_archive_ingest.fetch_navy_soundscape,
         "nps":        acoustic_noaa_archive_ingest.fetch_nps_soundscape,
         "jasco":      acoustic_noaa_archive_ingest.fetch_jasco_soundscape,
         "fram":       acoustic_noaa_archive_ingest.fetch_fram_soundscape,
@@ -502,11 +503,41 @@ async def get_noise_stations():
     return Response(content=result, media_type="application/json")
 
 
+# One station's GeoJSON properties - shared by the list and the by-id lookup so
+# a panel opened from a share link carries exactly what a click on the map does.
+_HYDROPHONE_PROPERTIES_SQL = """
+    json_build_object(
+        'station_id', station_id,
+        'source', source,
+        'name', name,
+        'operator', operator,
+        'depth_m', depth_m,
+        'deploy_start', deploy_start,
+        'deploy_end', deploy_end,
+        'model', model,
+        'hz_range_lo', hz_range_lo,
+        'hz_range_hi', hz_range_hi,
+        'portal_url', portal_url,
+        'license', license
+    )
+"""
+
+
 @router.get("/v1/map/hydrophones", dependencies=[Depends(get_api_key)])
 async def get_hydrophones(source: str | None = None) -> Response:
     """GeoJSON FeatureCollection of hydrophone stations from OOI/IMOS/MARS.
 
-    Optional ?source=ooi,imos to filter; default returns all.
+    Optional ?source=ooi,imos to filter; default returns all ACTIVE sources.
+
+    ⛔ The default list leaves out `RETIRED_SOURCES` (schema/acoustic.py): their
+    rows are kept - nothing here deletes - but the archive moved those stations
+    under other programs, so drawing both would put two dots on one hydrophone.
+    An explicit `?source=navy` still returns them, and one retired station stays
+    reachable by id through `/v1/map/hydrophones/by-id/{station_id}`.
+
+    The unfiltered payload is cached in-process in `_acoustic_stations_cache`
+    (cleared by every station sync and by a process restart - which is how a
+    change to this query reaches production: the deploy restarts abyssal-api).
     """
     global _acoustic_stations_cache
     cache_key = source or "all"
@@ -514,11 +545,13 @@ async def get_hydrophones(source: str | None = None) -> Response:
         return Response(content=_acoustic_stations_cache, media_type="application/json")
     where = ""
     params: list = []
-    if source:
-        sources = [s.strip() for s in source.split(",") if s.strip()]
-        if sources:
-            where = "WHERE source = ANY($1)"
-            params.append(sources)
+    sources = [s.strip() for s in source.split(",") if s.strip()] if source else []
+    if sources:
+        where = "WHERE source = ANY($1)"
+        params.append(sources)
+    else:
+        where = "WHERE source <> ALL($1)"
+        params.append(list(RETIRED_SOURCES))
     sql = f"""
         SELECT json_build_object(
             'type', 'FeatureCollection',
@@ -526,20 +559,7 @@ async def get_hydrophones(source: str | None = None) -> Response:
                 json_build_object(
                     'type', 'Feature',
                     'geometry', ST_AsGeoJSON(geom::geometry)::json,
-                    'properties', json_build_object(
-                        'station_id', station_id,
-                        'source', source,
-                        'name', name,
-                        'operator', operator,
-                        'depth_m', depth_m,
-                        'deploy_start', deploy_start,
-                        'deploy_end', deploy_end,
-                        'model', model,
-                        'hz_range_lo', hz_range_lo,
-                        'hz_range_hi', hz_range_hi,
-                        'portal_url', portal_url,
-                        'license', license
-                    )
+                    'properties', {_HYDROPHONE_PROPERTIES_SQL}
                 )
             ), '[]'::json)
         )::text
@@ -550,6 +570,32 @@ async def get_hydrophones(source: str | None = None) -> Response:
         payload = await conn.fetchval(sql, *params)
     if cache_key == "all":
         _acoustic_stations_cache = payload
+    return Response(content=payload, media_type="application/json")
+
+
+@router.get("/v1/map/hydrophones/by-id/{station_id}", dependencies=[Depends(get_api_key)])
+async def get_hydrophone_by_id(station_id: str) -> Response:
+    """One station as a GeoJSON Feature - retired sources INCLUDED.
+
+    ⛔ Deliberately not filtered by `RETIRED_SOURCES`: this exists so a share
+    link to a station that has left the list (`navy:*`) still opens its panel.
+    404 = no such station id.
+    Example: GET /v1/map/hydrophones/by-id/navy:bering04.
+    """
+    sql = f"""
+        SELECT json_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(geom::geometry)::json,
+            'properties', {_HYDROPHONE_PROPERTIES_SQL}
+        )::text
+        FROM acoustic_stations
+        WHERE station_id = $1
+    """
+    async with db.pool.acquire() as conn:
+        payload = await conn.fetchval(sql, station_id)
+    if payload is None:
+        return Response(content='{"error":"not found"}', status_code=404,
+                        media_type="application/json")
     return Response(content=payload, media_type="application/json")
 
 

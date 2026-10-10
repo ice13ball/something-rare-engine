@@ -3,7 +3,8 @@
 """BGC-Argo DOXY "Measurements": the API half of the argo-oxygen-points layer (Measurements of oxygen-deox).
 
 The import runs in argo_doxy_worker (own process). This module only reads argo_doxy_profiles and records a
-force-sync request. ⛔ Never import ingestion.argo_doxy, ingestion.argo_doxy_sprof, argo_doxy_worker or netCDF4
+force-sync request. Routes: points/{depth}, floats, profile/{key}, meta, and tiles/{z}/{x}/{y}.pbf (the map, design
+2026-10-10). ⛔ Never import ingestion.argo_doxy, ingestion.argo_doxy_sprof, argo_doxy_worker or netCDF4
 here (tests/test_argo_oxygen_api_db.py checks it in a fresh interpreter).
 ⛔ Missing and broken never share a path: unknown key / depth -> 404; not loaded or database down -> 503 +
 Retry-After, never a 200 with an empty body."""
@@ -17,6 +18,7 @@ import math
 import time
 from datetime import datetime, timezone
 
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 import db
@@ -25,6 +27,11 @@ from ingestion.argo_doxy_rules import (BAD_POSITION_QC, BAD_TIME_QC, CITATIONS, 
                                        PRODUCT, RULES_VERSION, SOURCE, STARTED_PREFIX, STARTED_STALE,
                                        TRANSIENT_PREFIXES, UNITS, UPDATED_WITH_REJECTS_PREFIX, float_page_url,
                                        gdac_file_url)
+# ⛔ The WOD tile route's own objects, imported, never copied: one render budget for both tile families (the API
+# pool is max_size=4) and one status / cache vocabulary.
+from domains.wod_casts import IMMUTABLE, NOT_BUILT, RENDER_SEM, SHORT, TOO_SLOW, parse_years, tile_response
+from ingestion.argo_doxy_rules import POINT_MIN_ZOOM, TILE_MAX_ZOOM
+from services import argo_tiles as tiles
 from services import oxygen_deox
 from sync_log import log_sync_skipped
 
@@ -42,6 +49,9 @@ _doc_cache: dict[object, tuple[object, bytes]] = {}
 _doc_lock = asyncio.Lock()
 _FIELD_RETRY_S = 600.0
 _field_retry_at = 0.0          # monotonic time before which an unavailable ISAS grid is not looked for again
+# (loaded_at, tile_version) -> {year: drawable profiles in the tile table}; /meta only, so the client can tell an
+# empty year range without a request. Keyed, so a load or a tile swap by the worker process is seen at once.
+_years_cache: tuple[tuple, dict[str, int]] | None = None
 
 
 class NotLoaded(Exception):
@@ -49,10 +59,80 @@ class NotLoaded(Exception):
     in a builder must NOT be reported as "not loaded"."""
 
 
+# ── tile version, in-process (only ever downgrades caching) ──────────────────────────────────────────────────
+_TILE_LIVE_TTL = 30.0
+_tile_live: tuple[str | None, float] = (None, 0.0)     # (live tile version, monotonic time it was learned)
+_tile_refreshing: asyncio.Task | None = None
+_tile_reconcile: asyncio.Task | None = None
+
+
+def _set_tile_live(version: str | None) -> None:
+    global _tile_live
+    _tile_live = (version, time.monotonic())
+
+
+def _tile_live_version() -> str | None:
+    version, at = _tile_live
+    return version if time.monotonic() - at < _TILE_LIVE_TTL else None
+
+
+_WARN_EVERY_S = 300.0
+_last_warn = float("-inf")
+
+
+def _warn_tile_refresh(e: Exception) -> None:
+    """At most one line per _WARN_EVERY_S (as WOD's): the hit path retries on every request while the database is down."""
+    global _last_warn
+    now = time.monotonic()
+    if now - _last_warn >= _WARN_EVERY_S:
+        _last_warn = now
+        log.warning("argo-oxygen: could not refresh the live tile version (tiles stay on the short max-age): %s: %s",
+                    type(e).__name__, e)
+
+
+async def _refresh_tile_live() -> None:
+    try:
+        async with db.pool.acquire() as conn:
+            _set_tile_live(await tiles.current_version(conn))
+    except Exception as e:               # best effort: hits stay on the short max-age until a refresh works
+        _warn_tile_refresh(e)
+
+
+def _refresh_tile_live_soon() -> None:
+    """Outside the hit path: a stale in-process version is refreshed in the background, one at a time."""
+    global _tile_refreshing
+    if _tile_live_version() is None and db.pool is not None and (_tile_refreshing is None or _tile_refreshing.done()):
+        _tile_refreshing = asyncio.create_task(_refresh_tile_live())
+
+
+async def _reconcile_tile_cache() -> None:
+    """Drop every tile directory except the live version's; no live version (a purge) drops them all. A database
+    that cannot answer leaves the disk alone."""
+    if db.pool is None:
+        return
+    try:
+        async with db.pool.acquire() as conn:
+            live = await tiles.current_version(conn)
+    except Exception:
+        log.warning("argo-oxygen tile cache reconcile: live version unreadable, disk left as it is")
+        return
+    _set_tile_live(live)
+    await asyncio.to_thread(tiles.drop_other_versions, tiles.cache_root(), live or "")
+
+
 def clear_caches() -> None:
-    global _field_retry_at
+    """Admin cache sweep / purge hook: documents and tile version now, the tile disk cache in the background. Called
+    synchronously with no running loop by test fixtures: then only memory is cleared."""
+    global _field_retry_at, _tile_live, _tile_reconcile, _years_cache
     _doc_cache.clear()
     _field_retry_at = 0.0
+    _years_cache = None
+    _tile_live = (None, 0.0)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    _tile_reconcile = loop.create_task(_reconcile_tile_cache())
 
 
 def _unavailable(what: str) -> HTTPException:
@@ -150,6 +230,69 @@ async def argo_oxygen_points(depth: int, request: Request):
         log.exception("argo-oxygen points %s", depth)
         raise _unavailable("Argo O2 measurements")
     return await _serve(gz, request, {"Cache-Control": "public, max-age=3600", "Vary": "Accept-Encoding"})
+
+
+def _tiles_not_built() -> HTTPException:
+    return HTTPException(503, "Argo O2 tiles are not built yet", headers=NOT_BUILT)
+
+
+@router.get("/v1/argo-oxygen/tiles/{z}/{x}/{y}.pbf", dependencies=[Depends(get_api_key)])
+async def argo_oxygen_tile(z: int, x: int, y: int, v: str | None = None,
+                           y0: str | None = None, y1: str | None = None) -> Response:
+    """BGC-Argo O₂ map tile (MVT layer `argo`). Below zoom 5 one dot per grid cell at the centroid of its profiles
+    (`n` profiles, `k` one real profile key, `a`/`b` first and last year, `d0`..`d7` mean adjusted O₂ in µmol/kg at
+    0, 50, 100, 200, 500, 1000, 1500, 2000 m — the mean of n profiles, not a measurement); from zoom 5 one dot per
+    profile (`k` profile key, `a` year, `d0`..`d7`). A depth without a good value has no property. `y0`/`y1` limit the
+    years (cell means come from those years only). Immutable for the browser when `v` is the live data version
+    (`tile_version` in /v1/argo-oxygen/meta). 404 outside the pyramid (z 0-8), 400 for bad years, 204 for an empty
+    area, 503 + Retry-After while nothing is built, the database cannot answer or the tile took too long.
+    Example: GET /v1/argo-oxygen/tiles/2/1/1.pbf?v=20261010174042-d41ce0&y0=2015&y1=2019.
+    Data: Argo GDAC (Argo, 2000), doi:10.17882/42182, CC BY 4.0."""
+    years = parse_years(y0, y1)
+    if not tiles.valid_tile(z, x, y):
+        raise HTTPException(404, "tile outside the pyramid")
+    root, key = tiles.cache_root(), tiles.cache_key(years)
+    # Hit path, NO database access: bytes in folder `v` are always version v's bytes; a stale in-process version
+    # can only downgrade the caching, never mislabel bytes.
+    if v is not None and tiles.VERSION_RE.fullmatch(v):
+        data = await asyncio.to_thread(tiles.read_cached, tiles.tile_path(root, v, key, z, x, y))
+        if data is not None:
+            _refresh_tile_live_soon()
+            return tile_response(data, IMMUTABLE if _tile_live_version() == v else SHORT)
+    if db.pool is None:
+        raise HTTPException(503, "Database pool unavailable", headers=TOO_SLOW)
+    try:
+        async with db.pool.acquire() as conn:
+            version = await tiles.current_version(conn)
+    except (OSError, asyncpg.PostgresError, asyncpg.InterfaceError):
+        raise HTTPException(503, "database unavailable", headers=TOO_SLOW) from None
+    _set_tile_live(version)
+    if version is None:
+        raise _tiles_not_built()
+    path = tiles.tile_path(root, version, key, z, x, y)
+    data = await asyncio.to_thread(tiles.read_cached, path)
+    if data is None:
+        try:
+            async with RENDER_SEM:
+                data = await asyncio.to_thread(tiles.read_cached, path)    # another request may have just filled it
+                if data is None:
+                    async with db.pool.acquire() as conn:
+                        version, data = await tiles.render(conn, z, x, y, years)
+                    _set_tile_live(version)
+                    if version is None:
+                        raise _tiles_not_built()
+                    # Reached only with a COMPLETE render: a timed-out one raised and is never written.
+                    path = tiles.tile_path(root, version, key, z, x, y)   # filed under the version rendered WITH it
+                    if await asyncio.to_thread(tiles.write_cached, path, data):
+                        tiles.note_write(root)
+        except asyncpg.QueryCanceledError:
+            raise HTTPException(503, "argo tile took too long, try again", headers=TOO_SLOW) from None
+        except asyncpg.UndefinedTableError:
+            raise _tiles_not_built() from None
+        except (OSError, asyncpg.PostgresError, asyncpg.InterfaceError):
+            log.exception("argo-oxygen tile %s/%s/%s", z, x, y)
+            raise HTTPException(503, "database unavailable", headers=TOO_SLOW) from None
+    return tile_response(data, IMMUTABLE if v == version else SHORT)
 
 
 def _field_recent(lat: float | None, lon: float | None) -> dict:
@@ -254,6 +397,25 @@ def _iso(v):
     return v.isoformat() if v else None
 
 
+async def _tile_years(conn, s) -> dict[str, int]:
+    """Profiles per year in the LIVE tile table (what the map can draw), as {"2002": n, ...}; {} when nothing is
+    built. Cached per (loaded_at, tile_version): the worker process moves either one, this process sees it at once."""
+    global _years_cache
+    stamp = (s["loaded_at"], s["tile_version"])
+    if s["tile_version"] is None:
+        return {}
+    hit = _years_cache
+    if hit is not None and hit[0] == stamp:
+        return hit[1]
+    try:
+        rows = await conn.fetch("SELECT year, count(*) AS n FROM argo_doxy_tile_points GROUP BY year ORDER BY year")
+    except asyncpg.UndefinedTableError:
+        return {}
+    years = {str(r["year"]): r["n"] for r in rows}
+    _years_cache = (stamp, years)
+    return years
+
+
 async def _health(conn, s) -> dict:
     """ok / running / failing / not_loaded, from argo_doxy_source (the worker's own record), not from sync_log text.
 
@@ -301,6 +463,7 @@ async def argo_oxygen_meta():
                 FROM argo_doxy_profiles""", RULES_VERSION, sorted(BAD_POSITION_QC), sorted(BAD_TIME_QC))
             empty = await conn.fetchval("SELECT count(*) FROM argo_doxy_empty")
             health = await _health(conn, s)
+            tile_years = await _tile_years(conn, s)
         rej = health["last_rejects"]
         indexed = s["n_index_doxy"]
         body = json.dumps({
@@ -308,6 +471,8 @@ async def argo_oxygen_meta():
             "citation": CITATION, "citations": list(CITATIONS), "source_url": SOURCE_HOME,
             "gdac_state_as_of": _iso(s["index_date_update_max"]), "loaded_at": _iso(s["loaded_at"]),
             "year_min": c["y0"], "year_max": c["y1"], "units": UNITS,
+            "tile_version": s["tile_version"], "tile_built_at": _iso(s["tile_built_at"]),
+            "point_min_zoom": POINT_MIN_ZOOM, "tile_max_zoom": TILE_MAX_ZOOM, "years": tile_years,
             "arithmetic": {
                 "index_doxy": indexed,
                 # `rejected` is the LAST run's own counters (a run re-reads only changed floats), so it does not

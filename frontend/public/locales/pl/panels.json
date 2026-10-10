@@ -210,6 +210,7 @@
         "versionNote": "Punkty: profile tlenu z pływaków BGC-Argo z bieżącego centrum danych Argo (wartości skorygowane, oznaczone jako dobre). Pole: średnia ISAS20 2014–2018, zbudowana ze starszej migawki danych Argo.",
         "recentScaleNote": "Pomiary to bezwzględne stężenie O₂, więc mają skalę „Bieżący O₂ (2014–2018)”. Pojedynczy profil nie ma odniesienia z lat 1971–2000, więc nie pokazujemy dla niego zmiany.",
         "greyNote": "Szary: brak dobrej skorygowanej wartości tlenu w przedziale {{window}} wokół tej głębokości.",
+        "cellNote": "Przy oddaleniu (poniżej zoomu {{zoom}}) kropka to średnia profili z jej komórki siatki, a nie pojedynczy pomiar; kliknięcie przybliża mapę. Od zoomu {{zoom}} każda kropka to jeden profil.",
         "loading": "Wczytywanie pomiarów…",
         "empty": "Brak profili w tym zakresie lat.",
         "yearFrom": "Od",

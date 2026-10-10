@@ -165,6 +165,12 @@ def _tile_response(data: bytes, cache_control: str) -> Response:
     return Response(content=data, media_type=_MVT, headers=headers)
 
 
+# Public names for the helpers domains/argo_oxygen_points.py shares with these tiles (one render budget, one status and
+# year-parameter vocabulary for both tile families): rename or move any of them and that module breaks at API boot.
+NOT_BUILT, TOO_SLOW, RENDER_SEM = _NOT_BUILT, _TOO_SLOW, _RENDER_SEM
+parse_years, tile_response = _years, _tile_response
+
+
 # ── tiles ─────────────────────────────────────────────────────────────────────────────────────────────────
 @router.get("/v1/wod/tiles/{var}/{z}/{x}/{y}.pbf", dependencies=[Depends(get_api_key)])
 async def wod_tile(var: str, z: int, x: int, y: int, v: str | None = None,

@@ -249,10 +249,13 @@ export const OPENABLE = {
     dataKey: "svalbardFjordsPp",
   },
   "hydrophone-stations": {
-    source: "client", idProps: ID_CHAIN,
+    // by-id as well as the client list: a retired source (navy) is left out of the
+    // list, and an old link to one of its stations must still open its panel.
+    source: "by-id", idProps: ID_CHAIN,
     routingKeys: ["hydrophone-stations"], routingKey: () => "hydrophone-stations",
     zoom: 7, idStability: "nieustalone",
     dataKey: "hydrophones",
+    byIdPath: "/api/v1/map/hydrophones/by-id/",
   },
   "hydrothermal-vents": {
     // ⛔ The only layer that needs a property the shared chain does not carry.

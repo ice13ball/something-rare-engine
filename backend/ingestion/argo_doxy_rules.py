@@ -73,6 +73,20 @@ MAX_STORED_LEVELS = 150
 RULES_VERSION = 1
 SHRINK_LIMIT = 0.9                          # an index listing < 90 % of the stored profiles blocks the run
 
+# ── map tiles (design 2026-10-10, docs/specs/2026-10-10-argo-oxygen-tiles-design.md) ─────────────────────────────
+TILES_SOURCE = "argo-tiles"                 # sync_log.source of the tile build + pre-bake (the import stays SOURCE)
+# Measured on production 2026-10-10: drawable profiles per web-mercator tile: z4 max 16,852, z5 max 7,088. From
+# POINT_MIN_ZOOM every profile is its own feature; below it a feature is one cell of an LOD level.
+POINT_MIN_ZOOM = 5
+TILE_MAX_ZOOM = 8                           # the map's MVTLayer maxZoom; deck.gl overzooms above it, the route 404s
+LOD_LEVELS = (0, 1, 2)                      # == {wod_casts_rules.lod_level(z) for z < POINT_MIN_ZOOM} (checked at build)
+# the cache root default lives beside its os.getenv (services.argo_tiles.cache_root): tests/test_cache_dirs_configurable.py
+TILE_CACHE_CAP_BYTES = 300 * 1024 ** 2
+PREBAKE_MAX_ZOOM = POINT_MIN_ZOOM - 1       # z0-4, all years: 341 tiles
+PREBAKE_TIMEOUT = "60s"
+PREBAKE_DEADLINE_S = 900                    # inside the 1 h margin of deploy/argo-doxy.service TimeoutStartSec
+PREBAKE_MAX_CONSECUTIVE_TIMEOUTS = 20
+
 _FILE_RE = re.compile(r"^([a-z]+)/(\d{4,8})/profiles/S([RD])(\d{4,8})_(\d{3,4})(D?)\.nc$")
 KEY_RE = re.compile(r"^[a-z]+_\d{4,8}_\d{3,4}D?$")
 

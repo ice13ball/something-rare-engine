@@ -46,7 +46,6 @@ export const HYDROPHONE_SOURCE_LABEL: Record<string, string> = {
   adeon:  "ADEON",
   boem:   "BOEM",
   aeon:   "AEON",
-  navy:   "US Navy",
   nps:    "National Park Service",
   jasco:  "JASCO",
   fram:   "FRAM",

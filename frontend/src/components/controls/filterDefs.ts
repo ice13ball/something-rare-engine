@@ -122,7 +122,9 @@ export const HYDROPHONE_SOURCE_DEFS = [
   { key: "adeon",  label: "ADEON", color: "#8b5cf6" },
   { key: "boem",   label: "BOEM",  color: "#4b5563" },
   { key: "aeon",   label: "AEON",  color: "#a78bfa" },
-  { key: "navy",   label: "Navy",  color: "#1f2937" },
+  // `navy` has no chip: it is a RETIRED source (rows kept, hidden from the list
+  // endpoint - see RETIRED_SOURCES in backend/schema/acoustic.py), so the map
+  // never receives one and a chip would filter nothing.
   { key: "nps",    label: "NPS",   color: "#10b981" },
   { key: "jasco",  label: "JASCO", color: "#d946ef" },
   { key: "fram",   label: "FRAM",  color: "#e1d314" },

@@ -63,6 +63,7 @@ _TAG_RULES: list[tuple[str, str]] = [
     ("/v1/glodap/cast/", "Detail lookups"),  # one bottle cast by key (before the "/v1/glodap" prefix below)
     ("/v1/glodap", "Sea layers"),            # casts document / cruises / meta of the GLODAPv3 points layer
     ("/v1/argo-oxygen/profile/", "Detail lookups"),  # one BGC-Argo DOXY profile by key (before the prefix below)
+    ("/v1/argo-oxygen/tiles", "Tiles"),      # BGC-Argo O2 points map MVT (before the prefix below)
     ("/v1/argo-oxygen", "Sea layers"),       # per-depth points documents / floats / meta of the Argo O2 points layer
     ("/v1/socat/tiles", "Tiles"),            # SOCAT v2026 points map MVT
     ("/v1/socat/obs/", "Detail lookups"),    # one observation by key (before the "/v1/socat" prefix below)
@@ -74,6 +75,7 @@ _TAG_RULES: list[tuple[str, str]] = [
     ("/v1/wod", "Sea layers"),               # meta of the WOD23 casts layer
     ("/v1/plankton/tiles", "Tiles"),          # plankton map MVT (stage 2)
     ("/v1/plankton/site/", "Detail lookups"),  # one plankton place (click panel)
+    ("/v1/map/hydrophones/by-id/", "Detail lookups"),  # one station by id, retired included (before "/v1/map" below)
     ("/v1/map", "Sea layers"),
     ("/v2/map", "Land layers"),
     ("/v2/export", "Export"),            # area-export download + count endpoints
@@ -491,9 +493,13 @@ CURATED: dict[str, dict] = {
         "description": ("Product, licence, citations (the Argo acknowledgement and the GDAC dataset), GDAC state date, "
                         "year span, depth windows, QC notes, the count arithmetic (indexed → stored → not drawn by "
                         "reason → drawn), the rules version, and `health` (status ok / running / failing / "
-                        "not_loaded, the last failure, the last run's rejected rows, deletions held back). The "
-                        "example is abbreviated."),
+                        "not_loaded, the last failure, the last run's rejected rows, deletions held back), and for the "
+                        "map tiles `tile_version` (the `v` of /v1/argo-oxygen/tiles; null while nothing is built), "
+                        "`tile_built_at`, `point_min_zoom`, `tile_max_zoom` and `years` (drawable profiles per year "
+                        "in the tiles). The example is abbreviated."),
         "example": {"product": "BGC-Argo DOXY, Argo GDAC synthetic profiles (current)", "licence": "CC BY 4.0",
+                    "tile_version": "20261010174042-d41ce0", "tile_built_at": "2026-10-10T17:40:42+00:00",
+                    "point_min_zoom": 5, "tile_max_zoom": 8, "years": {"2006": 2, "2007": 6},
                     "arithmetic": {"index_doxy": 14, "rejected": {"no_doxy_values": 1}, "failed_floats": 0,
                                    "no_usable_doxy": 1, "stored": 13, "not_yet_stored": 0,
                                    "not_drawn": {"realtime_only": 2, "no_good_adjusted": 2,

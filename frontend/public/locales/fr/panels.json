@@ -210,6 +210,7 @@
         "versionNote": "Points : profils d'oxygène BGC-Argo du centre de données Argo actuel (valeurs ajustées, marquées bonnes). Champ : moyenne ISAS20 2014–2018, construite à partir d'un instantané Argo plus ancien.",
         "recentScaleNote": "Les mesures sont de l'O₂ absolu et utilisent donc l'échelle « O₂ récent (2014–2018) ». Un profil isolé n'a pas de référence 1971–2000 : aucun changement n'est affiché.",
         "greyNote": "Gris : aucune valeur d'oxygène ajustée valide dans l'intervalle {{window}} autour de cette profondeur.",
+        "cellNote": "En vue éloignée (sous le zoom {{zoom}}), chaque point est la moyenne des profils de sa cellule, pas une mesure isolée ; un clic zoome dessus. À partir du zoom {{zoom}}, chaque point est un profil.",
         "loading": "Chargement des mesures…",
         "empty": "Aucun profil dans cette plage d'années.",
         "yearFrom": "De",

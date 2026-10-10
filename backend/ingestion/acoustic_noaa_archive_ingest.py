@@ -18,7 +18,6 @@ Programs shipped (12):
 - boem         — Bureau of Ocean Energy Management (offshore wind PAM,
                  Maryland/Virginia/Atlantic wind areas, Gulf of Mexico)
 - aeon         — Atlantic Ecosystem Observation Network (AMAR landers)
-- navy         — US Navy (MBARC LMR, USWTR)
 - nps          — National Park Service (Glacier Bay cabled hydrophone)
 - jasco        — JASCO Applied Sciences (ESRF Atlantic Canada PAM)
 - fram         — Alfred Wegener Institute FRAM (Fram Strait, North Atlantic Arctic)
@@ -34,7 +33,7 @@ Programs explicitly SKIPPED (bench 2026-05-11):
 Two JSON schemas observed in the bucket:
 
 **Schema A — "nested" (NRS/SanctSound/NEFSC style):** the canonical layout used
-by 10 of the 12 programs (pifsc, sefsc, onms, boem, navy, nps, fram,
+by 10 of the 12 programs (pifsc, sefsc, onms, boem, nps, fram,
 coastal_studies_institute, ioos). Coords sit in `DEPLOYMENT.DEPLOY_LAT`,
 `DEPLOYMENT.DEPLOY_LON`, `DEPLOYMENT.DEPLOY_INSTRUMENT_DEPTH`, with
 `DEPLOYMENT.DEPLOYMENT_TIME` and `DEPLOYMENT.RECOVERY_TIME` for the date span.
@@ -113,13 +112,6 @@ PROGRAMS: dict[str, dict[str, Any]] = {
         "operator":  "AEON — Atlantic Ecosystem Observation Network",
         "prefix":    "aeon/audio/",
         "portal":    "https://www.boem.gov/environment/environmental-studies",
-        "skip_mobile_platforms": True,
-    },
-    "navy": {
-        "display":   "US Navy",
-        "operator":  "US Navy (MBARC, USWTR)",
-        "prefix":    "navy/audio/",
-        "portal":    "https://www.navfac.navy.mil/",
         "skip_mobile_platforms": True,
     },
     "nps": {
@@ -250,7 +242,7 @@ PROGRAMS: dict[str, dict[str, Any]] = {
     # mbarc_socal / mbarc_arctic / mbarc_flip, so the existing walker reads them
     # unchanged. Measured 2026-10-07 with `_discover_metadata_jsons` +
     # `_extract_record` on the live bucket; no deployment is mobile, none sits at
-    # (0, 0), none overlaps `navy/` or `mbarc_arctic/` by DATA_COLLECTION_NAME.
+    # (0, 0).
     "mbarc_bering": {
         "display":   "MBARC Bering",
         "operator":  "US Navy Marine Bioacoustics Research Collaboration — Bering and Beaufort Seas",
@@ -316,17 +308,32 @@ NOT_INGESTED: dict[str, str] = {
 # still counts as covering it — and listing esons as "not ingested" would be
 # the false reason this whole structure exists to prevent.
 
-# The bucket's top-level prefixes as listed on 2026-10-07 (29 on 2026-09-15; the
-# archive added mbarc_bering, mbarc_onslowbay and mbarc_ps since — all three
-# walked, see PROGRAMS). Held as data so the
-# classification above can be checked without a network call, and so a program
-# the archive ADDS shows up as a diff rather than as silence.
+# The bucket's top-level prefixes as listed on 2026-10-10 (29 on 2026-09-15;
+# the archive added mbarc_bering, mbarc_onslowbay and mbarc_ps on 2026-10-07 —
+# all three walked, see PROGRAMS — and removed `navy/` hours later, see below).
+# Held as data so the classification above can be checked without a network
+# call, and so a program the archive ADDS shows up as a diff rather than as
+# silence.
+#
+# ⛔ `navy/` is gone, not renamed. It held the Navy MBARC deployments; the
+# archive regrouped them and `navy/` now answers an empty list (observed
+# 2026-10-07). Of the 57 stations we held under source 'navy': 49 reappear in
+# an mbarc_* program at the same position and start date (46 also the same end
+# date; navy:m2 / m4 / arctic_c differ in a longitude sign or an end date), 2
+# (CSM_A, CSM02) are now pifsc:csm_a / pifsc:cross_a, 5 are Flip07/08
+# instruments that mbarc_flip carries only as two campaign-level stations, and
+# 1 (navy:bering04, 54.0 N 170.0 W) is in no prefix at all. The program was
+# removed from PROGRAMS rather than left pointing at the empty prefix (the
+# `ioos/` -> `esons/` mistake). Its rows stay in the table: the sync only
+# upserts, so nothing refreshes or deletes them - see RETIRED_SOURCES in
+# schema/acoustic.py.
 BUCKET_PREFIXES_SEEN = (
     "MD_WEA_CPOD", "adeon", "aeon", "afsc", "big_query_metadata", "boem",
     "coastal_studies_institute", "cornell", "dclde", "esons", "fram", "jasco",
     "listen", "mbarc_arctic", "mbarc_bering", "mbarc_cencal", "mbarc_flip",
-    "mbarc_onslowbay", "mbarc_ps", "mbarc_socal", "mbari", "navy", "nefsc", "nps", "nrs", "onms", "pifsc", "rutgers_njrmi",
-    "sanctsound", "sefsc", "soundcoop", "swfsc",
+    "mbarc_onslowbay", "mbarc_ps", "mbarc_socal", "mbari", "nefsc", "nps",
+    "nrs", "onms", "pifsc", "rutgers_njrmi", "sanctsound", "sefsc",
+    "soundcoop", "swfsc",
 )
 
 # Platforms we consider mobile / non-positional. When `skip_mobile_platforms`
@@ -558,7 +565,10 @@ def _extract_record(
         return None
 
     platform = _str_or_none(meta.get("PLATFORM_NAME"))
-    if PROGRAMS[program].get("skip_mobile_platforms") and platform:
+    # ⚠️ `.get`, not `[]`: a program that is no longer configured (navy, retired
+    # 2026-10-10) must not raise from a caller that still names it. An unknown
+    # program is treated as the strict case - mobile platforms skipped.
+    if PROGRAMS.get(program, {}).get("skip_mobile_platforms", True) and platform:
         if platform.lower() in _MOBILE_PLATFORMS:
             if counters is not None:
                 counters["mobile"] += 1
@@ -954,7 +964,6 @@ fetch_onms_stations                        = _make_station_fetcher("onms")
 fetch_adeon_stations                       = _make_station_fetcher("adeon")
 fetch_boem_stations                        = _make_station_fetcher("boem")
 fetch_aeon_stations                        = _make_station_fetcher("aeon")
-fetch_navy_stations                        = _make_station_fetcher("navy")
 fetch_nps_stations                         = _make_station_fetcher("nps")
 fetch_jasco_stations                       = _make_station_fetcher("jasco")
 fetch_fram_stations                        = _make_station_fetcher("fram")
@@ -967,7 +976,6 @@ fetch_onms_soundscape                      = _make_soundscape_fetcher("onms")
 fetch_adeon_soundscape                     = _make_soundscape_fetcher("adeon")
 fetch_boem_soundscape                      = _make_soundscape_fetcher("boem")
 fetch_aeon_soundscape                      = _make_soundscape_fetcher("aeon")
-fetch_navy_soundscape                      = _make_soundscape_fetcher("navy")
 fetch_nps_soundscape                       = _make_soundscape_fetcher("nps")
 fetch_jasco_soundscape                     = _make_soundscape_fetcher("jasco")
 fetch_fram_soundscape                      = _make_soundscape_fetcher("fram")

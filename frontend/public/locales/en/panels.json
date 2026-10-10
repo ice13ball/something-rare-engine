@@ -272,6 +272,7 @@
         "versionNote": "Points: BGC-Argo oxygen profiles from today's Argo data centre (adjusted values flagged good). Field: ISAS20 2014–2018 mean, built from an older Argo snapshot.",
         "recentScaleNote": "Measurements are absolute O₂, so they use the Recent O₂ (2014–2018) scale. A single profile has no 1971–2000 baseline, so no change is shown for it.",
         "greyNote": "Grey: no good adjusted oxygen value in the {{window}} range around this depth.",
+        "cellNote": "Zoomed out (below zoom {{zoom}}), each dot is the mean of the profiles in its grid cell, not a single measurement; click it to zoom in. From zoom {{zoom}} every dot is one profile.",
         "loading": "Loading measurements…",
         "empty": "No profiles in this year range.",
         "yearFrom": "From",
