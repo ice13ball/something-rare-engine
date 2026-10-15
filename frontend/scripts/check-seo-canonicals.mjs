@@ -247,7 +247,10 @@ for (const p of ['/about', '/seamount/28715']) {
   {
     const reportCases = [
       ['/report/3902749', 200, 'a populated report'],
-      ['/report/chess:Snake%20Pit', 410, 'an empty report'],
+      // Was 410 ("an empty report") while report_cache_v2 held an empty row for this ChEss site (2026-08-24).
+      // The row is gone and, measured 2026-10-15, no cached report is empty, so the 410 path has no live
+      // fixture: this id is now simply not cached, which is a 404.
+      ['/report/chess:Snake%20Pit', 404, 'a ChEss site with no cached report'],
       ['/report/nie-ma-takiego', 404, 'an id that does not exist'],
       ['/claim-report/nie-ma', 404, 'an unknown claim report'],
     ];
