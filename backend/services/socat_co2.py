@@ -31,7 +31,7 @@ SOCAT_NC_URL = (
 NC_FILE = "SOCATv2026_tracks_gridded_decadal.nc"
 
 CITATION = (
-    "Bakker et al. 2026, Surface Ocean CO2 Atlas v2026 (SOCATv2026), "
+    "Bakker et al. 2026, Surface Ocean CO₂ Atlas v2026 (SOCATv2026), "
     "NCEI Accession 0315110, doi:10.25921/8dba-fr90; "
     "Sabine et al. 2013 (gridded products, doi:10.5194/essd-5-145-2013). CC-BY 4.0."
 )

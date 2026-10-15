@@ -36,19 +36,19 @@ from sync_log import log_sync_skipped
 log = logging.getLogger(__name__)
 router = APIRouter()
 
-PRODUCT = "SOCAT v2026 (Surface Ocean CO2 Atlas)"
+PRODUCT = "SOCAT v2026 (Surface Ocean CO₂ Atlas)"
 SOURCE_URL = "https://doi.org/10.25921/8dba-fr90"
 METADATA_URL = "https://www.ncei.noaa.gov/data/oceans/ncei/ocads/metadata/0315110.html"
 LICENCE = "CC BY 4.0"
 CITATIONS = (
-    "Bakker, D. C. E., Alin, S. R., Bates, N., et al. (2026). Surface Ocean CO2 Atlas Database Version 2026 "
+    "Bakker, D. C. E., Alin, S. R., Bates, N., et al. (2026). Surface Ocean CO₂ Atlas Database Version 2026 "
     "(SOCATv2026) (NCEI Accession 0315110). NOAA NCEI. https://doi.org/10.25921/8dba-fr90",
     "Bakker, D. C. E., et al. (2016). A multi-decade record of high-quality fCO2 data in version 3 of the Surface "
-    "Ocean CO2 Atlas (SOCAT). Earth System Science Data 8, 383-413. https://doi.org/10.5194/essd-8-383-2016",
+    "Ocean CO₂ Atlas (SOCAT). Earth System Science Data 8, 383-413. https://doi.org/10.5194/essd-8-383-2016",
 )
 CITATION = " — and ".join(CITATIONS)
 ACKNOWLEDGEMENT = (
-    "The Surface Ocean CO2 Atlas (SOCAT) is an international effort, endorsed by the SCOR Infrastructural Project "
+    "The Surface Ocean CO₂ Atlas (SOCAT) is an international effort, endorsed by the SCOR Infrastructural Project "
     "International Ocean Carbon Coordination Project (IOCCP) and the Surface Ocean Lower-Atmosphere Study (SOLAS), "
     "to deliver a uniform, quality-controlled surface ocean CO2 database. The many researchers and funding agencies "
     "responsible for the collection of data and quality control are thanked for their contributions to SOCAT.")

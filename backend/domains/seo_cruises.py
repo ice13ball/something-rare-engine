@@ -46,7 +46,7 @@ GLODAP_V3_DATASET = {
     "url": G.SOURCE_URL, "identifier": G.SOURCE_URL, "license": LICENCE_URL,
 }
 SOCAT_V2026_DATASET = {
-    "@type": "Dataset", "name": "SOCAT v2026 — Surface Ocean CO2 Atlas",
+    "@type": "Dataset", "name": "SOCAT v2026 — Surface Ocean CO₂ Atlas",
     "description": ("Quality-controlled surface-ocean fCO2 observations from research vessels, ships of opportunity, "
                     "moorings and drifters, NCEI Accession 0315110."),
     "url": S.SOURCE_URL, "identifier": S.SOURCE_URL, "license": LICENCE_URL,

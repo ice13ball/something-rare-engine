@@ -344,7 +344,7 @@ CURATED: dict[str, dict] = {
             "rows). CC BY 4.0 - cite Bakker et al. 2026, https://doi.org/10.25921/8dba-fr90 (SOCAT v2026) and "
             "Bakker et al. 2016, https://doi.org/10.5194/essd-8-383-2016. The example is abbreviated."),
         "example": {
-            "product": "SOCAT v2026 (Surface Ocean CO2 Atlas)", "release": "v2026", "licence": "CC BY 4.0",
+            "product": "SOCAT v2026 (Surface Ocean CO₂ Atlas)", "release": "v2026", "licence": "CC BY 4.0",
             "source_url": "https://doi.org/10.25921/8dba-fr90", "n_observations": 44018204, "n_rejected": 0,
             "n_cruises": 8310, "year_min": 1957, "year_max": 2026, "loaded_at": "2026-10-09T12:00:00+00:00",
             "tile_version": "20261009120000-010941", "point_min_zoom": 9,

@@ -36,6 +36,26 @@ router = APIRouter(prefix="/v2/export", tags=["export"])
 # Regional AOIs finish in <1.5s; only near-global/pathological queries approach this limit.
 _EXPORT_STMT_TIMEOUT_MS = 12_000
 
+# At most two file exports build at once (one request can hold ~100 MB of rows + serialised output; the API shares
+# its MemoryMax with live map traffic). A request that cannot get a slot within _EXPORT_SLOT_WAIT_S answers 503 +
+# Retry-After instead of queueing without bound. /count is not gated (no rows are held).
+_EXPORT_SLOTS = asyncio.Semaphore(2)
+_EXPORT_SLOT_WAIT_S = 30
+
+
+class _ExportSlot:
+    async def __aenter__(self):
+        try:
+            await asyncio.wait_for(_EXPORT_SLOTS.acquire(), timeout=_EXPORT_SLOT_WAIT_S)
+        except asyncio.TimeoutError:
+            raise HTTPException(503, "Export busy — other exports are being built; retry shortly.",
+                                headers={"Retry-After": "30"})
+        return self
+
+    async def __aexit__(self, *exc):
+        _EXPORT_SLOTS.release()
+        return False
+
 
 def _utcnow_iso() -> str:
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -331,6 +351,17 @@ async def export_bundle(
     cells: str | None = Query(None),
     format: str = Query("geojson", pattern="^(geojson|csv)$"),
 ):
+    async with _ExportSlot():
+        return await _export_bundle(layers, bbox, poly, cells, format)
+
+
+async def _export_bundle(
+    layers: str = Query(...),
+    bbox: str | None = Query(None),
+    poly: str | None = Query(None),
+    cells: str | None = Query(None),
+    format: str = Query("geojson", pattern="^(geojson|csv)$"),
+):
     """Download a ZIP containing one file per requested layer (composites expand to subfolders).
 
     - ``layers``: comma-separated export layer ids (≤40; all must be in EXPORT_LAYERS)
@@ -418,6 +449,17 @@ async def export_bundle(
 
 @router.get("/{layer}", dependencies=[Depends(get_api_key)])
 async def export_data(
+    layer: str,
+    bbox: str | None = Query(None),
+    poly: str | None = Query(None),
+    cells: str | None = Query(None),
+    format: str = Query("geojson", pattern="^(geojson|csv)$"),
+):
+    async with _ExportSlot():
+        return await _export_data(layer, bbox, poly, cells, format)
+
+
+async def _export_data(
     layer: str,
     bbox: str | None = Query(None),
     poly: str | None = Query(None),
