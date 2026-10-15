@@ -214,7 +214,11 @@ def build_payload(expocode: str, g, g_pts, s, track) -> dict:
     alt = f"Track of cruise {expocode}" + (f" ({name})" if name else "") + f" — {region}"
     return {
         "expocode": expocode,
-        "meta": {"title": title, "description": description, "canonical_url": canonical, "json_ld": json_ld},
+        # Only GLODAP cruises are offered to search engines (owner, 2026-10-15: ~11 % of the existing 40k URLs get any
+        # impression, so 8k thin SOCAT-only pages would dilute, not add). SOCAT-only pages stay live for people and
+        # links, with noindex,follow; the sitemap lists exactly the GLODAP set (SITEMAP_SQL).
+        "meta": {"title": title, "description": description, "canonical_url": canonical, "json_ld": json_ld,
+                 "robots": None if glodap else "noindex, follow"},
         "header": {"name": name, "first_date": first, "last_date": last, "region": region, "datasets": datasets},
         "bbox": b, "sketch_svg": sketch.render_svg(frame, g_pts, track, alt), "sketch_alt": alt,
         "glodap": glodap, "socat": socat,
@@ -273,7 +277,9 @@ WITH u AS (
 SELECT * FROM u ORDER BY first_date DESC NULLS LAST, expocode LIMIT $1 OFFSET $2"""
 SITEMAP_SQL = f"""
 SELECT expocode, bool_or(g) AS in_glodap, bool_or(s) AS in_socat
-FROM ({_UNION}) x WHERE expocode ~ '{CRUISE_KEY_SQL_RE}' GROUP BY expocode ORDER BY expocode"""
+FROM ({_UNION}) x WHERE expocode ~ '{CRUISE_KEY_SQL_RE}' GROUP BY expocode
+HAVING bool_or(g)                -- GLODAP cruises only: SOCAT-only pages are noindex (meta.robots)
+ORDER BY expocode"""
 _LOADED_AT_SQL = ("SELECT (SELECT loaded_at FROM glodap_bottle_source WHERE id = 1) AS g, "
                   "(SELECT loaded_at FROM socat_points_source WHERE id = 1) AS s")
 

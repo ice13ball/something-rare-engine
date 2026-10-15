@@ -1090,7 +1090,9 @@ export function renderCruisePage(data, opts) {
       <p><a href="${escapeHtml(mapHref)}" style="display:inline-block;padding:.45rem .9rem;border:1px solid #22d3ee;border-radius:6px;color:#22d3ee;text-decoration:none">Open on the map →</a></p>
       ${glodapHtml}${socatHtml}${citeHtml}
     </main>`;
-  return wrapHtml(renderHead(data.meta), body, opts);
+  // A SOCAT-only cruise page is live but not offered to search engines (backend meta.robots, owner 2026-10-15).
+  const robots = data.meta.robots === 'noindex, follow' ? '\n    <meta name="robots" content="noindex, follow" />' : '';
+  return wrapHtml(renderHead(data.meta) + robots, body, opts);
 }
 
 export { fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, mdToHtml, wrapHtml };
