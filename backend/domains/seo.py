@@ -172,6 +172,7 @@ class SeoMeta(BaseModel):
     canonical_url: str
     og_image: Optional[str] = None
     json_ld: dict
+    robots: Optional[str] = None   # "noindex, follow" keeps a live page out of search (renderHead emits the meta)
 
 
 class ConcessionSeo(BaseModel):
@@ -636,6 +637,14 @@ def _seamount_description(height, summit_depth, area_km2, basin: str | None, in_
     return body
 
 
+# Only seamounts within 10 km of an ISA contract are offered to search engines (owner, 2026-10-15): Search Console
+# showed seamount impressions come almost only from bare peak-id queries, ~11 % of 37,889 pages, spread evenly over
+# every attribute. The other pages stay live (map links, neighbours) with noindex,follow. Page and sitemap share
+# this rule, so the page's "Near an ISA Mining Concession" heading and the sitemap always agree.
+SEAMOUNT_NEAR_CONCESSION_SQL = ("EXISTS(SELECT 1 FROM mining_contracts mc "
+                                "WHERE ST_DWithin(mc.geom::geography, s.geom::geography, 10000))")
+
+
 @router.get("/v1/seo/seamount/{peak_id}", response_model=SeamountSeo, dependencies=[Depends(get_api_key)])
 async def seo_seamount(peak_id: int):
     _int4_or_404(peak_id, "Seamount")
@@ -644,13 +653,10 @@ async def seo_seamount(peak_id: int):
             SELECT s.peak_id, s.height_m, s.summit_depth_m, s.area_km2,
                    ST_Y(s.geom::geometry) AS latitude,
                    ST_X(s.geom::geometry) AS longitude,
-                   EXISTS(
-                       SELECT 1 FROM mining_contracts mc
-                       WHERE ST_DWithin(mc.geom::geography, s.geom::geography, 10000)
-                   ) AS in_concession
+                   {near} AS in_concession
             FROM seamounts s
             WHERE s.peak_id = $1
-        """, peak_id)
+        """.format(near=SEAMOUNT_NEAR_CONCESSION_SQL), peak_id)
 
         if not row:
             raise HTTPException(status_code=404, detail=f"Seamount {peak_id} not found")
@@ -701,6 +707,7 @@ async def seo_seamount(peak_id: int):
             title=title,
             description=description[:160],
             canonical_url=f"https://something-rare.com/seamount/{peak_id}",
+            robots=None if in_conc else "noindex, follow",
             json_ld={
                 "@context": "https://schema.org",
                 "@type": "Place",
@@ -1043,8 +1050,12 @@ async def seo_sitemap_entries():
 @router.get("/v1/seo/sitemap/seamounts", dependencies=[Depends(get_api_key)])
 async def seo_sitemap_seamounts():
     async with db.pool.acquire() as conn:
-        seamounts = await conn.fetch("SELECT peak_id FROM seamounts ORDER BY peak_id")
+        seamounts = await conn.fetch(
+            f"SELECT peak_id FROM seamounts s WHERE {SEAMOUNT_NEAR_CONCESSION_SQL} ORDER BY peak_id")
         sync = await conn.fetchrow("SELECT last_synced_at FROM sync_log WHERE source = 'seamounts'")
+    if not seamounts:
+        # Seamounts or contracts not loaded: never an empty sitemap (server.js turns a non-200 into an error).
+        raise HTTPException(status_code=503, detail="seamount sitemap not ready", headers={"Retry-After": "300"})
     lastmod = str(sync["last_synced_at"].date()) if sync else "2026-04-01"
     entries = [{"loc": f"https://something-rare.com/seamount/{r['peak_id']}", "lastmod": lastmod, "changefreq": "yearly", "priority": "0.4"} for r in seamounts]
     return {"entries": entries}

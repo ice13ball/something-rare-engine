@@ -111,6 +111,7 @@ class Hub:
     row_to_item: Callable[[Any], dict]
     priority: str = "0.6"
     ready_sql: str = ""      # boolean SQL; False -> 503 + Retry-After (an unloaded source is not an empty index)
+    robots: str = ""         # "noindex, follow": the hub stays live for people but is not in sitemap-core
 
 
 # ── row → item builders ──────────────────────────────────────────────────────
@@ -214,6 +215,7 @@ HUBS: dict[str, Hub] = {
         ),
         row_to_item=_seamount_item,
         priority="0.5",
+        robots="noindex, follow",   # owner 2026-10-15: only seamounts near ISA contracts are indexable (seo.py)
     ),
     "concession": Hub(
         kind="concession",
@@ -421,6 +423,7 @@ async def seo_hub_index():
                 "total": total,
                 "pages": page_count(total, hub.per_page),
                 "priority": hub.priority,
+                "robots": hub.robots or None,
             })
     return {"hubs": out}
 
@@ -460,4 +463,5 @@ async def seo_hub(kind: str, page: int = Query(1, ge=1)):
         "total": total,
         "per_page": hub.per_page,
         "items": items,
+        "robots": hub.robots or None,
     }

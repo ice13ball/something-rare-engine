@@ -1211,6 +1211,7 @@ app.get('/sitemap-core.xml', async (req, res) => {
       // not today, and we do not track that per hub. `changefreq` already says
       // what we actually know.
       for (const h of hubs || []) {
+        if (h.robots) continue;   // a noindex hub (seamounts since 2026-10-15) is live but not offered to search
         for (let p = 1; p <= h.pages; p++) {
           entries.push({
             loc: p === 1 ? h.url : `${h.url}?page=${p}`,
