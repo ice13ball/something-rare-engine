@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from services.export_registry import VectorExport
@@ -30,6 +31,8 @@ def parse_aoi(bbox: str | None, poly: str | None, cells: str | None) -> Aoi:
             nums = tuple(float(p) for p in parts)
         except ValueError as e:
             raise ValueError("bbox values must be numeric") from e
+        if not all(math.isfinite(n) for n in nums):
+            raise ValueError("bbox values must be finite numbers")
         return Aoi(kind="bbox", bbox=nums)  # type: ignore[arg-type]
     if poly:
         if "coordinates" not in poly:

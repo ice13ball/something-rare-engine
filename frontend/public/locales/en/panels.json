@@ -1721,6 +1721,7 @@
     "sectionSource": "Source and credit",
     "socatLink": "SOCAT v2026 (NCEI)",
     "sourceDoi": "Cruise data DOI",
+    "cruisePage": "Cruise page",
     "accession": "NCEI accession",
     "cell": {
       "loading": "Loading the observations behind this dot…",
@@ -1775,6 +1776,7 @@
     "noQc": "this variable has no secondary QC in GLODAPv3",
     "source": "GLODAPv3 dataset (NCEI)",
     "cruiseDoi": "Cruise DOI",
+    "cruisePage": "Cruise page",
     "var": {
       "tco2": "DIC (TCO₂)",
       "talk": "Total alkalinity",

@@ -305,6 +305,48 @@ export const EXPORT_LAYERS_FE: ExportLayerMeta[] = [
     sourceUrl: "https://www.ncei.noaa.gov/products/world-ocean-database",
     citation: "doi:10.7289/V5H70CVX",
   },
+  // --- 2026-10-11: the four measurement layers (spec 2026-10-11-cruise-pages-and-point-export-design.md).
+  // Gated on their own toggles (ids are LayerIds, so mapIdOf falls through).
+  {
+    id: "glodap-points",
+    label: "GLODAPv3 bottle casts",
+    kind: "vector",
+    geomKind: "point",
+    family: "Sensors",
+    source: "GLODAPv3 (2026), NCEI Accession 0315582",
+    sourceUrl: "https://doi.org/10.25921/m6tp-mj50",
+    citation: "Lange et al. 2026, doi:10.25921/m6tp-mj50",
+  },
+  {
+    id: "argo-oxygen-points",
+    label: "BGC-Argo O₂ profiles",
+    kind: "vector",
+    geomKind: "point",
+    family: "Sensors",
+    source: "Argo GDAC — BGC-Argo DOXY",
+    sourceUrl: "https://doi.org/10.17882/42182",
+    citation: "Argo (2000), doi:10.17882/42182",
+  },
+  {
+    id: "socat-points",
+    label: "SOCAT v2026 fCO₂ observations",
+    kind: "vector",
+    geomKind: "point",
+    family: "Sensors",
+    source: "SOCAT v2026 (NCEI Accession 0315110)",
+    sourceUrl: "https://doi.org/10.25921/8dba-fr90",
+    citation: "Bakker et al. 2026, doi:10.25921/8dba-fr90 + Bakker et al. 2016, doi:10.5194/essd-8-383-2016",
+  },
+  {
+    id: "wod-casts",
+    label: "World Ocean Database 2023 casts",
+    kind: "vector",
+    geomKind: "point",
+    family: "Sensors",
+    source: "NOAA World Ocean Database 2023 (WOD23)",
+    sourceUrl: "https://www.ncei.noaa.gov/products/world-ocean-database",
+    citation: "Mishonov et al. 2024, doi:10.25923/z885-h264",
+  },
   // --- 2026-09-10: three entries the backend registry has always served but
   // the panel never listed. Found by check 20f of abyssal-new-layer-check:
   // the registry does NOT auto-discover, so a backend entry with no row here

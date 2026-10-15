@@ -6477,6 +6477,20 @@ exports[`DetailPanel dispatch matrix > renders glodap-points after data loads 1`
                   ↗
                 </span>
               </a>
+              <a
+                class="text-cyan-300 hover:underline"
+                href="/cruise/49UF20150620"
+                rel="noopener"
+                target="_blank"
+              >
+                Cruise page
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
             </div>
             <p
               class="text-white/55 text-[11px] leading-snug mb-1"
@@ -17332,6 +17346,20 @@ exports[`DetailPanel dispatch matrix > renders socat-points after data loads 1`]
                 target="_blank"
               >
                 NCEI accession
+                 
+                <span
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </a>
+              <a
+                class="text-cyan-300 hover:underline"
+                href="/cruise/33GC20040908"
+                rel="noopener"
+                target="_blank"
+              >
+                Cruise page
                  
                 <span
                   aria-hidden="true"

@@ -1716,6 +1716,7 @@
     "noQc": "diese Variable hat in GLODAPv3 keine sekundäre Qualitätskontrolle",
     "source": "GLODAPv3-Datensatz (NCEI)",
     "cruiseDoi": "DOI der Expedition",
+    "cruisePage": "Seite der Expedition",
     "var": {
       "tco2": "DIC (TCO₂)",
       "talk": "Gesamtalkalinität",
@@ -1916,6 +1917,7 @@
     "sectionSource": "Quelle und Nachweis",
     "socatLink": "SOCAT v2026 (NCEI)",
     "sourceDoi": "DOI der Expeditionsdaten",
+    "cruisePage": "Seite der Expedition",
     "accession": "NCEI-Accession",
     "cell": {
       "loading": "Die Beobachtungen hinter diesem Punkt werden geladen…",

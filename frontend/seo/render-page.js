@@ -10,6 +10,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './urls.js';
 import { fetchUpstream, BackendUnavailable } from './upstream-fetch.js';
+import { shareLinkHref } from './share-link.js';
 import { CONSENT_BANNER_HTML } from './consent-banner.js';
 import { injectHiddenLayersMeta } from './hidden-layers.js';
 
@@ -1037,6 +1038,59 @@ export function renderHubPage(hub, hubs) {
   </main>`;
 
   return wrapHtml(head, body, { hydrate: false });
+}
+
+// ── /cruise/{EXPOCODE} ───────────────────────────────────────────────────────
+// Server-only page (App.tsx has no route). Every value comes from /v1/seo/cruise; the SVG is drawn by the backend
+// (numbers + escaped text only) and is inlined only when it is one.
+export function renderCruisePage(data, opts) {
+  const { header: h, glodap: g, socat: s, citations: cit } = data;
+  if (!g && !s) throw new Error(`cruise ${data.expocode}: neither a GLODAP nor a SOCAT section`);
+  const mapHref = shareLinkHref(data.map);
+  const svg = typeof data.sketch_svg === 'string' && data.sketch_svg.startsWith('<svg ') ? data.sketch_svg : '';
+  const row = (k, v) => (v === null || v === undefined || v === '' ? ''
+    : `<tr><th scope="row" style="text-align:left;padding:.15rem 1rem .15rem 0;color:#94a3b8;font-weight:normal;vertical-align:top">${escapeHtml(k)}</th><td>${escapeHtml(String(v))}</td></tr>`);
+  // Only http(s) URLs and our own "/?s=" share link become anchors: a value from the backend is never trusted to be a safe scheme.
+  const link = (href, text) => (/^https?:\/\//i.test(href || '') || String(href || '').startsWith('/?s=')
+    ? `<a href="${escapeHtml(href)}" rel="noopener" style="color:#22d3ee">${escapeHtml(text)}</a>` : '');
+  const num = n => Number(n).toLocaleString('en-US');
+  const badges = h.datasets.map(d => `<span style="border:1px solid #1e3a5f;border-radius:4px;padding:.05rem .45rem;margin-right:.4rem;color:#7dd3fc;font-size:.85rem">${escapeHtml(d)}</span>`).join('');
+
+  const glodapHtml = g ? `
+      <h2>GLODAPv3 bottle data</h2>
+      <table>${row('Ship', g.ship_name)}${row('Platform code', g.platform_code)}${row('Casts', num(g.n_casts))}
+        ${row('Sample depths', g.depth_min_m != null ? `${Math.round(g.depth_min_m)}–${Math.round(g.depth_max_m)} m` : null)}
+        ${row('Dates', g.first_date === g.last_date ? g.first_date : `${g.first_date} → ${g.last_date}`)}
+        ${row('Measured (≥ 1 acceptable value, flag 2)', g.variables.map(v => (v.units ? `${v.label} (${v.units})` : v.label)).join(', ') || null)}</table>
+      <p>${[link(g.doi_url, 'Cruise DOI'), link(mapHref, 'Casts on the map')].filter(Boolean).join(' · ')}</p>` : '';
+
+  const socatHtml = s ? `
+      <h2>SOCAT v2026 surface fCO₂</h2>
+      <table>${row('Platform', s.platform_name)}${row('Principal investigators', s.pis.join('; ') || null)}
+        ${row('Observations stored', num(s.n_obs))}${row('Observations drawn on the map (WOCE flag 2, QC A–D)', num(s.n_drawn))}
+        ${row('QC flag', s.qc_meaning ? `${s.qc_flag} — ${s.qc_meaning}` : s.qc_flag)}
+        ${row('Time span (UTC)', `${s.first_time} → ${s.last_time}`)}${row('Dataset', s.dataset_name)}${row('SOCAT version', s.version)}
+        ${row('Source reference', s.source_reference)}</table>
+      <p>${[link(s.source_doi_url, 'Dataset DOI'), link(s.accession_url, 'NCEI accession')].filter(Boolean).join(' · ')}</p>` : '';
+
+  const citeHtml = `
+      <h2>How to cite</h2>
+      ${cit.glodap ? `<h3>GLODAPv3</h3>${cit.glodap.map(c => `<p>${escapeHtml(c)}</p>`).join('')}` : ''}
+      ${cit.socat ? `<h3>SOCAT v2026</h3>${cit.socat.map(c => `<p>${escapeHtml(c)}</p>`).join('')}
+        <p><em>${escapeHtml(cit.socat_acknowledgement)}</em></p>` : ''}
+      <p>Licence: ${escapeHtml(cit.licence)}. Values are passed through unmodified from the published datasets.</p>`;
+
+  const body = `
+    <main style="max-width:860px;margin:0 auto;padding:2rem 1.25rem;color:#cbd5e1;font-family:system-ui,sans-serif;line-height:1.55">
+      <p style="margin:0 0 .5rem"><a href="/cruises" style="color:#22d3ee">All research cruises</a></p>
+      <h1 style="color:#fff;margin:.2rem 0">${escapeHtml(h.name ? `${h.name} — cruise ${data.expocode}` : `Cruise ${data.expocode}`)}</h1>
+      <p style="margin:.2rem 0 .8rem;color:#94a3b8">${escapeHtml(h.first_date === h.last_date ? h.first_date : `${h.first_date} → ${h.last_date}`)} · ${escapeHtml(h.region)}</p>
+      <p>${badges}</p>
+      <figure style="margin:1rem 0">${svg}<figcaption style="color:#64748b;font-size:.85rem">${escapeHtml(data.sketch_alt)}. Orange: GLODAPv3 casts; blue: SOCAT track.</figcaption></figure>
+      <p><a href="${escapeHtml(mapHref)}" style="display:inline-block;padding:.45rem .9rem;border:1px solid #22d3ee;border-radius:6px;color:#22d3ee;text-decoration:none">Open on the map →</a></p>
+      ${glodapHtml}${socatHtml}${citeHtml}
+    </main>`;
+  return wrapHtml(renderHead(data.meta), body, opts);
 }
 
 export { fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, mdToHtml, wrapHtml };

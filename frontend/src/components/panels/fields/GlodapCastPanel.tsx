@@ -18,6 +18,7 @@ import { API } from "../shared/tokens";
 import { PanelHeader, Row, Section, WarningBanner } from "../shared/primitives";
 import { useMapStore } from "../../../store/mapStore";
 import { glodapWindowLabel, GLODAP_DEPTH_WINDOW_BOUNDS } from "../../../utils/glodapPoints";
+import { cruisePageHref } from "../../../utils/cruisePage";
 
 /** Field variable (the ocean-carbon store key) -> the bottle column it is compared with. Cant has no bottle:
  *  the chart falls back to DIC, with a caption — nothing else uses this fallback. */
@@ -268,6 +269,10 @@ export function GlodapCastPanel({ id }: { id: string }) {
           {doi && (
             <a href={doi} target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:underline">
               {t("glodapCast.cruiseDoi")} <span aria-hidden="true">↗</span>
+            </a>)}
+          {cruisePageHref(data.expocode) && (
+            <a href={cruisePageHref(data.expocode)!} target="_blank" rel="noopener" className="text-cyan-300 hover:underline">
+              {t("glodapCast.cruisePage")} <span aria-hidden="true">↗</span>
             </a>)}
         </div>
         {credits.map((c) => <p key={c} className="text-white/55 text-[11px] leading-snug mb-1">{c}</p>)}

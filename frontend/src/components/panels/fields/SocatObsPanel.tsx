@@ -19,6 +19,7 @@ import { API } from "../shared/tokens";
 import { PanelHeader, Row, Section } from "../shared/primitives";
 import { useMapStore } from "../../../store/mapStore";
 import { useSocatSelection } from "../../../store/socatSelection";
+import { cruisePageHref } from "../../../utils/cruisePage";
 
 type Num = number | null;
 export type SocatSegment = {
@@ -310,6 +311,10 @@ export function SocatObsPanel({ obsKey, cell, year, k, lod, lodMean, version }: 
             {accession && (
               <a href={accession} target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:underline">
                 {t("socatObs.accession")} <span aria-hidden="true">↗</span>
+              </a>)}
+            {cruisePageHref(c.expocode) && (
+              <a href={cruisePageHref(c.expocode)!} target="_blank" rel="noopener" className="text-cyan-300 hover:underline">
+                {t("socatObs.cruisePage")} <span aria-hidden="true">↗</span>
               </a>)}
           </div>
           {credits.map((cr) => <p key={cr} className="text-white/55 text-[11px] leading-snug mb-1">{cr}</p>)}

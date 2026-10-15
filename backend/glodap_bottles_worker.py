@@ -65,6 +65,21 @@ from ingestion.glodap_bottles_rules import (  # noqa: F401  (re-exported: tests 
 from sync_log import log_sync_skipped
 
 log = logging.getLogger("glodap_bottles_worker")
+CRUISE_SITEMAP_URL = "https://something-rare.com/sitemap-cruises.xml"
+
+
+async def _ping_cruise_sitemap() -> None:
+    """IndexNow: the cruise sitemap after a swap (spec 2026-10-11 — the sitemap URL only, not 9,201 pages)."""
+    try:
+        import indexnow                      # here, not at the top: INDEXNOW_KEY is read at import (see above)
+        if not indexnow.INDEXNOW_KEY:
+            log.info("no INDEXNOW_KEY — cruise sitemap ping skipped")
+            return
+        await indexnow.notify_indexnow([CRUISE_SITEMAP_URL])
+    except Exception:
+        log.warning("cruise sitemap IndexNow ping failed", exc_info=True)
+
+
 LOCK_KEY = 4242001                       # shared with obis_sync_worker, vme_bake_worker, plankton_obis_worker
 CHECK_EVERY = timedelta(days=30)
 MIN_AVAIL_KIB = 3 * 1024 * 1024
@@ -220,6 +235,8 @@ async def _run(pool, head, lock_wait_s: float, lock_poll_s: float) -> str:
             else:                           # swapped (the loader cleared it too) or lock_timeout (transient)
                 await _stamp(lock_conn, "UPDATE glodap_bottle_source SET last_failed_at = NULL, last_failure = NULL "
                              "WHERE id = 1")
+                if outcome == "swapped":
+                    await _ping_cruise_sitemap()
             return outcome
         finally:
             await lock_conn.execute("SELECT pg_advisory_unlock($1)", LOCK_KEY)

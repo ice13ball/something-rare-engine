@@ -1716,6 +1716,7 @@
     "noQc": "cette variable n'a pas de contrôle qualité secondaire dans GLODAPv3",
     "source": "Jeu de données GLODAPv3 (NCEI)",
     "cruiseDoi": "DOI de la campagne",
+    "cruisePage": "Page de la campagne",
     "var": {
       "tco2": "DIC (TCO₂)",
       "talk": "Alcalinité totale",
@@ -1916,6 +1917,7 @@
     "sectionSource": "Source et crédits",
     "socatLink": "SOCAT v2026 (NCEI)",
     "sourceDoi": "DOI des données de la campagne",
+    "cruisePage": "Page de la campagne",
     "accession": "Accession NCEI",
     "cell": {
       "loading": "Chargement des observations derrière ce point…",

@@ -124,6 +124,7 @@ These are carried verbatim in the platform and must be preserved in any derivati
 | Permafrost thaw — Alaska (Webb et al. 2026) | `permafrost-thaw` | **CC-BY 4.0** (Zenodo) |
 | Permafrost thaw — ARTS v6 (WHRC) | `permafrost-thaw` | **CC0** (Zenodo) |
 | SIOS Svalbard (`sios-svalbard.org/rest/stations/data.json`) | `sios-svalbard` observing datasets | SIOS catalogue terms |
+| Natural Earth 1:110m land (v5.1.2), `backend/services/ne_110m_land.json` | coastline in the `/cruise/{EXPOCODE}` track sketch | **Public domain**. "Made with Natural Earth." No attribution required; credited in the sketch footer. Outer rings only, coordinates rounded to 0.01°. |
 
 ⚠️ **PANGAEA-hosted sources set licence per deposited dataset, not per portal.** `hydrothermal-vents`,
 `mosaic-sediment`, `mining-footprints`, `arctic-sediment-carbon` and `arctic-rivers` all resolve

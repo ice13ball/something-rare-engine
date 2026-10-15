@@ -61,7 +61,7 @@ def rows_to_geojson(rows, prov: Provenance, *, retrieved_at: str, capped: bool, 
         d = dict(r)
         geom = d.pop("geometry", None)
         features.append({"type": "Feature", "geometry": geom, "properties": d})
-    return {
+    fc = {
         "type": "FeatureCollection",
         "metadata": {
             "layer": layer_id,
@@ -76,6 +76,9 @@ def rows_to_geojson(rows, prov: Provenance, *, retrieved_at: str, capped: bool, 
         },
         "features": features,
     }
+    if prov.acknowledgement:
+        fc["metadata"]["acknowledgement"] = prov.acknowledgement
+    return fc
 
 
 def _wkt_from_geojson(geom: dict) -> str:
@@ -97,7 +100,8 @@ def _wkt_from_geojson(geom: dict) -> str:
 
 
 def rows_to_csv(
-    rows, geom_kind: str, prov: Provenance, *, columns: list[str] | None = None
+    rows, geom_kind: str, prov: Provenance, *, columns: list[str] | None = None,
+    capped: bool | None = None,
 ) -> str:
     buf = io.StringIO()
     w = _csv.writer(buf, lineterminator="\r\n")
@@ -120,7 +124,10 @@ def rows_to_csv(
     # CSV header never contains a duplicate key (e.g. seaflea/methane-seeps layer).
     src_col = "dataset_source" if "source" in prop_keys else "source"
     src_url_col = "dataset_source_url" if "source_url" in prop_keys else "source_url"
-    w.writerow(prop_keys + geo_cols + [src_col, src_url_col])
+    # Opt-in trailing columns (capped is not None): the file carries its own licence, citation and cap flag.
+    extra = [] if capped is None else (["license", "citation"] + (["acknowledgement"] if prov.acknowledgement else [])
+                                       + ["capped"])
+    w.writerow(prop_keys + geo_cols + [src_col, src_url_col] + extra)
     for r in rows:
         d = dict(r)
         geom = d.pop("geometry", None)
@@ -135,6 +142,10 @@ def rows_to_csv(
         else:
             row += [_csv_safe(_wkt_from_geojson(geom)) if geom else ""]
         row += [_csv_safe(prov.source), _csv_safe(prov.source_url)]
+        if capped is not None:
+            row += [_csv_safe(prov.license or ""), _csv_safe(prov.citation or "")]
+            row += [_csv_safe(prov.acknowledgement)] if prov.acknowledgement else []
+            row += ["true" if capped else "false"]
         w.writerow(row)
     return buf.getvalue()
 

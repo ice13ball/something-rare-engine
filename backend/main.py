@@ -68,6 +68,7 @@ from domains import seafloor
 from domains import sensors
 from domains import seo
 from domains import seo_hubs
+from domains import seo_cruises
 from domains.land.common import TAILINGS_SERVED_WHERE
 from land_layers import (
     router as land_layers_router, sync_all_land_sources,
@@ -420,6 +421,7 @@ app.include_router(sensors.router)
 app.include_router(oceansites_history.router)
 app.include_router(seo.router)
 app.include_router(seo_hubs.router)
+app.include_router(seo_cruises.router)
 app.include_router(fields.router)
 app.include_router(plankton.router)
 

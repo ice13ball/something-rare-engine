@@ -103,7 +103,7 @@ if (!BASE) {
   // Real ids, harvested from the hubs rather than guessed. A guessed id 404s
   // into the SPA fallback, which is byte-identical to a route that never ran —
   // so guessing produces a green check that tested nothing.
-  const HUBS = ['/onc', '/oceansites', '/river', '/resource', '/report', '/layer', '/vent', '/concession', '/seamount'];
+  const HUBS = ['/onc', '/oceansites', '/river', '/resource', '/report', '/layer', '/vent', '/concession', '/seamount', '/cruises'];
   const routes = new Set(['/about', '/privacy', '/terms', '/api-docs', '/blog', '/contractors', ...HUBS]);
   for (const hub of HUBS) {
     const html = await (await fetchAs(hub, BOT)).text();

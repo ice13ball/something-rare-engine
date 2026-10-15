@@ -1722,6 +1722,7 @@
     "noQc": "ta zmienna nie ma w GLODAPv3 wtórnej kontroli jakości",
     "source": "Zbiór GLODAPv3 (NCEI)",
     "cruiseDoi": "DOI rejsu",
+    "cruisePage": "Strona rejsu",
     "var": {
       "tco2": "DIC (TCO₂)",
       "talk": "Zasadowość całkowita",
@@ -1926,6 +1927,7 @@
     "sectionSource": "Źródło i autorstwo",
     "socatLink": "SOCAT v2026 (NCEI)",
     "sourceDoi": "DOI danych rejsu",
+    "cruisePage": "Strona rejsu",
     "accession": "Akcesja NCEI",
     "cell": {
       "loading": "Wczytuję obserwacje stojące za tą kropką…",

@@ -10,9 +10,9 @@ import { dirname, join } from 'path';
 import { config } from 'dotenv';
 import { SPA_PATHS, hydrates } from './seo/route-categories.js';
 import { HIDDEN_LAYER_IDS, injectHiddenLayersMeta } from './seo/hidden-layers.js';
-import { canonicalUrl, normaliseJsonLd, normaliseUrl } from './seo/urls.js';
+import { canonicalUrl, encodeSegment, normaliseJsonLd, normaliseUrl } from './seo/urls.js';
 import { forceHttpsMiddleware, wwwRedirectMiddleware } from './seo/canonical-hosts.js';
-import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, wrapHtml, siteCitation, renderHubPage, hubNavHtml, BackendUnavailable, EntityGone } from './seo/render-page.js';
+import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, renderCruisePage, wrapHtml, siteCitation, renderHubPage, hubNavHtml, BackendUnavailable, EntityGone } from './seo/render-page.js';
 import { fetchUpstream } from './seo/upstream-fetch.js';
 import { createApiProxy } from './seo/api-proxy.js';
 
@@ -405,7 +405,7 @@ for (const type of ['concession', 'vent', 'seamount', 'oceansites', 'onc']) {
 // so humans get the interactive map instead of a static snapshot; a directory
 // page has no map to give them, and seven bot-gated routes already render blank
 // for humans (see seo/route-categories.js). Adding nine more would be deliberate breakage.
-const HUB_KINDS = ['seamount', 'concession', 'vent', 'onc', 'oceansites', 'river', 'report', 'layer', 'resource'];
+const HUB_KINDS = ['seamount', 'concession', 'vent', 'onc', 'oceansites', 'river', 'report', 'layer', 'resource', 'cruises'];
 
 // The hub list is on every hub page and on the bot copy of "/", so it is cached:
 // otherwise each of those renders costs a round trip plus nine COUNT(*)s.
@@ -703,6 +703,32 @@ app.get('/river/:id', entityRoute('This river station page', async (req, res) =>
     `;
     res.type('html').send(wrapHtml(head, renderRiverPage(data), { hydrate: hydrates(req.path) }));
   }
+}));
+
+// ── Research cruise pages (GLODAPv3 ∪ SOCAT v2026) ────────────────────────
+// Same key rule as backend/domains/seo_cruises.CRUISE_KEY_RE; the backend is authoritative, this only spares it a
+// round trip for a shape that can never be a key.
+const CRUISE_KEY_RE = /^[A-Za-z0-9_-]{4,32}$/;
+
+// The hub is /cruises (spec 2026-10-11); /cruise is the parent path a crawler probes on seeing /cruise/X.
+app.get('/cruise', (req, res) => res.redirect(301, '/cruises'));
+
+app.get('/cruise/:expocode', entityRoute('This cruise page', async (req, res) => {
+  const key = req.params.expocode;
+  if (!CRUISE_KEY_RE.test(key)) return sendNotFound(res, 'No such cruise.', '/cruises', 'All research cruises');
+  const data = await fetchEntity(`${VPS_API_URL}/v1/seo/cruise/${encodeURIComponent(key)}`, 8000);
+  if (!data) return sendNotFound(res, `No cruise “${key}”.`, '/cruises', 'All research cruises');
+  if ('redirect_to' in data) {
+    // ⛔ redirect_to is an exact stored spelling that differs from the request. Missing, not a string, equal to the
+    // request (a loop) or not a key (an open redirect) is OUR failure: throw, and entityRoute answers 503.
+    const to = data.redirect_to;
+    if (typeof to !== 'string' || to === key || !CRUISE_KEY_RE.test(to)) {
+      throw new Error(`unusable cruise redirect ${key} -> ${JSON.stringify(to)}`);
+    }
+    return res.redirect(301, `/cruise/${encodeSegment(to)}`);
+  }
+  res.type('html').set('Cache-Control', 'public, max-age=3600')
+    .send(renderCruisePage(data, { hydrate: hydrates(req.path) }));
 }));
 
 // ── Resource type pages ───────────────────────────────────────────────────
@@ -1133,6 +1159,7 @@ app.get('/sitemap.xml', async (req, res) => {
   const sitemaps = [
     { loc: `${SITE}/sitemap-core.xml` },
     { loc: `${SITE}/sitemap-seamounts.xml` },
+    { loc: `${SITE}/sitemap-cruises.xml` },
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -1215,6 +1242,24 @@ app.get('/sitemap-seamounts.xml', async (req, res) => {
   } catch (err) {
     console.error('sitemap-seamounts failed:', err);
     res.status(500).send('Sitemap generation failed');
+  }
+});
+
+// Sub-sitemap: research cruises (9,201 URLs; hub pages stay in sitemap-core with every other hub).
+// ⛔ Never an empty 200: missing, empty or failed → 503 + Retry-After, which says "ask again".
+app.get('/sitemap-cruises.xml', async (req, res) => {
+  try {
+    const data = await fetchUpstream(`${VPS_API_URL}/v1/seo/sitemap/cruises`, {
+      timeoutMs: 15000,
+      fetchImpl: (u, opts) => fetch(u, { ...opts, headers: API_HEADERS }),
+    });
+    if (!data || !Array.isArray(data.entries) || data.entries.length === 0) {
+      throw new Error(`cruise sitemap empty or missing (${data ? data.entries?.length : 'null'})`);
+    }
+    res.type('application/xml').set('Cache-Control', 'public, max-age=86400').send(renderUrlset(data.entries));
+  } catch (err) {
+    console.error('sitemap-cruises failed:', err.message);
+    res.status(503).type('text/plain').set('Retry-After', '300').send('Sitemap temporarily unavailable');
   }
 });
 

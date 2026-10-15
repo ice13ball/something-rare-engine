@@ -52,6 +52,7 @@ from auth import get_api_key
 from fastapi import APIRouter
 
 from domains.seo import LAYER_PAGE_IDS
+from domains.seo_cruises import CRUISES_COUNT_SQL, CRUISES_ROWS_SQL, READY_SQL as CRUISES_READY_SQL, cruise_hub_item
 
 router = APIRouter()
 
@@ -109,6 +110,7 @@ class Hub:
     rows_sql: str            # must end with LIMIT $1 OFFSET $2
     row_to_item: Callable[[Any], dict]
     priority: str = "0.6"
+    ready_sql: str = ""      # boolean SQL; False -> 503 + Retry-After (an unloaded source is not an empty index)
 
 
 # ── row → item builders ──────────────────────────────────────────────────────
@@ -301,6 +303,19 @@ HUBS: dict[str, Hub] = {
         row_to_item=_river_item,
         priority="0.6",
     ),
+    "cruises": Hub(
+        kind="cruises",
+        title="Research cruises — GLODAPv3 and SOCAT v2026 | Abyssal Claims",
+        heading="Research cruises",
+        intro=("Every research cruise and ship-of-opportunity voyage in GLODAPv3 bottle data or SOCAT v2026 "
+               "surface CO₂ data — one page per EXPOCODE, newest first."),
+        per_page=250,
+        count_sql=CRUISES_COUNT_SQL,
+        rows_sql=CRUISES_ROWS_SQL,
+        row_to_item=cruise_hub_item,
+        priority="0.5",
+        ready_sql=CRUISES_READY_SQL,
+    ),
     "report": Hub(
         kind="report",
         title="Measurement reports | Abyssal Claims",
@@ -392,6 +407,8 @@ async def seo_hub_index():
     out = []
     async with db.pool.acquire() as conn:
         for hub in ALL_HUBS.values():
+            if hub.ready_sql and not await conn.fetchval(hub.ready_sql):
+                continue            # an unloaded source has no index page (/{kind} answers 503): do not advertise it
             if hub.count_sql:
                 total = await conn.fetchval(hub.count_sql)
             else:
@@ -416,6 +433,9 @@ async def seo_hub(kind: str, page: int = Query(1, ge=1)):
 
     if hub.count_sql:
         async with db.pool.acquire() as conn:
+            if hub.ready_sql and not await conn.fetchval(hub.ready_sql):
+                raise HTTPException(status_code=503, detail=f"{kind} index not loaded yet",
+                                    headers={"Retry-After": "300"})
             total = await conn.fetchval(hub.count_sql)
             pages = page_count(total, hub.per_page)
             if page > pages:

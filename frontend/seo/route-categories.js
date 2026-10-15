@@ -43,7 +43,7 @@ export const REACT_ROUTES = [
 ];
 
 /**
- * The nine hub indexes. Server-only like the rest, but kept separate for a
+ * The ten hub indexes. Server-only like the rest, but kept separate for a
  * second reason: they ALWAYS answer for themselves — 200, a real 404 for a page
  * number past the end, or 503 if the backend is down. They must therefore never
  * reach the SPA catch-all, or `/seamount?page=99999` becomes a 200 soft-404,
@@ -52,7 +52,7 @@ export const REACT_ROUTES = [
  * SPA_PATHS; `npm run check:seo` caught it.)
  */
 export const HUB_PATHS = [
-  /^\/(seamount|concession|vent|onc|oceansites|river|report|layer|resource)$/,
+  /^\/(seamount|concession|vent|onc|oceansites|river|report|layer|resource|cruises)$/,
 ];
 
 /**
@@ -67,7 +67,7 @@ export const HUB_PATHS = [
  */
 const SERVER_ONLY_FALLTHROUGH = [
   /^\/contractors$/,
-  /^\/(oceansites|onc|river|resource|contractor|layer)\/[^/]+$/,
+  /^\/(oceansites|onc|river|resource|contractor|layer|cruise)\/[^/]+$/,
   // The iframe widget is a standalone document on purpose: no site chrome, no
   // bundle, embedded on third-party pages. It is not a content page.
   /^\/embed\/concession\/[^/]+$/,

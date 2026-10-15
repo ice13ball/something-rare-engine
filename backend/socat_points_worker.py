@@ -88,6 +88,21 @@ from ingestion.socat_points import (
 from sync_log import log_sync, log_sync_skipped
 
 log = logging.getLogger("socat_points_worker")
+CRUISE_SITEMAP_URL = "https://something-rare.com/sitemap-cruises.xml"
+
+
+async def _ping_cruise_sitemap() -> None:
+    """IndexNow: the cruise sitemap after a swap (spec 2026-10-11 — the sitemap URL only, not 9,201 pages)."""
+    try:
+        import indexnow                      # here, not at the top: INDEXNOW_KEY is read at import (see above)
+        if not indexnow.INDEXNOW_KEY:
+            log.info("no INDEXNOW_KEY — cruise sitemap ping skipped")
+            return
+        await indexnow.notify_indexnow([CRUISE_SITEMAP_URL])
+    except Exception:
+        log.warning("cruise sitemap IndexNow ping failed", exc_info=True)
+
+
 SOURCE = R.SOURCE
 TILES_SOURCE = R.TILES_SOURCE
 ALERT_TITLE = "Abyssal SOCAT points import"
@@ -390,6 +405,7 @@ async def _run(pool, head, lock_wait_s: float, lock_poll_s: float, zip_path, sha
             await _stamp_outcome(lock_conn, outcome)
             if outcome == "swapped":
                 await bake_tiles()          # never raises; still holding the lock
+                await _ping_cruise_sitemap()   # never raises
             return outcome
         finally:
             await lock_conn.execute("SELECT pg_advisory_unlock($1)", LOCK_KEY)

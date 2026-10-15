@@ -11,8 +11,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from domains import aoc2025_poc as _aoc
+from domains.argo_oxygen_points import CITATION as _ARGO_CITATION
+from domains.glodap_points import CITATIONS as _GLODAP_CITATIONS
+from domains.socat_points import ACKNOWLEDGEMENT as _SOCAT_ACK, CITATIONS as _SOCAT_CITATIONS
+from domains.wod_casts import CITATION as _WOD_CITATION
 from domains.pangaea_water import COASTDOM_SERVED_FIELDS, GREENLAND_PP_SERVED_FIELDS
 from ingestion import aoc2025_poc as _aoc_parser
+from ingestion.argo_doxy_rules import ACKNOWLEDGEMENT as _ARGO_ACK
+from ingestion.glodap_bottles_rules import QC_VARIABLES as _G_QC, VARIABLES as _G_VARS
 
 
 @dataclass(frozen=True)
@@ -22,6 +28,7 @@ class Provenance:
     license: str | None = None
     citation: str | None = None
     note: str | None = None
+    acknowledgement: str | None = None
 
 
 @dataclass(frozen=True)
@@ -37,6 +44,8 @@ class VectorExport:
     prov: Provenance
     join_sql: str | None = None  # e.g. "JOIN memento_casts c ON c.cast_id = t.cast_id"
     extra_where: str | None = None  # additional SQL condition, ANDed onto the AOI filter
+    json_fields: tuple[str, ...] = ()  # jsonb columns asyncpg hands over as str; decoded before serialising
+    provenance_columns: bool = False  # CSV gets license/citation/acknowledgement/capped columns (opt-in)
 
 
 @dataclass(frozen=True)
@@ -58,6 +67,19 @@ class CompositeExport:
     members: tuple[str, ...]  # FieldSource ids
 
 
+@dataclass(frozen=True)
+class ObservationExport:
+    """Rows built by services/export_observations.py, not by build_vector_sql: the source has no 4326 geometry column
+    to intersect (socat_segments: EPSG:3857 bbox over arrays; wod_cast_points: Morton key + EPSG:3857 x/y).
+    `cap` counts output rows (observations / casts), never source rows."""
+    id: str
+    label: str
+    query: str                 # "socat" | "wod" — dispatch key in export_observations._run
+    columns: tuple[str, ...]   # CSV header order
+    cap: int
+    prov: Provenance
+
+
 def kind_of(entry) -> str:
     if isinstance(entry, VectorExport):
         return "vector"
@@ -65,7 +87,13 @@ def kind_of(entry) -> str:
         return "field"
     if isinstance(entry, CompositeExport):
         return "composite"
+    if isinstance(entry, ObservationExport):
+        return "observations"
     raise TypeError(type(entry))
+
+
+def wants_provenance_columns(entry) -> bool:
+    return isinstance(entry, ObservationExport) or getattr(entry, "provenance_columns", False)
 
 
 # --- field sources (marine-carbon members) ---------------------------------
@@ -1047,11 +1075,95 @@ _VECTORS: dict[str, VectorExport] = {
                  "0=Low, 1=Low-Medium, 2=Medium-High, 3=High, 4=Extremely High.",
         ),
     ),
+
+    # --- 2026-10-11: point layers (spec docs/specs/2026-10-11-cruise-pages-and-point-export-design.md) ---
+    "glodap-points": VectorExport(
+        id="glodap-points", label="GLODAPv3 bottle casts", table="glodap_casts",
+        geom_col="t.geom", id_col="cast_key", geom_kind="point", cap=20_000,
+        fields=("cast_key", "expocode", "station", "cast_no", "platform_code", "lat", "lon", "year", "obs_date",
+                "obs_time", "time_precision", "region", "doi", "bottom_depth_m", "max_samp_depth_m",
+                "pos_spread_km", "n_samples", "n_good", "depth_m", "pressure_dbar", "bottle",
+                *[c for v in _G_VARS for c in (v, f"{v}_f")], *[f"{v}_qc" for v in _G_QC], "levels"),
+        json_fields=("levels",), provenance_columns=True,
+        prov=Provenance(
+            source="GLODAPv3 (2026) bottle data, NCEI Accession 0315582",
+            source_url="https://doi.org/10.25921/m6tp-mj50",
+            license="CC BY 4.0",
+            citation=" — and ".join(_GLODAP_CITATIONS[:2]),
+            note=("One row per cast; per-sample arrays in depth order with the GLODAP flag per value "
+                  "(2 acceptable, 0 approximated, 9 no data; fill -9999 = flag 9). levels = the display-depth "
+                  "picks per carbon variable {var: {depth_m: [value, sample_depth_m]}}. Single-cruise use: also "
+                  "cite the cruise DOI (doi column)."),
+        ),
+    ),
+    "argo-oxygen-points": VectorExport(
+        id="argo-oxygen-points", label="BGC-Argo dissolved oxygen profiles", table="argo_doxy_profiles",
+        # No geometry column: the profile's own position. extra_where drops rows with no position, so no feature
+        # is ever written with geometry null.
+        geom_col="ST_SetSRID(ST_MakePoint(t.lon, t.lat), 4326)", id_col="profile_key", geom_kind="point",
+        # ~8.4 KB per profile on production (76 levels avg, full arrays): 10k ≈ 84 MB, 50k would be ~420 MB.
+        cap=10_000,
+        fields=("profile_key", "argo_profile_id", "dac", "platform_number", "cycle_number", "direction",
+                "profile_time", "juld_qc", "year", "lat", "lon", "position_qc", "doxy_mode", "pres_source",
+                "n_levels_source", "n_good", "n_levels", "pres_dbar", "depth_m", "doxy_adj", "doxy_adj_qc",
+                "doxy_raw", "doxy_raw_qc", "at_depth", "at_depth_m"),
+        extra_where="t.drawable AND t.lat IS NOT NULL AND t.lon IS NOT NULL",
+        provenance_columns=True,
+        prov=Provenance(
+            source="BGC-Argo DOXY, Argo GDAC synthetic profiles",
+            source_url="https://doi.org/10.17882/42182",
+            license="CC BY 4.0",
+            citation=_ARGO_CITATION,
+            acknowledgement=_ARGO_ACK,
+            note=("One row per drawable profile (the dots on the map). Use doxy_adj only where doxy_mode is A or D "
+                  "and doxy_adj_qc is 1 or 2 (Argo's rule); raw real-time DOXY is QC 3. depth_m is computed from "
+                  "pressure (UNESCO 1983). at_depth = the value picked at 0/50/100/200/500/1000/1500/2000 m."),
+        ),
+    ),
+}
+
+_OBSERVATIONS: dict[str, ObservationExport] = {
+    "socat-points": ObservationExport(
+        id="socat-points", label="SOCAT v2026 fCO₂ observations", query="socat",
+        columns=("obs_key", "expocode", "ordinal", "time_utc", "lat", "lon", "fco2_uatm", "sst_c", "sal_pss78",
+                 "fco2_src", "fco2_flag", "qc_flag", "platform_name", "source_doi"),
+        cap=75_000,
+        prov=Provenance(
+            source="SOCAT v2026 synthesis file, NCEI Accession 0315110",
+            source_url="https://doi.org/10.25921/8dba-fr90",
+            license="CC BY 4.0",
+            citation=" — and ".join(_SOCAT_CITATIONS),
+            acknowledgement=_SOCAT_ACK,
+            note=("One row per stored observation, including rows the map does not draw: the map draws only "
+                  "fco2_flag = 2 from cruises with qc_flag A-D (A/B better than 2 µatm, C/D better than 5 µatm). "
+                  "fco2_src is the SOCAT algorithm code (see the SOCAT documentation). Cite the cruise's "
+                  "source_doi for single-cruise use."),
+        ),
+    ),
+    "wod-casts": ObservationExport(
+        id="wod-casts", label="World Ocean Database 2023 casts", query="wod",
+        columns=("cast_id", "instrument", "dataset", "lat", "lon", "cast_date", "cast_time", "time_precision",
+                 "year", "cruise", "platform", "country", "institute", "project", "access_no", "picks"),
+        cap=50_000,
+        prov=Provenance(
+            source="NOAA World Ocean Database 2023 (WOD23) — OSD, CTD, PFL",
+            source_url="https://www.ncei.noaa.gov/products/world-ocean-database",
+            license="Public use without restriction (NOAA NCEI)",
+            citation=_WOD_CITATION,
+            note=("One row per drawable cast (a date and at least one accepted value) — the casts on the map. "
+                  "picks = the accepted value at the level nearest each display depth (0, 50, 100, 200, 500, 1000, "
+                  "1500, 2000 m) inside that depth's window, per variable: temperature °C, salinity (no unit in "
+                  "WOD), oxygen/phosphate/silicate/nitrate µmol/kg, nstar = nitrate - 16 × phosphate at one level. "
+                  "Positions beyond ±85.05° are matched on the clamped map position. Full profile: "
+                  "/v1/wod/cast/{cast_id}."),
+        ),
+    ),
 }
 
 EXPORT_LAYERS: dict[str, object] = {
     **_VECTORS,
     **_FIELDS,
+    **_OBSERVATIONS,
     "marine-carbon": CompositeExport(
         id="marine-carbon", label="Marine Carbon (raw sources)",
         members=("socat-co2", "glodap-carbon", "isas20-oxygen", "woa23"),

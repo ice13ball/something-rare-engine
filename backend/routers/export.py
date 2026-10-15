@@ -16,6 +16,7 @@ import db
 from auth import get_api_key
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
+from services import export_observations
 from services.export_registry import (
     EXPORT_LAYERS,
     CompositeExport,
@@ -23,6 +24,7 @@ from services.export_registry import (
     Provenance,
     VectorExport,
     kind_of,
+    wants_provenance_columns,
 )
 from services.export_query import Aoi, parse_aoi, build_vector_sql
 from services.export_serialize import rows_to_geojson, rows_to_csv, PASS_THROUGH_NOTE, dumps_geojson
@@ -211,6 +213,9 @@ async def _vector_rows(entry: VectorExport, aoi) -> tuple[list[dict], bool]:
         d = dict(r)
         if isinstance(d.get("geometry"), str):
             d["geometry"] = json.loads(d["geometry"])
+        for k in entry.json_fields:
+            if isinstance(d.get(k), str):
+                d[k] = json.loads(d[k])
         out.append(d)
     return out, len(out) >= entry.cap
 
@@ -229,6 +234,9 @@ async def _rows_for(entry, aoi) -> tuple[list[dict], bool, str, Provenance]:
         if faoi is None:
             return [], False, "point", entry.prov
         rows, capped = await asyncio.to_thread(_field_rows, entry, faoi)
+        return rows, capped, "point", entry.prov
+    if k == "observations":
+        rows, capped = await export_observations.rows(entry, aoi)
         return rows, capped, "point", entry.prov
     raise ValueError(f"{entry.id!r} is composite; expand members first")
 
@@ -263,6 +271,15 @@ async def export_count(
         except asyncpg.QueryCanceledError:
             raise HTTPException(400, "Area too broad to count — draw a smaller area")
         return {"count": int(n), "cap": entry.cap, "capped": int(n) > entry.cap}
+
+    if entry_kind == "observations":
+        if db.pool is None:
+            raise HTTPException(503, "Database pool unavailable")
+        try:
+            n = await export_observations.count(entry, aoi)
+        except asyncpg.QueryCanceledError:
+            raise HTTPException(400, "Area too broad to count — draw a smaller area")
+        return {"count": n, "cap": entry.cap, "capped": n > entry.cap}
 
     if entry_kind == "field":
         assert isinstance(entry, FieldSource)
@@ -324,7 +341,7 @@ async def export_bundle(
     ValueError (e.g. a nested composite) is SKIPPED with a note in MANIFEST.txt rather
     than failing the whole bundle.
     """
-    ids = [x for x in layers.split(",") if x]
+    ids = list(dict.fromkeys(x for x in layers.split(",") if x))  # distinct: a repeated id must not repeat its query
     if not ids:
         raise HTTPException(400, "layers required")
     if len(ids) > 40:
@@ -358,7 +375,9 @@ async def export_bundle(
             return
         try:
             if format == "csv":
-                content = rows_to_csv(rows, geom_kind, prov)
+                content = rows_to_csv(
+                    rows, geom_kind, prov, capped=capped if wants_provenance_columns(entry) else None
+                )
             else:
                 content = dumps_geojson(
                     rows_to_geojson(rows, prov, retrieved_at=retrieved, capped=capped, layer_id=entry.id)
@@ -374,6 +393,7 @@ async def export_bundle(
             f"  url: {prov.source_url}",
             f"  license: {prov.license or '—'}",
             f"  citation: {prov.citation or '—'}",
+            *([f"  acknowledgement: {prov.acknowledgement}"] if prov.acknowledgement else []),
             f"  rows: {len(rows)}{' (capped)' if capped else ''}",
             "",
         ])
@@ -472,6 +492,23 @@ async def export_data(
             headers={"Content-Disposition": 'attachment; filename="marine-carbon.zip"'},
         )
 
+    if entry_kind == "observations":
+        if db.pool is None:
+            raise HTTPException(503, "Database pool unavailable")
+        try:
+            out, capped = await export_observations.rows(entry, aoi)
+        except asyncpg.QueryCanceledError:
+            raise HTTPException(400, "Area too large — narrow your selection")
+        retrieved = _utcnow_iso()
+        if format == "csv":
+            return Response(
+                content=rows_to_csv(out, "point", entry.prov, columns=list(entry.columns), capped=capped),
+                media_type="text/csv",
+                headers={"Content-Disposition": f'attachment; filename="{layer}_{retrieved[:10].replace("-", "")}.csv"'},
+            )
+        fc = rows_to_geojson(out, entry.prov, retrieved_at=retrieved, capped=capped, layer_id=layer)
+        return Response(content=dumps_geojson(fc), media_type="application/geo+json")
+
     # vector path
     assert isinstance(entry, VectorExport)
     try:
@@ -480,7 +517,10 @@ async def export_data(
         raise HTTPException(400, "Area too large — narrow your selection")
     retrieved = _utcnow_iso()
     if format == "csv":
-        body = rows_to_csv(out, entry.geom_kind, entry.prov, columns=list(entry.fields))
+        body = rows_to_csv(
+            out, entry.geom_kind, entry.prov, columns=list(entry.fields),
+            capped=capped if entry.provenance_columns else None,
+        )
         return Response(
             content=body,
             media_type="text/csv",
