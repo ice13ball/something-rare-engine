@@ -8,7 +8,7 @@ import type { FeatureCollection } from "geojson";
 import type { DatasetStats } from "../utils/argoAlarms";
 import type { AoiSelection } from "../utils/aoiGeometry";
 import { initialEnabledIds } from "../utils/layerConfig";
-import { PLANKTON_DECADES, PLANKTON_DEPTH_BANDS, PLANKTON_GROUPS } from "../utils/plankton";
+import { PLANKTON_DEPTH_BANDS, PLANKTON_GROUPS } from "../utils/plankton";
 import type { YearRange, YearBounds } from "../utils/coastdomYearFilter";
 import type { OxygenDisplayMode } from "../utils/argoOxygenPoints";
 
@@ -676,7 +676,7 @@ export const useMapStore = create<MapStore>((set) => ({
   planktonGroupFilters: new Set<string>(),
   togglePlanktonGroupFilter: _makeHideToggle(set, "planktonGroupFilters", PLANKTON_GROUPS),
   planktonDecadeFilters: new Set<string>(),
-  togglePlanktonDecadeFilter: _makeHideToggle(set, "planktonDecadeFilters", PLANKTON_DECADES),
+  togglePlanktonDecadeFilter: _makeToggle(set, "planktonDecadeFilters"),  // a period is picked, not hidden
   planktonDepthFilters: new Set<string>(),
   togglePlanktonDepthFilter: _makeHideToggle(set, "planktonDepthFilters", PLANKTON_DEPTH_BANDS),
   planktonShowEdna: true,

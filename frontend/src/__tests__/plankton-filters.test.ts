@@ -21,7 +21,7 @@ describe("plankton filters in the store", () => {
   it("start as 'everything' and resetAllFilters brings every one of them back", () => {
     expect(state()).toEqual([0, 0, 0, true]);
     narrow();
-    expect(state()).toEqual([4, 9, 3, false]);  // a click hides one value of each
+    expect(state()).toEqual([4, 1, 3, false]);  // a click hides one value of each
     s().resetAllFilters();
     expect(state()).toEqual([0, 0, 0, true]);
   });

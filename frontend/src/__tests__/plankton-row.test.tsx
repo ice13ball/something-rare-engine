@@ -35,8 +35,8 @@ describe("Plankton (OBIS) filter row", () => {
     fireEvent.click(screen.getByRole("button", { name: "No date" }));
     fireEvent.click(screen.getByLabelText("Show eDNA records"));
     expect([...s().planktonGroupFilters]).toEqual(["copepoda", "euphausiacea", "coccolithophores", "dinoflagellates"]);
-    expect(s().planktonDecadeFilters.has("-1")).toBe(false);
-    expect(s().planktonDecadeFilters.size).toBe(9);
+    expect(s().planktonDecadeFilters.has("-1")).toBe(true);
+    expect(s().planktonDecadeFilters.size).toBe(1);
     expect(s().planktonShowEdna).toBe(false);
     expect(pressed("Diatoms")).toBe("false");
     expect(pressed("Copepods")).toBe("true");
