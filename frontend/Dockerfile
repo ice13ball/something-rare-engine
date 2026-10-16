@@ -38,7 +38,11 @@ COPY . .
 ENV NODE_OPTIONS=--max-old-space-size=2304
 RUN npm run build
 
-# Prune devDependencies so the runtime stage gets a lean node_modules
+# Prune devDependencies so the runtime stage gets a lean node_modules. Since 2026-10-16 `dependencies` holds ONLY
+# what server.js and seo/*.js import at runtime (express, compression, express-static-gzip, http-proxy-middleware,
+# dotenv); everything the browser bundle needs (react, deck.gl, maplibre, …) is a devDependency because vite has
+# already bundled it into dist/. That cut the runtime node_modules from the whole frontend tree to ~9 MB.
+# ⛔ A package imported by server.js or seo/ must go in `dependencies`, or the container fails at startup.
 RUN npm prune --omit=dev
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
