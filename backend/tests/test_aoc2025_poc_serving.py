@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 """What leaves the API for the AOC2025 POC preview layer: SERVED/HIDDEN
-partition, stations/samples/meta endpoints, and the metadata-discrepancy note."""
+partition, and the stations/samples/meta endpoints."""
 import json
 
 import pytest
@@ -68,12 +68,11 @@ class TestServing:
             await dm.aoc2025_poc_samples(station="no-such-station")
         assert exc.value.status_code == 404
 
-    async def test_meta_carries_citation_and_discrepancy_note(self, seeded):
+    async def test_meta_carries_citation(self, seeded):
         body = await dm.aoc2025_poc_meta()
         v = body["version"]
         assert v["doi"] == parser.DOI
         assert v["citation"] == dm.CITATION
         assert v["license"] == dm.LICENSE
-        assert "2024-07-24" in v["temporal_extent_discrepancy"]
-        assert "May 2025" in v["temporal_extent_discrepancy"]
+        assert "temporal_extent_discrepancy" not in v
         assert v["units"]["d13c_permil"] == parser.D13C_UNIT

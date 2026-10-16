@@ -5,16 +5,18 @@ doi:10.48457/IOPAN.2026.571, CC-BY 4.0, IO PAN GeoNetwork/OPeNDAP.
 
 "Particulate organic carbon concentrations in water samples collected in the
 Greenland Sea, during Atlantic-Arctic Ocean Change cruise (AOC2025) between
-19-31 May 2025." Confirmed on the download of 2026-09-25: 94 data rows, 32
+19-31 May 2025." Confirmed on the download of 2026-10-16: 94 data rows, 32
 stations, 15 columns, comma-separated with a quoted header carrying each
 column's OPeNDAP type suffix (e.g. `"SDN:P01::CORGCAP1<Float32>"`).
 
-⛔ Known source defects — shown honestly, never silently "fixed":
-  1. The ISO XML metadata's temporal extent (2024-07-24..2024-08-09) does not
-     match the title or the data (May 2025). This module uses the dates IN
-     THE DATA; the discrepancy is surfaced in the panel/legend, not here.
-  2. The CSV carries no unit for POC/PN. The dataset abstract states `mg dm-3`
-     for both — see POC_PN_UNIT below. It is NOT a value read from the file.
+IO PAN republished the record on 2026-10-15 after our feedback: the metadata's
+temporal extent now matches the data (2025-05-19..2025-05-31), station
+AOC2025-25 got its missing minus (-15.595 E), and the CSV moved to a new name
+(the old `2025_AOC_POC.csv` answers 404).
+
+⛔ Known source defect — shown honestly, never silently "fixed":
+  The CSV carries no unit for POC/PN. The dataset abstract states `mg dm-3`
+  for both — see POC_PN_UNIT below. It is NOT a value read from the file.
 
 ⛔ Units not stated anywhere in the CSV are resolved from the SeaDataNet P01
 vocabulary, one entry per name, cited at the constant that uses it — never
@@ -28,7 +30,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 DOI = "10.48457/IOPAN.2026.571"
-SOURCE_URL = "https://opendap.iopan.pl/opendap/data/csv/SeaQuester/AOC2025/2025_AOC_POC.csv"
+SOURCE_URL = "https://opendap.iopan.pl/opendap/data/csv/SeaQuester/AOC2025/2025_AOC_POC_.csv"
 METADATA_URL = ("https://geonetwork.iopan.pl/geonetwork/srv/eng/catalog.search#/metadata/"
                 "a5efb78a-cc02-4839-9c94-18730e470eb4")
 

@@ -1605,7 +1605,6 @@
     "licence": "Licencja",
     "dataKind": "Rodzaj danych: pomiary",
     "window": "Okres obserwacji",
-    "metadataDiscrepancy": "Metadane źródła podają zakres czasowy (2024-07-24 do 2024-08-09), który nie zgadza się z tytułem ani danymi tego zbioru (19–31 maja 2025). Platforma używa dat z danych.",
     "unitNote": "* Jednostka ze streszczenia zbioru danych; nie występuje w samym pliku danych.",
     "p01Note": "Jednostki głębokości, δ¹³C i δ¹⁵N są zgodne z kodami SeaDataNet P01: PRESPR01, D13CMOP11, D15NEAM1.",
     "loading": "Wczytywanie próbek…",

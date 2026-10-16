@@ -83,7 +83,6 @@ export function AocPocPanel({ properties }: { properties: Record<string, unknown
       ))}
       <HintText>{t("aocPoc.unitNote")}</HintText>
       <HintText>{t("aocPoc.p01Note")}</HintText>
-      <HintText>{t("aocPoc.metadataDiscrepancy")}</HintText>
       <Section title={t("aocPoc.citation")}>
         {meta?.citation && <HintText>{meta.citation}</HintText>}
         <Row label="DOI" value={

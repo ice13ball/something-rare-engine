@@ -1601,7 +1601,6 @@
     "licence": "Lizenz",
     "dataKind": "Datenart: Messungen",
     "window": "Beobachtungszeitraum",
-    "metadataDiscrepancy": "Die Metadaten der Quelle geben einen zeitlichen Umfang (24.07.2024 bis 09.08.2024) an, der nicht mit dem Titel oder den Daten dieses Datensatzes (19.–31. Mai 2025) übereinstimmt. Diese Plattform verwendet die Daten im Datensatz selbst.",
     "unitNote": "* Einheit aus dem Abstract des Datensatzes; sie ist in der Datendatei nicht angegeben.",
     "p01Note": "Die Einheiten von Tiefe, δ¹³C und δ¹⁵N folgen den SeaDataNet-P01-Codes PRESPR01, D13CMOP11, D15NEAM1.",
     "loading": "Proben werden geladen…",

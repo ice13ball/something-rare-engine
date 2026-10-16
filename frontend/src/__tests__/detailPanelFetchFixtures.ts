@@ -534,7 +534,7 @@ export const AOC_POC_SAMPLES = {
 export const AOC_POC_META = {
   version: {
     version_id: 1, doi: "10.48457/IOPAN.2026.571",
-    source_url: "https://opendap.iopan.pl/opendap/data/csv/SeaQuester/AOC2025/2025_AOC_POC.csv",
+    source_url: "https://opendap.iopan.pl/opendap/data/csv/SeaQuester/AOC2025/2025_AOC_POC_.csv",
     sha256: "0123456789abcdef0123", rows_in_source: 94,
     citation: "Kowalczuk, P. (2026). Particulate organic carbon concentrations in water samples collected in the Greenland Sea, during Atlantic-Arctic Ocean Change cruise (AOC2025) between 19-31 May 2025. Institute of Oceanology Polish Academy of Sciences. https://doi.org/10.48457/IOPAN.2026.571",
     license: "CC-BY 4.0", fetched_at: "2026-09-25T00:00:00Z",
@@ -546,7 +546,6 @@ export const AOC_POC_META = {
       pn_mg_dm3: "mg dm-3 (from the dataset abstract; not in the data file)",
     },
     metadata_url: "https://geonetwork.iopan.pl/geonetwork/srv/eng/catalog.search#/metadata/a5efb78a-cc02-4839-9c94-18730e470eb4",
-    temporal_extent_discrepancy: "The dataset's ISO metadata states a temporal extent of 2024-07-24..2024-08-09; the title and every sample date in the data itself are 19-31 May 2025. This platform uses the dates in the data.",
   },
 };
 

@@ -1601,7 +1601,6 @@
     "licence": "Licence",
     "dataKind": "Data kind: measurements",
     "window": "Observation window",
-    "metadataDiscrepancy": "The source's own metadata states a temporal extent (2024-07-24 to 2024-08-09) that does not match this dataset's title or its data (19–31 May 2025). This platform uses the dates in the data.",
     "unitNote": "* Unit from the dataset abstract; the data file does not state it.",
     "p01Note": "Units of depth, δ¹³C and δ¹⁵N follow the SeaDataNet P01 codes PRESPR01, D13CMOP11, D15NEAM1.",
     "loading": "Loading samples…",

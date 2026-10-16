@@ -16,7 +16,6 @@ export interface Aoc2025PocVersion {
   fetched_at: string;
   units: Record<string, string>;
   metadata_url: string;
-  temporal_extent_discrepancy: string;
 }
 
 let pending: Promise<Aoc2025PocVersion | null> | null = null;

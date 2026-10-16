@@ -51,14 +51,6 @@ CITATION = (
 )
 LICENSE = "CC-BY 4.0"
 
-#: The metadata record's own temporal extent (gml:TimePeriod) does NOT match the
-#: title or the data (both May 2025) — a defect of the source, shown, not fixed.
-METADATA_TEMPORAL_EXTENT_DISCREPANCY = (
-    "The dataset's ISO metadata states a temporal extent of 2024-07-24..2024-08-09; "
-    "the title and every sample date in the data itself are 19-31 May 2025. This "
-    "platform uses the dates in the data."
-)
-
 _stations_cache: str | None = None
 
 
@@ -256,7 +248,7 @@ async def aoc2025_poc_samples(station: str = Query(...)):
 @router.get("/v1/map/aoc2025-poc/meta", dependencies=[Depends(get_api_key)])
 async def aoc2025_poc_meta():
     """The current stored version: DOI, source URL, SHA-256, row count, citation
-    and licence verbatim, plus known source defects and each served field's unit."""
+    and licence verbatim, plus each served field's unit."""
     if db.pool is None:
         raise HTTPException(503, "Database pool unavailable")
     async with db.pool.acquire() as conn:
@@ -268,5 +260,4 @@ async def aoc2025_poc_meta():
     item = {k: _jsonable(row[k]) for k in row.keys()}
     item["units"] = AOC_POC_UNITS
     item["metadata_url"] = parser.METADATA_URL
-    item["temporal_extent_discrepancy"] = METADATA_TEMPORAL_EXTENT_DISCREPANCY
     return {"version": item}

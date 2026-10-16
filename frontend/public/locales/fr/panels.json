@@ -1601,7 +1601,6 @@
     "licence": "Licence",
     "dataKind": "Type de données : mesures",
     "window": "Période d'observation",
-    "metadataDiscrepancy": "Les métadonnées de la source indiquent une étendue temporelle (24/07/2024 au 09/08/2024) qui ne correspond ni au titre ni aux données de ce jeu de données (19-31 mai 2025). Cette plateforme utilise les dates des données.",
     "unitNote": "* Unité indiquée dans le résumé du jeu de données ; elle n'apparaît pas dans le fichier de données.",
     "p01Note": "Les unités de profondeur, δ¹³C et δ¹⁵N suivent les codes SeaDataNet P01 : PRESPR01, D13CMOP11, D15NEAM1.",
     "loading": "Chargement des échantillons…",

@@ -630,7 +630,6 @@ def test_aoc2025_poc_export_uses_the_serving_allowlist_and_domain_provenance():
     assert e.table == "aoc2025_poc_samples_current"          # current version only
     assert e.prov.license == dm.LICENSE and e.prov.citation == dm.CITATION
     assert parser.DOI in e.prov.source_url
-    assert dm.METADATA_TEMPORAL_EXTENT_DISCREPANCY in e.prov.note
     assert "preview" in e.prov.note
     assert e.cap > 94                                        # above the whole table
 

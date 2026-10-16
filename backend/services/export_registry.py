@@ -381,8 +381,7 @@ _VECTORS: dict[str, VectorExport] = {
             citation=_aoc.CITATION,
             note="Dev-only preview layer. Values verbatim from the source CSV, units as in "
                  "the column names; an empty cell is null, never 0. Current version only. "
-                 "Known source defect: " + _aoc.METADATA_TEMPORAL_EXTENT_DISCREPANCY +
-                 " The cap (1,000) is above the whole table (94 rows in the 2026-09-25 download).",
+                 "The cap (1,000) is above the whole table (94 rows in the 2026-09-25 download).",
         ),
     ),
     # "noise-risk" removed 2026-09-04. The grid blends OBIS-SEAMAP cetacean

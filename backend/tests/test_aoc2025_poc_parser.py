@@ -67,9 +67,9 @@ def test_first_row_values():
 
 
 def test_dates_are_may_2025_not_the_metadata_extent():
-    """Known source defect #1: the ISO metadata's temporal extent
-    (2024-07-24..2024-08-09) does not match the data. Every actual sample date
-    is May 2025 — this platform uses the dates IN THE DATA."""
+    """Every sample date is May 2025 — this platform uses the dates IN THE DATA.
+    (Until IO PAN's republication of 2026-10-15 the ISO metadata's temporal
+    extent said July-August 2024.)"""
     dts = [r["sample_date"].date() for r in _records()]
     assert min(dts) == datetime.date(2025, 5, 19)
     assert max(dts) == datetime.date(2025, 5, 31)
