@@ -33,10 +33,13 @@ import asyncio
 import io
 import json
 import logging
+import ssl
 import zipfile
+from pathlib import Path
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
+import certifi
 import db
 import httpx
 from parse_util import arcgis_features, coerce_date as _coerce_date
@@ -129,11 +132,12 @@ def clear_caches() -> None:
     return
 
 
-async def fetch_arcgis_features_url(url: str, out_fields: str = "*", extra_params: dict | None = None) -> list[dict]:
+async def fetch_arcgis_features_url(url: str, out_fields: str = "*", extra_params: dict | None = None,
+                                    verify: ssl.SSLContext | bool = True) -> list[dict]:
     """Paginated fetch from an arbitrary ArcGIS FeatureServer/MapServer query URL."""
     all_features: list[dict] = []
     offset = 0
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=60, verify=verify) as client:
         while True:
             params = {
                 "where": "1=1",
@@ -259,6 +263,21 @@ async def sync_emodnet_offshore() -> int:
 
 # ── Phase 3: BOEM (USA) ──────────────────────────────────────────────────────
 
+#: gis.boem.gov has served only its leaf certificate since the 2026-10-05 renewal —
+#: no intermediate, so OpenSSL fails with "unable to get local issuer certificate"
+#: (browsers fetch the missing one themselves via AIA). We add that one public
+#: intermediate (DigiCert Global G2 TLS RSA SHA256 2020 CA1, SHA-256 C8:02:5F:9F…,
+#: valid to 2031-03-29, from cacerts.digicert.com) on top of certifi. Verification
+#: stays ON — never `fetch_arcgis_no_ssl` here. Harmless once BOEM fixes its chain.
+_BOEM_INTERMEDIATE = Path(__file__).resolve().parent.parent / "certs" / "digicert-global-g2-tls-rsa-sha256-2020-ca1.pem"
+
+
+def _boem_ssl_context() -> ssl.SSLContext:
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    ctx.load_verify_locations(cafile=str(_BOEM_INTERMEDIATE))
+    return ctx
+
+
 async def sync_boem_offshore() -> int:
     """Fetch BOEM oil/gas leases (4 OCS regions) + wind leases via MarineCadastre."""
     async with db.pool.acquire() as conn:
@@ -269,8 +288,10 @@ async def sync_boem_offshore() -> int:
         log.info("boem-offshore: skipping — synced %s", last.date())
         return 0
 
-    async def _resolve_layer(base: str, layer_name: str) -> str | None:
-        async with httpx.AsyncClient(timeout=30) as client:
+    boem_tls = _boem_ssl_context()
+
+    async def _resolve_layer(base: str, layer_name: str, verify: ssl.SSLContext | bool = True) -> str | None:
+        async with httpx.AsyncClient(timeout=30, verify=verify) as client:
             r = await _get_with_retry(client, f"{base}?f=json", label="arcgis layer index")
             for L in r.json().get("layers", []):
                 if L.get("name") == layer_name:
@@ -285,16 +306,18 @@ async def sync_boem_offshore() -> int:
         ("https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/AK_Layers/MapServer",  "Alaska"),
     ]
     INACTIVE = {"TERM", "CANC", "EXPR", "RELQ"}
+    fetch_errors: list[str] = []
 
     for base, region in REGIONS:
         try:
-            url = await _resolve_layer(base, "BOEM Oil and Gas Leases")
+            url = await _resolve_layer(base, "BOEM Oil and Gas Leases", verify=boem_tls)
             if not url:
                 log.warning("boem-offshore %s: no 'Oil and Gas Leases' layer found", region)
                 continue
-            features = await fetch_arcgis_features_url(url)
+            features = await fetch_arcgis_features_url(url, verify=boem_tls)
         except Exception as exc:
             log.warning("boem-offshore %s: fetch failed — %s", region, exc)
+            fetch_errors.append(f"{region}: {type(exc).__name__}: {exc}")
             continue
         region_rows = 0
         for f in features:
@@ -356,7 +379,10 @@ async def sync_boem_offshore() -> int:
 
     if not rows:
         log.warning("boem-offshore: no features returned from any region")
-        await _log_sync_skipped("boem-offshore", "source returned no features with geometry")
+        # A fetch failure is not an empty source — say which one it was.
+        reason = ("fetch failed: " + "; ".join(fetch_errors) if fetch_errors
+                  else "source returned no features with geometry")
+        await _log_sync_skipped("boem-offshore", reason[:500])
         return 0
 
     async with db.pool.acquire() as conn:

@@ -125,17 +125,81 @@ def parse_month(value) -> int | None:
     return m if 1 <= m <= 12 else None
 
 
-_DATE_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$")
+# Measured in the OBIS files (2026-10-19): besides YYYY-MM-DD, eventDate comes as YYYY-MM, unpadded
+# YYYY-M-D, YYYY/MM/DD and ISO intervals (YYYY-MM-DD/YYYY-MM-DD, abbreviated YYYY-MM-DD/MM-DD); in the
+# biggest no-date datasets eventDate is NULL and only the Darwin Core year/month/day fields are set.
+# Partial precision is kept: an interval keeps only the components its two ends share.
+_ONE_RE = re.compile(r"^(\d{4})(?:([-/])(\d{1,2})(?:\2(\d{1,2}))?)?(?:[T ].*)?$")
+_START_RE = re.compile(r"^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?(?:T.*)?$")
+_END_SHORT_RE = re.compile(r"^(?:(\d{1,2})-)?(\d{1,2})(?:T.*)?$")
+
+
+def _ymd(y, m, d) -> tuple[int | None, int | None, int | None]:
+    y = int(y) if y is not None and 1 <= int(y) <= 9999 else None
+    m = int(m) if y and m is not None and 1 <= int(m) <= 12 else None
+    d = int(d) if m and d is not None and 1 <= int(d) <= 31 else None
+    return y, m, d
+
+
+def _end_parts(end: str, start: tuple) -> tuple | None:
+    """Interval end; an abbreviated end (MM-DD or DD) takes its missing leading parts from the start."""
+    m = _START_RE.match(end)
+    if m:
+        return _ymd(m[1], m[2], m[3])
+    m = _END_SHORT_RE.match(end)
+    if not m or start[1] is None:
+        return None
+    return (start[0], int(m[1]), int(m[2])) if m[1] else (start[0], start[1], int(m[2]))
+
+
+def parse_event_parts(value) -> tuple[dt.date | None, int | None, int | None]:
+    """(date, year, month) of a Darwin Core eventDate, each only as precise as the source is."""
+    s = str(value or "").strip()
+    m = _ONE_RE.match(s)
+    if m:
+        y, mo, d = _ymd(m[1], m[3], m[4])
+    else:
+        start, _, end = s.partition("/")
+        m = _START_RE.match(start)
+        if not m or not end:
+            return None, None, None
+        a = _ymd(m[1], m[2], m[3])
+        b = _end_parts(end, a)
+        if b is None or b[0] != a[0]:
+            return None, None, None
+        y = a[0]
+        mo = a[1] if a[1] is not None and b[1] == a[1] else None
+        d = a[2] if mo and b[2] == a[2] else None
+    return ymd_date(y, mo, d), y, mo
+
+
+def ymd_date(y, m, d) -> dt.date | None:
+    if not (y and m and d):
+        return None
+    try:
+        return dt.date(y, m, d)
+    except ValueError:
+        return None
 
 
 def parse_event_date(value) -> dt.date | None:
-    m = _DATE_RE.match(str(value or "").strip())
-    if not m:
-        return None
+    return parse_event_parts(value)[0]
+
+
+def parse_year(value) -> int | None:
     try:
-        return dt.date(int(m[1]), int(m[2]), int(m[3]))
-    except ValueError:
+        y = int(str(value).strip())
+    except (TypeError, ValueError):
         return None
+    return y if 1 <= y <= 9999 else None
+
+
+def parse_day(value) -> int | None:
+    try:
+        d = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return d if 1 <= d <= 31 else None
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +221,8 @@ _SELECT = f"""
   {_I}.scientificName AS sciname, {_I}.aphiaid AS aphiaid, {_I}."order" AS ord, {_I}.genus AS genus,
   {_I}.decimalLatitude AS lat, {_I}.decimalLongitude AS lon,
   {_I}.depth AS depth, {_I}.minimumDepthInMeters AS dmin, {_I}.maximumDepthInMeters AS dmax,
-  {_I}."month" AS month, {_I}.eventDate AS eventdate, {_I}.basisOfRecord AS basis,
+  {_I}."month" AS month, {_I}.eventDate AS eventdate, {_I}."year" AS year, {_I}."day" AS day,
+  {_I}.basisOfRecord AS basis,
   ({{edna}}) AS edna_struct,
   absence, dropped, flags"""
 
@@ -172,7 +237,8 @@ def _lit(path) -> str:
 # typed NULL: the rows still extract, the column is NULL.
 _GUARDED_FIELDS = {
     **{f: "VARCHAR" for f in ("class", "subclass", "order", "phylum", "division", "subphylum",
-                              "infraphylum", "genus", "scientificName", "basisOfRecord", "eventDate", "month")},
+                              "infraphylum", "genus", "scientificName", "basisOfRecord", "eventDate", "month",
+                              "year", "day")},
     "aphiaid": "BIGINT", "depth": "DOUBLE", "minimumDepthInMeters": "DOUBLE", "maximumDepthInMeters": "DOUBLE"}
 _RANK_FIELDS = tuple(_GUARDED_FIELDS)            # kept for the fallback list when `interpreted` is absent
 _RANK_REF = re.compile(r'interpreted\.(?:"(\w+)"|(\w+))')

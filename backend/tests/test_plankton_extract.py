@@ -12,7 +12,7 @@ from ingestion import plankton_obis as p
 
 FIX = pathlib.Path(__file__).parent / "fixtures" / "plankton_obis" / "occurrences.parquet"
 COLS = ["dataset_id", "grp", "keep", "sciname", "aphiaid", "ord", "genus", "lat", "lon",
-        "depth", "dmin", "dmax", "month", "eventdate", "basis", "edna_struct",
+        "depth", "dmin", "dmax", "month", "eventdate", "year", "day", "basis", "edna_struct",
         "absence", "dropped", "flags"]
 
 

@@ -219,14 +219,17 @@ async def _load_rows(conn, db, path, licences, known, stats) -> dict[str, int]:
             if why:
                 stats[why] += 1
                 continue
-            ev = parse_event_date(r.get("eventdate"))
+            ev, year, ev_month = parse_event_parts(r.get("eventdate"))
+            month = parse_month(r.get("month")) or ev_month
+            if year is None:                     # no usable eventDate: the Darwin Core year/month/day fields
+                year = parse_year(r.get("year"))
+                ev = ymd_date(year, month, parse_day(r.get("day")))
             aphia = r.get("aphiaid")
             aphia = int(aphia) if _finite(aphia) and -_INT32 <= int(aphia) < _INT32 else None
             batch.append((r["grp"], _clean(r.get("sciname")), aphia, _clean(r.get("ord")),
                           ds_uuid, lic, bool(r.get("edna_struct")),
                           parse_depth(r.get("depth"), r.get("dmin"), r.get("dmax")),
-                          ev, ev.year if ev else None,
-                          parse_month(r.get("month")) or (ev.month if ev else None),
+                          ev, year, month,
                           float(r["lon"]), float(r["lat"])))
             if len(batch) >= 50_000:
                 await flush()
