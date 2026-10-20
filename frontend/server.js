@@ -15,6 +15,7 @@ import { forceHttpsMiddleware, wwwRedirectMiddleware } from './seo/canonical-hos
 import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, renderCruisePage, wrapHtml, siteCitation, renderHubPage, hubNavHtml, BackendUnavailable, EntityGone } from './seo/render-page.js';
 import { fetchUpstream } from './seo/upstream-fetch.js';
 import { createApiProxy } from './seo/api-proxy.js';
+import { createApiGate } from './seo/api-gate.js';
 
 config();
 
@@ -351,7 +352,10 @@ app.use('/admin', (req, res) => {
 // The generic /api/* proxy lives in seo/api-proxy.js — see the comment there
 // for the 2026-09-18 incident (Googlebot 504s) this timeout value fixes and
 // why `timeout` (the client-facing socket) is deliberately absent.
-app.use('/api', createApiProxy({ target: VPS_API_URL, apiKey: ABYSSAL_API_KEY }));
+// ⛔ The gate goes FIRST: the proxy attaches our internal key to whatever it
+// forwards, so only the routes the site itself calls may reach it
+// (seo/api-gate.js, seo/api-allowlist.json — security audit 2026-10-20).
+app.use('/api', createApiGate(), createApiProxy({ target: VPS_API_URL, apiKey: ABYSSAL_API_KEY }));
 
 // IndexNow verification key
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY;

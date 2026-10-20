@@ -48,6 +48,13 @@ export function createApiProxy({ target, apiKey, proxyTimeoutMs = 20000 }) {
     on: {
       proxyReq: (proxyReq, req) => {
         console.log(`Proxying: ${req.method} ${req.url} -> ${target}${proxyReq.path}`);
+        // Nothing the visitor sent may authenticate upstream or identify them:
+        // our key is the only credential, and visitor IPs are not forwarded
+        // (Michal, 2026-09-29). Security audit 2026-10-20, A-14.
+        for (const h of ['cookie', 'authorization', 'x-admin-token', 'x-api-key',
+          'x-forwarded-for', 'x-real-ip', 'forwarded']) {
+          proxyReq.removeHeader(h);
+        }
         if (apiKey) {
           proxyReq.setHeader('X-API-Key', apiKey);
         }

@@ -1,0 +1,887 @@
+[
+ {
+  "method": "GET",
+  "template": "/v1/acidification/hexes",
+  "regex": "^/v1/acidification/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/acidification/horizon-shift.png",
+  "regex": "^/v1/acidification/horizon-shift\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/acidification/horizon.png",
+  "regex": "^/v1/acidification/horizon\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/acidification/meta",
+  "regex": "^/v1/acidification/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/acidification/point",
+  "regex": "^/v1/acidification/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/acidification/{var_key}/{depth_m}.png",
+  "regex": "^/v1/acidification/[^/]+/[^/]+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/analysis/correlate-plume",
+  "regex": "^/v1/analysis/correlate-plume$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/argo-oxygen/floats",
+  "regex": "^/v1/argo-oxygen/floats$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/argo-oxygen/meta",
+  "regex": "^/v1/argo-oxygen/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/argo-oxygen/profile/{profile_key}",
+  "regex": "^/v1/argo-oxygen/profile/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/argo-oxygen/tiles/{z}/{x}/{y}.pbf",
+  "regex": "^/v1/argo-oxygen/tiles/\\d+/\\d+/\\d+\\.pbf$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/bathymetry/confidence/{feature_type}/{feature_id}",
+  "regex": "^/v1/bathymetry/confidence/[^/]+/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/bathymetry/gmrt/{feature_type}/{feature_id}",
+  "regex": "^/v1/bathymetry/gmrt/[^/]+/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/bathymetry/lookup",
+  "regex": "^/v1/bathymetry/lookup$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/bgc-model/meta",
+  "regex": "^/v1/bgc-model/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/bgc-model/point",
+  "regex": "^/v1/bgc-model/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/bgc-model/{var}/{month}.png",
+  "regex": "^/v1/bgc-model/[^/]+/[^/]+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/blog/articles",
+  "regex": "^/v1/blog/articles$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/blog/articles/{slug}",
+  "regex": "^/v1/blog/articles/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/blog/images/{filename}",
+  "regex": "^/v1/blog/images/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/carbon/hexes",
+  "regex": "^/v1/carbon/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/carbon/meta",
+  "regex": "^/v1/carbon/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/carbon/nearest-obs",
+  "regex": "^/v1/carbon/nearest-obs$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/carbon/point",
+  "regex": "^/v1/carbon/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/carbon/unified-hexes",
+  "regex": "^/v1/carbon/unified-hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/carbon/unified-point",
+  "regex": "^/v1/carbon/unified-point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/carbon/{var_key}/{depth_m}.png",
+  "regex": "^/v1/carbon/[^/]+/[^/]+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/cascade/point",
+  "regex": "^/v1/cascade/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/cascade/raster/{z}/{x}/{y}.png",
+  "regex": "^/v1/cascade/raster/\\d+/\\d+/\\d+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/chi/hexes",
+  "regex": "^/v1/chi/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/chi/meta",
+  "regex": "^/v1/chi/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/chi/point",
+  "regex": "^/v1/chi/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/chi/raster/{z}/{x}/{y}.png",
+  "regex": "^/v1/chi/raster/\\d+/\\d+/\\d+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/co2/hexes",
+  "regex": "^/v1/co2/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/co2/meta",
+  "regex": "^/v1/co2/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/co2/point",
+  "regex": "^/v1/co2/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/co2/{var_key}/{decade}.png",
+  "regex": "^/v1/co2/[^/]+/[^/]+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/conflicts/vent-mining",
+  "regex": "^/v1/conflicts/vent-mining$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/coral-exposure/hexes",
+  "regex": "^/v1/coral-exposure/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/coral-exposure/meta",
+  "regex": "^/v1/coral-exposure/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/coral-exposure/point",
+  "regex": "^/v1/coral-exposure/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/coral-exposure/summary",
+  "regex": "^/v1/coral-exposure/summary$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/currents/meta",
+  "regex": "^/v1/currents/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/currents/{depth_slug}.png",
+  "regex": "^/v1/currents/[^/]+\\.png$"
+ },
+ {
+  "method": "POST",
+  "template": "/v1/feedback",
+  "regex": "^/v1/feedback$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/glodap/cast/{cast_key}",
+  "regex": "^/v1/glodap/cast/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/glodap/casts",
+  "regex": "^/v1/glodap/casts$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/glodap/cruises",
+  "regex": "^/v1/glodap/cruises$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/hydrophones/{station_id}/soundscape",
+  "regex": "^/v1/hydrophones/[^/]+/soundscape$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/layers/temporal-coverage",
+  "regex": "^/v1/layers/temporal-coverage$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/aoc2025-poc/meta",
+  "regex": "^/v1/map/aoc2025-poc/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/aoc2025-poc/samples",
+  "regex": "^/v1/map/aoc2025-poc/samples$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/aoc2025-poc/stations",
+  "regex": "^/v1/map/aoc2025-poc/stations$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/apeis",
+  "regex": "^/v1/map/apeis$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/arctic-catchments/by-point",
+  "regex": "^/v1/map/arctic-catchments/by-point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/arctic-catchments/raster/{z}/{x}/{y}.png",
+  "regex": "^/v1/map/arctic-catchments/raster/\\d+/\\d+/\\d+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/argo",
+  "regex": "^/v1/map/argo$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/argo/trails",
+  "regex": "^/v1/map/argo/trails$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/au-cables",
+  "regex": "^/v1/map/au-cables$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/biodiversity/hotspots",
+  "regex": "^/v1/map/biodiversity/hotspots$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/cables",
+  "regex": "^/v1/map/cables$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/cascade/stations",
+  "regex": "^/v1/map/cascade/stations$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/chess",
+  "regex": "^/v1/map/chess$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/claims",
+  "regex": "^/v1/map/claims$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/coastdom/locations",
+  "regex": "^/v1/map/coastdom/locations$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/coastdom/samples",
+  "regex": "^/v1/map/coastdom/samples$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/eez",
+  "regex": "^/v1/map/eez$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/geotraces/hexes",
+  "regex": "^/v1/map/geotraces/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/greenland-pp/stations",
+  "regex": "^/v1/map/greenland-pp/stations$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/hydrophones",
+  "regex": "^/v1/map/hydrophones$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/hydrophones/by-id/{station_id}",
+  "regex": "^/v1/map/hydrophones/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/layer-config",
+  "regex": "^/v1/map/layer-config$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/marhys",
+  "regex": "^/v1/map/marhys$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/marhys/meta",
+  "regex": "^/v1/map/marhys/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/memento/hexes",
+  "regex": "^/v1/map/memento/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/methane-seeps",
+  "regex": "^/v1/map/methane-seeps$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/mosaic/hexes",
+  "regex": "^/v1/map/mosaic/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/noaa-cables",
+  "regex": "^/v1/map/noaa-cables$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/noise/risk-grid",
+  "regex": "^/v1/map/noise/risk-grid$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/nz-cables",
+  "regex": "^/v1/map/nz-cables$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/oceansites",
+  "regex": "^/v1/map/oceansites$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/onc",
+  "regex": "^/v1/map/onc$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/onc-cables",
+  "regex": "^/v1/map/onc-cables$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/onc-instruments",
+  "regex": "^/v1/map/onc-instruments$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/ooi-cables",
+  "regex": "^/v1/map/ooi-cables$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/ports",
+  "regex": "^/v1/map/ports$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/protected-marine-sites",
+  "regex": "^/v1/map/protected-marine-sites$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/relinquished-areas",
+  "regex": "^/v1/map/relinquished-areas$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/reserved-areas",
+  "regex": "^/v1/map/reserved-areas$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/seamounts",
+  "regex": "^/v1/map/seamounts$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/sios",
+  "regex": "^/v1/map/sios$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/startup-profiles",
+  "regex": "^/v1/map/startup-profiles$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/svalbard-fjords-pp/meta",
+  "regex": "^/v1/map/svalbard-fjords-pp/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/svalbard-fjords-pp/samples",
+  "regex": "^/v1/map/svalbard-fjords-pp/samples$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/svalbard-fjords-pp/stations",
+  "regex": "^/v1/map/svalbard-fjords-pp/stations$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/map/vents",
+  "regex": "^/v1/map/vents$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/ocean-colour/meta",
+  "regex": "^/v1/ocean-colour/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/ocean-colour/point",
+  "regex": "^/v1/ocean-colour/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/ocean-colour/{var}/{month}.png",
+  "regex": "^/v1/ocean-colour/[^/]+/[^/]+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/oceansites/{ref}/history",
+  "regex": "^/v1/oceansites/[^/]+/history$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/onc/adcp-strip/{location_code}",
+  "regex": "^/v1/onc/adcp-strip/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/onc/ctd/{location_code}",
+  "regex": "^/v1/onc/ctd/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/onc/earthquakes-near/{location_code}",
+  "regex": "^/v1/onc/earthquakes-near/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/onc/sparkline/{location_code}",
+  "regex": "^/v1/onc/sparkline/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/oxygen/hexes",
+  "regex": "^/v1/oxygen/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/oxygen/meta",
+  "regex": "^/v1/oxygen/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/oxygen/point",
+  "regex": "^/v1/oxygen/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/oxygen/{view}/{depth_m}.png",
+  "regex": "^/v1/oxygen/[^/]+/[^/]+\\.png$"
+ },
+ {
+  "method": "POST",
+  "template": "/v1/pageview",
+  "regex": "^/v1/pageview$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/pangaea-water/meta",
+  "regex": "^/v1/pangaea-water/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/plankton/site/{site_key}",
+  "regex": "^/v1/plankton/site/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/plankton/tile-version",
+  "regex": "^/v1/plankton/tile-version$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/plankton/tiles/{z}/{x}/{y}.pbf",
+  "regex": "^/v1/plankton/tiles/\\d+/\\d+/\\d+\\.pbf$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/plumes/history",
+  "regex": "^/v1/plumes/history$"
+ },
+ {
+  "method": "POST",
+  "template": "/v1/reports/chess-site",
+  "regex": "^/v1/reports/chess-site$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/reports/chess-site/{locality}",
+  "regex": "^/v1/reports/chess-site/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/reports/chess-site/{locality}/status",
+  "regex": "^/v1/reports/chess-site/[^/]+/status$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/seabed/hexes",
+  "regex": "^/v1/seabed/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/seabed/point",
+  "regex": "^/v1/seabed/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/seabed/raster/{z}/{x}/{y}.png",
+  "regex": "^/v1/seabed/raster/\\d+/\\d+/\\d+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/search/species",
+  "regex": "^/v1/search/species$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/seo/concession/{isa_id}",
+  "regex": "^/v1/seo/concession/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/seo/seamount/{peak_id}",
+  "regex": "^/v1/seo/seamount/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/seo/vent-report/{vent_id}",
+  "regex": "^/v1/seo/vent-report/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/seo/vent/{vent_id}",
+  "regex": "^/v1/seo/vent/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/socat/cell/{z}/{x}/{y}/{q}",
+  "regex": "^/v1/socat/cell/\\d+/\\d+/\\d+/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/socat/meta",
+  "regex": "^/v1/socat/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/socat/obs/{obs_key}",
+  "regex": "^/v1/socat/obs/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/socat/tiles/{z}/{x}/{y}.pbf",
+  "regex": "^/v1/socat/tiles/\\d+/\\d+/\\d+\\.pbf$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/stats/dataset-counts",
+  "regex": "^/v1/stats/dataset-counts$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/sync/status",
+  "regex": "^/v1/sync/status$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/vme/hexes",
+  "regex": "^/v1/vme/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/vme/point",
+  "regex": "^/v1/vme/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/woa/hexes",
+  "regex": "^/v1/woa/hexes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/woa/meta",
+  "regex": "^/v1/woa/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/woa/point",
+  "regex": "^/v1/woa/point$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/woa/sample",
+  "regex": "^/v1/woa/sample$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/woa/{var_key}/{depth_m}.png",
+  "regex": "^/v1/woa/[^/]+/[^/]+\\.png$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/wod/cast/{cast_id}",
+  "regex": "^/v1/wod/cast/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/wod/cell/{z}/{x}/{y}/{q}",
+  "regex": "^/v1/wod/cell/\\d+/\\d+/\\d+/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/wod/meta",
+  "regex": "^/v1/wod/meta$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/wod/tiles/{var}/{z}/{x}/{y}.pbf",
+  "regex": "^/v1/wod/tiles/[^/]+/\\d+/\\d+/\\d+\\.pbf$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/air-quality",
+  "regex": "^/v2/map/air-quality$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/arctic-rivers",
+  "regex": "^/v2/map/arctic-rivers$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/dams",
+  "regex": "^/v2/map/dams$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/deepdata-stations",
+  "regex": "^/v2/map/deepdata-stations$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/deepdata-stations/by-id/{station_id}",
+  "regex": "^/v2/map/deepdata-stations/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/fires",
+  "regex": "^/v2/map/fires$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/landslides",
+  "regex": "^/v2/map/landslides$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/mining-footprints",
+  "regex": "^/v2/map/mining-footprints$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/monitoring-density",
+  "regex": "^/v2/map/monitoring-density$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/monitoring-density/cell",
+  "regex": "^/v2/map/monitoring-density/cell$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/monitoring-density/chess-species",
+  "regex": "^/v2/map/monitoring-density/chess-species$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/monitoring-density/source-all",
+  "regex": "^/v2/map/monitoring-density/source-all$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/permafrost-thaw",
+  "regex": "^/v2/map/permafrost-thaw$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/permafrost-thaw/by-id/{unique_id}",
+  "regex": "^/v2/map/permafrost-thaw/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/tailings",
+  "regex": "^/v2/map/tailings$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/map/vessel-events",
+  "regex": "^/v2/map/vessel-events$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/overlaps/mining-fires",
+  "regex": "^/v2/overlaps/mining-fires$"
+ },
+ {
+  "method": "POST",
+  "template": "/v2/reports/concession",
+  "regex": "^/v2/reports/concession$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/reports/concession/{isa_id}",
+  "regex": "^/v2/reports/concession/[^/]+$"
+ },
+ {
+  "method": "POST",
+  "template": "/v2/reports/impact",
+  "regex": "^/v2/reports/impact$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/reports/impact/{platform_id}",
+  "regex": "^/v2/reports/impact/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/reports/impact/{platform_id}/status",
+  "regex": "^/v2/reports/impact/[^/]+/status$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/arctic-catchments/by-id/{gid}",
+  "regex": "^/v2/spatial/arctic-catchments/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/feature/hydrothermal_vents/{vent_id}",
+  "regex": "^/v2/spatial/feature/hydrothermal_vents/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/feature/mining_contracts/{isa_id}",
+  "regex": "^/v2/spatial/feature/mining_contracts/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/geotraces/by-id/{station_id}",
+  "regex": "^/v2/spatial/geotraces/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/memento/by-id/{cast_id}",
+  "regex": "^/v2/spatial/memento/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/mosaic/by-id/{core_id}",
+  "regex": "^/v2/spatial/mosaic/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/offshore-activities/by-id/{feature_id}",
+  "regex": "^/v2/spatial/offshore-activities/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/offshore-activities/countries",
+  "regex": "^/v2/spatial/offshore-activities/countries$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/offshore-activities/feature-bboxes",
+  "regex": "^/v2/spatial/offshore-activities/feature-bboxes$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/tiles/{layer}/{z}/{x}/{y}",
+  "regex": "^/v2/spatial/tiles/[^/]+/\\d+/\\d+/\\d+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/spatial/wod-oxygen/by-id/{feature_id}",
+  "regex": "^/v2/spatial/wod-oxygen/by-id/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/vessels/live",
+  "regex": "^/v2/vessels/live$"
+ },
+ {
+  "method": "GET",
+  "template": "/v2/vessels/{mmsi}/history",
+  "regex": "^/v2/vessels/[^/]+/history$"
+ }
+]
