@@ -52,7 +52,10 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
   };
 
   return (
-    <div className="hidden fixed bottom-2 left-1/2 -translate-x-1/2 z-10 sm:flex items-center gap-3 pointer-events-auto bg-surface-dim rounded-full px-4 py-1">
+    // left-1/2 caps the box at about half the viewport; a one-line w-max bar
+    // covered the status line and the map attribution. Below ~1600 px it needs two rows,
+    // so wrap whole items, never mid-label ("Share / view").
+    <div className="hidden fixed bottom-2 left-1/2 -translate-x-1/2 z-10 sm:flex flex-wrap justify-center items-center gap-x-3 whitespace-nowrap pointer-events-auto bg-surface-dim rounded-full px-4 py-1">
       <Link
         to="/blog"
         className="text-white/80 hover:text-white/90 text-xs transition-colors font-medium"
@@ -67,6 +70,16 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
       <Link to="/api-docs" className="text-white/80 hover:text-white/90 text-xs transition-colors">
         API
       </Link>
+      <span className="text-white/60 text-xs" aria-hidden="true">·</span>
+      <a
+        href="https://tools.something-rare.com/"
+        target="_blank"
+        rel="noopener"
+        className="text-white/80 hover:text-white/90 text-xs transition-colors"
+        title="Data check, licence check, collection review"
+      >
+        Tools
+      </a>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <button
         onClick={() => setExportPanelOpen(true)}

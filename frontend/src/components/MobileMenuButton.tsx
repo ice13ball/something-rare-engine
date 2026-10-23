@@ -60,6 +60,7 @@ export function MobileMenuButton({
             <nav className="overflow-y-auto divide-y divide-white/[0.06]">
               <Link to="/blog"          onClick={close} className="block px-4 py-3 text-white/85 hover:text-white text-sm">Blog</Link>
               <Link to="/about"         onClick={close} className="block px-4 py-3 text-white/85 hover:text-white text-sm">About</Link>
+              <a href="https://tools.something-rare.com/" target="_blank" rel="noopener" onClick={close} className="block px-4 py-3 text-white/85 hover:text-white text-sm">Tools</a>
               {onOpenFeedback && (
                 <button
                   onClick={() => { onOpenFeedback(); close(); }}
