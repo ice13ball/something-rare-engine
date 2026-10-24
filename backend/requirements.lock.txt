@@ -89,7 +89,7 @@ numpy==2.4.4
 packaging==26.0
 pandas==2.3.3
 partd==1.4.2
-pillow==12.2.0
+pillow==13.0.0
 pluggy==1.6.0
 propcache==0.4.1
 protobuf==6.33.6

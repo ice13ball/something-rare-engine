@@ -12,7 +12,7 @@ xarray==2026.2.0
 netCDF4==1.7.4
 dask==2026.3.0
 h5py==3.16.0
-Pillow==12.2.0
+Pillow==13.0.0
 numpy==2.4.4
 pyproj==3.7.2
 mercantile==1.2.1
