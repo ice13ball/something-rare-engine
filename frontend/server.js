@@ -1489,6 +1489,8 @@ function render404(lang) {
     '<p><a id="nf-a" href="/">' + escapeHtml(t.atlas) + '</a> · ' +
     '<a id="nf-t" href="' + TOOLS_ORIGIN + '/?lang=' + lang + '">' + escapeHtml(t.tools) + '</a></p></div>' +
     '<script>(function(){try{var T=' + JSON.stringify(NOT_FOUND_I18N).replace(/</g, '\\u003c') + ';' +
+    // An explicit ?lang= (a link from the tools) already chose the language server-side.
+    'if(/[?&]lang=(en|pl|de|fr)(&|$)/.test(location.search))return;' +
     'var l=(localStorage.getItem("abyssal_lang")||"").slice(0,2).toLowerCase();' +
     'if(!T[l]||l===document.documentElement.lang)return;var t=T[l];' +
     'document.documentElement.lang=l;document.title=t.title;' +
@@ -1518,7 +1520,10 @@ app.get('*', (req, res) => {
     }
     return res.sendFile(join(__dirname, 'dist', 'index.html'));
   }
-  const lang = pickLang(req.headers['accept-language']);
+  // ?lang= from a tools link wins over Accept-Language (SITE_LANGS filtered it upstream).
+  const lang = typeof req.query.lang === 'string' && SITE_LANGS.has(req.query.lang)
+    ? req.query.lang
+    : pickLang(req.headers['accept-language']);
   // Same status and noindex as before; Vary because the body now depends on
   // Accept-Language. Deliberately NO GA bootstrap or measurement id: a test
   // asserts 404 bodies carry none.

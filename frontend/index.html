@@ -100,13 +100,39 @@
           gtag('js', new Date());
           gtag('config', ID);
         }
+        // On Decline the _ga* cookies of an earlier Accept go too, as in the tools
+        // (they live on .something-rare.com, so either service clears them for
+        // both). gtag.js sets them on the registrable parent domain, which off
+        // something-rare.com (*.run.app) is not known here: try every parent suffix.
+        function clearGoogleCookies() {
+          try {
+            var names = document.cookie.split(';').map(function (p) { return p.split('=')[0].trim(); })
+              .filter(function (n) { return n === '_ga' || n === '_gid' || n.indexOf('_ga_') === 0 || n.indexOf('_gat') === 0; });
+            var labels = location.hostname.split('.');
+            var domains = [];
+            for (var i = 0; i < labels.length - 1; i++) domains.push(labels.slice(i).join('.'));
+            names.forEach(function (n) {
+              document.cookie = n + '=; Path=/; Max-Age=0';
+              domains.forEach(function (d) { document.cookie = n + '=; Path=/; Max-Age=0; Domain=' + d; });
+            });
+          } catch (e) {}
+        }
         // The one entry point for banners (React CookieBanner, SSR banner).
         window.acConsent = {
           get: get,
           set: function (v) {
             write(v);
-            if (v === 'granted') load();
-            else gtag('consent', 'update', { analytics_storage: 'denied' });
+            if (v === 'granted') {
+              window['ga-disable-' + ID] = false;
+              load();
+            } else {
+              // ⛔ Consent Mode 'denied' alone does not silence a loaded gtag.js:
+              // it flushed a queued hit and sent cookieless page_views for the rest
+              // of the session. ga-disable stops every hit; set it BEFORE the update.
+              window['ga-disable-' + ID] = true;
+              gtag('consent', 'update', { analytics_storage: 'denied' });
+              clearGoogleCookies();
+            }
           }
         };
         try {
