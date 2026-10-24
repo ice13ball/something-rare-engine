@@ -78,5 +78,33 @@
     "minutesShort": "vor {{n}} Min.",
     "hoursShort": "vor {{n}} Std.",
     "daysShort": "vor {{n}} T."
+  },
+  "site": {
+    "footer": {
+      "blog": "Blog",
+      "about": "Über uns",
+      "api": "API",
+      "tools": "Werkzeuge",
+      "toolsHint": "Meeresdaten-Dateien vor der Veröffentlichung prüfen",
+      "feedback": "Feedback",
+      "privacy": "Datenschutz",
+      "terms": "Nutzungsbedingungen",
+      "cite": "Zitieren",
+      "source": "Quellcode",
+      "sourceTitle": "Quellcode — AGPL-3.0-or-later",
+      "cookieSettings": "Cookie-Einstellungen"
+    },
+    "menu": {
+      "open": "Website-Menü öffnen",
+      "heading": "Menü",
+      "close": "Menü schließen"
+    }
+  },
+  "cookie": {
+    "label": "Cookie-Einwilligung",
+    "text": "Mit Ihrer Einwilligung nutzen wir Google Analytics, um die Besuche und die Nutzung des Atlas und der Werkzeuge von Abyssal Claims zu zählen. Eine Entscheidung gilt für beide. Wir senden niemals den Inhalt Ihrer Dateien oder die von Ihnen eingefügten Links.",
+    "decline": "Ablehnen",
+    "accept": "Akzeptieren",
+    "privacy": "Datenschutz"
   }
 }

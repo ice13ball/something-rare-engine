@@ -80,5 +80,33 @@
     "minutesShort": "{{n}} min temu",
     "hoursShort": "{{n}} godz. temu",
     "daysShort": "{{n}} dni temu"
+  },
+  "site": {
+    "footer": {
+      "blog": "Blog",
+      "about": "O projekcie",
+      "api": "API",
+      "tools": "Narzędzia",
+      "toolsHint": "Sprawdź pliki z danymi morskimi przed publikacją",
+      "feedback": "Opinie",
+      "privacy": "Prywatność",
+      "terms": "Regulamin",
+      "cite": "Cytowanie",
+      "source": "Kod źródłowy",
+      "sourceTitle": "Kod źródłowy — AGPL-3.0-or-later",
+      "cookieSettings": "Ustawienia cookies"
+    },
+    "menu": {
+      "open": "Otwórz menu witryny",
+      "heading": "Menu",
+      "close": "Zamknij menu"
+    }
+  },
+  "cookie": {
+    "label": "Zgoda na pliki cookie",
+    "text": "Za Twoją zgodą używamy Google Analytics, żeby liczyć odwiedziny i użycie Atlasu i Narzędzi Abyssal Claims. Jedna decyzja obowiązuje w obu. Nigdy nie wysyłamy treści Twoich plików ani wklejonych linków.",
+    "decline": "Odrzucam",
+    "accept": "Akceptuję",
+    "privacy": "Prywatność"
   }
 }

@@ -49,7 +49,7 @@ function MapApp() {
         {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
         <LayerLoadingProgress />
         <ReportToast />
-        <CookieBanner forceOpen={consentOpen} />
+        <CookieBanner forceOpen={consentOpen} onClose={() => setConsentOpen(false)} />
         <WelcomeOverlay />
         <TutorialCoach />
         <ExportPanel />

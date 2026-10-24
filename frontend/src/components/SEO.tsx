@@ -17,7 +17,7 @@ import {
 const SITE_URL = "https://something-rare.com";
 const OG_IMAGE = `${SITE_URL}/og.jpg`;
 
-const TITLE = "Abyssal Claims | Ocean & Land Environmental Map";
+const TITLE = "Ocean & Land Environmental Map — Abyssal Claims";
 const DESCRIPTION =
   "Interactive 3D map tracking 50+ environmental data layers across ocean and land. Deep-sea mining concessions, global mining footprints, deforestation, active fires, air quality, biodiversity hotspots, hydrothermal vents, and real-time monitoring — powered by ISA, OBIS, NASA FIRMS, OpenAQ, WRI, and more.";
 const KEYWORDS =

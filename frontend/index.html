@@ -55,7 +55,7 @@
       })();
     </script>
     <!-- ga4-bootstrap:start — seo/render-page.js copies this block verbatim into every
-         server-rendered page. Keep it self-contained: consent default, then loader, then config. -->
+         server-rendered page. Keep it self-contained: consent default, cookie restore, lazy loader. -->
     <!-- Google Consent Mode v2 — must fire BEFORE gtag config -->
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -68,25 +68,61 @@
         ad_personalization: 'denied',
         wait_for_update: 500
       });
-      // Restore the visitor's OWN earlier decision. There is no automatic grant:
-      // everyone without a stored choice starts denied and is shown the banner.
-      // `abyssal_consent` (v1) is discarded — until 2026-09-23 it was set to
-      // 'granted' without asking whenever the browser language looked non-EU,
-      // which is not consent, and those entries cannot be told apart.
-      try {
-        localStorage.removeItem('abyssal_consent');
-        if (localStorage.getItem('abyssal_consent_v2') === 'granted') {
-          // Analytics only. The site runs no ads, so the ad_* signals stay at
-          // their 'denied' default above and nothing ever grants them.
-          gtag('consent', 'update', { analytics_storage: 'granted' });
+      // ⛔ ONE decision for the atlas and tools.something-rare.com: the cookie
+      // `ac_consent` (granted|denied) on Domain=something-rare.com. Nothing is sent
+      // to Google until it says 'granted' — gtag.js is not even requested before that.
+      // The cookie is written host-only off something-rare.com (Cloud Run dev
+      // *.run.app, localhost): a Domain= the host does not belong to is silently
+      // rejected, and dev would ask on every visit.
+      (function () {
+        var ID = 'G-S5HR4WT0ZG', NAME = 'ac_consent';
+        var loaded = false;
+        function get() {
+          var m = document.cookie.match(/(?:^|; )ac_consent=(granted|denied)(?:;|$)/);
+          return m ? m[1] : null;
         }
-      } catch(e) {}
-    </script>
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S5HR4WT0ZG"></script>
-    <script>
-      gtag('js', new Date());
-      gtag('config', 'G-S5HR4WT0ZG');
+        function write(v) {
+          var h = location.hostname;
+          var shared = h === 'something-rare.com' || /\.something-rare\.com$/.test(h);
+          document.cookie = NAME + '=' + v + (shared ? '; Domain=something-rare.com' : '') +
+            '; Path=/' + (location.protocol === 'https:' ? '; Secure' : '') + '; SameSite=Lax; Max-Age=15552000';
+        }
+        // Analytics only. The site runs no ads, so ad_* stay 'denied' forever.
+        // config runs exactly once per page load; a later grant only flips consent.
+        function load() {
+          gtag('consent', 'update', { analytics_storage: 'granted' });
+          if (loaded) return;
+          loaded = true;
+          var s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ID;
+          document.head.appendChild(s);
+          gtag('js', new Date());
+          gtag('config', ID);
+        }
+        // The one entry point for banners (React CookieBanner, SSR banner).
+        window.acConsent = {
+          get: get,
+          set: function (v) {
+            write(v);
+            if (v === 'granted') load();
+            else gtag('consent', 'update', { analytics_storage: 'denied' });
+          }
+        };
+        try {
+          // `abyssal_consent` (v1) is discarded — until 2026-09-23 it was set to
+          // 'granted' without asking, which is not consent.
+          localStorage.removeItem('abyssal_consent');
+          // Migration: a visitor who answered before the shared cookie existed keeps
+          // their answer and is not asked again. Runs before any banner decides.
+          var old = localStorage.getItem('abyssal_consent_v2');
+          if (old === 'granted' || old === 'denied') {
+            if (!get()) write(old);
+            localStorage.removeItem('abyssal_consent_v2');
+          }
+        } catch (e) {}
+        if (get() === 'granted') load();
+      })();
     </script>
     <!-- ga4-bootstrap:end -->
     <!-- Structured Data -->

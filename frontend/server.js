@@ -292,14 +292,23 @@ const WITHDRAWN_LAYER_PATHS = new Set([
   '/layer/kbas',
 ]);
 
+// The UI languages (src/i18n.ts SUPPORTED_LOCALES); the only ?lang= values served.
+const SITE_LANGS = new Set(['en', 'pl', 'de', 'fr']);
+
 // Any path starting with these prefixes belongs to the old localised site.
 const GONE_PREFIXES = ['/en', '/pl', '/de', '/es'];
 
 app.use((req, res, next) => {
   const path = req.path.replace(/\/+$/, '') || '/'; // normalise trailing slash
 
-  // ?next=1 pagination and ?lang= localisation ghosts from the old site
-  if (req.query.next !== undefined || req.query.lang !== undefined) {
+  // ?next=1 pagination and ?lang= localisation ghosts from the old site.
+  // ⛔ Except ?lang=en|pl|de|fr: tools.something-rare.com sends exactly that on
+  // every link to the atlas (ecosystem contract, 2026-10-25), src/i18n.ts reads it
+  // and strips it, and the page self-canonicalises without it. A 410 here made
+  // every crossing from the tools land on "410 Gone".
+  const lang = req.query.lang;
+  const crossSiteLang = typeof lang === 'string' && SITE_LANGS.has(lang);
+  if (req.query.next !== undefined || (lang !== undefined && !crossSiteLang)) {
     return res.status(410).send('410 Gone');
   }
 
@@ -552,7 +561,7 @@ app.get('/blog', entityRoute('The blog index', async (req, res) => {
     const articles = await fetchEntity(`${VPS_API_URL}/v1/blog/articles`);
     if (!articles) throw new BackendUnavailable('blog index returned 404');
     const head = `
-      <title>Abyssal Claims Blog — Ocean & Land Environmental Intelligence</title>
+      <title>Blog: Ocean &amp; Land Environmental Intelligence — Abyssal Claims</title>
       <meta name="description" content="Articles on deep-sea mining, environmental monitoring, biodiversity, deforestation, air quality, and ocean-land policy." />
       <link rel="canonical" href="https://something-rare.com/blog" />
       <meta property="og:type" content="website" />
@@ -982,19 +991,19 @@ app.get('/layer/:layerId', async (req, res, next) => {
 // than "LEGAL_PAGES": /api-docs joined 2026-08-17 and is not a legal page.
 const STATIC_SSR_PAGES = {
   privacy: {
-    title: 'Privacy Policy | Abyssal Claims',
+    title: 'Privacy Policy — Abyssal Claims',
     description: 'Privacy policy for Abyssal Claims — how we collect, use, and protect your data.',
     heading: 'Privacy Policy',
     intro: 'How Abyssal Claims collects, uses, and protects your data on the deep-sea and land mining transparency platform.',
   },
   terms: {
-    title: 'Terms of Use | Abyssal Claims',
+    title: 'Terms of Use — Abyssal Claims',
     description: 'Terms of use for Abyssal Claims, the deep-sea mining transparency platform.',
     heading: 'Terms of Use',
     intro: 'The terms governing your use of Abyssal Claims, the deep-sea and land mining transparency platform.',
   },
   about: {
-    title: 'About | Abyssal Claims',
+    title: 'About — Abyssal Claims',
     description: 'Abyssal Claims is a deep-sea mining transparency platform visualising ISA concession data, environmental risks, and ocean monitoring on an interactive 3D map.',
     heading: 'About Abyssal Claims',
     intro: 'Abyssal Claims is a deep-sea and land mining transparency platform visualising ISA concession data, environmental risks, and ocean monitoring on an interactive 3D globe.',
@@ -1007,7 +1016,7 @@ const STATIC_SSR_PAGES = {
   // Title and description are copied verbatim from ApiDocsPage.tsx's <Helmet>
   // so the pre-JS snapshot and the rendered page cannot disagree.
   'api-docs': {
-    title: 'API Documentation | Abyssal Claims',
+    title: 'API Documentation — Abyssal Claims',
     description: 'REST API for Abyssal Claims: ISA mining concessions, hydrothermal vents, biodiversity, ocean chemistry and land layers. Requires an organisation-issued API key.',
     heading: 'Abyssal Claims API',
     intro: 'A REST API over the same datasets the map renders: ISA mining concessions and contractors, hydrothermal vents, seamounts, biodiversity occurrences, ocean chemistry fields, and land mining layers.',
@@ -1441,6 +1450,53 @@ app.use(expressStaticGzip(join(__dirname, 'dist'), {
 // and the naming is load-bearing elsewhere (it decides who gets the client bundle).
 // Adding a route to App.tsx without adding it to REACT_ROUTES turns it into a 404.
 
+// ── Catch-all 404: dark, 4 languages (ecosystem contract §1, §5) ─────────
+// Language is chosen server-side from Accept-Language (en fallback); a tiny
+// inline script then switches to localStorage `abyssal_lang` (the atlas's own
+// language key) when it is set, so all four strings are embedded.
+const NOT_FOUND_I18N = {
+  en: { title: 'Page not found — Abyssal Claims', h1: '404 — page not found', p: 'The page you are looking for does not exist.', atlas: 'Atlas', tools: 'Tools' },
+  pl: { title: 'Nie znaleziono strony — Abyssal Claims', h1: '404 — nie znaleziono strony', p: 'Strona, której szukasz, nie istnieje.', atlas: 'Atlas', tools: 'Narzędzia' },
+  de: { title: 'Seite nicht gefunden — Abyssal Claims', h1: '404 — Seite nicht gefunden', p: 'Die gesuchte Seite existiert nicht.', atlas: 'Atlas', tools: 'Werkzeuge' },
+  fr: { title: 'Page introuvable — Abyssal Claims', h1: '404 — page introuvable', p: 'La page que vous cherchez n\u2019existe pas.', atlas: 'Atlas', tools: 'Outils' },
+};
+const TOOLS_ORIGIN = 'https://tools.something-rare.com';
+
+// Highest-q supported primary subtag of an Accept-Language header, else 'en'.
+function pickLang(header) {
+  if (typeof header !== 'string') return 'en';
+  const ranked = header.split(',').map((part, i) => {
+    const [tag, ...params] = part.trim().split(';');
+    const q = params.map(x => x.trim()).find(x => x.startsWith('q='));
+    const w = q ? parseFloat(q.slice(2)) : 1;
+    return { lang: tag.trim().toLowerCase().split('-')[0], q: Number.isNaN(w) ? 0 : w, i };
+  }).filter(x => NOT_FOUND_I18N[x.lang] && x.q > 0)
+    .sort((a, b) => b.q - a.q || a.i - b.i);
+  return ranked.length ? ranked[0].lang : 'en';
+}
+
+function render404(lang) {
+  const t = NOT_FOUND_I18N[lang];
+  return '<!doctype html><html lang="' + lang + '"><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<meta name="robots" content="noindex">' +
+    '<title>' + escapeHtml(t.title) + '</title>' +
+    '<style>body{background:#0a0e14;color:#e2e8f0;font:16px/1.6 system-ui,sans-serif;' +
+    'display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}' +
+    'a{color:#22d3ee}</style>' +
+    '<div><h1 id="nf-h">' + escapeHtml(t.h1) + '</h1>' +
+    '<p id="nf-p">' + escapeHtml(t.p) + '</p>' +
+    '<p><a id="nf-a" href="/">' + escapeHtml(t.atlas) + '</a> · ' +
+    '<a id="nf-t" href="' + TOOLS_ORIGIN + '/?lang=' + lang + '">' + escapeHtml(t.tools) + '</a></p></div>' +
+    '<script>(function(){try{var T=' + JSON.stringify(NOT_FOUND_I18N).replace(/</g, '\\u003c') + ';' +
+    'var l=(localStorage.getItem("abyssal_lang")||"").slice(0,2).toLowerCase();' +
+    'if(!T[l]||l===document.documentElement.lang)return;var t=T[l];' +
+    'document.documentElement.lang=l;document.title=t.title;' +
+    'document.getElementById("nf-h").textContent=t.h1;document.getElementById("nf-p").textContent=t.p;' +
+    'document.getElementById("nf-a").textContent=t.atlas;var o=document.getElementById("nf-t");' +
+    'o.textContent=t.tools;o.href="' + TOOLS_ORIGIN + '/?lang="+l}catch(e){}})()</script>';
+}
+
 app.get('*', (req, res) => {
   // Two normalisations, both load-bearing:
   //  - trailing slash, so /about/ keeps working (same as the 410 block);
@@ -1462,16 +1518,11 @@ app.get('*', (req, res) => {
     }
     return res.sendFile(join(__dirname, 'dist', 'index.html'));
   }
-  res.status(404).type('html').send(
-    '<!doctype html><meta charset="utf-8">' +
-    '<meta name="robots" content="noindex">' +
-    '<title>Page not found | Abyssal Claims</title>' +
-    '<style>body{background:#0b1220;color:#e2e8f0;font:16px/1.6 system-ui,sans-serif;' +
-    'display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}' +
-    'a{color:#22d3ee}</style>' +
-    '<div><h1>404 — page not found</h1>' +
-    '<p><a href="/">Go to the map</a></p></div>'
-  );
+  const lang = pickLang(req.headers['accept-language']);
+  // Same status and noindex as before; Vary because the body now depends on
+  // Accept-Language. Deliberately NO GA bootstrap or measurement id: a test
+  // asserts 404 bodies carry none.
+  res.status(404).set('Vary', 'Accept-Language').type('html').send(render404(lang));
 });
 
 process.on('uncaughtException', (err) => {

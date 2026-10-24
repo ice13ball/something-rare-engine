@@ -20,7 +20,7 @@ export function ApiDocsPage() {
           duplicate of "/". This page had no <Helmet> at all, so it was the one
           route with no title, description or canonical. */}
       <Helmet>
-        <title>API Documentation | Abyssal Claims</title>
+        <title>API Documentation — Abyssal Claims</title>
         <meta
           name="description"
           content="REST API for Abyssal Claims: ISA mining concessions, hydrothermal vents, biodiversity, ocean chemistry and land layers. Requires an organisation-issued API key."

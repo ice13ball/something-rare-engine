@@ -4,18 +4,51 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { PRIVACY_POLICY, TERMS_OF_USE, ABOUT, type LegalDoc } from "../content/legalContent";
+import { useTranslation } from "react-i18next";
+import { TERMS_OF_USE, ABOUT, TOOLS_URL, type LegalDoc } from "../content/legalContent";
+import { PRIVACY_BY_LANG, type PolicyLang } from "../content/privacyTranslations";
 import type { LegalTab } from "./LegalModal";
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+// Only the privacy policy is translated; About and Terms stay English.
 const DOCS: Record<LegalTab, LegalDoc> = {
   about:   ABOUT,
-  privacy: PRIVACY_POLICY,
+  privacy: PRIVACY_BY_LANG.en,
   terms:   TERMS_OF_USE,
 };
+
+// Chrome strings of this page, kept here rather than in the locale JSON.
+// "Atlas" / the tools name follow the ecosystem contract (AI-Wall
+// ekosystem-wspolne-ustalenia.md §1).
+const CHROME: Record<PolicyLang, { atlas: string; tools: string; updated: string; privacyDescription: string }> = {
+  en: { atlas: "Atlas", tools: "Tools",      updated: "Last updated",           privacyDescription: "Privacy policy for Abyssal Claims — how we collect, use, and protect your data." },
+  pl: { atlas: "Atlas", tools: "Narzędzia",  updated: "Ostatnia aktualizacja",  privacyDescription: "Polityka prywatności Abyssal Claims — jak zbieramy, wykorzystujemy i chronimy Twoje dane." },
+  de: { atlas: "Atlas", tools: "Werkzeuge",  updated: "Zuletzt aktualisiert",   privacyDescription: "Datenschutzerklärung von Abyssal Claims — wie wir Ihre Daten erheben, verwenden und schützen." },
+  fr: { atlas: "Atlas", tools: "Outils",     updated: "Dernière mise à jour",   privacyDescription: "Politique de confidentialité d'Abyssal Claims — comment nous collectons, utilisons et protégeons vos données." },
+};
+
+function pickLang(resolved: string | undefined): PolicyLang {
+  const l = (resolved ?? "en").slice(0, 2);
+  return l === "pl" || l === "de" || l === "fr" ? l : "en";
+}
+
+// Bare URLs in the privacy text become links (same tab). About and Terms keep
+// their text exactly as written, so they are not linkified.
+function Linkified({ text, links }: { text: string; links: boolean }) {
+  if (!links) return <>{text}</>;
+  return (
+    <>
+      {text.split(/(https:\/\/[^\s]*[^\s.,;:)])/g).map((part, i) =>
+        /^https:\/\//.test(part)
+          ? <a key={i} href={part} className="text-[#22d3ee] hover:underline">{part}</a>
+          : part,
+      )}
+    </>
+  );
+}
 
 const TITLES: Record<LegalTab, string> = {
   about:   "About",
@@ -29,10 +62,10 @@ const DESCRIPTIONS: Record<LegalTab, string> = {
   terms:   "Terms of use for Abyssal Claims, the deep-sea mining transparency platform.",
 };
 
-function DocRenderer({ doc }: { doc: LegalDoc }) {
+function DocRenderer({ doc, updatedLabel, links }: { doc: LegalDoc; updatedLabel: string; links: boolean }) {
   return (
     <div className="space-y-1">
-      <p className="text-white/60 text-xs mb-4">Last updated: {doc.updated}</p>
+      <p className="text-white/60 text-xs mb-4">{updatedLabel}: {doc.updated}</p>
       {doc.sections.map((section, i) => {
         const id = section.id ?? slugify(section.heading);
         return (
@@ -42,7 +75,7 @@ function DocRenderer({ doc }: { doc: LegalDoc }) {
             </h3>
             {section.paragraphs.map((p, j) => {
               if (typeof p === "string") {
-                return <p key={j} className="text-white/75 text-xs leading-relaxed mb-2">{p}</p>;
+                return <p key={j} className="text-white/75 text-xs leading-relaxed mb-2"><Linkified text={p} links={links} /></p>;
               }
               if ("code" in p) {
                 return (
@@ -56,7 +89,7 @@ function DocRenderer({ doc }: { doc: LegalDoc }) {
                   {p.list.map((item, k) => (
                     <li key={k} className="text-white/75 text-xs leading-relaxed flex gap-2">
                       <span className="text-white/60 flex-shrink-0">—</span>
-                      <span>{item}</span>
+                      <span><Linkified text={item} links={links} /></span>
                     </li>
                   ))}
                 </ul>
@@ -72,8 +105,12 @@ function DocRenderer({ doc }: { doc: LegalDoc }) {
 export function LegalPage() {
   const { pathname, hash } = useLocation();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const lang = pickLang(i18n.resolvedLanguage);
+  const chrome = CHROME[lang];
   const legalTab = pathname.slice(1) as LegalTab;
-  const doc = DOCS[legalTab];
+  const isPrivacy = legalTab === "privacy";
+  const doc = isPrivacy ? PRIVACY_BY_LANG[lang] : DOCS[legalTab];
 
   useEffect(() => {
     if (!hash) return;
@@ -86,8 +123,9 @@ export function LegalPage() {
     return null;
   }
 
-  const title = `${TITLES[legalTab]} | Abyssal Claims`;
-  const description = DESCRIPTIONS[legalTab];
+  const pageName = isPrivacy ? doc.title : TITLES[legalTab];
+  const title = `${pageName} — Abyssal Claims`;
+  const description = isPrivacy ? chrome.privacyDescription : DESCRIPTIONS[legalTab];
   const canonical = `https://something-rare.com/${legalTab}`;
 
   return (
@@ -105,16 +143,22 @@ export function LegalPage() {
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
     </Helmet>
-    <div className="min-h-screen bg-[#0d1117] flex flex-col items-center px-4 py-12">
+    <div className="min-h-screen bg-[#0a0e14] flex flex-col items-center px-4 py-12">
       <div className="w-full max-w-2xl">
-        <button
-          onClick={() => navigate("/")}
-          className="text-white/60 hover:text-white/85 text-xs mb-8 flex items-center gap-1 transition-colors"
-        >
-          ← Back to map
-        </button>
-        <h1 className="text-white text-sm font-semibold mb-6">{TITLES[legalTab]}</h1>
-        <DocRenderer doc={doc} />
+        <div className="flex items-center justify-between mb-8 text-xs">
+          <button
+            onClick={() => navigate("/")}
+            className="text-white/60 hover:text-white/85 flex items-center gap-1 transition-colors"
+          >
+            ← {chrome.atlas}
+          </button>
+          {/* Same tab, current language in the URL (ecosystem contract §2). */}
+          <a href={`${TOOLS_URL}/?lang=${lang}`} className="text-[#22d3ee] hover:underline">
+            {chrome.tools} →
+          </a>
+        </div>
+        <h1 className="text-white text-sm font-semibold mb-6">{pageName}</h1>
+        <DocRenderer doc={doc} updatedLabel={isPrivacy ? chrome.updated : CHROME.en.updated} links={isPrivacy} />
       </div>
     </div>
     </>

@@ -24,13 +24,13 @@ export function BlogListPage() {
   return (
     <>
       <Helmet>
-        <title>Blog | Abyssal Claims</title>
+        <title>Blog — Abyssal Claims</title>
         <meta
           name="description"
           content="Articles on deep-sea mining, environmental monitoring, biodiversity, deforestation, and ocean-land policy — from the team behind Abyssal Claims."
         />
         <link rel="canonical" href={CANONICAL} />
-        <meta property="og:title" content="Blog | Abyssal Claims" />
+        <meta property="og:title" content="Blog — Abyssal Claims" />
         <meta
           property="og:description"
           content="Articles on deep-sea mining, environmental monitoring, biodiversity, deforestation, and ocean-land policy."
@@ -39,7 +39,7 @@ export function BlogListPage() {
         <meta property="og:type" content="website" />
         <meta property="og:image" content={`${SITE_URL}/og.jpg`} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Blog | Abyssal Claims" />
+        <meta name="twitter:title" content="Blog — Abyssal Claims" />
         <meta name="twitter:description" content="Articles on deep-sea mining, environmental monitoring, biodiversity, deforestation, and ocean-land policy." />
         <meta name="twitter:image" content={`${SITE_URL}/og.jpg`} />
       </Helmet>

@@ -151,8 +151,10 @@ export function TutorialCoach() {
         />
       )}
 
-      {/* Coach bar */}
-      <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-tutorial-bar w-[calc(100%-2rem)] sm:w-auto sm:min-w-[420px] sm:max-w-lg bg-surface-primary border border-white/15 rounded-xl px-5 py-3 flex items-center gap-4 shadow-2xl">
+      {/* Coach bar. sm:bottom-16 keeps it above the footer pill (bottom-2, up to two rows): at bottom-6 it
+          sat on top of the pill at z-45 and swallowed clicks on Tools on a first visit. The cookie banner
+          is z-[46], so it also stays clickable over this bar. */}
+      <div className="fixed bottom-20 sm:bottom-16 left-1/2 -translate-x-1/2 z-tutorial-bar w-[calc(100%-2rem)] sm:w-auto sm:min-w-[420px] sm:max-w-lg bg-surface-primary border border-white/15 rounded-xl px-5 py-3 flex items-center gap-4 shadow-2xl">
         {/* Step dots + mono counter (language-neutral, instrument style) */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           <div className="flex gap-1.5">

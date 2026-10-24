@@ -78,5 +78,33 @@
     "minutesShort": "il y a {{n}} min",
     "hoursShort": "il y a {{n}} h",
     "daysShort": "il y a {{n}} j"
+  },
+  "site": {
+    "footer": {
+      "blog": "Blog",
+      "about": "À propos",
+      "api": "API",
+      "tools": "Outils",
+      "toolsHint": "Vérifier les fichiers de données marines avant publication",
+      "feedback": "Retour",
+      "privacy": "Confidentialité",
+      "terms": "Conditions",
+      "cite": "Citer",
+      "source": "Code source",
+      "sourceTitle": "Code source — AGPL-3.0-or-later",
+      "cookieSettings": "Paramètres des cookies"
+    },
+    "menu": {
+      "open": "Ouvrir le menu du site",
+      "heading": "Menu",
+      "close": "Fermer le menu"
+    }
+  },
+  "cookie": {
+    "label": "Consentement aux cookies",
+    "text": "Avec votre accord, nous utilisons Google Analytics pour compter les visites et l'utilisation de l'Atlas et des Outils d'Abyssal Claims. Un seul choix vaut pour les deux. Nous n'envoyons jamais le contenu de vos fichiers ni les liens que vous collez.",
+    "decline": "Refuser",
+    "accept": "Accepter",
+    "privacy": "Confidentialité"
   }
 }

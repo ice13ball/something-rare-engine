@@ -78,5 +78,33 @@
     "minutesShort": "{{n}}m ago",
     "hoursShort": "{{n}}h ago",
     "daysShort": "{{n}}d ago"
+  },
+  "site": {
+    "footer": {
+      "blog": "Blog",
+      "about": "About",
+      "api": "API",
+      "tools": "Tools",
+      "toolsHint": "Check marine data files before publishing",
+      "feedback": "Feedback",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cite": "Cite",
+      "source": "Source",
+      "sourceTitle": "Source code — AGPL-3.0-or-later",
+      "cookieSettings": "Cookie Settings"
+    },
+    "menu": {
+      "open": "Open site menu",
+      "heading": "Menu",
+      "close": "Close menu"
+    }
+  },
+  "cookie": {
+    "label": "Cookie consent",
+    "text": "With your consent we use Google Analytics to count visits to and use of the Abyssal Claims Atlas and Tools. One choice applies to both. We never send the contents of your files or the links you paste.",
+    "decline": "Decline",
+    "accept": "Accept",
+    "privacy": "Privacy"
   }
 }

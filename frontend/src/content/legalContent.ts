@@ -54,26 +54,38 @@ export interface LegalDoc {
   sections: LegalSection[];
 }
 
+export const TOOLS_URL = "https://tools.something-rare.com";
+export const TOOLS_PRIVACY_URL = "https://tools.something-rare.com/privacy";
+
+// ⚠️ English is the reference text. The pl/de/fr versions live in
+// privacyTranslations.ts and must say the same thing section for section (same
+// order, same `id`s so a #anchor works in every language). This policy carries
+// no clause making English binding, so none is stated in the translations.
+// ⛔ Keep the word for paid placements out of every language of this file —
+// consent-asked-of-everyone.test.tsx greps the English text for it.
 export const PRIVACY_POLICY: LegalDoc = {
   title: "Privacy Policy",
-  updated: "April 2026",
+  updated: "October 2026",
   sections: [
     {
       heading: "Who We Are",
+      id: "who-we-are",
       paragraphs: [
-        `${SITE_NAME} is an interactive map visualising international deep-sea mining concessions issued by the International Seabed Authority (ISA). It is operated by an independent researcher. For privacy enquiries contact: ${CONTACT_EMAIL}.`,
+        `${SITE_NAME} consists of two services run by the same independent researcher, who is the single controller of the data described here: the Atlas at ${SITE_URL}, an interactive map visualising international deep-sea mining concessions issued by the International Seabed Authority (ISA), and ${SITE_NAME} Tools at ${TOOLS_URL}. For privacy enquiries about either service contact: ${CONTACT_EMAIL}.`,
       ],
     },
     {
       heading: "Information We Collect",
+      id: "information-we-collect",
       paragraphs: [
         "We collect a small amount of data as described in the sections below. We do not operate user accounts or registration systems. We do not sell data to third parties.",
       ],
     },
     {
       heading: "Feedback Form",
+      id: "feedback-form",
       paragraphs: [
-        "The site provides an optional feedback form. If you use it, we collect:",
+        "The Atlas provides an optional feedback form. If you use it, we collect:",
         {
           list: [
             "Your message and the category you selected (working well / bug / suggestion) — required.",
@@ -86,36 +98,59 @@ export const PRIVACY_POLICY: LegalDoc = {
       ],
     },
     {
-      heading: "Google Analytics (GA4)",
+      heading: `${SITE_NAME} Tools`,
+      id: "abyssal-claims-tools",
       paragraphs: [
-        "We use Google Analytics to understand how visitors use the site. GA4 may collect device type, browser, approximate geographic region, pages visited, and interaction events. GA4 uses cookies and similar tracking technologies. Data is processed by Google LLC. You can opt out by declining cookies in our consent banner.",
+        `The tools at ${TOOLS_URL} read the files you drop onto them and the links you paste in your browser. The contents of your files and the links you paste are never sent to us or to Google.`,
+        `The Tools have their own privacy page, which describes the same controller, contact and shared consent: ${TOOLS_PRIVACY_URL}`,
+      ],
+    },
+    {
+      heading: "Your Cookie Choice (Both Services)",
+      id: "your-cookie-choice-both-services",
+      paragraphs: [
+        `The Atlas and the Tools share one cookie choice. It is stored in a single first-party cookie named ac_consent (value granted or denied) on the domain something-rare.com, valid for 180 days, so a choice made in one service applies in the other and you are not asked twice.`,
+        `The "Cookie settings" link in either service changes the choice for both.`,
+      ],
+    },
+    {
+      heading: "Google Analytics (GA4)",
+      id: "google-analytics-ga4",
+      paragraphs: [
+        "We use Google Analytics 4 (measurement ID G-S5HR4WT0ZG) to understand how visitors use the Atlas and the Tools. Google Analytics is loaded only after you click Accept in the consent banner (or if you accepted earlier); nothing is sent to Google before you have made a choice, and nothing is sent if you decline.",
+        "Once you accept, GA4 may collect device type, browser, approximate geographic region, pages visited, and interaction events, and may set cookies on something-rare.com. Data is processed by Google LLC. You can withdraw your consent at any time with the Cookie settings link.",
       ],
     },
     {
       heading: "Cookieless Page-View Counter",
+      id: "cookieless-page-view-counter",
       paragraphs: [
-        "We operate a privacy-preserving page-view counter that records only the page path and the date — no IP address, no user identifier, and no personal data of any kind. This aggregate counter runs regardless of your cookie consent choice and is stored in our own database. It is used solely for understanding which pages are visited and is exempt from GDPR consent requirements under the 'strictly necessary' and 'statistical purposes with no individual impact' bases.",
+        "The Atlas operates a privacy-preserving page-view counter that records only the page path and the date — no cookies, no IP address, no user identifier, and no personal data of any kind. This aggregate counter runs regardless of your cookie consent choice and is stored in our own database. It is used solely for understanding which pages are visited and is exempt from GDPR consent requirements under the 'strictly necessary' and 'statistical purposes with no individual impact' bases.",
       ],
     },
     {
       heading: "Cookies and Local Storage",
+      id: "cookies-and-local-storage",
       paragraphs: [
-        "We use localStorage (not cookies) to store your consent preference so the banner does not appear on every visit. No personal data is stored in localStorage. Third-party cookies may be set by Google Analytics after you grant consent.",
+        "The only cookie we set ourselves is ac_consent, described above, which remembers your cookie choice so the banner does not appear on every visit. Your interface language is remembered in your browser's localStorage. No personal data is stored in either. Cookies may be set by Google Analytics after you grant consent.",
+        "Earlier versions of the Atlas kept the cookie choice in localStorage; that entry is moved into the ac_consent cookie and then removed.",
       ],
     },
     {
       heading: "Data Retention",
+      id: "data-retention",
       paragraphs: [
-        "Page-view counts are retained indefinitely in aggregate form (no personal data). Google Analytics data is retained for 14 months per Google's default GA4 setting. Consent preferences stored in localStorage are cleared when you use the Cookie Settings link or clear your browser storage. Feedback submissions are retained until manually deleted; email addresses within them are deleted on request.",
+        "Page-view counts are retained indefinitely in aggregate form (no personal data). Google Analytics data is retained for 14 months per Google's default GA4 setting. The ac_consent cookie expires after 180 days and is replaced when you use the Cookie settings link; you can also delete it by clearing your browser's cookies. Feedback submissions are retained until manually deleted; email addresses within them are deleted on request.",
       ],
     },
     {
       heading: "Legal Basis for Processing (GDPR)",
+      id: "legal-basis-for-processing-gdpr",
       paragraphs: [
         "If you are in the EEA or UK, we process data based on:",
         {
           list: [
-            "Consent (Article 6(1)(a) GDPR) — for analytics cookies, activated only after you accept; and for any email address you voluntarily provide in the feedback form.",
+            "Consent (Article 6(1)(a) GDPR) — for Google Analytics, activated only after you accept; and for any email address you voluntarily provide in the feedback form.",
             "Legitimate interests (Article 6(1)(f) GDPR) — for basic site functionality, security, and processing feedback messages that do not contain an email address.",
             "Statistical purposes (Recital 162 GDPR) — for the cookieless aggregate page-view counter.",
           ],
@@ -124,24 +159,28 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Your Rights",
+      id: "your-rights",
       paragraphs: [
         "Under GDPR and CCPA you have the right to access, rectify, erase, restrict, or port your data, and to object to processing or opt out of data sales. Contact us at " + CONTACT_EMAIL + " to exercise these rights. For Google's data, visit myaccount.google.com.",
       ],
     },
     {
       heading: "Children's Privacy",
+      id: "children-s-privacy",
       paragraphs: [
-        "This site is not directed at children under 13. We do not knowingly collect data from children.",
+        "Our services are not directed at children under 13. We do not knowingly collect data from children.",
       ],
     },
     {
       heading: "Changes to This Policy",
+      id: "changes-to-this-policy",
       paragraphs: [
         "We may update this policy periodically. The date at the top reflects the most recent revision. Continued use of the site after changes constitutes acceptance.",
       ],
     },
     {
       heading: "Contact",
+      id: "contact",
       paragraphs: [`For privacy questions or data requests: ${CONTACT_EMAIL}`],
     },
   ],

@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { clearStoredConsent } from "../utils/analytics";
+import { toolsUrl } from "../utils/toolsLink";
 import { useMapStore } from "../store/mapStore";
 import { getLiveMapState } from "../utils/liveMapState";
 import { openObjectsFor } from "./map3d/openFromLink";
@@ -16,6 +16,8 @@ import { buildShareUrl } from "../utils/shareState";
 export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConsent?: () => void; onOpenFeedback?: () => void }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { t } = useTranslation("panels");
+  // Site-chrome labels live in common.json; i18n.resolvedLanguage re-renders the Tools href on a switch.
+  const { t: tc, i18n } = useTranslation("common");
   const setExportPanelOpen = useMapStore((s) => s.setExportPanelOpen);
   const [shareNote, setShareNote] = useState<string | null>(null);
 
@@ -60,25 +62,23 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
         to="/blog"
         className="text-white/80 hover:text-white/90 text-xs transition-colors font-medium"
       >
-        Blog
+        {tc("site.footer.blog")}
       </Link>
       <span className="text-white/60 text-xs">·</span>
       <Link to="/about" className="text-white/80 hover:text-white/90 text-xs transition-colors">
-        About
+        {tc("site.footer.about")}
       </Link>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <Link to="/api-docs" className="text-white/80 hover:text-white/90 text-xs transition-colors">
-        API
+        {tc("site.footer.api")}
       </Link>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <a
-        href="https://tools.something-rare.com/"
-        target="_blank"
-        rel="noopener"
+        href={toolsUrl(i18n.resolvedLanguage)}
         className="text-white/80 hover:text-white/90 text-xs transition-colors"
-        title="Data check, licence check, collection review"
+        title={tc("site.footer.toolsHint")}
       >
-        Tools
+        {tc("site.footer.tools")}
       </a>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <button
@@ -101,21 +101,21 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
             onClick={onOpenFeedback}
             className="text-white/80 hover:text-white/90 text-xs transition-colors"
           >
-            Feedback
+            {tc("site.footer.feedback")}
           </button>
           <span className="text-white/60 text-xs" aria-hidden="true">·</span>
         </>
       )}
       <Link to="/privacy" className="text-white/80 hover:text-white/90 text-xs transition-colors">
-        Privacy
+        {tc("site.footer.privacy")}
       </Link>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <Link to="/terms" className="text-white/80 hover:text-white/90 text-xs transition-colors">
-        Terms
+        {tc("site.footer.terms")}
       </Link>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <Link to="/about#citation" className="text-white/80 hover:text-white/90 text-xs transition-colors">
-        Cite
+        {tc("site.footer.cite")}
       </Link>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <a
@@ -123,9 +123,9 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
         target="_blank"
         rel="noopener noreferrer"
         className="text-white/80 hover:text-white/90 text-xs transition-colors"
-        title="Source code — AGPL-3.0-or-later"
+        title={tc("site.footer.sourceTitle")}
       >
-        Source
+        {tc("site.footer.source")}
       </a>
       <span className="text-white/60 text-xs" aria-hidden="true">·</span>
       <Link to="/terms#source-code-licence" className="text-white/80 hover:text-white/90 text-xs transition-colors">
@@ -135,10 +135,10 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
         <>
           <span className="text-white/60 text-xs" aria-hidden="true">·</span>
           <button
-            onClick={() => { clearStoredConsent(); onReopenConsent(); }}
+            onClick={onReopenConsent}
             className="text-white/80 hover:text-white/90 text-xs transition-colors"
           >
-            Cookie Settings
+            {tc("site.footer.cookieSettings")}
           </button>
         </>
       )}

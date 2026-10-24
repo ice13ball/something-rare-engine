@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
+import { readConsent, writeConsent } from "./consentCookie";
+
 declare global {
   interface Window {
     gtag: (command: string, targetId: string, config?: Record<string, unknown>) => void;
@@ -9,39 +11,20 @@ declare global {
 }
 
 const MEASUREMENT_ID = "G-S5HR4WT0ZG";
-// v2 since 2026-09-23: v1 values include automatic grants made without asking
-// (see the ga4-bootstrap block in index.html), so none of them is carried over.
-// seo/render-page.js (server-rendered banner) uses the same key.
-const CONSENT_KEY = "abyssal_consent_v2";
 
 // ── Consent helpers ────────────────────────────────────────────────────────
+// The decision is the shared cookie `ac_consent` (see utils/consentCookie.ts and
+// the ga4-bootstrap block in index.html, which also loads gtag.js — and only
+// after 'granted').
 
 export function getStoredConsent(): "granted" | "denied" | null {
-  try {
-    const v = localStorage.getItem(CONSENT_KEY);
-    if (v === "granted" || v === "denied") return v;
-  } catch {}
-  return null;
+  return readConsent();
 }
 
 export function updateConsent(granted: boolean): void {
-  const value = granted ? "granted" : "denied";
-  try { localStorage.setItem(CONSENT_KEY, value); } catch {}
-  if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("consent", "update", {
-      // Analytics only — no ads run on the site, so ad_* stay denied (index.html).
-      analytics_storage: value,
-    });
-    // Re-trigger config so GA4 creates a proper session with cookies
-    // (the initial config fired with consent denied, so no session was started)
-    if (granted) {
-      window.gtag("config", MEASUREMENT_ID, { send_page_view: true });
-    }
-  }
-}
-
-export function clearStoredConsent(): void {
-  try { localStorage.removeItem(CONSENT_KEY); } catch {}
+  // writeConsent → window.acConsent.set: rewrites the cookie, then either loads
+  // gtag.js + config once (granted) or flips Consent Mode to denied.
+  writeConsent(granted ? "granted" : "denied");
 }
 
 // ── Cookieless page-view beacon ───────────────────────────────────────────
@@ -74,7 +57,9 @@ export function sendPageView(path: string): void {
 // ── Event tracking ─────────────────────────────────────────────────────────
 
 export const trackEvent = (eventName: string, eventParams?: Record<string, unknown>) => {
-  if (typeof window !== "undefined" && window.gtag) {
+  // ⛔ Without consent nothing may enter dataLayer: gtag.js flushes the queue
+  // when it loads after Accept, so a pre-consent event would reach Google then.
+  if (typeof window !== "undefined" && window.gtag && readConsent() === "granted") {
     window.gtag("event", eventName, { ...eventParams, send_to: MEASUREMENT_ID });
   }
 };
