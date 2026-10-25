@@ -137,6 +137,13 @@ export const PRIVACY_POLICY: LegalDoc = {
       ],
     },
     {
+      heading: "Map Imagery and Data Providers",
+      id: "map-imagery-and-data-providers",
+      paragraphs: [
+        "The map loads its base imagery from Esri (server.arcgisonline.com) on every visit; the map in impact reports uses Carto (basemaps.cartocdn.com). Some data layers, once you turn them on, load from their providers' servers — for example storage.googleapis.com for the JRC surface-water layer. As with any embedded map, those servers see your IP address. We set no cookies for this, and it is not tracking.",
+      ],
+    },
+    {
       heading: "Data Retention",
       id: "data-retention",
       paragraphs: [

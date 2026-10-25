@@ -23,14 +23,14 @@ const DOCS: Record<LegalTab, LegalDoc> = {
 // Chrome strings of this page, kept here rather than in the locale JSON.
 // "Atlas" / the tools name follow the ecosystem contract (AI-Wall
 // ekosystem-wspolne-ustalenia.md §1).
-const CHROME: Record<PolicyLang, { atlas: string; tools: string; updated: string; privacyDescription: string }> = {
+export const CHROME: Record<PolicyLang, { atlas: string; tools: string; updated: string; privacyDescription: string }> = {
   en: { atlas: "Atlas", tools: "Tools",      updated: "Last updated",           privacyDescription: "Privacy policy for Abyssal Claims — how we collect, use, and protect your data." },
   pl: { atlas: "Atlas", tools: "Narzędzia",  updated: "Ostatnia aktualizacja",  privacyDescription: "Polityka prywatności Abyssal Claims — jak zbieramy, wykorzystujemy i chronimy Twoje dane." },
   de: { atlas: "Atlas", tools: "Werkzeuge",  updated: "Zuletzt aktualisiert",   privacyDescription: "Datenschutzerklärung von Abyssal Claims — wie wir Ihre Daten erheben, verwenden und schützen." },
   fr: { atlas: "Atlas", tools: "Outils",     updated: "Dernière mise à jour",   privacyDescription: "Politique de confidentialité d'Abyssal Claims — comment nous collectons, utilisons et protégeons vos données." },
 };
 
-function pickLang(resolved: string | undefined): PolicyLang {
+export function pickLang(resolved: string | undefined): PolicyLang {
   const l = (resolved ?? "en").slice(0, 2);
   return l === "pl" || l === "de" || l === "fr" ? l : "en";
 }

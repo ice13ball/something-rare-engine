@@ -20,3 +20,7 @@ No scientific data is distributed with this source code. Each data layer is fetc
 at runtime from its upstream provider and remains under that provider's own licence.
 See DATA-LICENCES.md for the source-by-source licence map, including non-commercial
 (CC-BY-NC) and mandatory-citation sources.
+
+Third-party fonts, bundled and self-hosted (SIL Open Font License 1.1; the licence
+texts ship with the files): Barlow (The Barlow Project Authors) and JetBrains Mono
+(The JetBrains Mono Project Authors) in frontend/public/fonts/.

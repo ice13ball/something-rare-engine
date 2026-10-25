@@ -2,7 +2,10 @@
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
 import { useEffect, useRef, useState } from "react";
-import { PRIVACY_POLICY, TERMS_OF_USE, ABOUT, type LegalDoc } from "../content/legalContent";
+import { useTranslation } from "react-i18next";
+import { TERMS_OF_USE, ABOUT, type LegalDoc } from "../content/legalContent";
+import { PRIVACY_BY_LANG } from "../content/privacyTranslations";
+import { CHROME, pickLang } from "./LegalPage";
 
 export type LegalTab = "privacy" | "terms" | "about";
 
@@ -15,16 +18,12 @@ const TABS: { id: LegalTab; label: string }[] = [
   { id: "about", label: "About" },
 ];
 
-const DOCS: Record<LegalTab, LegalDoc> = {
-  about:   ABOUT,
-  privacy: PRIVACY_POLICY,
-  terms:   TERMS_OF_USE,
-};
-
-function DocRenderer({ doc }: { doc: LegalDoc }) {
+// Same selection as /privacy (LegalPage): only the privacy policy follows the UI
+// language; About and Terms stay English.
+function DocRenderer({ doc, updatedLabel }: { doc: LegalDoc; updatedLabel: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-white/60 text-xs mb-4">Last updated: {doc.updated}</p>
+      <p className="text-white/60 text-xs mb-4">{updatedLabel}: {doc.updated}</p>
       {doc.sections.map((section, i) => (
         <div key={i} className="mb-4">
           <h3 className="text-white/90 text-xs font-semibold uppercase tracking-wider mb-1.5">
@@ -61,6 +60,10 @@ function DocRenderer({ doc }: { doc: LegalDoc }) {
 export function LegalModal({ initialTab = "about", onClose }: LegalModalProps) {
   const [tab, setTab] = useState<LegalTab>(initialTab);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { i18n } = useTranslation();
+  const lang = pickLang(i18n.resolvedLanguage);
+  const doc: LegalDoc = tab === "privacy" ? PRIVACY_BY_LANG[lang] : tab === "terms" ? TERMS_OF_USE : ABOUT;
+  const updatedLabel = tab === "privacy" ? CHROME[lang].updated : CHROME.en.updated;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -103,7 +106,7 @@ export function LegalModal({ initialTab = "about", onClose }: LegalModalProps) {
 
         {/* Content */}
         <div ref={scrollRef} className="overflow-y-auto p-5 custom-scrollbar flex-1">
-          <DocRenderer doc={DOCS[tab]} />
+          <DocRenderer doc={doc} updatedLabel={updatedLabel} />
         </div>
       </div>
     </div>

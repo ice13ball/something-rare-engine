@@ -140,8 +140,8 @@ app.enable('trust proxy');
 // the request path rather than three constant headers.
 const EMBEDDABLE = /^\/embed(\/|$)/;
 
-// Report-Only, deliberately. The app loads map tiles from two CDNs, fonts from
-// Google, a tag manager, and a GeoJSON straight off raw.githubusercontent.com;
+// Report-Only, deliberately. The app loads map tiles from two CDNs, a tag manager
+// (after consent), and a GeoJSON straight off raw.githubusercontent.com;
 // index.html carries four inline <script> blocks and the SSR pages emit
 // ld+json. An enforcing policy written blind would blank the map. Ship the
 // report, read what it would have blocked in a browser console, then enforce.
@@ -159,10 +159,10 @@ const CSP_DIRECTIVES = {
   // index.html and seo/render-page.js emit ld+json — which script-src gates like
   // any other <script>. Removing it needs nonces on all of them.
   'script-src': ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com'],
-  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-  'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+  'style-src': ["'self'", "'unsafe-inline'"],
+  'font-src': ["'self'", 'data:'],
   'img-src': ["'self'", 'data:', 'blob:', 'https://server.arcgisonline.com', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com'],
-  'connect-src': ["'self'", 'https://apiv2.something-rare.com', 'https://server.arcgisonline.com', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://raw.githubusercontent.com', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'https://www.googletagmanager.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com', 'https://analytics.google.com', 'https://*.analytics.google.com'],
+  'connect-src': ["'self'", 'https://apiv2.something-rare.com', 'https://server.arcgisonline.com', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://raw.githubusercontent.com', 'https://www.googletagmanager.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com', 'https://analytics.google.com', 'https://*.analytics.google.com'],
   // MapLibre GL and @loaders.gl both spawn workers from blob: URLs, and the
   // CSV/JSON export links are blob: too.
   'worker-src': ["'self'", 'blob:'],
@@ -1433,6 +1433,11 @@ app.get('/', async (req, res, next) => {
     return next();
   }
 });
+
+// Self-hosted fonts (public/fonts/, referenced by src/index.css). Not hashed, but a
+// font file under a given name never changes; without a maxAge every navigation
+// revalidated all of them (Google Fonts used to cache them for a year).
+app.use('/fonts', express.static(join(__dirname, 'dist', 'fonts'), { maxAge: '30d' }));
 
 // Serve remaining dist files (index.html, robots.txt, etc.) with brotli/gzip if available.
 app.use(expressStaticGzip(join(__dirname, 'dist'), {

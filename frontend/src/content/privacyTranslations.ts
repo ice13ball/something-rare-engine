@@ -92,6 +92,13 @@ const PL: LegalDoc = {
       ],
     },
     {
+      heading: "Podkład mapy i dostawcy danych",
+      id: "map-imagery-and-data-providers",
+      paragraphs: [
+        "Mapa przy każdej wizycie pobiera podkład (zdjęcia) z serwerów Esri (server.arcgisonline.com), a mapa w raportach wpływu — z serwerów Carto (basemaps.cartocdn.com). Niektóre warstwy danych, gdy je włączysz, pobierają dane z serwerów swoich dostawców — na przykład storage.googleapis.com dla warstwy wód powierzchniowych JRC. Jak przy każdej osadzonej mapie, te serwery widzą Twój adres IP. Nie zapisujemy przy tym żadnych ciasteczek i nie jest to śledzenie.",
+      ],
+    },
+    {
       heading: "Okres przechowywania danych",
       id: "data-retention",
       paragraphs: [
@@ -215,6 +222,13 @@ const DE: LegalDoc = {
       ],
     },
     {
+      heading: "Kartenhintergrund und Datenanbieter",
+      id: "map-imagery-and-data-providers",
+      paragraphs: [
+        "Die Karte lädt ihre Hintergrundbilder bei jedem Besuch von Esri (server.arcgisonline.com); die Karte in den Wirkungsberichten nutzt Carto (basemaps.cartocdn.com). Manche Datenebenen laden, sobald Sie sie einschalten, von den Servern ihrer Anbieter — zum Beispiel storage.googleapis.com für die JRC-Oberflächenwasser-Ebene. Wie bei jeder eingebetteten Karte sehen diese Server Ihre IP-Adresse. Wir setzen dafür keine Cookies, und es handelt sich nicht um Tracking.",
+      ],
+    },
+    {
       heading: "Speicherdauer",
       id: "data-retention",
       paragraphs: [
@@ -335,6 +349,13 @@ const FR: LegalDoc = {
       paragraphs: [
         "Le seul cookie que nous déposons nous-mêmes est ac_consent, décrit plus haut, qui mémorise votre choix concernant les cookies afin que la bannière n'apparaisse pas à chaque visite. Votre langue d'interface est mémorisée dans le localStorage de votre navigateur. Aucune donnée personnelle n'est stockée dans l'un ou l'autre. Des cookies peuvent être déposés par Google Analytics après votre consentement.",
         "Les versions antérieures de l'Atlas conservaient ce choix dans le localStorage ; cette entrée est reprise dans le cookie ac_consent, puis supprimée.",
+      ],
+    },
+    {
+      heading: "Fond de carte et fournisseurs de données",
+      id: "map-imagery-and-data-providers",
+      paragraphs: [
+        "La carte charge son fond d'imagerie depuis Esri (server.arcgisonline.com) à chaque visite ; la carte des rapports d'impact utilise Carto (basemaps.cartocdn.com). Certaines couches de données, une fois activées, se chargent depuis les serveurs de leurs fournisseurs — par exemple storage.googleapis.com pour la couche des eaux de surface du JRC. Comme pour toute carte intégrée, ces serveurs voient votre adresse IP. Nous ne déposons aucun cookie pour cela, et il ne s'agit pas de suivi.",
       ],
     },
     {

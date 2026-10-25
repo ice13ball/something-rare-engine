@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Deep Sea Mining Map: ISA Concessions & Vents | Abyssal Claims</title>
+    <title>Ocean &amp; Land Environmental Map — Abyssal Claims</title>
     <meta name="description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
     <!-- No static canonical: this SPA shell is served for every client-side
          route, so a hardcoded homepage canonical made every non-SSR route
@@ -14,12 +14,12 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://something-rare.com/" />
-    <meta property="og:title" content="Deep Sea Mining Map: ISA Concessions & Vents | Abyssal Claims" />
+    <meta property="og:title" content="Ocean &amp; Land Environmental Map — Abyssal Claims" />
     <meta property="og:description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
     <meta property="og:image" content="https://something-rare.com/og.webp" />
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Deep Sea Mining Map: ISA Concessions & Vents | Abyssal Claims" />
+    <meta name="twitter:title" content="Ocean &amp; Land Environmental Map — Abyssal Claims" />
     <meta name="twitter:description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
     <meta name="twitter:image" content="https://something-rare.com/og.webp" />
     <!-- Google Scholar / Highwire Press citation tags -->
@@ -30,14 +30,11 @@
     <meta name="citation_publication_date" content="2026" />
     <meta name="citation_publisher" content="Zenodo" />
     <meta name="citation_public_url" content="https://something-rare.com" />
-    <!-- Fonts: Barlow (UI body) + JetBrains Mono (data readouts) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- Fonts: Barlow (UI body) + JetBrains Mono (data readouts) are self-hosted (src/index.css,
+         public/fonts/). No Google preconnect/dns-prefetch either: a hint opens a connection to
+         Google, with the visitor's IP, before any consent; gtag.js is requested only after a grant. -->
     <!-- Resource hints — reduce connection latency for critical third-party origins -->
-    <link rel="preconnect" href="https://www.googletagmanager.com" />
     <link rel="dns-prefetch" href="https://services.arcgisonline.com" />
-    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.ico" />
     <!-- Force high-performance GPU path for WebGL (deck.gl / MapLibre).

@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
-// Every page something-rare.com serves must load the GA4 + Consent Mode v2
-// bootstrap exactly once, with the consent default ahead of the loader and the
-// loader ahead of `config`.
+// Every page something-rare.com serves must carry the GA4 + Consent Mode v2
+// bootstrap exactly once, with the consent default ahead of the loader code.
+// Since 2026-10-25 the loader is lazy: gtag.js is requested by script code only
+// after a grant (cookie `ac_consent=granted` or Accept), so NO page carries a
+// <script src=...gtag/js...> tag, and the loader URL appears once, inside that
+// lazy loader.
 //
 // Until 2026-09-23 only `/` did. Server-rendered pages sent nothing to GA4, so
 // search traffic was invisible: /seamount/4873694 had 18 Search Console clicks
@@ -28,8 +31,10 @@ import { SSR_ROUTES, FIXTURE_PATH, FORCE_OUTAGE, USER_AGENTS } from './ssrRoutes
 
 const FRONTEND = path.resolve(__dirname, '../..');
 const MEASUREMENT = 'G-S5HR4WT0ZG';
-const LOADER = `googletagmanager.com/gtag/js?id=${MEASUREMENT}`;
-const CONFIG = `gtag('config', '${MEASUREMENT}')`;
+const LOADER = 'googletagmanager.com/gtag/js?id=';
+const CONFIG = "gtag('config', ID)";
+const BOOTSTRAP_START = 'ga4-bootstrap:start';
+const EAGER_LOADER_TAG = /<script[^>]*\ssrc=["'][^"']*googletagmanager\.com\/gtag\/js/i;
 const CONSENT_DEFAULT = "gtag('consent', 'default'";
 
 const haveFixture = fs.existsSync(FIXTURE_PATH);
@@ -107,23 +112,35 @@ describe.skipIf(!haveFixture)('GA4 bootstrap on every server-rendered page', () 
   it.each(cases.filter((c) => c.kind === 'document'))('$who $path: tag exactly once, consent first', ({ key }) => {
     const { body } = answers.get(key)!;
     expect(body).toMatch(/<html[\s>]/);
+    // The bootstrap block is present exactly once, with the lazy loader inside it.
+    expect(count(body, "window.acConsent = {")).toBe(1);
     expect(count(body, LOADER)).toBe(1);
     expect(count(body, CONFIG)).toBe(1);
+    expect(count(body, MEASUREMENT)).toBeGreaterThanOrEqual(1);
+    // gtag.js is NOT requested eagerly: no script tag points at it.
+    expect(body).not.toMatch(EAGER_LOADER_TAG);
+    // Consent default first, then the loader code, then config.
     const consent = body.indexOf(CONSENT_DEFAULT);
     expect(consent).toBeGreaterThan(-1);
     expect(consent).toBeLessThan(body.indexOf(LOADER));
     expect(body.indexOf(LOADER)).toBeLessThan(body.indexOf(CONFIG));
+    expect(count(body, CONSENT_DEFAULT)).toBe(1);
     // The consent banner: the SPA shell (dist/index.html, still carrying the
     // ga4-bootstrap markers) gets React's CookieBanner; every page the server
     // builds must carry the plain-HTML one, exactly once.
-    const isShell = body.includes('ga4-bootstrap:start');
+    const isShell = body.includes(BOOTSTRAP_START);
     expect(count(body, 'id="consent-banner"')).toBe(isShell ? 0 : 1);
   });
 
-  it.each(cases.filter((c) => c.kind === 'fragment'))('$who $path: an error fragment, not a page', ({ key }) => {
+  it.each(cases.filter((c) => c.kind === 'fragment'))('$who $path: an error body, not a tagged page', ({ key }) => {
+    // Since 2026-10-25 the 404 is a small localised HTML page, so "not a page"
+    // is asserted by what matters: no bootstrap, no loader, no banner.
     const { status, body } = answers.get(key)!;
     expect(status).toBeGreaterThanOrEqual(400);
-    expect(body).not.toMatch(/<html[\s>]/);
+    expect(body).not.toContain(BOOTSTRAP_START);
+    expect(body).not.toContain('acConsent');
+    expect(body).not.toContain(LOADER);
+    expect(count(body, 'id="consent-banner"')).toBe(0);
     expect(count(body, MEASUREMENT)).toBe(0);
   });
 
