@@ -940,11 +940,15 @@ app.get('/layer/:layerId', async (req, res, next) => {
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${canonical}" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://something-rare.com/og.webp" />
+    <meta property="og:image" content="https://something-rare.com/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Abyssal Claims Atlas, an ocean and land environmental map: a glowing seafloor chart of the Atlantic with licence areas, sensors and a ship track" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="https://something-rare.com/og.webp" />
+    <meta name="twitter:image" content="https://something-rare.com/og.jpg" />
+    <meta name="twitter:image:alt" content="Abyssal Claims Atlas, an ocean and land environmental map: a glowing seafloor chart of the Atlantic with licence areas, sensors and a ship track" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script type="application/ld+json">${JSON.stringify({
       "@context": "https://schema.org",
@@ -1486,7 +1490,10 @@ function render404(lang) {
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
     '<meta name="robots" content="noindex">' +
     '<title>' + escapeHtml(t.title) + '</title>' +
-    '<style>body{background:#0a0e14;color:#e2e8f0;font:16px/1.6 system-ui,sans-serif;' +
+    // Same self-hosted Barlow as the app; this page carries no bundle CSS.
+    // ⛔ KEEP IN SYNC with the Barlow @font-face rules in src/index.css (files, unicode-range).
+    '<style>@font-face{font-family:Barlow;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/barlow-400-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Barlow;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/barlow-400-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Barlow;font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/barlow-600-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Barlow;font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/barlow-600-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}' +
+    'body{background:#0a0e14;color:#e2e8f0;font:16px/1.6 Barlow,system-ui,sans-serif;' +
     'display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}' +
     'a{color:#22d3ee}</style>' +
     '<div><h1 id="nf-h">' + escapeHtml(t.h1) + '</h1>' +

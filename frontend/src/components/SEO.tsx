@@ -42,7 +42,7 @@ export function SEO() {
       <meta property="og:image" content={OG_IMAGE} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
-      <meta property="og:image:alt" content="3D globe showing ocean and land environmental data layers" />
+      <meta property="og:image:alt" content="Abyssal Claims Atlas, an ocean and land environmental map: a glowing seafloor chart of the Atlantic with licence areas, sensors and a ship track" />
       <meta property="og:locale" content="en_US" />
 
       {/* Twitter */}
@@ -50,7 +50,7 @@ export function SEO() {
       <meta name="twitter:title" content={TITLE} />
       <meta name="twitter:description" content={DESCRIPTION} />
       <meta name="twitter:image" content={OG_IMAGE} />
-      <meta name="twitter:image:alt" content="3D globe showing ocean and land environmental data layers" />
+      <meta name="twitter:image:alt" content="Abyssal Claims Atlas, an ocean and land environmental map: a glowing seafloor chart of the Atlantic with licence areas, sensors and a ship track" />
 
       {/* Google Scholar / Highwire Press citation tags.
           ⛔ `citation_doi` is the SOFTWARE record. This page is the running
