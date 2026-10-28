@@ -72,12 +72,12 @@ CADENCE: dict[str, Static | Days | Blocked] = {
                                  "requested 2026-09-03"),
     "memento":           Days(90,  "continuous upstream; quarterly is enough for a methane "
                                    "synthesis layer"),
-    "sio-bic":           Blocked("sioapps.ucsd.edu returns 403 to an identified client. "
-                                 "Measured 2026-09-03: 403 both WITH our User-Agent and "
-                                 "without it, so this is not a bare-agent WAF rejection — "
-                                 "it is a deliberate block or a changed endpoint. Upstream "
-                                 "cadence is ~weekly; retest and un-Block once SIO-BIC "
-                                 "replies. Do not work around it."),
+    "sio-bic":           Blocked("SIO-BIC declined automated access on 2026-10-27 (C. Seid, "
+                                 "after Scripps IT ticket #152993): the Cloudflare Turnstile "
+                                 "on sioapps.ucsd.edu is intentional. The layer is a static "
+                                 "snapshot of the owner's manual browser downloads (latest "
+                                 "2026-10-28), refreshed by hand a few times a year. Never "
+                                 "automate the fetch and never work around Turnstile."),
     "ncei_icoads_files": Days(7,   "NCEI publishes daily; weekly is enough and the fetch "
                                    "is heavy"),
 }

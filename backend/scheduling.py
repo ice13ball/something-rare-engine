@@ -700,9 +700,10 @@ async def _worms_sync_task():
 # ── SIO-BIC / slow sources / density ────────────────────────────────────────────
 
 async def _sio_bic_sync_task():
-    """Weekly SIO-BIC catalogue refresh. 4h startup delay so OBIS/ChEss syncs
-    settle first; the 12h monitoring-density refresh picks up new rows on its
-    next cycle automatically."""
+    """Weekly re-read of the SIO-BIC static snapshot file (no network: SIO-BIC
+    declined automated access, see cadence.py). A new manual download is picked up
+    within a week, or at once with a forced sync. 4h startup delay so OBIS/ChEss
+    syncs settle first; the 12h monitoring-density refresh picks up new rows."""
     await asyncio.sleep(4 * 3600)
     while True:
         try:
