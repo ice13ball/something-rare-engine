@@ -404,6 +404,14 @@
              anyone with JavaScript; this copy is what a crawler and a JS-less
              reader see, since / is served from this static shell and never goes
              through seo/render-page.js's wrapHtml. -->
+        <!-- The Tools link the JS footer renders, in the served HTML too, so crawlers and the
+             first HTML parse see it (ecosystem contract: Atlas/Tools). English, like the rest
+             of this pre-render; no ?lang=, the tools pick the visitor's language themselves. -->
+        <h2>Tools</h2>
+        <p>
+          <a href="https://tools.something-rare.com/">Abyssal Claims Tools</a> — check marine data
+          files before publishing: data check, licence check and collection review.
+        </p>
         <h2>Licence</h2>
         <p>
           Abyssal Claims is free software:

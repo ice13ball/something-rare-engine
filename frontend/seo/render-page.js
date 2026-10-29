@@ -521,6 +521,7 @@ function wrapHtml(headContent, bodyContent, opts) {
     Abyssal Claims — <a href="https://github.com/ice13ball/something-rare-engine" style="color:#7aa2c2">source code</a>,
     licensed <a href="https://www.gnu.org/licenses/agpl-3.0.html" style="color:#7aa2c2">AGPL-3.0-or-later</a>.
     Based on Abyssal Claims — &copy; 2026 Michal Mazurowski.
+    · <a href="https://tools.something-rare.com/" style="color:#7aa2c2">Abyssal Claims Tools</a>
   </footer>`;
 
   const page = `<!DOCTYPE html>
