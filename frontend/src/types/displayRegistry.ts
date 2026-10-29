@@ -131,6 +131,8 @@ export const DISPLAY_OPT_OUT_FIELDS = [
   "selectionMode",
   // Mobile panel-auto-close counter, pure plumbing.
   "mapTapCount",
+  // Personal graphics preference (3D models vs columns, kept in localStorage): changes no data, and the sender must not impose it on the recipient.
+  "graphicsMode",
 ] as const;
 
 type Covered = keyof typeof DISPLAY_FIELDS;

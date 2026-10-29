@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Based on Abyssal Claims — © 2026 Michal Mazurowski — https://something-rare.com
 
+import { readGraphicsMode, persistGraphicsMode } from "../utils/graphicsPreference";
+import type { GraphicsMode } from "../utils/graphicsPreference";
 import { create } from "zustand";
 import type { LayerId } from "../types/layers";
 import { VENT_STATUS_VALUES } from "../types/layers";
@@ -452,6 +454,10 @@ export interface MapStore {
   // Export format — display state (NOT a filter; not in resetAllFilters)
   exportFormat: "geojson" | "csv";
   setExportFormat: (f: "geojson" | "csv") => void;
+  // Graphics preference (enhanced 3D models / simple columns) — personal display setting persisted in
+  // localStorage, NOT in share links (DISPLAY_OPT_OUT_FIELDS), NOT in resetAllFilters.
+  graphicsMode: GraphicsMode;
+  setGraphicsMode: (m: GraphicsMode) => void;
 
   // LegendPanel deep-link — display state (NOT a filter; not in resetAllFilters)
   legendFocusLayer: string | null;
@@ -1010,6 +1016,8 @@ export const useMapStore = create<MapStore>((set) => ({
   setExportPanelOpen: (open) => set({ exportPanelOpen: open }),
   exportFormat: "geojson",
   setExportFormat: (f) => set({ exportFormat: f }),
+  graphicsMode: readGraphicsMode(),
+  setGraphicsMode: (m) => { persistGraphicsMode(m); set({ graphicsMode: m }); },
 
   // LegendPanel deep-link (display state — NOT in resetAllFilters)
   legendFocusLayer: null,

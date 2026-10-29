@@ -125,6 +125,7 @@ import {
 } from "../utils/wodCasts";
 import { useWodSelection } from "../store/wodSelection";
 import { useLayerData } from "./map3d/useLayerData";
+import { withObjectModels } from "./map3d/modelsFlag";
 
 // Re-exported so existing consumers (including src/__tests__/map3d-helpers.test.ts,
 // which imports these from "../components/Map3D") keep working unchanged after the
@@ -391,6 +392,7 @@ export function Map3D() {
   const oceansitesNetworkFilters = useMapStore(s => s.oceansitesNetworkFilters);
   const oceansitesStatusFilters  = useMapStore(s => s.oceansitesStatusFilters);
   const cableSourceFilters = useMapStore(s => s.cableSourceFilters);
+  const graphicsMode = useMapStore(s => s.graphicsMode);
   const sharePanelFailures = useMapStore(s => s.sharePanelFailures);
   const clearSharePanelFailures = useMapStore(s => s.clearSharePanelFailures);
   const arcticRiverSourceFilters = useMapStore(s => s.arcticRiverSourceFilters);
@@ -4266,7 +4268,7 @@ export function Map3D() {
     }),
 
     // Seamounts & Knolls — octagonal column scaled to actual height (visible from zoom 5.5+)
-    activeLayers.has("seamounts") && seamountsData && (viewState.zoom as number) >= 5.5 && new ColumnLayer({
+    activeLayers.has("seamounts") && seamountsData && (viewState.zoom as number) >= 5.5 && withObjectModels(new ColumnLayer({
       id: "seamounts",
       data: seamountsFeatures,
       getPosition: (f: any) => f.geometry.coordinates,
@@ -4279,7 +4281,7 @@ export function Map3D() {
       flatShading: true,
       pickable: true,
       onClick: handleClick,
-    }),
+    }), "seamount", graphicsMode),
 
     // ── Biodiversity Hotspots — ScatterplotLayer at all zoom levels ──────────
     // Glow layer: large transparent circles that overlap into density blobs
@@ -4680,7 +4682,7 @@ export function Map3D() {
       parameters: { depthTest: false },
     }),
 
-    activeLayers.has("hydrothermal-vents") && activeVents.features.length > 0 && new ColumnLayer({
+    activeLayers.has("hydrothermal-vents") && activeVents.features.length > 0 && withObjectModels(new ColumnLayer({
       id: "hydrothermal-vents-active",
       data: activeVents.features,
       getPosition: (f: any) => f.geometry.coordinates,
@@ -4694,10 +4696,10 @@ export function Map3D() {
       flatShading: true,
       pickable: true, autoHighlight: true, highlightColor: [255, 150, 150, 100],
       onClick: handleClick,
-    }),
+    }), "active", graphicsMode),
 
     // Inactive vents — shorter cooler chimney, no glow
-    activeLayers.has("hydrothermal-vents") && inactiveVents.features.length > 0 && new ColumnLayer({
+    activeLayers.has("hydrothermal-vents") && inactiveVents.features.length > 0 && withObjectModels(new ColumnLayer({
       id: "hydrothermal-vents-inactive",
       data: inactiveVents.features,
       getPosition: (f: any) => f.geometry.coordinates,
@@ -4709,7 +4711,7 @@ export function Map3D() {
       flatShading: true,
       pickable: true, autoHighlight: true, highlightColor: [180, 210, 255, 60],
       onClick: handleClick,
-    }),
+    }), "inactive", graphicsMode),
 
     // OceanSITES — cyan rings (outlined, no fill) → look like mooring buoys
     activeLayers.has("oceansites") && oceansitesData && new ScatterplotLayer({

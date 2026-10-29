@@ -1,6 +1,11 @@
 {
   "controls": {
     "hexValueHint": "Passez en Hexagones, puis cliquez sur une cellule pour lire les valeurs exactes.",
+    "graphics": {
+      "enhanced": "Graphismes avancés",
+      "simple": "Graphismes simples",
+      "hint": "Les graphismes simples dessinent les monts sous-marins et les cheminées sous forme de colonnes — plus léger pour les anciens ordinateurs et les téléphones."
+    },
     "fieldLayer": {
       "display": "Affichage",
       "field": "Champ",

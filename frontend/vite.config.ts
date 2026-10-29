@@ -29,12 +29,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 950,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react":    ["react", "react-dom"],
-          "vendor-maplibre": ["maplibre-gl"],
-          "vendor-deckgl":   ["@deck.gl/core", "@deck.gl/layers", "@deck.gl/geo-layers", "@deck.gl/react"],
-          "vendor-turf":     ["@turf/turf"],
-          "vendor-zustand":  ["zustand"],
+        // Keep model-only geometry/GLTF dependencies out of the default map.
+        manualChunks(id) {
+          if (/node_modules\/(?:@deck.gl\/mesh-layers|@loaders.gl\/gltf|@luma.gl\/gltf)\//.test(id)) return "object-models";
+          if (/node_modules\/@deck.gl\/(core|layers|geo-layers|react)\//.test(id)) return "vendor-deckgl";
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "vendor-react";
+          if (id.includes("node_modules/maplibre-gl/")) return "vendor-maplibre";
+          if (id.includes("node_modules/@turf/")) return "vendor-turf";
+          if (id.includes("node_modules/zustand/")) return "vendor-zustand";
         },
       },
     },

@@ -1,6 +1,11 @@
 {
   "controls": {
     "hexValueHint": "Przełącz na Sześciokąty, a następnie kliknij komórkę, aby odczytać dokładne wartości.",
+    "graphics": {
+      "enhanced": "Rozszerzona grafika",
+      "simple": "Prosta grafika",
+      "hint": "Prosta grafika rysuje góry podwodne i kominy jako słupki — lżej dla starszych komputerów i telefonów."
+    },
     "fieldLayer": {
       "display": "Wyświetlanie",
       "field": "Pole",

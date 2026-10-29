@@ -1,6 +1,11 @@
 {
   "controls": {
     "hexValueHint": "Switch to Hexagons, then click a cell to read exact values.",
+    "graphics": {
+      "enhanced": "Enhanced graphics",
+      "simple": "Simple graphics",
+      "hint": "Simple graphics draws seamounts and vents as columns — lighter for older computers and phones."
+    },
     "fieldLayer": {
       "display": "Display",
       "field": "Field",

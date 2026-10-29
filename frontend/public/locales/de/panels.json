@@ -1,6 +1,11 @@
 {
   "controls": {
     "hexValueHint": "Wechseln Sie zu Sechsecke und klicken Sie auf eine Zelle, um exakte Werte abzulesen.",
+    "graphics": {
+      "enhanced": "Erweiterte Grafik",
+      "simple": "Einfache Grafik",
+      "hint": "Einfache Grafik zeichnet Seeberge und Schlote als Säulen — schonender für ältere Computer und Smartphones."
+    },
     "fieldLayer": {
       "display": "Anzeige",
       "field": "Feld",

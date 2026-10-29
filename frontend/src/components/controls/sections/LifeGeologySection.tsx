@@ -6,6 +6,7 @@ import { useMapStore } from "../../../store/mapStore";
 import type { LayerId } from "../../../types/layers";
 import { analytics } from "../../../utils/analytics";
 import { IUCN_FILTER_DEFS, CHESS_PHYLUM_DEFS, VENT_STATUS_FILTER_DEFS } from "../filterDefs";
+import { GraphicsSwitch } from "./GraphicsSwitch";
 import { MarhysRow } from "./MarhysRow";
 import { PlanktonRow } from "./PlanktonRow";
 import {
@@ -60,6 +61,7 @@ export function LifeGeologySection({ expandedFilter, toggleExpand, toggle, flyTo
         onExpandToggle={() => toggleExpand("hydrothermal-vents")}
         filterContent={
           <>
+            <GraphicsSwitch />
             <div className="flex items-center justify-end pb-0.5 -mt-0.5">
               <FilterResetLink
                 show={ventStatusFilters.size < VENT_STATUS_FILTER_DEFS.length}
@@ -121,6 +123,9 @@ export function LifeGeologySection({ expandedFilter, toggleExpand, toggle, flyTo
         active={activeLayers.has("seamounts")}
         onToggle={() => toggle("seamounts")}
         onLocate={() => flyToLayer?.("seamounts")}
+        expanded={expandedFilter === "seamounts"}
+        onExpandToggle={() => toggleExpand("seamounts")}
+        filterContent={<GraphicsSwitch />}
       />
       <LayerRow
         id="tectonic-plates"
