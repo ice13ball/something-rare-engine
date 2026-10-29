@@ -38,7 +38,7 @@ autograd==1.9.1
 bcrypt==5.0.0
 boto3==1.42.80
 botocore==1.42.80
-certifi==2026.2.25
+certifi==2026.10.18
 cftime==1.6.5
 charset-normalizer==3.4.6
 click==8.2.1
