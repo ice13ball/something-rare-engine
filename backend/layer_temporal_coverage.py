@@ -671,16 +671,16 @@ COVERAGE: tuple[Coverage, ...] = (
     ),
     Coverage(
         layer_id="plankton-occurrences",
-        # 1817 = the earliest year in plankton_occurrences, measured on production 2026-10-07 (3 records; the
-        # 19th century is sparse, under 160 records a year, until surveys start in 1902). Open end: re-imported monthly.
-        start_year=1817, end_year=None,
+        # 1816 = the earliest year in plankton_occurrences, measured on production 2026-11-03 (3 records; the
+        # 19th century is sparse, at most 200 records a year, until surveys start in 1902). Open end: re-imported monthly.
+        start_year=1816, end_year=None,
         kind="observations",
-        wording="OBIS occurrence records from 1817 (sparse until 1902). In decade classes, measured on the 2026-10-07 import: before 1950 "
-                "239,157; 1950s 341,547; 1960s 773,259; 1970s 1,151,371; 1980s 1,471,588; 1990s 1,853,955; "
-                "2000s 2,226,580; 2010s 10,667,419; 2020s 3,288,802; undated 2,109,438. 94 records carry a "
-                "future year (a source error, max 2029) and are counted as undated. Re-imported monthly.",
+        wording="OBIS occurrence records from 1816 (sparse until 1902). In decade classes, measured on the 2026-11-03 import: before 1950 "
+                "306,529; 1950s 459,317; 1960s 910,340; 1970s 1,369,292; 1980s 2,006,345; 1990s 2,298,616; "
+                "2000s 2,817,571; 2010s 10,665,235; 2020s 3,278,058; undated 222,194, mostly records with no date "
+                "in OBIS. Re-imported monthly.",
         source_url="https://obis.org/",
-        verified_on="2026-10-07",
+        verified_on="2026-11-03",
     ),
     Coverage(
         layer_id="biodiversity-hotspots",
