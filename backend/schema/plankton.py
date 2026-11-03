@@ -10,6 +10,8 @@ be identical, constraint for constraint.
 """
 from __future__ import annotations
 
+from ingestion.plankton_dates import DATE_SOURCES   # where a row's date came from
+
 GROUPS = ("copepoda", "euphausiacea", "diatoms", "coccolithophores", "dinoflagellates")
 # sync_log marker written when an import starts (see ingestion/plankton_obis.py). Lives here, a leaf
 # module, because the API (domains/plankton.py) and the worker both need it and neither may import the other.
@@ -59,6 +61,7 @@ def occurrences_ddl(table: str, datasets_table: str) -> list[str]:
             event_date      DATE,
             year            SMALLINT,
             month           SMALLINT CHECK (month IS NULL OR month BETWEEN 1 AND 12),
+            date_source     TEXT CHECK (date_source IN ({_in(DATE_SOURCES)})),
             lon             DOUBLE PRECISION NOT NULL CHECK (lon BETWEEN -180 AND 180),
             lat             DOUBLE PRECISION NOT NULL CHECK (lat BETWEEN -90 AND 90),
             geom            geometry(Point, 4326)

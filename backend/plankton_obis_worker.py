@@ -54,6 +54,12 @@ aggregates (plankton_sites / _site_facets / _grid_facets / _tile_version) from t
 swaps only them in, and pre-bakes the default tiles. Used once when the map layer is first deployed, and for
 repairs. It writes no plankton-obis sync_log row (the import's freshness is unchanged).
 
+KEEP AND RESTORE. With PLANKTON_KEEP_PREVIOUS=1 in the environment of ONE run, its swap renames the old live pair
+to plankton_occurrences_prev / plankton_datasets_prev instead of dropping it (the run refuses to start if _prev
+exists). `--restore-previous` puts _prev back as live, keeps the replaced pair as `_rejected`, then rebuilds the map
+aggregates under the same lock. It leaves sync_log alone, so the restored data counts as fresh for 30 days. No code
+drops _prev or _rejected: removing them is a manual decision.
+
 PARALLELISM. Extract children run up to PLANKTON_PARALLEL (default 3; 1 = strictly sequential) at once,
 admitted by S3 object size and a live memory guard (plankton_obis.ExtractStream); loads into Postgres stay
 one at a time on one connection.
@@ -76,7 +82,7 @@ from dotenv import load_dotenv
 import db
 import log_redaction
 from ingestion.plankton_obis import (SOURCE, STARTED_PREFIX, STARTED_STALE_HOURS, bake_tiles,
-                                     rebuild_aggregates_from_live, sync_plankton_obis)
+                                     rebuild_aggregates_from_live, restore_previous, sync_plankton_obis)
 from schema.plankton import SWAPPED_PARTIAL_PREFIX
 from sync_log import log_sync_skipped
 
@@ -169,14 +175,18 @@ async def run_once(pool, force: bool = False, resume: bool = False) -> str:
             await lock_conn.execute("SELECT pg_advisory_unlock($1)", LOCK_KEY)
 
 
-async def rebuild_map(pool) -> str:
+async def rebuild_map(pool, restore: bool = False) -> str:
     """--aggregates-only: under advisory lock LOCK_KEY (so it never overlaps an import, obis-sync or
-    vme-bake), rebuild the stage-2 aggregates from the live table. Returns "aggregates"."""
+    vme-bake), rebuild the stage-2 aggregates from the live table. Returns "aggregates".
+    `restore` (--restore-previous) first puts the _prev pair back as live, under the same lock."""
     db.pool = pool
     async with pool.acquire() as lock_conn:
         log.info("plankton-obis: --aggregates-only, waiting for advisory lock %d", LOCK_KEY)
         await lock_conn.execute("SELECT pg_advisory_lock($1)", LOCK_KEY)
         try:
+            if restore:
+                await restore_previous(lock_conn)
+                log.warning("plankton-obis: --restore-previous: the _prev pair is live again")
             version = await rebuild_aggregates_from_live(lock_conn)
             log.info("plankton-obis: aggregates rebuilt from the live table, version %s", version)
             await bake_tiles()          # still under the lock: no import can swap underneath the bake
@@ -193,19 +203,23 @@ def parse_args(argv=None) -> argparse.Namespace:
                     help="continue the staging tables of a stopped run (implies --force); see the docstring")
     ap.add_argument("--aggregates-only", action="store_true",
                     help="no import: rebuild the map aggregates from the live table and pre-bake the tiles")
+    ap.add_argument("--restore-previous", action="store_true",
+                    help="no import: put the _prev tables back as live and rebuild the map; see the docstring")
     ns = ap.parse_args(argv)
     if ns.aggregates_only and (ns.force or ns.resume):
         ap.error("--aggregates-only runs no import: it cannot be combined with --force or --resume")
+    if ns.restore_previous and (ns.force or ns.resume or ns.aggregates_only):
+        ap.error("--restore-previous runs no import: it cannot be combined with the other modes")
     ns.force = ns.force or ns.resume
     return ns
 
 
-async def main(force: bool = False, resume: bool = False, aggregates_only: bool = False):
+async def main(force: bool = False, resume: bool = False, aggregates_only: bool = False, restore: bool = False):
     load_dotenv()
     pool = await asyncpg.create_pool(os.environ["DATABASE_URL"], min_size=1, max_size=3)
     try:
-        if aggregates_only:
-            await rebuild_map(pool)
+        if aggregates_only or restore:
+            await rebuild_map(pool, restore=restore)
         else:
             await run_once(pool, force=force, resume=resume)
     finally:
@@ -218,4 +232,5 @@ if __name__ == "__main__":
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     # Own process, own logging setup — see backend/log_redaction.py.
     log_redaction.install()
-    asyncio.run(main(force=cli.force, resume=cli.resume, aggregates_only=cli.aggregates_only))
+    asyncio.run(main(force=cli.force, resume=cli.resume, aggregates_only=cli.aggregates_only,
+                     restore=cli.restore_previous))

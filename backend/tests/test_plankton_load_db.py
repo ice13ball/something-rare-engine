@@ -117,10 +117,10 @@ def _synthetic(tmp_path, rows):
     con = duckdb.connect()
     con.execute("""CREATE TABLE t (dataset_id VARCHAR, grp VARCHAR, keep BOOLEAN, sciname VARCHAR,
         aphiaid BIGINT, ord VARCHAR, genus VARCHAR, lat DOUBLE, lon DOUBLE, depth DOUBLE, dmin DOUBLE,
-        dmax DOUBLE, month VARCHAR, eventdate VARCHAR, basis VARCHAR, edna_struct BOOLEAN,
+        dmax DOUBLE, month VARCHAR, year VARCHAR, eventdate VARCHAR, basis VARCHAR, edna_struct BOOLEAN,
         absence BOOLEAN, dropped BOOLEAN, flags VARCHAR[])""")
     for r in rows:
-        con.execute("INSERT INTO t VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", r)
+        con.execute("INSERT INTO t VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", r)
     con.execute(f"COPY t TO '{dest}' (FORMAT PARQUET)")
     return dest
 
@@ -134,7 +134,7 @@ async def test_values_that_would_violate_a_check_become_null_or_drop_the_row(con
 
     def row(**kw):
         base = dict(dataset_id=ds, grp="copepoda", keep=True, sciname="x", aphiaid=1, ord="Calanoida",
-                    genus="g", lat=10.0, lon=10.0, depth=5.0, dmin=None, dmax=None, month="6",
+                    genus="g", lat=10.0, lon=10.0, depth=5.0, dmin=None, dmax=None, month="6", year="2000",
                     eventdate=None, basis="x", edna_struct=False, absence=False, dropped=False, flags=[])
         base.update(kw)
         return tuple(base.values())
@@ -162,7 +162,7 @@ async def test_aphia_outside_int32_becomes_null_and_nul_bytes_are_stripped(conn,
     await p.build_staging(conn)
     await p.load_datasets(conn, _ds([ds]))
     base = dict(dataset_id=ds, grp="copepoda", keep=True, sciname="x", aphiaid=1, ord="Calanoida",
-                genus="g", lat=10.0, lon=10.0, depth=5.0, dmin=None, dmax=None, month="6",
+                genus="g", lat=10.0, lon=10.0, depth=5.0, dmin=None, dmax=None, month="6", year="2000",
                 eventdate=None, basis="x", edna_struct=False, absence=False, dropped=False, flags=[])
     rows = [tuple({**base, "aphiaid": 3_000_000_000, "sciname": "big"}.values()),
             tuple({**base, "sciname": "nu\x00l", "ord": "Cal\x00anoida"}.values())]

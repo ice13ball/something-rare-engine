@@ -19,6 +19,8 @@ import asyncpg
 from ingestion.plankton_extract import *  # noqa: F401,F403
 from ingestion.plankton_extract import (  # noqa: F401  (underscore names are not covered by *)
     _I, _SELECT, _lit, _sql_list, _COPEPODA, _guard_missing_ranks, _pass1_hits, _pass2_write)
+from ingestion.plankton_dates import (COMPILATION_PATTERN, YEAR_LAST_MAX_LEN, YEAR_LAST_SQL_RE, ResolvedDate,
+                                      add_pair_stats, proven_patterns, resolve_date)
 from schema.plankton import GROUPS, STARTED_PREFIX, STARTED_STALE_HOURS  # noqa: F401
 
 # ---------------------------------------------------------------------------
@@ -110,7 +112,7 @@ async def load_datasets(conn, datasets: list[dict], mode: str = "insert") -> Non
 
 LOAD_MEMORY_LIMIT = "256MB"
 _COLS = ("taxon_group", "scientific_name", "aphia_id", "taxon_order", "dataset_id", "licence",
-         "is_edna", "depth_m", "event_date", "year", "month", "lon", "lat")
+         "is_edna", "depth_m", "event_date", "year", "month", "date_source", "lon", "lat")
 # Keys of the dict load_extract returns (every extract row lands in exactly one):
 DROP_REASONS = ("excluded_dataset", "restricted", "unknown_dataset", "absence", "dropped",
                 "bad_coords", "on_land", "excluded_order", "other_filter")
@@ -176,15 +178,47 @@ async def load_extract(conn, path, licences: dict[str, str]) -> dict[str, int]:
     counted as unknown_dataset."""
     stats = {"kept": 0, **{k: 0 for k in DROP_REASONS}}
     known = {r[0] for r in await conn.fetch(f"SELECT dataset_id FROM {DS}_new")}
+    compilations = {str(r[0]) for r in await conn.fetch(
+        f"SELECT dataset_id FROM {DS}_new WHERE title ~* $1", COMPILATION_PATTERN)}
     db = _load_connection(path)
     try:
-        return await _load_rows(conn, db, path, licences, known, stats)
+        return await _load_rows(conn, db, path, licences, known, stats, compilations)
     finally:
         db.close()        # this connection lives in the PARENT: leaving it open would keep ~1,700 of them
 
 
-async def _load_rows(conn, db, path, licences, known, stats) -> dict[str, int]:
+def _proven_pairs(db, path, compilations: set[str]) -> dict[str, frozenset[str]]:
+    """Dataset id -> its proven day-first patterns (plan 1.4), counted on the rows of the extract that OBIS
+    did not drop, in SQL over only the strings that can be year-last, so no dataset's dates are held in memory."""
+    names = [d[0] for d in db.execute(f"SELECT * FROM read_parquet({_lit(path)}) LIMIT 0").description]
+    raw = "coalesce(src_eventdate, eventdate)" if "src_eventdate" in names else "eventdate"
+    cur = db.execute(
+        f"SELECT dataset_id, {raw} AS raw, count(*) FROM read_parquet({_lit(path)}) "
+        f"WHERE NOT coalesce(dropped, false) AND NOT list_contains(coalesce(flags, []::VARCHAR[]), '{LAND_FLAG}') "
+        f"AND length({raw}) <= {YEAR_LAST_MAX_LEN} AND regexp_matches({raw}, {_lit(YEAR_LAST_SQL_RE)}) GROUP BY 1, 2")
+    stats: dict[str, dict[str, dict]] = {}
+    while chunk := cur.fetchmany(10_000):
+        by_ds: dict[str, list] = {}
+        for ds, value, n in chunk:
+            by_ds.setdefault(str(ds), []).append((value, n))
+        for ds, counts in by_ds.items():
+            add_pair_stats(stats.setdefault(ds, {}), counts)
+    return {ds: proven_patterns(st, ds in compilations) for ds, st in stats.items()}
+
+
+def _row_date(r: dict, proven: frozenset[str]) -> ResolvedDate:
+    """The chain of plan 1.4 for one extract row; the interpreted field first, as in the model."""
+    def first(a, b):
+        return r.get(a) if r.get(a) is not None else r.get(b)
+    raw = first("src_eventdate", "eventdate")
+    return resolve_date(date_start=r.get("date_start"), date_end=r.get("date_end"), date_year=r.get("date_year"),
+                        event_date=raw, obis_event_date=r.get("eventdate"), year=first("year", "src_year"),
+                        month=first("month", "src_month"), day=first("day", "src_day"), proven=proven)
+
+
+async def _load_rows(conn, db, path, licences, known, stats, compilations) -> dict[str, int]:
     lic_cache: dict[str, str] = {}
+    proven = _proven_pairs(db, path, compilations)
     cur = db.execute(f"SELECT * FROM read_parquet({_lit(path)})")
     names = [d[0] for d in cur.description]
     batch: list[tuple] = []
@@ -219,17 +253,13 @@ async def _load_rows(conn, db, path, licences, known, stats) -> dict[str, int]:
             if why:
                 stats[why] += 1
                 continue
-            ev, year, ev_month = parse_event_parts(r.get("eventdate"))
-            month = parse_month(r.get("month")) or ev_month
-            if year is None:                     # no usable eventDate: the Darwin Core year/month/day fields
-                year = parse_year(r.get("year"))
-                ev = ymd_date(year, month, parse_day(r.get("day")))
+            date = _row_date(r, proven.get(ds, frozenset()))
             aphia = r.get("aphiaid")
             aphia = int(aphia) if _finite(aphia) and -_INT32 <= int(aphia) < _INT32 else None
             batch.append((r["grp"], _clean(r.get("sciname")), aphia, _clean(r.get("ord")),
                           ds_uuid, lic, bool(r.get("edna_struct")),
                           parse_depth(r.get("depth"), r.get("dmin"), r.get("dmax")),
-                          ev, year, month,
+                          ymd_date(date.year, date.month, date.day), date.year, date.month, date.source,
                           float(r["lon"]), float(r["lat"])))
             if len(batch) >= 50_000:
                 await flush()
@@ -248,6 +278,15 @@ async def validate_staging(conn) -> list[str]:
         reasons.append(f"rows dropped {old} -> {new} (more than {int(MAX_DROP * 100)} %)")
     present = {r[0] for r in await conn.fetch(f"SELECT DISTINCT taxon_group FROM {OCC}_new")}
     reasons += [f"group {g} has 0 rows" for g in GROUPS if g not in present]
+    # The date invariants of plan 1.4. A row without a date_source was not written by the loader: not counted.
+    bad = await conn.fetchrow(
+        f"""SELECT count(*) FILTER (WHERE (o.date_source = 'none') <> (o.year IS NULL)) AS source_vs_year,
+                   count(*) FILTER (WHERE o.date_source IS NOT NULL AND ((o.month IS NOT NULL AND o.year IS NULL)
+                                    OR (o.event_date IS NOT NULL AND o.month IS NULL))) AS nesting,
+                   count(*) FILTER (WHERE o.date_source = 'eventdate_dataset_dm'
+                                    AND d.title ~* $1) AS compilation_dm
+            FROM {OCC}_new o LEFT JOIN {DS}_new d USING (dataset_id)""", COMPILATION_PATTERN)
+    reasons += [f"date invariant {k}: {v} rows" for k, v in bad.items() if v]
     return reasons
 
 
@@ -294,13 +333,60 @@ async def _swap_aggregates_in_tx(conn) -> None:
         await _rename_new_objects(conn, t)
 
 
+def _keep_previous() -> bool:
+    """PLANKTON_KEEP_PREVIOUS=1 (one run, set by hand): the swap renames the old live pair to `_prev` instead
+    of dropping it, for a way back after a run that changes the data on purpose. Off by default: monthly runs
+    must not pile up 5.6 GB copies. Removing `_prev` is a separate, manual step; no code here ever drops it."""
+    return os.environ.get("PLANKTON_KEEP_PREVIOUS") == "1"
+
+
+async def _rename_family(conn, old: str, new: str) -> None:
+    """Rename a table with its constraints, indexes and `id` sequence, freeing all the names for its successor."""
+    await conn.execute(f"ALTER TABLE {old} RENAME TO {new}")
+    for (name,) in await conn.fetch(
+            "SELECT conname FROM pg_constraint WHERE conrelid = $1::regclass AND conname LIKE $2",
+            new, old.replace("_", "\\_") + "\\_%"):
+        await conn.execute(f'ALTER TABLE {new} RENAME CONSTRAINT "{name}" TO "{new}{name[len(old):]}"')
+    for (name,) in await conn.fetch(
+            "SELECT indexname FROM pg_indexes WHERE schemaname = current_schema() AND tablename = $1 "
+            "AND indexname LIKE $2", new, old.replace("_", "\\_") + "\\_%"):
+        await conn.execute(f'ALTER INDEX "{name}" RENAME TO "{new}{name[len(old):]}"')
+    if old.startswith(OCC):       # plankton_datasets has no `id` column
+        seq = await conn.fetchval("SELECT pg_get_serial_sequence($1, 'id')", new)
+        if seq:
+            await conn.execute(f"ALTER SEQUENCE {seq} RENAME TO {new}_id_seq")
+
+
+async def restore_previous(conn, lock_timeout: str = SWAP_LOCK_TIMEOUT) -> None:
+    """Put the `_prev` pair back as live; the pair it replaces becomes `_rejected`, nothing is dropped. Refuses
+    unless both `_prev` tables exist and no `_rejected` does. The aggregates must be rebuilt afterwards."""
+    for t in (f"{OCC}_prev", f"{DS}_prev"):
+        if not await _table_exists(conn, t):
+            raise RuntimeError(f"nothing to restore: {t} does not exist")
+    for t in (f"{OCC}_rejected", f"{DS}_rejected"):
+        if await _table_exists(conn, t):
+            raise RuntimeError(f"{t} already exists: look at it and remove it by hand first")
+    async with conn.transaction():
+        await conn.execute(f"SET LOCAL lock_timeout = '{lock_timeout}'")
+        await _lock_for_swap(conn, SWAP_LOCK_ORDER)
+        await _rename_family(conn, OCC, f"{OCC}_rejected")
+        await _rename_family(conn, DS, f"{DS}_rejected")
+        await _rename_family(conn, f"{DS}_prev", DS)
+        await _rename_family(conn, f"{OCC}_prev", OCC)
+    _forget_meta_cache()
+
+
 async def _swap_tx(conn, lock_timeout: str) -> None:
     async with conn.transaction():
         # Bounded wait: a queued ACCESS EXCLUSIVE request blocks every new SELECT on the table.
         await conn.execute(f"SET LOCAL lock_timeout = '{lock_timeout}'")
         await _lock_for_swap(conn, SWAP_LOCK_ORDER)
-        await conn.execute(f"DROP TABLE IF EXISTS {OCC}")
-        await conn.execute(f"DROP TABLE IF EXISTS {DS}")
+        if _keep_previous():
+            await _rename_family(conn, OCC, f"{OCC}_prev")
+            await _rename_family(conn, DS, f"{DS}_prev")
+        else:
+            await conn.execute(f"DROP TABLE IF EXISTS {OCC}")
+            await conn.execute(f"DROP TABLE IF EXISTS {DS}")
         await conn.execute(f"ALTER TABLE {DS}_new RENAME TO {DS}")
         await conn.execute(f"ALTER TABLE {OCC}_new RENAME TO {OCC}")
         for table in (OCC, DS):
@@ -924,6 +1010,8 @@ async def _import(fetch_json, fetch_licences, source_for, scratch: pathlib.Path,
     skipped = len(never)
     parallel = _parallel()
     async with db.pool.acquire() as conn:
+        if _keep_previous() and await _table_exists(conn, f"{OCC}_prev"):   # before hours of work, not at the swap
+            raise RuntimeError(f"PLANKTON_KEEP_PREVIOUS is set but {OCC}_prev already exists")
         done: set[str] = set()
         if resume:
             found = await _prepare_resume(conn)

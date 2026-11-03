@@ -216,12 +216,26 @@ SLICE_BYTES = 192 * 1024 * 1024        # uncompressed row-group bytes read per s
 # Raw columns the loader needs that a new OBIS dataset might lack: carried as NULL.
 _OPTIONAL_COLUMNS = {"absence": "BOOLEAN", "dropped": "BOOLEAN", "flags": "VARCHAR[]"}
 
+def _obis_date(field: str) -> str:
+    """An OBIS date (epoch ms) as a DATE, only inside the years the chain accepts: 1000-01-01 .. 2200-12-31.
+    Outside them Python could not even fetch it, and one record must never fail a dataset."""
+    return (f"CASE WHEN {_I}.{field} BETWEEN -30610224000000 AND 7289654399000 "
+            f"THEN CAST(epoch_ms({_I}.{field}) AS DATE) END")
+
+
+# What the date chain reads (ingestion/plankton_dates.py): the date OBIS read, its Darwin Core fields, and the
+# record's raw values. `source` holds what the publisher sent; the lenient reading works on that string.
+DATE_COLUMNS = f"""{_I}."month" AS month, {_I}.eventDate AS eventdate, {_I}."year" AS year, {_I}."day" AS day,
+  {_obis_date('date_start')} AS date_start, {_obis_date('date_end')} AS date_end,
+  {_I}.date_year AS date_year,
+  source.eventDate AS src_eventdate, source."year" AS src_year, source."month" AS src_month, source."day" AS src_day"""
+
 _SELECT = f"""
   dataset_id, ({GROUP_SQL}) AS grp, {KEEP_SQL} AS keep,
   {_I}.scientificName AS sciname, {_I}.aphiaid AS aphiaid, {_I}."order" AS ord, {_I}.genus AS genus,
   {_I}.decimalLatitude AS lat, {_I}.decimalLongitude AS lon,
   {_I}.depth AS depth, {_I}.minimumDepthInMeters AS dmin, {_I}.maximumDepthInMeters AS dmax,
-  {_I}."month" AS month, {_I}.eventDate AS eventdate, {_I}."year" AS year, {_I}."day" AS day,
+  {DATE_COLUMNS},
   {_I}.basisOfRecord AS basis,
   ({{edna}}) AS edna_struct,
   absence, dropped, flags"""
@@ -239,7 +253,8 @@ _GUARDED_FIELDS = {
     **{f: "VARCHAR" for f in ("class", "subclass", "order", "phylum", "division", "subphylum",
                               "infraphylum", "genus", "scientificName", "basisOfRecord", "eventDate", "month",
                               "year", "day")},
-    "aphiaid": "BIGINT", "depth": "DOUBLE", "minimumDepthInMeters": "DOUBLE", "maximumDepthInMeters": "DOUBLE"}
+    "aphiaid": "BIGINT", "depth": "DOUBLE", "minimumDepthInMeters": "DOUBLE", "maximumDepthInMeters": "DOUBLE",
+    "date_start": "BIGINT", "date_end": "BIGINT", "date_year": "BIGINT"}
 _RANK_FIELDS = tuple(_GUARDED_FIELDS)            # kept for the fallback list when `interpreted` is absent
 _RANK_REF = re.compile(r'interpreted\.(?:"(\w+)"|(\w+))')
 
@@ -253,6 +268,26 @@ def _guard_missing_ranks(sql: str, fields) -> str:
         name = (m.group(1) or m.group(2)).lower()
         return f"NULL::{by_lower[name]}" if name in by_lower and name not in have else m.group(0)
     return _RANK_REF.sub(sub, sql)
+
+
+_SOURCE_REF = re.compile(r'\bsource\.(?:"(\w+)"|(\w+))')
+
+
+def _guard_missing_source(sql: str, fields) -> str:
+    """Same as _guard_missing_ranks for the `source` struct: keys vary per file, and it may be absent."""
+    have = {f.lower() for f in fields}
+
+    def sub(m):
+        return m.group(0) if (m.group(1) or m.group(2)).lower() in have else "NULL::VARCHAR"
+    return _SOURCE_REF.sub(sub, sql)
+
+
+def source_fields(con, src: str) -> list[str]:
+    """Keys of the `source` struct of a file; [] when it has none or it is not a struct."""
+    try:
+        return [r[0] for r in con.execute(f"DESCRIBE SELECT source.* FROM read_parquet({src})").fetchall()]
+    except Exception:
+        return []
 
 
 def trim_heap() -> None:
@@ -353,7 +388,7 @@ def extract_dataset(con, source: str, dest: pathlib.Path, *, title: str | None =
     except Exception:          # no `interpreted` struct at all: leave the SQL alone, the read reports it
         fields = list(_RANK_FIELDS)
     group_sql = _guard_missing_ranks(GROUP_SQL, fields)
-    select = _guard_missing_ranks(_SELECT.format(edna=edna), fields)
+    select = _guard_missing_ranks(_guard_missing_source(_SELECT, source_fields(con, src)).format(edna=edna), fields)
     parts_dir = dest.parent / (dest.name + ".parts")
     shutil.rmtree(parts_dir, ignore_errors=True)
     parts_dir.mkdir(parents=True)
