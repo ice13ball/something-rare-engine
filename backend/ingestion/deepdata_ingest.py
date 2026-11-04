@@ -27,6 +27,8 @@ from typing import Any, AsyncIterator
 
 import httpx
 
+from parse_util import check_obis_walk
+
 log = logging.getLogger(__name__)
 
 ISA_NODE_ID = "9d2d95be-32eb-4d81-8911-32cb8bc641c8"
@@ -95,6 +97,8 @@ async def fetch_deepdata_records() -> AsyncIterator[list[dict[str, Any]]]:
     after: str | None = None
     page_num = 0
     total_yielded = 0
+    walked: set[str] = set()      # distinct ids, including rows dropped below: what OBIS really returned
+    reported = 0
 
     async with httpx.AsyncClient(timeout=120) as client:
         dataset_map = await _fetch_dataset_map(client)
@@ -110,7 +114,10 @@ async def fetch_deepdata_records() -> AsyncIterator[list[dict[str, Any]]]:
             r = await client.get(OBIS_OCCURRENCE_URL, params=params)
             r.raise_for_status()
             data = r.json()
+            total = data.get("total")
+            reported = max(reported, total if isinstance(total, int) else 0)
             results = data.get("results", [])
+            walked.update(str(occ.get("id")) for occ in results)
             if not results:
                 break
 
@@ -164,6 +171,7 @@ async def fetch_deepdata_records() -> AsyncIterator[list[dict[str, Any]]]:
             if not after:
                 break
 
+    check_obis_walk("deepdata", len(walked), reported)
     log.info("deepdata: fetch complete — %d records across %d pages",
               total_yielded, page_num)
 

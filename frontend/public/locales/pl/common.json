@@ -53,7 +53,7 @@
     "dismiss": "Odrzuć"
   },
   "map": {
-    "ariaLabel": "Interaktywna mapa 3D koncesji na głębinowe wydobycie. Przesuń strzałkami, przybliżaj klawiszami +/−.",
+    "ariaLabel": "Interaktywna mapa 3D danych środowiskowych oceanu i lądu. Przesuń strzałkami, przybliżaj klawiszami +/−.",
     "loadingOceanData": "Wczytywanie danych oceanicznych…",
     "tracingPlume": "Śledzenie smugi…",
     "referenceButton": "Odniesienie"

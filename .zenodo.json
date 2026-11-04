@@ -1,6 +1,6 @@
 {
-  "title": "Abyssal Claims: source code of a FAIR-aligned integration platform for deep-sea and terrestrial mining transparency",
-  "description": "<p>Source code of <a href=\"https://something-rare.com\">Abyssal Claims</a>, an independently developed, non-commercial web platform that integrates more than fifty publicly funded and open-licensed geospatial datasets onto a single interactive three-dimensional globe, making the environmental and governance context of deep-sea mineral extraction and terrestrial industrial mining legible to researchers, journalists, policy analysts and the general public.</p><p>This record archives the software: a React&nbsp;+&nbsp;deck.gl frontend, a FastAPI&nbsp;+&nbsp;PostGIS backend, roughly 110 data-source synchronisation pipelines, an MVT tile server, baked raster field layers, an Area Export tool, a documented public read API, and the editorial and provenance logic that keeps the presentation neutral.</p><p><strong>No scientific data is included.</strong> Every layer is fetched at runtime from its upstream provider and remains under that provider's own licence; the repository carries only source code and a small set of test fixtures. The per-source licence map, including non-commercial and mandatory-citation sources, is in <code>DATA-LICENCES.md</code>.</p><p>The methods, data sources, refresh strategies, derived products, known limitations and licensing model are documented separately in the companion deposit, <a href=\"https://doi.org/10.5281/zenodo.19745884\">doi:10.5281/zenodo.19745884</a> (CC-BY-4.0). This software record and that documentation record are two halves of one pair: cite the documentation for the method, this record for the code.</p><p>Licensed <strong>GNU AGPL-3.0-or-later</strong>, with an attribution term under section 7(b) (see <code>LICENSE-ADDITIONAL-TERMS.md</code>). The names \"Abyssal Claims\" and \"something-rare.com\" are reserved and not covered by that licence.</p>",
+  "title": "Abyssal Claims: source code of an integration platform for ocean and land environmental data",
+  "description": "<p>Source code of <a href=\"https://something-rare.com\">Abyssal Claims</a>. Abyssal Claims is an independently developed, non-commercial web platform that brings more than fifty publicly funded environmental datasets together on one interactive three-dimensional map. It began with deep-sea mining and has grown into a working space for ocean and land data, from individual measurements and biodiversity records to seabed contracts and the land-side impacts of mining. Its purpose is to let researchers and other stakeholders explore how these datasets relate: a measurement beside the gridded field it informs, a concession beside the species recorded inside it, and the places where the ocean has hardly been observed at all.</p><p>This record archives the software: a React&nbsp;+&nbsp;deck.gl frontend, a FastAPI&nbsp;+&nbsp;PostGIS backend, roughly 110 data-source synchronisation pipelines, an MVT tile server, baked raster field layers, an Area Export tool, a documented public read API, and the editorial and provenance logic that keeps the presentation neutral.</p><p><strong>The platform's datasets are not included:</strong> each layer is fetched at runtime from its upstream provider under that provider's own licence. The only data in the repository are small verbatim excerpts used by the parser tests (about 5 MB in <code>backend/tests/fixtures/</code>), which stay under their upstream licences; see <code>DATA-LICENCES.md</code>. The per-source licence map, including non-commercial and mandatory-citation sources, is in <code>DATA-LICENCES.md</code>.</p><p>The methods, data sources, refresh strategies, derived products, known limitations and licensing model are documented separately in the companion deposit, <a href=\"https://doi.org/10.5281/zenodo.19745884\">doi:10.5281/zenodo.19745884</a> (CC-BY-4.0). This software record and that documentation record are two halves of one pair: cite the documentation for the method, this record for the code.</p><p>Licensed <strong>GNU AGPL-3.0-or-later</strong>, with an attribution term under section 7(b) (see <code>LICENSE-ADDITIONAL-TERMS.md</code>). The names \"Abyssal Claims\" and \"something-rare.com\" are reserved and not covered by that licence.</p>",
   "upload_type": "software",
   "license": "agpl-3.0-or-later",
   "access_right": "open",
@@ -20,7 +20,7 @@
     },
     {
       "identifier": "https://something-rare.com",
-      "relation": "isIdenticalTo",
+      "relation": "isSourceOf",
       "resource_type": "software",
       "scheme": "url"
     }
@@ -29,7 +29,6 @@
     "deep-sea mining",
     "seabed minerals",
     "International Seabed Authority",
-    "mining transparency",
     "geospatial integration",
     "FAIR data",
     "open science",
@@ -47,5 +46,5 @@
     "ocean carbon",
     "species distribution model"
   ],
-  "notes": "No scientific data is distributed with this software. Upstream datasets retain their own licences; see DATA-LICENCES.md in the repository. One dependency (PyCO2SYS) is GPL-3.0."
+  "notes": "The platform's datasets are not included: each layer is fetched at runtime from its upstream provider under that provider's own licence. The only data in the repository are small verbatim excerpts used by the parser tests (about 5 MB in backend/tests/fixtures/), which stay under their upstream licences; see DATA-LICENCES.md. One dependency (PyCO2SYS) is GPL-3.0."
 }

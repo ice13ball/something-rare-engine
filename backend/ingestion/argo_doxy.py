@@ -7,21 +7,20 @@ Runs ONLY inside argo_doxy_worker (own cgroup). ⛔ Never imported by the API pr
 
 - The index (8 MB gz) says which DOXY profiles exist and when each changed (`date_update`). Only floats with a
   profile whose stored stamp differs are downloaded, one Sprof at a time through SCRATCH_DIR.
-- ONE transaction per float: upsert the changed profiles, delete the ones the index no longer lists. A float
+- ONE transaction per float: upsert the changed profiles. A float
   that fails (network, truncated or corrupt file, unexpected shape) keeps its live rows and is counted; the run
   goes on. Only a lost database connection ends the run (every later float would fail the same way).
 - Memory is bounded by one profile: the Sprof is read through `open_sprof` (a generator) and every profile is
   turned into its thinned stored row before the next is read.
 - A profile the index lists with DOXY whose Sprof carries no usable value is remembered in argo_doxy_empty, so
   its float is not downloaded again on every run.
-- An index listing < 90 % of the stored profiles blocks the whole run before anything is written or deleted.
-- Deletions are gated on the deletions themselves (a net-count gate is blind to a lost small DAC offset by new
-  profiles): all held above max(500, 1 % of stored); one DAC's held when ALL of its keys, or more than 10 % (and
-  more than DELETE_DAC_MIN), would go; keys on index lines we could not interpret are never deleted; more than 1 %
-  malformed lines is a format change (outcome 'schema'). Upserts always proceed.
-- A stored profile whose re-read Sprof carries no usable DOXY any more ("emptied") is a deletion too, and goes through
-  the SAME holds, per DAC and globally, counted together with that DAC's vanished profiles: a DAC reprocessing its
-  files with blanked DOXY is the same outage as a DAC vanishing from the index. Emptied profiles are collected while
+- An index listing < 90 % of the previous index's profiles blocks the whole run before anything is written.
+- A stored profile the index no longer lists stays in the table and is counted as `gone_from_index` (Michal,
+  2026-11-04: Argo history is kept on our side). Its row is no longer refreshed, also after a RULES_VERSION change.
+  Keys on index lines we could not interpret are not counted; more than 1 % malformed lines is a format change
+  (outcome 'schema'). Upserts always proceed.
+- A stored profile whose re-read Sprof carries no usable DOXY any more ("emptied") is judged per DAC and globally
+  by `_all_held` and `_dac_held`. Emptied profiles are collected while
   a DAC's floats are processed and judged once that DAC is finished (so the verdict does not depend on float order);
   held ones keep their live row and write no marker, are reported as `empties_held` (and in `deletions_held`), and
   are re-read on the next run. A DAC the run did not finish (budget, disk, unreachable) is not judged: its emptied
@@ -208,23 +207,6 @@ def _dac_held(n: int, dac_stored: int) -> bool:
     return n == dac_stored or (n > DELETE_DAC_MIN and n > DELETE_DAC_FRAC * dac_stored)
 
 
-def hold_deletions(gone, stored):
-    """-> (gone to apply, held: {'all': n} or {dac: n}). Gate on the deletions themselves:
-    - all held above max(DELETE_ALL_FLOOR, DELETE_ALL_FRAC of stored);
-    - one DAC held when every stored key of it would go, or more than DELETE_DAC_FRAC of them (and more than
-      DELETE_DAC_MIN). A DAC vanishing from a regenerated index is an outage until proven otherwise."""
-    total = sum(len(v) for v in gone.values())
-    if _all_held(total, len(stored)):
-        return {}, {"all": total}
-    per_dac_stored = collections.Counter(k.split("_", 1)[0] for k in stored)
-    per_dac_gone = collections.Counter()
-    for (dac, _), keys in gone.items():
-        per_dac_gone[dac] += len(keys)
-    held_dacs = {d: n for d, n in per_dac_gone.items() if _dac_held(n, per_dac_stored[d])}
-    kept = {fl: keys for fl, keys in gone.items() if fl[0] not in held_dacs}
-    return kept, held_dacs
-
-
 def _parse_float(path: pathlib.Path, rows: list[IndexRow], rejects: collections.Counter):
     """-> (profile tuples to upsert, [(key, stamp)] of profiles that now carry no DOXY value).
 
@@ -272,8 +254,8 @@ def prefer_duplicate(new: dict | None, old: dict | None) -> bool:
     return _usefulness(new) > _usefulness(old)
 
 
-async def _process_float(conn, fl, rows, gone_keys, fetch, rejects, live_keys=frozenset()):
-    """-> (upserted, deleted, emptied). `emptied` = [(key, stamp)] of STORED profiles (`live_keys`) whose new Sprof
+async def _process_float(conn, fl, rows, fetch, rejects, live_keys=frozenset()):
+    """-> (upserted, emptied). `emptied` = [(key, stamp)] of STORED profiles (`live_keys`) whose new Sprof
     carries no usable DOXY: they are neither deleted nor marked here, the caller judges them against the deletion
     holds once the whole DAC is done (see _apply_empties). An empty profile that was never stored is just marked."""
     dac, wmo = fl
@@ -287,17 +269,10 @@ async def _process_float(conn, fl, rows, gone_keys, fetch, rejects, live_keys=fr
         written_keys = [u[0] for u in upserts]
         emptied = [(k, st) for k, st in empty if k in live_keys]
         empty = [(k, st) for k, st in empty if k not in live_keys]
-        drop_profiles = list(gone_keys)
-        drop_empty = list(gone_keys) + written_keys
         try:
             async with conn.transaction():
-                deleted = 0
-                if drop_profiles:
-                    res = await conn.execute("DELETE FROM argo_doxy_profiles WHERE profile_key = ANY($1::text[])",
-                                             drop_profiles)
-                    deleted = int(res.split()[-1])
-                if drop_empty:
-                    await conn.execute("DELETE FROM argo_doxy_empty WHERE profile_key = ANY($1::text[])", drop_empty)
+                if written_keys:
+                    await conn.execute("DELETE FROM argo_doxy_empty WHERE profile_key = ANY($1::text[])", written_keys)
                 if upserts:
                     await conn.executemany(UPSERT_SQL, upserts)
                 if upserts:
@@ -307,7 +282,7 @@ async def _process_float(conn, fl, rows, gone_keys, fetch, rejects, live_keys=fr
         except _CONNECTION_ERRORS as e:
             raise ConnectionLost(f"{type(e).__name__}: {e}") from e
         rejects.update(local)                             # counted only for a float that committed
-        return len(upserts), deleted, emptied
+        return len(upserts), emptied
     finally:
         path.unlink(missing_ok=True)
 
@@ -372,16 +347,28 @@ async def _run(fetch_index, fetch_sprof, budget_s, clock, disk_used) -> dict:
         except ValueError as e:
             await log_sync_skipped(SOURCE, f"schema: {e}")
             return {"outcome": "schema", "error": str(e)}
-        if stored and len(index_rows) < SHRINK_LIMIT * len(stored):
-            msg = (f"blocked: the index lists {len(index_rows)} DOXY profiles, {len(stored)} are stored "
-                   f"(more than {round((1 - SHRINK_LIMIT) * 100)} % fewer); nothing written or deleted")
+        # Stored rows now include profiles kept after leaving the index, so stored would creep up and
+        # eventually block every run.
+        prev_index = await conn.fetchval("SELECT n_index_doxy FROM argo_doxy_source WHERE id = 1")
+        baseline = prev_index or len(stored)
+        if stored and len(index_rows) < SHRINK_LIMIT * baseline:
+            msg = (f"blocked: the index lists {len(index_rows)} DOXY profiles, the previous index listed {baseline} "
+                   f"(more than {round((1 - SHRINK_LIMIT) * 100)} % fewer); nothing written")
             await log_sync_skipped(SOURCE, msg)
             return {"outcome": "blocked", "error": msg}
         need, gone = plan_floats(index_rows, stored, outdated, untrusted)
-        gone_planned = {dac: sum(len(v) for (d, _), v in gone.items() if d == dac) for dac in {d for d, _ in gone}}
-        gone, held = hold_deletions(gone, stored)
-        floats = sorted(set(need) | set(gone))
-        per_dac_stored = collections.Counter(k.split("_", 1)[0] for k in stored)
+        gone_live = [k for keys in gone.values() for k in keys if k in live]
+        gone_markers = [k for keys in gone.values() for k in keys if k not in live]
+        gone_from_index = len(gone_live)
+        floats = sorted(need)
+        # holds are shares of what the index still lists: kept rows must not dilute them
+        listed = stored.keys() - {k for keys in gone.values() for k in keys}
+        if gone_markers:                                 # a marker is bookkeeping, not a measurement
+            try:
+                await conn.execute("DELETE FROM argo_doxy_empty WHERE profile_key = ANY($1::text[])", gone_markers)
+            except _CONNECTION_ERRORS as e:
+                raise ConnectionLost(f"{type(e).__name__}: {e}") from e
+        per_dac_stored = collections.Counter(k.split("_", 1)[0] for k in listed)
         start = clock()
         done = written = deleted = 0
         failed: dict[str, str] = {}
@@ -392,14 +379,13 @@ async def _run(fetch_index, fetch_sprof, budget_s, clock, disk_used) -> dict:
         stop = None
 
         async def judge_empties(dac: str) -> int:
-            """Stored profiles of `dac` that lost their DOXY: apply or hold, by the rules of vanished profiles."""
+            """Stored profiles of `dac` that lost their DOXY: apply or hold, per DAC and globally."""
             nonlocal empties_applied
             items = emptied_by_dac.pop(dac, [])
             if not items:
                 return 0
             n = len(items)
-            if (_all_held(sum(gone_planned.values()) + empties_applied + n, len(stored))
-                    or _dac_held(gone_planned.get(dac, 0) + n, per_dac_stored[dac])):
+            if _all_held(empties_applied + n, len(listed)) or _dac_held(n, per_dac_stored[dac]):
                 empties_held[dac] = n
                 log.warning("argo-doxy: %d stored %s profiles lost all DOXY values: held, live rows kept", n, dac)
                 return 0
@@ -430,10 +416,8 @@ async def _run(fetch_index, fetch_sprof, budget_s, clock, disk_used) -> dict:
                 stop = "disk"
                 break
             try:
-                w, d, emptied = await _process_float(conn, fl, need.get(fl, []), gone.get(fl, []), fetch_sprof,
-                                                     rejects, live)
+                w, emptied = await _process_float(conn, fl, need.get(fl, []), fetch_sprof, rejects, live)
                 written += w
-                deleted += d
                 emptied_by_dac[fl[0]] += emptied
                 if need.get(fl):
                     streak = 0                           # a download went through
@@ -469,11 +453,12 @@ async def _run(fetch_index, fetch_sprof, budget_s, clock, disk_used) -> dict:
         counts = await conn.fetchrow("SELECT count(*) AS n, count(*) FILTER (WHERE drawable) AS d "
                                      "FROM argo_doxy_profiles")
         report = {**rejects, "failed_floats": dict(list(failed.items())[:50]), "n_failed_floats": len(failed)}
+        report["gone_from_index"] = gone_from_index
         if empties_held:
             report["empties_held"] = empties_held
-        all_held = {k: held.get(k, 0) + empties_held.get(k, 0) for k in {*held, *empties_held}}
+        all_held = dict(empties_held)
         if all_held:
-            report["deletions_held"] = all_held          # what /meta shows: vanished AND emptied profiles held
+            report["deletions_held"] = all_held          # what /meta shows: emptied profiles held
         complete = pending == 0 and outcome in ("updated", "unchanged")
         current = (complete and not failed and not rejects["not_in_sprof"]      # every row built under RULES_VERSION
                    and not empties_held)
@@ -489,7 +474,10 @@ async def _run(fetch_index, fetch_sprof, budget_s, clock, disk_used) -> dict:
             json.dumps(report, allow_nan=False), bool(written or deleted), complete,
             run_started, current, RULES_VERSION)
     result = {"outcome": outcome, "floats_planned": len(floats), "floats_done": done, "written": written,
-              "deleted": deleted, "rejects": dict(rejects), "failed_floats": failed, "pending": pending}
+              "deleted": deleted, "gone_from_index": gone_from_index, "rejects": dict(rejects),
+              "failed_floats": failed, "pending": pending}
+    if gone_from_index:
+        log.info("argo-doxy: %d stored profiles are no longer in the GDAC index; kept", gone_from_index)
     if outcome in ("updated", "unchanged", "partial"):
         await log_sync(SOURCE, written, counts["n"])
         notes = []

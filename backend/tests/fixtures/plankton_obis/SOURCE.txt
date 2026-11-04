@@ -140,3 +140,6 @@ Attribution (citation per dataset, as returned by the OBIS API):
 - Australian Microbiome 18S (Eukaryote) Dataset of Aquatic Samples: (no citation in OBIS metadata) - publisher: CSIRO Oceans and Atmosphere Information and Data Centre, Hobart; https://www.marine.csiro.au/ipt/resource?r=am_18sv4_aquatic
 - Distribution and community structure of benthic copepods in the Delta area and the Ems-Dollard between 1976 and 1981: Willems K.A.; Coomans A.; Faculteit Wetenschappen. RUG: Belgium; (2016): Distribution and community structure of benthic copepods in the Delta area and the Ems-Dollard between 1976 and 1981. (http://www.vliz.be/en/imis?module=dataset&amp;dasid=5080) https://dx.doi.org/10.14284/216
 - CASES: The pre-winter assemblages of southeastern Beaufort Sea: Darnis, Gérald, Barber, David G., and Fortier, Louis. 2015. CASES: The pre-winter assemblages of southeastern Beaufort Sea. Version 1 In ArcOD Digital Collections. Institute of Marine Science University of Alaska, Fairbanks, AK, USA. Published by OBIS, Digital http://www.iobis.org/. Accessed on –INSERT DATE
+
+E-mail addresses inside recordedBy (source and interpreted) are replaced with "[address removed]", 2026-11-04.
+Every other value is as published.

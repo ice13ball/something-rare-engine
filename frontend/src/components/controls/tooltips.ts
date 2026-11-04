@@ -361,7 +361,7 @@ export const LAYER_TOOLTIPS_META = {
     pairsWith: ["contracts", "apeis", "protected-marine-sites"],
   },
   "offshore-activities": {
-    source: "EMODnet Human Activities (EU EEZ blocks — EC DG MARE, CC BY 4.0) + national petroleum/seabed registries (BOEM, Crown Estate, Sodir, NSTA, ANH, CNH, NOPTA, NZP&M, ANP, ESDM, PASA, CNSOPB/C-NLOPB, GEUS/DEA, MRA PNG, MME, SBMA, MEEI/IMA, Petroleum Commission Ghana, PMP, PAD/GSI, PERUPETRO).",
+    source: "EMODnet Human Activities (EU EEZ blocks — EC DG MARE, CC BY 4.0) + national petroleum/seabed registries (BOEM, Crown Estate, Sodir, NSTA, ANH, CNH, NOPTA, NZP&M, ANP, ESDM, PASA, CNSOPB/C-NLOPB, GEUS/DEA, MEEI/IMA, GNPC Ghana, PMP, PAD/GSI, PERUPETRO).",
     sourceUrl: "https://emodnet.ec.europa.eu/en/human-activities",
     pairsWith: ["eez", "contracts", "protected-marine-sites"],
   },

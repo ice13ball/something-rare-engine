@@ -51,7 +51,7 @@
     "dismiss": "Schließen"
   },
   "map": {
-    "ariaLabel": "Interaktive 3D-Karte der Tiefsee-Bergbaukonzessionen. Verwenden Sie die Pfeiltasten zum Bewegen, +/− zum Zoomen.",
+    "ariaLabel": "Interaktive 3D-Karte von Umweltdaten zu Ozean und Land. Verwenden Sie die Pfeiltasten zum Bewegen, +/− zum Zoomen.",
     "loadingOceanData": "Ozeandaten werden geladen…",
     "tracingPlume": "Sedimentfahne wird verfolgt…",
     "referenceButton": "Referenz"

@@ -1,8 +1,8 @@
 {
   "welcome": {
     "title": "Abyssal Claims",
-    "tagline": "Umwelttransparenz für Ozean und Land",
-    "description": "Eine <bold>Plattform für Umwelttransparenz</bold> über Ozean und Land. Über 50 Datenebenen — Tiefsee-Bergbaukonzessionen, ozeanischer Kohlenstoff und Versauerung, arktischer Land-Ozean-Wandel, Biodiversität und Live-Ozeansensoren — aus echten wissenschaftlichen Datenbanken. Klicken Sie auf ein Objekt für Details oder kombinieren Sie Ebenen, um Überschneidungen und Veränderungen aufzudecken.",
+    "tagline": "Umweltdaten für Ozean und Land",
+    "description": "Ein <bold>Arbeitsraum für Ozean- und Landdaten</bold>. Über 60 Ebenen — Messungen, ozeanischer Kohlenstoff und Versauerung, Biodiversität, Meeresbodenkonzessionen, arktischer Land-Ozean-Wandel und Live-Ozeansensoren — jede mit ihrer Quelle. Klicken Sie auf ein Objekt für Details oder kombinieren Sie Ebenen, um zu sehen, wie die Datensätze zusammenhängen.",
     "subtitle": "Wählen Sie Ihren Schwerpunkt",
     "hint": {
       "layers": "Ebenen links aktivieren — Konzessionen, Arten, Quellen, Bergbau-Fußabdrücke, Feuer und mehr",
@@ -21,7 +21,7 @@
     },
     "guided": {
       "title": "Geführte Berichte",
-      "summary": "9 investigative Berichte — Bergbau vs. Quellen, Rückstandsrisiko, Feuersaison",
+      "summary": "9 geführte Geschichten — Quellen und Konzessionen, Rückstandsrisiko, Feuersaison",
       "ariaLabel": "Mit geführten investigativen Berichten starten — kuratierte Ebenenkombinationen mit Erläuterungen"
     },
     "continue": "Dort weitermachen, wo ich aufgehört habe",

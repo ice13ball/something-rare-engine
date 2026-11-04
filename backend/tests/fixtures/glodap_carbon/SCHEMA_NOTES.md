@@ -23,3 +23,4 @@ Each file also carries `<var>_error`, `<var>_relerr`, `Input_mean/std/N`, `SnR`,
 - **observed ranges:** TCO2 1019–2402; TAlk 1069–2660; pHtsinsitutp 7.43–8.52; Cant -0.49–72.86 µmol/kg.
 
 Fixture `GLODAPv2.2016b.TCO2.slice.nc`: real 20×20-cell Pacific window × all 33 depths (TCO2 + Depth + lat/lon), 118 KB.
+The personal "Contact information" global attribute of the .nc file is overwritten with "redacted" and padding, 2026-11-04.

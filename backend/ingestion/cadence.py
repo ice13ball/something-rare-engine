@@ -72,8 +72,8 @@ CADENCE: dict[str, Static | Days | Blocked] = {
                                  "requested 2026-09-03"),
     "memento":           Days(90,  "continuous upstream; quarterly is enough for a methane "
                                    "synthesis layer"),
-    "sio-bic":           Blocked("SIO-BIC declined automated access on 2026-10-27 (C. Seid, "
-                                 "after Scripps IT ticket #152993): the Cloudflare Turnstile "
+    "sio-bic":           Blocked("SIO-BIC declined automated access on 2026-10-27: "
+                                 "the Cloudflare Turnstile "
                                  "on sioapps.ucsd.edu is intentional. The layer is a static "
                                  "snapshot of the owner's manual browser downloads (latest "
                                  "2026-10-28), refreshed by hand a few times a year. Never "

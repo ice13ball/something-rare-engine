@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ocean &amp; Land Environmental Map — Abyssal Claims</title>
-    <meta name="description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
+    <meta name="description" content="Interactive 3D map of ocean and land environmental data: measurements, biodiversity, hydrothermal vents, seabed concessions and 60+ layers, each with its source." />
     <!-- No static canonical: this SPA shell is served for every client-side
          route, so a hardcoded homepage canonical made every non-SSR route
          (/privacy, /terms, /about, …) declare itself a duplicate of "/".
@@ -15,7 +15,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://something-rare.com/" />
     <meta property="og:title" content="Ocean &amp; Land Environmental Map — Abyssal Claims" />
-    <meta property="og:description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
+    <meta property="og:description" content="Interactive 3D map of ocean and land environmental data: measurements, biodiversity, hydrothermal vents, seabed concessions and 60+ layers, each with its source." />
     <meta property="og:image" content="https://something-rare.com/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -23,11 +23,11 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Ocean &amp; Land Environmental Map — Abyssal Claims" />
-    <meta name="twitter:description" content="Interactive 3D map of deep-sea mining: ISA concessions, hydrothermal vents, biodiversity, sediment plumes, and 50+ ocean & land data layers." />
+    <meta name="twitter:description" content="Interactive 3D map of ocean and land environmental data: measurements, biodiversity, hydrothermal vents, seabed concessions and 60+ layers, each with its source." />
     <meta name="twitter:image" content="https://something-rare.com/og.jpg" />
     <meta name="twitter:image:alt" content="Abyssal Claims Atlas, an ocean and land environmental map: a glowing seafloor chart of the Atlantic with licence areas, sensors and a ship track" />
     <!-- Google Scholar / Highwire Press citation tags -->
-    <meta name="citation_title" content="Abyssal Claims: Ocean & Land Environmental Transparency Map" />
+    <meta name="citation_title" content="Abyssal Claims: An integration platform for ocean and land environmental data" />
     <meta name="citation_author" content="Mazurowski, Michal" />
     <meta name="citation_author_orcid" content="https://orcid.org/0009-0007-3786-0310" />
     <meta name="citation_doi" content="10.5281/zenodo.19745884" />
@@ -157,8 +157,8 @@
     {
       "@context": "https://schema.org/",
       "@type": "Dataset",
-      "name": "Abyssal Claims: Ocean & Land Environmental Transparency Map",
-      "description": "An independent transparency platform mapping 50+ environmental data layers across ocean and land — from ISA deep-sea mining concessions and hydrothermal vents to global mining footprints, deforestation, active fires, air quality, and biodiversity hotspots.",
+      "name": "Abyssal Claims: An integration platform for ocean and land environmental data",
+      "description": "Abyssal Claims is an independently developed, non-commercial web platform that brings more than fifty publicly funded environmental datasets together on one interactive three-dimensional map. It began with deep-sea mining and has grown into a working space for ocean and land data, from individual measurements and biodiversity records to seabed contracts and the land-side impacts of mining. Its purpose is to let researchers and other stakeholders explore how these datasets relate: a measurement beside the gridded field it informs, a concession beside the species recorded inside it, and the places where the ocean has hardly been observed at all.",
       "url": "https://something-rare.com",
       "identifier": "https://doi.org/10.5281/zenodo.19745884",
       "sameAs": ["https://zenodo.org/records/19745884"],
@@ -260,74 +260,19 @@
       ]
     }
     </script>
-    <!-- FAQ Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "What is deep sea mining?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Deep-sea mining is the industrial extraction of mineral deposits — polymetallic nodules, seafloor massive sulphides, and cobalt-rich crusts — from the ocean floor, typically at depths of 1,000 to 6,000 metres. The metals (nickel, cobalt, manganese, copper, rare earth elements) are used in batteries and electronics. Mining is regulated by the International Seabed Authority (ISA) in international waters and by national agencies within Exclusive Economic Zones."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Where is deep sea mining happening?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Most active deep-sea mining exploration is concentrated in the Clarion-Clipperton Zone (CCZ) of the Pacific Ocean between Hawaii and Mexico, with additional contracts in the Indian Ocean, Mid-Atlantic Ridge, and Western Pacific. The interactive map shows every active ISA exploration and exploitation contract alongside national leasing zones from BOEM, NOPTA, NSTA, and other registries. As of 2026, no commercial-scale deep-sea mining has begun, but tests of nodule-collector vehicles started in 2022."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is deep sea mining legal?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Deep-sea mining in international waters is legal under exploration contracts issued by the International Seabed Authority, but commercial exploitation requires a separate Mining Code the ISA has been negotiating since 2014. Within national waters, individual countries (e.g., Norway, Cook Islands, Papua New Guinea) set their own rules. Several countries — including France, Germany, Spain, Chile, and Palau — have called for a moratorium or precautionary pause until environmental impacts are better understood."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How does deep sea mining damage ecosystems?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Deep-sea mining disturbs the seafloor at depths where ecosystems recover slowly — sediment plumes can travel hundreds of kilometres and smother filter-feeding life, while light and noise pollution affects species adapted to total darkness. Hydrothermal vents host species found nowhere else on Earth, and even small-scale disturbance can extirpate entire populations. Recovery timescales for polymetallic nodule fields are estimated in millions of years."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Who regulates deep sea mining?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The International Seabed Authority (ISA), based in Kingston, Jamaica, regulates deep-sea mining in 'the Area' — the seabed beyond national jurisdiction, roughly 54% of Earth's seafloor. The ISA has 168 member states and operates under the UN Convention on the Law of the Sea (UNCLOS). Within national EEZs, regulation is handled by domestic agencies such as BOEM (USA), NOPTA (Australia), NSTA (UK), Sodir (Norway), CNH (Mexico), and others — all surfaced as separate layers on this map."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What metals are in deep-sea mining nodules?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Polymetallic nodules contain primarily manganese (~28%), iron (~6%), nickel (~1.3%), copper (~1.1%), and cobalt (~0.2%), plus trace rare earth elements. Seafloor massive sulphides are richer in copper, zinc, gold, and silver. Cobalt-rich crusts grow on seamount surfaces and contain up to 1.5% cobalt with significant tellurium and platinum-group metals. Demand is driven by battery metals for EVs and grid storage."
-          }
-        }
-      ]
-    }
-    </script>
   </head>
   <body>
     <div id="root">
       <!-- Pre-render content for search engine crawlers — replaced by React on mount -->
       <main style="max-width:800px;margin:0 auto;padding:2rem;color:#ccc;font-family:system-ui,sans-serif">
-        <h1>Deep Sea Mining Map: Track ISA Concessions, Hydrothermal Vents, and Ocean Biodiversity</h1>
-        <p>Deep-sea mining is reshaping the ocean floor — and most of it happens out of sight. Abyssal Claims is an independent transparency platform mapping every active International Seabed Authority (ISA) exploration contract, every documented hydrothermal vent field, and the biodiversity at risk, alongside 50+ ocean and land environmental data layers on an interactive 3D globe. Built for researchers, journalists, policymakers, and the public.</p>
+        <h1>Ocean and Land Environmental Data Map: Measurements, Biodiversity, Hydrothermal Vents and Seabed Concessions</h1>
+        <p>Abyssal Claims is an independently developed, non-commercial web platform that brings more than fifty publicly funded environmental datasets together on one interactive three-dimensional map. It began with deep-sea mining and has grown into a working space for ocean and land data, from individual measurements and biodiversity records to seabed contracts and the land-side impacts of mining. Its purpose is to let researchers and other stakeholders explore how these datasets relate: a measurement beside the gridded field it informs, a concession beside the species recorded inside it, and the places where the ocean has hardly been observed at all.</p>
 
         <h2>Ocean Data Layers</h2>
         <ul>
-          <li><strong>Mining Concessions</strong> — All active ISA exploration and exploitation contracts with contractor details, expiry dates, and environmental risk assessments.</li>
+          <li><strong>Measurements</strong> — GLODAP bottle samples, SOCAT surface CO₂, World Ocean Database casts, BGC-Argo oxygen and OceanSITES mooring records, shown beside the gridded fields they inform.</li>
+          <li><strong>Plankton Observations</strong> — Occurrence records of five plankton groups from OBIS, each with its licence and the source of its date.</li>
+          <li><strong>Seabed Concessions</strong> — ISA exploration contracts with contractor details and expiry dates, and offshore licences from national registries.</li>
           <li><strong>Hydrothermal Vents</strong> — 721 vent fields from the InterRidge Database v3.4, including active, inactive, and extinct sites with depth data.</li>
           <li><strong>Biodiversity Hotspots</strong> — Deep-sea species observations from the Ocean Biodiversity Information System (OBIS), including endangered species flagging.</li>
           <!-- Counts in this block are asserted against the live backend by
@@ -335,7 +280,7 @@
                (The story stays there, not here: this file ships to every
                visitor, and a comment is the one place a stale figure can
                survive a check that strips comments before comparing.) -->
-          <li><strong>Seamounts</strong> — 37,889 underwater mountains from Yesson et al. 2011, primary targets for cobalt-crust mining.</li>
+          <li><strong>Seamounts</strong> — 37,889 underwater mountains from Yesson et al. 2011.</li>
           <li><strong>Argo Floats</strong> — Real-time ocean monitoring with 90-day drift trails, depth profiles, temperature, salinity, oxygen, and pH measurements.</li>
           <li><strong>Plume Tracing</strong> — Copernicus Marine ocean current backtracking to estimate sediment plume origins from mining activity.</li>
           <li><strong>EEZ Boundaries</strong> — Exclusive Economic Zones from MarineRegions.org World EEZ v12.</li>
@@ -358,32 +303,9 @@
           <li><strong>Soil Organic Carbon</strong> — Global soil carbon content (top 0–5cm) at ~250m — ISRIC SoilGrids.</li>
         </ul>
 
-        <h2>What Is Deep-Sea Mining?</h2>
-        <p>Deep-sea mining is the extraction of metals — polymetallic nodules, seafloor massive sulphides, and cobalt-rich crusts — from the ocean floor at depths of 1,000 to 6,000 metres. The International Seabed Authority (ISA) regulates mining in international waters and has issued exploration contracts across the Pacific (Clarion-Clipperton Zone), Indian, and Atlantic Oceans. Commercial extraction could begin within years, despite incomplete environmental impact data and unresolved questions about damage to hydrothermal vent ecosystems and deep-sea biodiversity.</p>
-        <p>This map tracks every active ISA concession alongside the vents, species observations, and ocean monitoring data those concessions overlap — connecting policy, ecology, and infrastructure in one view.</p>
-
-        <h2>Frequently Asked Questions</h2>
-        <h3>What is deep sea mining?</h3>
-        <p>Deep-sea mining is the industrial extraction of mineral deposits — polymetallic nodules, seafloor massive sulphides, and cobalt-rich crusts — from the ocean floor, typically at depths of 1,000 to 6,000 metres. The metals (nickel, cobalt, manganese, copper, rare earth elements) are used in batteries and electronics. Mining is regulated by the International Seabed Authority (ISA) in international waters and by national agencies within Exclusive Economic Zones.</p>
-
-        <h3>Where is deep sea mining happening?</h3>
-        <p>Most active deep-sea mining exploration is concentrated in the Clarion-Clipperton Zone (CCZ) of the Pacific Ocean between Hawaii and Mexico, with additional contracts in the Indian Ocean, Mid-Atlantic Ridge, and Western Pacific. The interactive map shows every active ISA exploration and exploitation contract alongside national leasing zones from BOEM, NOPTA, NSTA, and other registries. As of 2026, no commercial-scale deep-sea mining has begun, but tests of nodule-collector vehicles started in 2022.</p>
-
-        <h3>Is deep sea mining legal?</h3>
-        <p>Deep-sea mining in international waters is legal under exploration contracts issued by the International Seabed Authority, but commercial exploitation requires a separate Mining Code the ISA has been negotiating since 2014. Within national waters, individual countries (e.g., Norway, Cook Islands, Papua New Guinea) set their own rules. Several countries — including France, Germany, Spain, Chile, and Palau — have called for a moratorium or precautionary pause until environmental impacts are better understood.</p>
-
-        <h3>How does deep sea mining damage ecosystems?</h3>
-        <p>Deep-sea mining disturbs the seafloor at depths where ecosystems recover slowly — sediment plumes can travel hundreds of kilometres and smother filter-feeding life, while light and noise pollution affects species adapted to total darkness. Hydrothermal vents host species found nowhere else on Earth, and even small-scale disturbance can extirpate entire populations. Recovery timescales for polymetallic nodule fields are estimated in millions of years.</p>
-
-        <h3>Who regulates deep sea mining?</h3>
-        <p>The International Seabed Authority (ISA), based in Kingston, Jamaica, regulates deep-sea mining in "the Area" — the seabed beyond national jurisdiction, roughly 54% of Earth's seafloor. The ISA has 168 member states and operates under the UN Convention on the Law of the Sea (UNCLOS). Within national EEZs, regulation is handled by domestic agencies such as BOEM (USA), NOPTA (Australia), NSTA (UK), Sodir (Norway), CNH (Mexico), and others — all surfaced as separate layers on this map.</p>
-
-        <h3>What metals are in deep-sea mining nodules?</h3>
-        <p>Polymetallic nodules contain primarily manganese (~28%), iron (~6%), nickel (~1.3%), copper (~1.1%), and cobalt (~0.2%), plus trace rare earth elements. Seafloor massive sulphides are richer in copper, zinc, gold, and silver. Cobalt-rich crusts grow on seamount surfaces and contain up to 1.5% cobalt with significant tellurium and platinum-group metals. Demand is driven by battery metals for EVs and grid storage.</p>
-
         <h2>Data Sources</h2>
         <ul>
-          <li>International Seabed Authority (ISA) — Deep-sea mining contracts and boundaries</li>
+          <li>International Seabed Authority (ISA) — Seabed contracts and boundaries</li>
           <li>InterRidge Database v3.4 via PANGAEA — Hydrothermal vent locations</li>
           <li>Ocean Biodiversity Information System (OBIS) — Marine species observations</li>
           <li>Argo Programme — Autonomous ocean profiling floats</li>

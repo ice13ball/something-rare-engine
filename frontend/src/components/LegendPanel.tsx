@@ -1243,7 +1243,7 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                       <li>South Africa → <span className="text-cyan-400">petroleumagencysa.com</span></li>
                       <li>Papua New Guinea → <span className="text-cyan-400">mra.gov.pg</span> (cadastre map requires login — not loaded)</li>
                       <li>Namibia → <span className="text-cyan-400">mme.gov.na</span> (cadastre layer access-protected — not loaded)</li>
-                      <li>Cook Islands → <span className="text-cyan-400">sbma.gov.ck/map-of-applications</span></li>
+                      <li>Cook Islands → <span className="text-cyan-400">sbma.gov.ck/map-of-applications</span> (no reachable service — not loaded)</li>
                     </ul>
                   </li>
                   <li>

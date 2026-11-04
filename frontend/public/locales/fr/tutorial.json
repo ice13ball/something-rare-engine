@@ -1,8 +1,8 @@
 {
   "welcome": {
     "title": "Abyssal Claims",
-    "tagline": "Transparence environnementale mer et terre",
-    "description": "Une <bold>plateforme de transparence environnementale</bold> couvrant la mer et la terre. Plus de 50 couches de données — concessions minières en eaux profondes, carbone océanique et acidification, évolution terre-océan en Arctique, biodiversité et capteurs océaniques en direct — issues de bases de données scientifiques réelles. Cliquez sur une entité pour le détail, ou combinez les couches pour révéler les chevauchements et les changements.",
+    "tagline": "Données environnementales mer et terre",
+    "description": "Un <bold>espace de travail pour les données de la mer et de la terre</bold>. Plus de 60 couches — mesures, carbone océanique et acidification, biodiversité, concessions des fonds marins, évolution terre-océan en Arctique et capteurs océaniques en direct — chacune avec sa source. Cliquez sur une entité pour le détail, ou combinez les couches pour voir comment les jeux de données se relient.",
     "subtitle": "Choisissez votre thématique",
     "hint": {
       "layers": "Activez les couches à gauche — concessions, espèces, cheminées, empreintes minières, incendies et plus encore",
@@ -21,7 +21,7 @@
     },
     "guided": {
       "title": "Récits guidés",
-      "summary": "9 enquêtes — mines vs cheminées, risques liés aux résidus, saison des feux",
+      "summary": "9 récits guidés — cheminées et concessions, risques liés aux résidus, saison des feux",
       "ariaLabel": "Commencer avec des récits d'enquête guidés — combinaisons de couches organisées avec des narrations"
     },
     "continue": "Continuer où j'en étais",

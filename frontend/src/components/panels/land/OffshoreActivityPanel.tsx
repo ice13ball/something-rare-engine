@@ -47,7 +47,7 @@ export function OffshoreActivityPanel({ properties: p }: { properties: Record<st
     nsta_co2:              "NSTA (UK Carbon Storage)",
     anh_co:                "ANH (Colombia)",
     meei_tt:               "MEEI / IMA (Trinidad & Tobago)",
-    petrocom_gh:           "Petroleum Commission (Ghana)",
+    petrocom_gh:           "GNPC (Ghana)",
     pmp_gy:                "Petroleum Mgmt Programme (Guyana)",
     pad_ie:                "Petroleum Affairs Division (Ireland)",
     perupetro_pe:          "PERUPETRO (Peru)",

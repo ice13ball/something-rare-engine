@@ -57,9 +57,9 @@ const TITLES: Record<LegalTab, string> = {
 };
 
 const DESCRIPTIONS: Record<LegalTab, string> = {
-  about:   "Abyssal Claims is a deep-sea mining transparency platform visualising ISA concession data, environmental risks, and ocean monitoring on an interactive 3D map.",
+  about:   "Abyssal Claims is an independent, non-commercial platform that brings publicly funded ocean and land environmental datasets together on one interactive 3D map.",
   privacy: "Privacy policy for Abyssal Claims — how we collect, use, and protect your data.",
-  terms:   "Terms of use for Abyssal Claims, the deep-sea mining transparency platform.",
+  terms:   "Terms of use for Abyssal Claims, the ocean and land environmental data map.",
 };
 
 function DocRenderer({ doc, updatedLabel, links }: { doc: LegalDoc; updatedLabel: string; links: boolean }) {

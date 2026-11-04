@@ -477,11 +477,14 @@ async def argo_oxygen_meta():
                 "index_doxy": indexed,
                 # `rejected` is the LAST run's own counters (a run re-reads only changed floats), so it does not
                 # have to add up to the index; `no_usable_doxy` and `not_yet_stored` are the standing remainder.
-                "rejected": {k: v for k, v in rej.items() if isinstance(v, int) and k != "n_failed_floats"},
+                "rejected": {k: v for k, v in rej.items() if isinstance(v, int)
+                             and k not in ("n_failed_floats", "gone_from_index")},
                 "failed_floats": rej.get("n_failed_floats", 0),
+                "gone_from_index": rej.get("gone_from_index", 0),
                 "no_usable_doxy": empty,
                 "stored": c["stored"],
-                "not_yet_stored": None if indexed is None else max(0, indexed - c["stored"] - empty),
+                "not_yet_stored": None if indexed is None else max(
+                    0, indexed - (c["stored"] - rej.get("gone_from_index", 0)) - empty),
                 "not_drawn": {k: c[k] for k in ("realtime_only", "no_good_adjusted", "bad_position", "bad_time")},
                 "drawn": c["drawn"]},
             "rules_version": {"code": RULES_VERSION, "last_complete_run": s["rules_version"],

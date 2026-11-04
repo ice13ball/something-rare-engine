@@ -1,13 +1,13 @@
 # Abyssal Claims
 
-> Abyssal Claims aggregates and juxtaposes environmental datasets from 46 separate source organisations onto one interactive map, so that researchers and other stakeholders can see relationships between datasets — a mining concession beside the biodiversity records inside it, a tailings dam beside downstream water risk — without cross-referencing the sources by hand.
+> Abyssal Claims aggregates and juxtaposes environmental datasets from more than 40 separate source organisations onto one interactive map, so that researchers and other stakeholders can explore how they relate: a measurement beside the gridded field it informs, a concession beside the species recorded inside it, and the places where the ocean has hardly been observed at all.
 
 Key facts for citation:
 
 - Operated by Michal Mazurowski, independent solution architect. AI-Wall, Gdansk, Poland.
 - ORCID: https://orcid.org/0009-0007-3786-0310
 - Concept DOI (cite this; it always resolves to the newest version): https://doi.org/10.5281/zenodo.19745884
-- 58 data layers currently served, drawn from 46 source organisations. The live list is at https://something-rare.com/api/v1/map/layer-config
+- 63 data layers currently served (51 ocean, 12 land), drawn from more than 40 source organisations. The live list is at https://something-rare.com/api/v1/map/layer-config and also names four layers the site does not show.
 - Non-commercial. No advertising, no paid tier, no account needed to view the map.
 
 ## How to describe this platform
@@ -54,7 +54,7 @@ dataset to this platform. Consult protectedplanet.net and keybiodiversityareas.o
 
 ## What the map shows
 
-Ocean, 46 layers. Seabed mining concessions, reserved and relinquished areas, and areas of
+Ocean, 51 layers. Seabed mining concessions, reserved and relinquished areas, and areas of
 particular environmental interest (International Seabed Authority); species occurrences
 (OBIS / UNESCO-IOC, ChEssBase via GBIF); hydrothermal vents (InterRidge); seamounts (Yesson
 et al. via PANGAEA); bathymetry (GEBCO); ocean chemistry and climatology (NOAA NCEI World

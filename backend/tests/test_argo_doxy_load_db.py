@@ -287,14 +287,15 @@ async def test_an_index_that_shrank_by_more_than_10_percent_blocks_and_deletes_n
 
 
 @needs_db
-async def test_a_profile_the_index_drops_is_deleted_with_its_float_untouched_otherwise(conn):
+async def test_a_profile_the_index_drops_stays_and_is_counted(conn):
     await _support(conn)
     await L.sync_argo_doxy(fetch_index=_gz, fetch_sprof=_fetch_sprof)
     without = "".join(ln for ln in INDEX_TXT.splitlines(True) if "SD1900722_002.nc" not in ln)
     out = await L.sync_argo_doxy(fetch_index=lambda: _gz(without), fetch_sprof=_fetch_sprof)
-    assert out["deleted"] == 1
+    assert out["deleted"] == 0
+    assert out["gone_from_index"] == 1
     keys = {x["profile_key"] for x in await conn.fetch("SELECT profile_key FROM argo_doxy_profiles")}
-    assert "aoml_1900722_002" not in keys and "aoml_1900722_001" in keys
+    assert "aoml_1900722_002" in keys and "aoml_1900722_001" in keys
 
 
 @needs_db
@@ -485,7 +486,7 @@ async def test_a_profile_without_doxy_values_is_remembered_not_redownloaded(conn
         "aoml_5904670_038"]
     without = "".join(ln for ln in INDEX_TXT.splitlines(True) if "SD5904670_038.nc" not in ln)
     out = await L.sync_argo_doxy(fetch_index=lambda: _gz(without), fetch_sprof=_fetch_sprof)
-    assert out["floats_planned"] == 1 and out["outcome"] == "unchanged"                 # the float with a goner
+    assert out["floats_planned"] == 0 and out["outcome"] == "unchanged"                 # its marker goes without a float
     assert await conn.fetchval("SELECT count(*) FROM argo_doxy_empty") == 0
     assert await conn.fetchval("SELECT count(*) FROM argo_doxy_profiles") == 13
 
@@ -550,15 +551,16 @@ async def test_a_whole_dac_whose_floats_turn_empty_keeps_its_live_rows_and_repor
 
 
 @needs_db
-async def test_emptied_profiles_count_with_the_dacs_vanished_ones_and_above_the_global_ceiling(conn, monkeypatch):
+async def test_emptied_profiles_are_held_by_their_own_share_and_above_the_global_ceiling(conn, monkeypatch):
     await _first_run(conn, _padded())
-    # one vanished + one emptied profile of aoml: each alone is within DELETE_DAC_MIN (1) and is not an outage, but
-    # together they are 2 of aoml's 7 keys: the vanished one is applied (planned first), the emptied one is held
-    monkeypatch.setattr(L, "DELETE_DAC_MIN", 1)
+    # one emptied profile of 7 is above the 10 % share
+    monkeypatch.setattr(L, "DELETE_DAC_MIN", 0)
     changed = _bump(_drop(_padded(), "SD5900421_005.nc"), "SD1900722_001.nc")
     out = await L.sync_argo_doxy(fetch_index=lambda: _gz(changed), fetch_sprof=_blanked({"aoml"}, wmos={"1900722"}))
-    assert out["deleted"] == 1 and (await _rejects(conn))["deletions_held"] == {"aoml": 1}
-    assert await conn.fetchval("SELECT count(*) FROM argo_doxy_profiles") == 12
+    assert out["deleted"] == 0
+    assert out["gone_from_index"] == 1
+    assert (await _rejects(conn))["deletions_held"] == {"aoml": 1}
+    assert await conn.fetchval("SELECT count(*) FROM argo_doxy_profiles") == 13
     assert await conn.fetchval("SELECT count(*) FROM argo_doxy_profiles WHERE profile_key='aoml_1900722_001'") == 1
     await _first_run(conn, _padded())
     monkeypatch.setattr(L, "DELETE_DAC_MIN", 5)
@@ -620,15 +622,15 @@ async def test_a_dac_the_run_did_not_finish_is_not_judged_and_is_read_again_next
 
 
 @needs_db
-async def test_a_float_whose_database_write_fails_loses_nothing_not_even_its_deletions(conn, monkeypatch):
-    """Failure mode: refresh blanking live rows. One float has a profile the index dropped (a DELETE) AND a changed
-    profile whose upsert violates a CHECK: the delete must be rolled back with it."""
+async def test_a_float_whose_database_write_fails_loses_nothing(conn, monkeypatch):
+    """Failure mode: refresh blanking live rows. A changed profile whose upsert violates a CHECK leaves the float's
+    rows as they were."""
     await _support(conn)
     await L.sync_argo_doxy(fetch_index=_gz, fetch_sprof=_fetch_sprof)
     before = await conn.fetch("SELECT profile_key, gdac_date_update FROM argo_doxy_profiles "
                               "WHERE platform_number='1900722' ORDER BY 1")
     assert len(before) == 2
-    # 002 leaves the index (-> DELETE), 001 changes (-> upsert) and its built row gets an impossible latitude
+    # 002 leaves the index (kept), 001 changes (-> upsert) and its built row gets an impossible latitude
     changed = _bump("".join(ln for ln in INDEX_TXT.splitlines(True) if "SD1900722_002.nc" not in ln),
                     "SD1900722_001.nc")
     real = L.build_profile
@@ -646,7 +648,7 @@ async def test_a_float_whose_database_write_fails_loses_nothing_not_even_its_del
     assert after == before and out["deleted"] == 0
 
 
-# ── Fix round 1: deletions gated on the deletions, rules version, import weight, refresh request ──────────────────
+# ── Fix round 1: profiles kept after leaving the index, rules version, import weight, refresh request ──────────────────
 def _padded(text=INDEX_TXT, n=200):
     """The fixture index plus n valid lines WITHOUT DOXY (other floats' profiles), so a single malformed line is
     well under the 1 % format-change limit and a deletion is a small share of the file."""
@@ -683,31 +685,21 @@ async def test_a_whole_small_dac_vanishing_from_the_index_keeps_its_rows_and_ups
     out = await L.sync_argo_doxy(fetch_index=lambda: _gz(changed), fetch_sprof=_fetch_sprof)
     assert out["deleted"] == 0 and out["written"] >= 1
     assert await conn.fetchval("SELECT count(*) FROM argo_doxy_profiles WHERE dac='kiost'") == 1
-    assert (await _rejects(conn))["deletions_held"] == {"kiost": 1}
-    assert "deletions held (kiost: 1)" in await conn.fetchval("SELECT skipped_reason FROM sync_log WHERE source='argo-doxy'")
+    assert (await _rejects(conn))["gone_from_index"] == 1
+    assert "deletions_held" not in (await _rejects(conn))
 
 
 @needs_db
-async def test_deletions_above_the_global_ceiling_are_all_held(conn, monkeypatch):
+async def test_profiles_kept_after_leaving_the_index_do_not_trip_the_shrink_block(conn):
     await _first_run(conn, _padded())
-    monkeypatch.setattr(L, "DELETE_ALL_FLOOR", 0)
-    monkeypatch.setattr(L, "DELETE_ALL_FRAC", 0.0)
-    out = await L.sync_argo_doxy(fetch_index=lambda: _gz(_drop(_padded(), "SD1900722_002.nc")),
-                                 fetch_sprof=_fetch_sprof)
-    assert out["deleted"] == 0 and (await _rejects(conn))["deletions_held"] == {"all": 1}
+    first = _drop(_padded(), "SD1900722_002.nc")
+    second = _drop(first, "SD5900421_005.nc")
+    await L.sync_argo_doxy(fetch_index=lambda: _gz(first), fetch_sprof=_fetch_sprof)
+    out = await L.sync_argo_doxy(fetch_index=lambda: _gz(second), fetch_sprof=_fetch_sprof)
+    assert out["outcome"] != "blocked"
+    assert out["deleted"] == 0
+    assert out["gone_from_index"] == 2
     assert await conn.fetchval("SELECT count(*) FROM argo_doxy_profiles") == 13
-
-
-@needs_db
-async def test_a_dac_losing_more_than_a_tenth_of_its_keys_is_held_but_a_small_loss_goes_through(conn, monkeypatch):
-    await _first_run(conn, _padded())
-    dropped = _drop(_padded(), "SD1900722_002.nc")                  # aoml: 1 of 7 stored keys = 14 %
-    out = await L.sync_argo_doxy(fetch_index=lambda: _gz(dropped), fetch_sprof=_fetch_sprof)
-    assert out["deleted"] == 1                                       # below DELETE_DAC_MIN: not an outage
-    await _first_run(conn, _padded())
-    monkeypatch.setattr(L, "DELETE_DAC_MIN", 0)
-    out = await L.sync_argo_doxy(fetch_index=lambda: _gz(dropped), fetch_sprof=_fetch_sprof)
-    assert out["deleted"] == 0 and (await _rejects(conn))["deletions_held"] == {"aoml": 1}
 
 
 @needs_db

@@ -91,7 +91,7 @@ TAG_ORDER = [
 GETTING_STARTED = """\
 # Abyssal Claims API
 
-Programmatic access to the deep-sea and land-mining transparency data behind
+Programmatic access to the ocean and land environmental data behind
 [something-rare.com](https://something-rare.com): ISA concessions, biodiversity,
 ocean monitoring, vessels, submarine cables, and terrestrial mining impacts.
 

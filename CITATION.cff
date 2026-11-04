@@ -1,24 +1,31 @@
 cff-version: 1.2.0
 message: "If you use this software, the live platform, or any derived product from Abyssal Claims, please cite the Zenodo deposit below."
-title: "Abyssal Claims: A FAIR-aligned integration platform for deep-sea and terrestrial mining transparency"
+title: "Abyssal Claims: An integration platform for ocean and land environmental data"
 abstract: >-
   Abyssal Claims is an independently developed, non-commercial web platform that
-  integrates more than fifty publicly funded and open-licensed geospatial
-  datasets onto a single interactive three-dimensional globe, with the goal of
-  making the environmental and governance context of deep-sea mineral extraction
-  and terrestrial industrial mining legible to researchers, journalists, policy
-  analysts and the general public. This repository contains the platform source
-  code (React + deck.gl frontend, FastAPI + PostGIS backend, and the data-sync
-  pipelines). No scientific data is included; each layer is fetched at runtime
-  from its upstream provider under that provider's own licence. The accompanying
-  Zenodo deposit documents the data sources, refresh strategies, architecture,
-  derived products, known limitations and licensing model.
+  brings more than fifty publicly funded environmental datasets together on one
+  interactive three-dimensional map. It began with deep-sea mining and has grown
+  into a working space for ocean and land data, from individual measurements and
+  biodiversity records to seabed contracts and the land-side impacts of mining.
+  Its purpose is to let researchers and other stakeholders explore how these
+  datasets relate: a measurement beside the gridded field it informs, a
+  concession beside the species recorded inside it, and the places where the
+  ocean has hardly been observed at all.
+  This repository contains the platform source code (React + deck.gl
+  frontend, FastAPI + PostGIS backend, and the data-sync pipelines). The platform's
+  datasets are not included: each layer is fetched at runtime from its upstream
+  provider under that provider's own licence. The only data in the repository are
+  small verbatim excerpts used by the parser tests (about 5 MB in
+  backend/tests/fixtures/), which stay under their upstream licences; see
+  DATA-LICENCES.md. The accompanying Zenodo deposit documents the data sources,
+  refresh strategies, architecture, derived products, known limitations and
+  licensing model.
 type: software
 # `version` is the SOFTWARE release, deliberately independent of the documentation
-# deposit's version (which is at 1.6). Do not sync the two — they have different
+# deposit's version. Do not sync the two — they have different
 # cadences; that separation is the whole reason the code gets its own Zenodo record.
-version: "1.1.0"
-date-released: "2026-09-24"
+version: "1.2.0"
+date-released: "2026-11-04"
 license: AGPL-3.0-or-later
 # Concept DOI of the SOFTWARE record, minted by the Zenodo-GitHub integration from
 # release v1.0.0 on 2026-09-12. A concept DOI always resolves to the newest version,
@@ -64,7 +71,6 @@ keywords:
   - equal-area hex grid
   - Area Export
   - public API
-  - mining transparency
   - tailings
   - WDPA
   - Key Biodiversity Areas
@@ -76,8 +82,6 @@ keywords:
   - PostGIS
   - FastAPI
   - synthetic aperture radar
-  - AIS
-  - dark vessel
   - ocean observatories
   - environmental monitoring
   - offshore oil and gas

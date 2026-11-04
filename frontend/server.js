@@ -977,7 +977,7 @@ app.get('/layer/:layerId', async (req, res, next) => {
            site's own claim, in SEO.tsx and legalContent.ts, is 50+. Three
            numbers for one quantity; this one was both the odd one out and the
            one describing something else. -->
-      <p style="font-size:0.85rem;color:#666">Abyssal Claims is an environmental transparency platform mapping 50+ data layers across ocean and land.</p>
+      <p style="font-size:0.85rem;color:#666">Abyssal Claims brings 50+ environmental data layers across ocean and land together on one interactive map.</p>
     </main>`;
 
   res.type('html').send(wrapHtml(head, body, { hydrate: hydrates(req.path) }));
@@ -998,19 +998,19 @@ const STATIC_SSR_PAGES = {
     title: 'Privacy Policy — Abyssal Claims',
     description: 'Privacy policy for Abyssal Claims — how we collect, use, and protect your data.',
     heading: 'Privacy Policy',
-    intro: 'How Abyssal Claims collects, uses, and protects your data on the deep-sea and land mining transparency platform.',
+    intro: 'How Abyssal Claims collects, uses, and protects your data on the ocean and land environmental data map.',
   },
   terms: {
     title: 'Terms of Use — Abyssal Claims',
-    description: 'Terms of use for Abyssal Claims, the deep-sea mining transparency platform.',
+    description: 'Terms of use for Abyssal Claims, the ocean and land environmental data map.',
     heading: 'Terms of Use',
-    intro: 'The terms governing your use of Abyssal Claims, the deep-sea and land mining transparency platform.',
+    intro: 'The terms governing your use of Abyssal Claims, the ocean and land environmental data map.',
   },
   about: {
     title: 'About — Abyssal Claims',
-    description: 'Abyssal Claims is a deep-sea mining transparency platform visualising ISA concession data, environmental risks, and ocean monitoring on an interactive 3D map.',
+    description: 'Abyssal Claims is an independent, non-commercial platform that brings publicly funded ocean and land environmental datasets together on one interactive 3D map.',
     heading: 'About Abyssal Claims',
-    intro: 'Abyssal Claims is a deep-sea and land mining transparency platform visualising ISA concession data, environmental risks, and ocean monitoring on an interactive 3D globe.',
+    intro: 'Abyssal Claims is an independent, non-commercial platform that brings publicly funded ocean and land environmental datasets together on one interactive 3D map.',
   },
   // /api-docs had NO SSR handler until 2026-08-17, so crawlers fell through to
   // expressStaticGzip and received the raw SPA shell — 24 471 B carrying the
@@ -1073,31 +1073,31 @@ app.get(['/privacy', '/terms', '/about', '/api-docs'], (req, res, next) => {
       <p>Citing the platform as a whole? Cite the software record; it declares the
          documentation record as its companion.</p>
       <p><strong>Suggested citation (APA) — software:</strong><br />
-         Mazurowski, M. (2026). <em>Abyssal Claims: source code of a FAIR-aligned integration
-         platform for deep-sea and terrestrial mining transparency</em> (v1.0.0) [Computer
+         Mazurowski, M. (2026). <em>Abyssal Claims: source code of an integration
+         platform for ocean and land environmental data</em> (v1.2.0) [Computer
          software]. Zenodo. ${escapeHtml(siteCitation.doiUrl)}</p>
       <p><strong>Suggested citation (APA) — methods documentation:</strong><br />
-         Mazurowski, M. (2026). <em>Abyssal Claims: A FAIR-aligned integration platform for
-         deep-sea and terrestrial mining transparency</em> (Version 1.6) [Software
+         Mazurowski, M. (2026). <em>Abyssal Claims: An integration platform for
+         ocean and land environmental data</em> (Version 1.8) [Software
          documentation]. Zenodo. ${escapeHtml(siteCitation.docsDoiUrl)}</p>
       <pre style="white-space:pre-wrap;background:#111826;padding:1rem;border-radius:6px;overflow-x:auto;font-size:13px">@software{mazurowski_abyssal_claims_code_2026,
   author       = {Mazurowski, Michal},
-  title        = {Abyssal Claims: source code of a FAIR-aligned integration
-                  platform for deep-sea and terrestrial mining transparency},
+  title        = {Abyssal Claims: source code of an integration
+                  platform for ocean and land environmental data},
   year         = {2026},
   publisher    = {Zenodo},
-  version      = {v1.0.0},
+  version      = {v1.2.0},
   doi          = {${escapeHtml(siteCitation.doi)}},
   url          = {${escapeHtml(siteCitation.doiUrl)}}
 }
 
 @misc{mazurowski_abyssal_claims_docs_2026,
   author       = {Mazurowski, Michal},
-  title        = {Abyssal Claims: A FAIR-aligned integration platform for
-                  deep-sea and terrestrial mining transparency},
+  title        = {Abyssal Claims: An integration platform for
+                  ocean and land environmental data},
   year         = {2026},
   publisher    = {Zenodo},
-  version      = {1.6},
+  version      = {1.8},
   doi          = {${escapeHtml(siteCitation.docsDoi)}},
   url          = {${escapeHtml(siteCitation.docsDoiUrl)}}
 }</pre>

@@ -71,7 +71,7 @@ MAX_STORED_LEVELS = 150
 # another version, spread over runs by the budget. A change that does not alter stored rows must NOT bump it:
 # a bump re-downloads the whole archive (about 15 GB).
 RULES_VERSION = 1
-SHRINK_LIMIT = 0.9                          # an index listing < 90 % of the stored profiles blocks the run
+SHRINK_LIMIT = 0.9                          # an index listing < 90 % of the previous index's profiles blocks the run
 
 # ── map tiles (design 2026-10-10, docs/specs/2026-10-10-argo-oxygen-tiles-design.md) ─────────────────────────────
 TILES_SOURCE = "argo-tiles"                 # sync_log.source of the tile build + pre-bake (the import stays SOURCE)

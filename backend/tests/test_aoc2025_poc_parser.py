@@ -15,6 +15,8 @@ import pytest
 from ingestion import aoc2025_poc as p
 
 FIX = pathlib.Path(__file__).parent / "fixtures" / "aoc2025_poc" / "aoc2025_poc.csv"
+if not FIX.exists():
+    pytest.skip("fixture withheld from the public mirror", allow_module_level=True)
 RAW = FIX.read_bytes()
 
 

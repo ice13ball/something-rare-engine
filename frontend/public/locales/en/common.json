@@ -51,7 +51,7 @@
     "dismiss": "Dismiss"
   },
   "map": {
-    "ariaLabel": "Interactive 3D map of deep-sea mining concessions. Use arrow keys to pan, +/− to zoom.",
+    "ariaLabel": "Interactive 3D map of ocean and land environmental data. Use arrow keys to pan, +/− to zoom.",
     "loadingOceanData": "Loading ocean data…",
     "tracingPlume": "Tracing plume…",
     "referenceButton": "Reference"

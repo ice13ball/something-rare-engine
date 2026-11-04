@@ -4,8 +4,8 @@
 """SIO-BIC catalogue: parser for a STATIC snapshot of the collection's CSV export.
 
 Source: https://sioapps.ucsd.edu/collections/bi/ (the export behind its search page).
-⛔ Never fetched automatically. On 2026-10-27 SIO-BIC (C. Seid, after Scripps IT
-ticket #152993) declined automated access: the campus Cloudflare Turnstile on
+⛔ Never fetched automatically. On 2026-10-27 SIO-BIC declined automated access:
+the campus Cloudflare Turnstile on
 sioapps.ucsd.edu is intentional. They allowed a static version made from a download
 "like any user". So the owner downloads the export by hand in a browser a few times
 a year and copies it to SNAPSHOT_FILE on the VPS; this module only reads that file.

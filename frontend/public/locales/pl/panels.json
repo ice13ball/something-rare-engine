@@ -415,7 +415,7 @@
       "activityTypeHeading": "Rodzaj działalności:",
       "countryHeading": "Kraj:",
       "clearCount": "Wyczyść ({{count}})",
-      "sourcesNote": "Koncesje wydane przez rządy w krajowych EEZ. Źródła: EMODnet, BOEM, Crown Estate (Anglia/Walia/Irlandia Płn. + Szkocja), Sodir (Norwegia), NSTA (ropa/gaz UK), CNH/PEMEX (Meksyk), NOPTA, NZP&M, ANP Brazylia, MRA PNG, MME Namibia, SBMA Wyspy Cooka, ESDM (Indonezja), PASA (RPA), CNSOPB (Kanada NS), C-NLOPB (Kanada NL), GEUS/DEA (Dania).",
+      "sourcesNote": "Koncesje wydane przez rządy w krajowych EEZ. Źródła: EMODnet, BOEM, Crown Estate (Anglia/Walia/Irlandia Płn. + Szkocja), Sodir (Norwegia), NSTA (ropa/gaz UK), CNH/PEMEX (Meksyk), NOPTA, NZP&M, ANP Brazylia, ESDM (Indonezja), PASA (RPA), CNSOPB (Kanada NS), C-NLOPB (Kanada NL), GEUS/DEA (Dania).",
       "activityTypes": {
         "oil_gas": "Ropa i gaz",
         "offshore_wind": "Morska energetyka wiatrowa",

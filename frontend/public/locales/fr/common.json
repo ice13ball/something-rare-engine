@@ -51,7 +51,7 @@
     "dismiss": "Fermer"
   },
   "map": {
-    "ariaLabel": "Carte 3D interactive des concessions minières en haute mer. Utilisez les touches fléchées pour vous déplacer, +/− pour zoomer.",
+    "ariaLabel": "Carte 3D interactive de données environnementales sur la mer et la terre. Utilisez les touches fléchées pour vous déplacer, +/− pour zoomer.",
     "loadingOceanData": "Chargement des données océaniques…",
     "tracingPlume": "Traçage du panache…",
     "referenceButton": "Référence"

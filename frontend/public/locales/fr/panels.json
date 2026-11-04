@@ -415,7 +415,7 @@
       "activityTypeHeading": "Type d'activité :",
       "countryHeading": "Pays :",
       "clearCount": "Effacer ({{count}})",
-      "sourcesNote": "Concessions émises par les gouvernements à l'intérieur des ZEE nationales. Sources : EMODnet, BOEM, Crown Estate (Angleterre/Pays de Galles/Irlande du Nord + Écosse), Sodir (Norvège), NSTA (pétrole/gaz britannique), CNH/PEMEX (Mexique), NOPTA, NZP&M, ANP Brésil, MRA PNG, MME Namibie, SBMA Îles Cook, ESDM (Indonésie), PASA (Afrique du Sud), CNSOPB (Canada NÉ), C-NLOPB (Canada T.-N.-L.), GEUS/DEA (Danemark).",
+      "sourcesNote": "Concessions émises par les gouvernements à l'intérieur des ZEE nationales. Sources : EMODnet, BOEM, Crown Estate (Angleterre/Pays de Galles/Irlande du Nord + Écosse), Sodir (Norvège), NSTA (pétrole/gaz britannique), CNH/PEMEX (Mexique), NOPTA, NZP&M, ANP Brésil, ESDM (Indonésie), PASA (Afrique du Sud), CNSOPB (Canada NÉ), C-NLOPB (Canada T.-N.-L.), GEUS/DEA (Danemark).",
       "activityTypes": {
         "oil_gas": "Pétrole et gaz",
         "offshore_wind": "Éolien en mer",

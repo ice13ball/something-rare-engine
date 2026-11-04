@@ -19,9 +19,9 @@ const OG_IMAGE = `${SITE_URL}/og.jpg`;
 
 const TITLE = "Ocean & Land Environmental Map — Abyssal Claims";
 const DESCRIPTION =
-  "Interactive 3D map tracking 50+ environmental data layers across ocean and land. Deep-sea mining concessions, global mining footprints, deforestation, active fires, air quality, biodiversity hotspots, hydrothermal vents, and real-time monitoring — powered by ISA, OBIS, NASA FIRMS, OpenAQ, WRI, and more.";
+  "Interactive 3D map of ocean and land environmental data: measurements, biodiversity, hydrothermal vents, seabed concessions and 60+ layers, each with its source.";
 const KEYWORDS =
-  "deep sea mining, ISA mining concessions, international seabed authority, polymetallic nodules, hydrothermal vents, InterRidge vents database, seamounts, ocean conservation, marine biodiversity, Argo floats, ocean monitoring, OBIS biodiversity, environmental map, deforestation, tree cover loss, global forest watch, mining footprints, active fires, NASA FIRMS, air quality, OpenAQ, PM2.5, tailings dams, landslides, surface water, soil carbon, carbon flux, environmental transparency, ocean and land, 3D globe";
+  "deep sea mining, ISA mining concessions, international seabed authority, polymetallic nodules, hydrothermal vents, InterRidge vents database, seamounts, ocean conservation, marine biodiversity, Argo floats, ocean monitoring, OBIS biodiversity, environmental map, deforestation, tree cover loss, global forest watch, mining footprints, active fires, NASA FIRMS, air quality, OpenAQ, PM2.5, tailings dams, landslides, surface water, soil carbon, carbon flux, ocean and land, 3D globe";
 
 const JSON_LD = JSON.stringify(siteGraph);
 

@@ -14,10 +14,10 @@ export interface LegalSection {
 // ⛔ TWO Zenodo records, and swapping them is a licence error, not a typo.
 //
 //   CODE_DOI — the engine that runs this platform. Resource type "Software",
-//              AGPL-3.0-or-later, v1.0.0, minted 2026-09-12 when the mirror
+//              AGPL-3.0-or-later, first minted as v1.0.0 on 2026-09-12 when the mirror
 //              `ice13ball/something-rare-engine` went public.
 //   DOCS_DOI — the methods and data documentation. Resource type "Software
-//              documentation", CC-BY-4.0, version 1.6.
+//              documentation", CC-BY-4.0, version 1.8.
 //
 // The software record's own Zenodo metadata carries `isDocumentedBy` pointing
 // at the documentation record: they are two halves of one pair. Cite the
@@ -33,16 +33,16 @@ export const CODE_DOI = "10.5281/zenodo.22728476";
 export const CODE_DOI_URL = "https://doi.org/10.5281/zenodo.22728476";
 export const CODE_ZENODO_URL = "https://zenodo.org/records/22728476";
 export const CODE_TITLE =
-  "Abyssal Claims: source code of a FAIR-aligned integration platform for deep-sea and terrestrial mining transparency";
-export const CODE_VERSION = "v1.0.0";
+  "Abyssal Claims: source code of an integration platform for ocean and land environmental data";
+export const CODE_VERSION = "v1.2.0";
 export const CODE_LICENCE = "AGPL-3.0-or-later";
 
 export const DOCS_DOI = "10.5281/zenodo.19745884";
 export const DOCS_DOI_URL = "https://doi.org/10.5281/zenodo.19745884";
 export const DOCS_ZENODO_URL = "https://zenodo.org/records/19745884";
 export const DOCS_TITLE =
-  "Abyssal Claims: A FAIR-aligned integration platform for deep-sea and terrestrial mining transparency";
-export const DOCS_VERSION = "1.6";
+  "Abyssal Claims: An integration platform for ocean and land environmental data";
+export const DOCS_VERSION = "1.8";
 export const DOCS_LICENCE = "CC-BY-4.0";
 export const ORCID = "0009-0007-3786-0310";
 export const ORCID_URL = "https://orcid.org/0009-0007-3786-0310";
@@ -202,7 +202,7 @@ export const TERMS_OF_USE: LegalDoc = {
     {
       heading: "About the Site",
       paragraphs: [
-        `${SITE_NAME} is an informational and educational tool that visualises publicly available data about deep-sea and terrestrial mining, biodiversity, oceanographic monitoring, and environmental risk. It is provided free of charge for research, education, and public interest purposes.`,
+        `${SITE_NAME} is an informational and educational tool that visualises publicly available environmental data about the ocean and land: measurements, biodiversity, monitoring, seabed contracts and the land-side impacts of mining. It is provided free of charge for research, education, and public interest purposes.`,
       ],
     },
     {
@@ -306,7 +306,7 @@ export const ABOUT: LegalDoc = {
     {
       heading: "What It Is",
       paragraphs: [
-        "Abyssal Claims is an open-access analytical platform that brings together publicly available scientific and regulatory datasets relevant to deep-sea and terrestrial mining. It combines 50+ data layers from international scientific bodies, intergovernmental organisations, and government registries into a single interactive 3D globe — giving researchers, regulators, industry, journalists, and the public a shared spatial view of where activities, monitoring infrastructure, and ecosystems intersect.",
+        "Abyssal Claims is an open-access analytical platform that brings together publicly available scientific and regulatory environmental datasets for the ocean and land. It combines 50+ data layers from international scientific bodies, intergovernmental organisations, and government registries into a single interactive 3D globe — giving researchers, regulators, industry, journalists, and the public a shared spatial view of where activities, monitoring infrastructure, and ecosystems intersect.",
         "The platform has two modes:",
         {
           list: [
@@ -390,8 +390,8 @@ export const ABOUT: LegalDoc = {
         {
           code: `@software{mazurowski_abyssal_claims_code_2026,
   author       = {Mazurowski, Michal},
-  title        = {Abyssal Claims: source code of a FAIR-aligned integration
-                  platform for deep-sea and terrestrial mining transparency},
+  title        = {Abyssal Claims: source code of an integration
+                  platform for ocean and land environmental data},
   year         = {2026},
   publisher    = {Zenodo},
   version      = {${CODE_VERSION}},
@@ -401,8 +401,8 @@ export const ABOUT: LegalDoc = {
 
 @misc{mazurowski_abyssal_claims_docs_2026,
   author       = {Mazurowski, Michal},
-  title        = {Abyssal Claims: A FAIR-aligned integration platform for
-                  deep-sea and terrestrial mining transparency},
+  title        = {Abyssal Claims: An integration platform for
+                  ocean and land environmental data},
   year         = {2026},
   publisher    = {Zenodo},
   version      = {${DOCS_VERSION}},

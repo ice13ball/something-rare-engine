@@ -415,7 +415,7 @@
       "activityTypeHeading": "Activity type:",
       "countryHeading": "Country:",
       "clearCount": "Clear ({{count}})",
-      "sourcesNote": "Government-issued concessions inside national EEZs. Sources: EMODnet, BOEM, Crown Estate (England/Wales/NI + Scotland), Sodir (Norway), NSTA (UK oil/gas), CNH/PEMEX (Mexico), NOPTA, NZP&M, ANP Brazil, MRA PNG, MME Namibia, SBMA Cook Islands, ESDM (Indonesia), PASA (South Africa), CNSOPB (Canada NS), C-NLOPB (Canada NL), GEUS/DEA (Denmark).",
+      "sourcesNote": "Government-issued concessions inside national EEZs. Sources: EMODnet, BOEM, Crown Estate (England/Wales/NI + Scotland), Sodir (Norway), NSTA (UK oil/gas), CNH/PEMEX (Mexico), NOPTA, NZP&M, ANP Brazil, ESDM (Indonesia), PASA (South Africa), CNSOPB (Canada NS), C-NLOPB (Canada NL), GEUS/DEA (Denmark).",
       "activityTypes": {
         "oil_gas": "Oil & Gas",
         "offshore_wind": "Offshore Wind",

@@ -1,8 +1,8 @@
 {
   "welcome": {
     "title": "Abyssal Claims",
-    "tagline": "Ocean & Land Environmental Transparency",
-    "description": "An <bold>environmental transparency platform</bold> spanning the ocean and land. 50+ data layers — deep-sea mining claims, ocean carbon and acidification, Arctic land-to-ocean change, biodiversity, and live ocean sensors — sourced from real scientific databases. Click any feature for detail, or combine layers to reveal overlaps and change.",
+    "tagline": "Ocean & Land Environmental Data",
+    "description": "A <bold>working space for ocean and land data</bold>. 60+ layers — measurements, ocean carbon and acidification, biodiversity, seabed concessions, Arctic land-to-ocean change and live ocean sensors — each with its source. Click any feature for detail, or combine layers to see how the datasets relate.",
     "subtitle": "Choose your focus",
     "hint": {
       "layers": "Toggle layers on the left — concessions, species, vents, mine footprints, fires, and more",
@@ -21,8 +21,8 @@
     },
     "guided": {
       "title": "Guided Stories",
-      "summary": "9 investigative narratives — mining vs. vents, tailings risk, fire season",
-      "ariaLabel": "Start with guided investigative stories — curated layer combinations with narratives"
+      "summary": "9 guided stories — vents and concessions, tailings risk, fire season",
+      "ariaLabel": "Start with guided stories — curated layer combinations with narratives"
     },
     "continue": "Continue where I left off",
   "exploreAll": "Explore everything",

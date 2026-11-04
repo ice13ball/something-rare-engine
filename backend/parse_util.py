@@ -63,3 +63,17 @@ def arcgis_features(body: dict, label: str = "") -> list[dict]:
     if not isinstance(body, dict) or "features" not in body:
         raise ArcGISError(f"{label or 'arcgis'}: response has no 'features' key")
     return body["features"]
+
+
+class OBISWalkIncomplete(RuntimeError):
+    """An OBIS `after` walk ended before the count OBIS itself reported."""
+
+
+def check_obis_walk(label: str, walked: int, reported: int) -> None:
+    """Raise unless the walk saw as many distinct records as the highest `total` OBIS reported. A sync
+    treats a finished walk as the dataset's whole state and removes what it no longer lists, so anything
+    short of proof fails closed: a run that fails is retried at its next turn, and removes nothing."""
+    if walked and reported <= 0:
+        raise OBISWalkIncomplete(f"{label}: OBIS reported no total for {walked} records")
+    if walked < reported:
+        raise OBISWalkIncomplete(f"{label}: walk ended at {walked} of {reported} records")

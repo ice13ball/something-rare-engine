@@ -1,8 +1,8 @@
 {
   "welcome": {
     "title": "Abyssal Claims",
-    "tagline": "Transparentność środowiskowa oceanu i lądu",
-    "description": "<bold>Platforma transparentności środowiskowej</bold> obejmująca ocean i ląd. Ponad 50 warstw danych — koncesje na wydobycie głębinowe, węgiel oceaniczny i zakwaszenie oceanów, zmiany na styku lądu i oceanu w Arktyce, różnorodność biologiczna oraz czujniki oceaniczne na żywo — z rzeczywistych baz naukowych. Kliknij dowolny obiekt, aby zobaczyć szczegóły, lub łącz warstwy, by odkrywać nakładanie się zjawisk i zmiany.",
+    "tagline": "Dane środowiskowe oceanu i lądu",
+    "description": "<bold>Przestrzeń pracy z danymi o oceanie i lądzie</bold>. Ponad 60 warstw — pomiary, węgiel oceaniczny i zakwaszenie, różnorodność biologiczna, koncesje na dnie morskim, zmiany na styku lądu i oceanu w Arktyce oraz czujniki oceaniczne na żywo — każda ze źródłem. Kliknij dowolny obiekt, aby zobaczyć szczegóły, lub łącz warstwy, by zobaczyć, jak zbiory danych się ze sobą wiążą.",
     "subtitle": "Wybierz swój obszar zainteresowań",
     "hint": {
       "layers": "Włączaj warstwy po lewej — koncesje, gatunki, kominy, ślady kopalni, pożary i więcej",
@@ -21,7 +21,7 @@
     },
     "guided": {
       "title": "Przewodniki tematyczne",
-      "summary": "9 reportaży śledczych — górnictwo a kominy, ryzyko hałd, sezon pożarów",
+      "summary": "9 opowieści z przewodnikiem — kominy i koncesje, ryzyko hałd, sezon pożarów",
       "ariaLabel": "Zacznij od przewodników tematycznych — wyselekcjonowane kombinacje warstw z komentarzem narracyjnym"
     },
     "continue": "Kontynuuj od miejsca, w którym skończyłem",

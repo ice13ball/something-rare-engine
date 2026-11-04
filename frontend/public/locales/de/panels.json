@@ -415,7 +415,7 @@
       "activityTypeHeading": "Aktivitätstyp:",
       "countryHeading": "Land:",
       "clearCount": "Löschen ({{count}})",
-      "sourcesNote": "Staatlich ausgestellte Konzessionen innerhalb nationaler AWZ. Quellen: EMODnet, BOEM, Crown Estate (England/Wales/Nordirland + Schottland), Sodir (Norwegen), NSTA (britisches Öl/Gas), CNH/PEMEX (Mexiko), NOPTA, NZP&M, ANP Brasilien, MRA PNG, MME Namibia, SBMA Cookinseln, ESDM (Indonesien), PASA (Südafrika), CNSOPB (Kanada NE), C-NLOPB (Kanada NL), GEUS/DEA (Dänemark).",
+      "sourcesNote": "Staatlich ausgestellte Konzessionen innerhalb nationaler AWZ. Quellen: EMODnet, BOEM, Crown Estate (England/Wales/Nordirland + Schottland), Sodir (Norwegen), NSTA (britisches Öl/Gas), CNH/PEMEX (Mexiko), NOPTA, NZP&M, ANP Brasilien, ESDM (Indonesien), PASA (Südafrika), CNSOPB (Kanada NE), C-NLOPB (Kanada NL), GEUS/DEA (Dänemark).",
       "activityTypes": {
         "oil_gas": "Öl & Gas",
         "offshore_wind": "Offshore-Wind",

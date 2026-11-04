@@ -1,12 +1,14 @@
 # Abyssal Claims
 
-**A FAIR-aligned integration platform for deep-sea and terrestrial mining transparency.**
+**An integration platform for ocean and land environmental data.**
 
-Abyssal Claims puts 50+ publicly funded, open-licensed geospatial datasets — ISA
-concessions, deep-sea biodiversity, ocean biogeochemistry, submarine infrastructure,
-Arctic land→ocean processes and terrestrial mining impacts — onto a single interactive
-3D globe, so the environmental and governance context of seabed and land mineral
-extraction is legible to researchers, journalists, policy analysts and the public.
+Abyssal Claims is an independently developed, non-commercial web platform that brings more than
+fifty publicly funded environmental datasets together on one interactive three-dimensional map.
+It began with deep-sea mining and has grown into a working space for ocean and land data, from
+individual measurements and biodiversity records to seabed contracts and the land-side impacts
+of mining. Its purpose is to let researchers and other stakeholders explore how these datasets
+relate: a measurement beside the gridded field it informs, a concession beside the species
+recorded inside it, and the places where the ocean has hardly been observed at all.
 
 Live: **https://something-rare.com** · Source code (Zenodo, AGPL-3.0-or-later):
 **https://doi.org/10.5281/zenodo.22728476** · Methods & data documentation (Zenodo, CC-BY-4.0):
@@ -46,7 +48,7 @@ something you can run unchanged.
   that keeps the presentation neutral.
 - **Is not:** a dataset. Every layer is fetched at run time from its upstream provider under
   that provider's own licence (see [`DATA-LICENCES.md`](DATA-LICENCES.md)). The exception is
-  ~1.1 MB of test fixtures under `backend/tests/fixtures/`, which are **real** upstream
+  about 5 MB of test fixtures under `backend/tests/fixtures/`, which are **real** upstream
   excerpts, not synthetic — they carry their sources' terms too.
 - **Is not:** a product or a portfolio pitch. It is published as citable open-science
   infrastructure.

@@ -84,15 +84,19 @@ class _FakeConn:
     """Records every `executemany` call so a test can prove EVERY page
     reached the DB, not just the first."""
 
-    def __init__(self, total_after):
+    def __init__(self, total_after, total_before=None):
         self.executemany_calls: list[list[tuple]] = []
         self._total_after = total_after
+        self._counts = [total_after if total_before is None else total_before]
 
     async def executemany(self, sql, args):
         self.executemany_calls.append(list(args))
 
     async def fetchval(self, sql):
-        return self._total_after
+        return self._counts.pop(0) if self._counts else self._total_after
+
+    async def execute(self, sql, *args):
+        return "DELETE 0"
 
 
 class _Acquire:
@@ -160,7 +164,7 @@ class _FakeAsyncClient:
         idx = self._occurrence_calls
         self._occurrence_calls += 1
         page = self._pages[idx] if idx < len(self._pages) else []
-        return _FakeResp({"results": page})
+        return _FakeResp({"results": page, "total": sum(len(p) for p in self._pages)})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -223,7 +227,7 @@ async def test_sync_deepdata_writes_every_page_and_logs_the_running_total(monkey
     ]
     monkeypatch.setattr(deepdata_ingest, "fetch_deepdata_records", _pages_gen(pages))
 
-    fake_conn = _FakeConn(total_after=999)
+    fake_conn = _FakeConn(total_after=999, total_before=994)
     monkeypatch.setattr(db, "pool", _PoolFromConn(fake_conn))
 
     logged = {}
@@ -256,7 +260,7 @@ async def test_sync_mbari_writes_every_page_and_logs_the_running_total(monkeypat
     ]
     monkeypatch.setattr(mbari_vars_ingest, "fetch_mbari_records", _pages_gen(pages))
 
-    fake_conn = _FakeConn(total_after=42)
+    fake_conn = _FakeConn(total_after=42, total_before=38)
     monkeypatch.setattr(db, "pool", _PoolFromConn(fake_conn))
 
     logged = {}

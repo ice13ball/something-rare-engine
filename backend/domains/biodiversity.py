@@ -225,6 +225,25 @@ async def sync_sio_bic() -> int:
     return total
 
 
+# Below this share of the table a complete walk is not treated as the dataset's new state.
+_OBIS_MIN_SHARE_TO_PRUNE = 0.4
+
+
+async def _prune_ids_obis_dropped(conn, table: str, seen: set[str], before: int, label: str) -> None:
+    """After a COMPLETE walk, remove rows whose `obis_id` OBIS no longer lists.
+
+    OBIS regenerates `_id` on republication, so `ON CONFLICT (obis_id)` no-ops nothing and a
+    second copy lands next to the first (mbari_vars_records held two for this reason, until
+    2026-11-04). One statement, so it applies whole or not at all; a failed walk never gets here,
+    and the next complete one cleans up what it left. A walk returning far fewer rows than the
+    table had is more likely a broken source than a smaller dataset: it logs and removes nothing."""
+    if len(seen) < before * _OBIS_MIN_SHARE_TO_PRUNE:
+        log.warning("%s: walk returned %d ids against %d rows before it; not pruning", label, len(seen), before)
+        return
+    result = await conn.execute(f"DELETE FROM {table} WHERE NOT (obis_id::text = ANY($1::text[]))", list(seen))
+    log.warning("%s: removed rows whose OBIS id is gone: %s", label, result)
+
+
 async def sync_deepdata() -> int:
     """Pull ISA DeepData occurrences via OBIS REST (nodeid filter) and upsert
     into deepdata_occurrences.
@@ -244,7 +263,8 @@ async def sync_deepdata() -> int:
     means a failure on page N leaves pages 1..N-1 already committed. We
     accept that because (a) the upsert is `ON CONFLICT DO NOTHING` on
     `obis_id`, so a retry from page 1 just no-ops the rows already written
-    — no duplication, no need to detect "where we left off"; and (b) the
+    while the ids hold (a republication changes them: `_prune_ids_obis_dropped`
+    handles that after a complete walk); and (b) the
     exception still propagates out of this function before `_log_sync` is
     called, so a failed run does NOT get stamped as a fresh sync — the
     monitor still sees the previous `last_synced_at` and ages normally,
@@ -269,15 +289,20 @@ async def sync_deepdata() -> int:
         f"ON CONFLICT (obis_id) DO NOTHING"
     )
 
-    fetched = 0
+    seen: set[str] = set()
     async with db.pool.acquire() as conn:
+        before = await conn.fetchval("SELECT COUNT(*) FROM deepdata_occurrences")
         async for page in fetch_deepdata_records():
-            fetched += len(page)
+            seen.update(str(r["obis_id"]).lower() for r in page)
             await conn.executemany(sql, [tuple(r[c] for c in cols) for r in page])
         total = await conn.fetchval("SELECT COUNT(*) FROM deepdata_occurrences")
+        added = total - before
+        if seen and total > len(seen):
+            await _prune_ids_obis_dropped(conn, "deepdata_occurrences", seen, before, "deepdata")
+            total = await conn.fetchval("SELECT COUNT(*) FROM deepdata_occurrences")
 
-    await _log_sync("deepdata", fetched, total)
-    log.info("deepdata: %d processed, %d total in table", fetched, total)
+    await _log_sync("deepdata", added, total)
+    log.info("deepdata: %d processed, %d new, %d total in table", len(seen), added, total)
     return total
 
 
@@ -312,15 +337,20 @@ async def sync_mbari_vars() -> int:
         f"ON CONFLICT (obis_id) DO NOTHING"
     )
 
-    fetched = 0
+    seen: set[str] = set()
     async with db.pool.acquire() as conn:
+        before = await conn.fetchval("SELECT COUNT(*) FROM mbari_vars_records")
         async for page in fetch_mbari_records():
-            fetched += len(page)
+            seen.update(str(r["obis_id"]).lower() for r in page)
             await conn.executemany(sql, [tuple(r[c] for c in cols) for r in page])
         total = await conn.fetchval("SELECT COUNT(*) FROM mbari_vars_records")
+        added = total - before
+        if seen and total > len(seen):
+            await _prune_ids_obis_dropped(conn, "mbari_vars_records", seen, before, "mbari-vars")
+            total = await conn.fetchval("SELECT COUNT(*) FROM mbari_vars_records")
 
-    await _log_sync("mbari-vars", fetched, total)
-    log.info("mbari-vars: %d processed, %d total in table", fetched, total)
+    await _log_sync("mbari-vars", added, total)
+    log.info("mbari-vars: %d processed, %d new, %d total in table", len(seen), added, total)
     return total
 
 
