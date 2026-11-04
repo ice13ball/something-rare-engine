@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, the live platform, or any derived product from Abyssal Claims, please cite the Zenodo deposit below."
-title: "Abyssal Claims: An integration platform for ocean and land environmental data"
+title: "Abyssal Claims: source code of an integration platform for ocean and land environmental data"
 abstract: >-
   Abyssal Claims is an independently developed, non-commercial web platform that
   brings more than fifty publicly funded environmental datasets together on one
