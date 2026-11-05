@@ -80,11 +80,17 @@ export function resolveOpenTarget(
     return false;
   });
   // Links written before 2026-11-05 carry the pick index of the 3D layer, which drew all seamounts in API order.
-  // Try it only when no peak_id matched. Best effort: the order is the table's, which no sync rewrites today.
+  // Try it only when no peak_id matched. The weekly rebuild inserts the PANGAEA file in its own order, then the
+  // in_concession UPDATE moves those rows to the end of the table, in an order that depends on the join plan.
+  // So an index reads reliably only outside that end block: a concession seamount found this way opens the view
+  // without a selection, because a wrong seamount marked inside a concession misleads more than none (05.11).
   let legacyFeature = feature;
   if (!legacyFeature && layerId === "seamounts" && /^\d+$/.test(wanted) && Number(wanted) < collection.features.length) {
-    legacyFeature = collection.features[Number(wanted)];
-    matchedProp = "peak_id";
+    const candidate = collection.features[Number(wanted)];
+    if (!(candidate.properties as Record<string, unknown> | null)?.in_concession) {
+      legacyFeature = candidate;
+      matchedProp = "peak_id";
+    }
   }
   if (!legacyFeature || !matchedProp) return null;
 
