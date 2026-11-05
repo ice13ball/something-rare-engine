@@ -109,6 +109,7 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
 // Maps deck.gl layer `.id` to toggle group id for ordering in Map3D.tsx.
 // Only entries that differ from the toggle id are listed; others pass through as-is.
 export const DECK_TO_TOGGLE: Record<string, string> = {
+  "seamounts-dots": "seamounts",  // the flat low-zoom view of the same layer; without this the z-order falls back to 9999
   "tectonic-plates-fill":           "tectonic-plates",
   "tectonic-plates-boundaries":     "tectonic-plates",
   "offshore-zones-mvt":             "offshore-activities",

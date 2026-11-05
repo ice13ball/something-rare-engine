@@ -2185,6 +2185,13 @@ export function Map3D() {
     return seamountsData.features;
   }, [seamountsData]);
 
+  const seamountDotBand = (viewState.zoom as number) < 3 ? 0 : (viewState.zoom as number) < 4 ? 1 : 2;
+  // Below zoom 5.5 the 3D seamounts are not drawn. Flat dots of the tallest ones instead (all 37,889 are already in memory): >= 4,000 m below zoom 3 (about 4,200), >= 3,000 m below 4 (about 10,800), >= 2,000 m up to 5.5 (about 29,400); seamounts inside a concession always. Measured 2026-11-05.
+  const seamountDotFeatures = useMemo(() => {
+    const minH = [4000, 3000, 2000][seamountDotBand];
+    return seamountsFeatures.filter((f: any) => f.properties?.in_concession || ((f.properties?.height_m as number) ?? 0) >= minH);
+  }, [seamountsFeatures, seamountDotBand]);
+
   // ── Viewport hotspot fetch — load individual dots for current view at zoom 5.5+ ──
   // Snap to 5° grid before using as deps so the effect only fires on tile boundary crossings,
   // not on every sub-pixel pan.
@@ -3717,9 +3724,8 @@ export function Map3D() {
       if (offshoreActivityCountryFilters.size && !offshoreActivityCountryFilters.has(sov)) return;
     }
     // Remap deck layer ids that differ from their toggle/panel id
-    const layerId = info.layer?.id === "arctic-catchments-mvt"
-      ? "arctic-catchments"
-      : (info.layer?.id ?? "unknown");
+    const rawId = info.layer?.id ?? "unknown";
+    const layerId = rawId === "arctic-catchments-mvt" ? "arctic-catchments" : rawId === "seamounts-dots" ? "seamounts" : rawId;
     const id = clickIdFor(layerId, props, info.index);
     const shift = !!(event?.srcEvent as MouseEvent)?.shiftKey;
 
@@ -4265,6 +4271,23 @@ export function Map3D() {
       onClick: handleClick,
       onTileError: () => onTileLayerError("Mining Claims"),
       onTileLoad: () => onTileLayerLoad("Mining Claims"),
+    }),
+
+    activeLayers.has("seamounts") && seamountsData && (viewState.zoom as number) < 5.5 && new ScatterplotLayer({
+      id: "seamounts-dots",
+      data: seamountDotFeatures,
+      getPosition: (f: any) => f.geometry.coordinates,
+      getRadius: (f: any) => (((f.properties?.height_m as number) ?? 0) >= 4000 ? 3 : 2),
+      radiusUnits: "pixels",
+      getFillColor: (f: any) => f.properties?.in_concession ? [245, 210, 0, 230] : [145, 205, 255, 210],
+      stroked: true,
+      getLineColor: [10, 30, 60, 200],
+      lineWidthUnits: "pixels",
+      getLineWidth: 0.5,
+      pickable: true,
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 120],
+      onClick: handleClick,
     }),
 
     // Seamounts & Knolls — octagonal column scaled to actual height (visible from zoom 5.5+)

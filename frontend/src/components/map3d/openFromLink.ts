@@ -67,7 +67,7 @@ export function resolveOpenTarget(
   // Try each candidate property in turn, so a link built from the search bar
   // (which carries `id`) and one built from an SEO page (which carries `name`)
   // both land on the same feature.
-  let matchedProp: string | null = null;
+  let matchedProp = null as string | null;
   const feature = collection.features.find((f) => {
     const props = f.properties as Record<string, unknown> | null;
     for (const prop of cfg.idProps) {
@@ -79,16 +79,23 @@ export function resolveOpenTarget(
     }
     return false;
   });
-  if (!feature || !matchedProp) return null;
+  // Links written before 2026-11-05 carry the pick index of the 3D layer, which drew all seamounts in API order.
+  // Try it only when no peak_id matched. Best effort: the order is the table's, which no sync rewrites today.
+  let legacyFeature = feature;
+  if (!legacyFeature && layerId === "seamounts" && /^\d+$/.test(wanted) && Number(wanted) < collection.features.length) {
+    legacyFeature = collection.features[Number(wanted)];
+    matchedProp = "peak_id";
+  }
+  if (!legacyFeature || !matchedProp) return null;
 
-  const properties = (feature.properties ?? {}) as Record<string, unknown>;
+  const properties = (legacyFeature.properties ?? {}) as Record<string, unknown>;
   return {
     routingKey: cfg.routingKey(properties),
     // ⛔ The id handed to the store must be the value the panel and the store's
     // own dedup expect — the raw property, not the lower-cased search key.
     id: (properties[matchedProp] as string | number) ?? featureId,
     properties,
-    feature,
+    feature: legacyFeature,
     zoom: cfg.zoom,
   };
 }
@@ -262,7 +269,12 @@ export function clickIdFor(
                           // position in this dataset (see rules/subsystems...); position_id
                           // is the only unique key.
                           ? ((props.position_id as string | number | undefined) ?? String(index))
-                          : ((props.isa_id as string | number | undefined) ?? (props.id as string | number | undefined) ?? (props.platform_id as string | number | undefined) ?? String(index));
+                          : layerId === "seamounts"
+                            // ⛔ The pick index differs between the low-zoom dots (only the tallest) and the 3D view (all), and it is not an
+                            // identifier anyway. peak_id is the seamount's stable id; links written before 2026-11-05 carried the index
+                            // (see the fallback in resolveOpenTarget).
+                            ? ((props.peak_id as string | number | undefined) ?? String(index))
+                            : ((props.isa_id as string | number | undefined) ?? (props.id as string | number | undefined) ?? (props.platform_id as string | number | undefined) ?? String(index));
 }
 
 export async function openTargetFor(
