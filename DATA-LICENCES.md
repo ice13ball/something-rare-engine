@@ -126,6 +126,7 @@ These are carried verbatim in the platform and must be preserved in any derivati
 | Permafrost thaw — ARTS v6 (WHRC) | `permafrost-thaw` | **CC0** (Zenodo) |
 | SIOS Svalbard (`sios-svalbard.org/rest/stations/data.json`) | `sios-svalbard` observing datasets | SIOS catalogue terms |
 | Natural Earth 1:110m land (v5.1.2), `backend/services/ne_110m_land.json` | coastline in the `/cruise/{EXPOCODE}` track sketch | **Public domain**. "Made with Natural Earth." No attribution required; credited in the sketch footer. Outer rings only, coordinates rounded to 0.01°. |
+| **Basemap** (not a data layer): NASA GIBS (`gibs.earthdata.nasa.gov`: Blue Marble shaded relief with bathymetry) and OpenFreeMap (`tiles.openfreemap.org`, OpenMapTiles schema) | the map background, coastlines, place names and borders | GIBS: NASA open imagery, no key; the acknowledgement NASA asks for is on the privacy page. OpenFreeMap: free public instance, no key; data © OpenStreetMap contributors (ODbL), credited on the map. Replaced Esri World Imagery on 2026-11-06, which had no licence for this use |
 
 ⚠️ **PANGAEA-hosted sources set licence per deposited dataset, not per portal.** `hydrothermal-vents`,
 `mosaic-sediment`, `mining-footprints`, `arctic-sediment-carbon` and `arctic-rivers` all resolve

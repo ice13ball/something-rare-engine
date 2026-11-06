@@ -161,8 +161,8 @@ const CSP_DIRECTIVES = {
   'script-src': ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com'],
   'style-src': ["'self'", "'unsafe-inline'"],
   'font-src': ["'self'", 'data:'],
-  'img-src': ["'self'", 'data:', 'blob:', 'https://server.arcgisonline.com', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com'],
-  'connect-src': ["'self'", 'https://apiv2.something-rare.com', 'https://server.arcgisonline.com', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://raw.githubusercontent.com', 'https://www.googletagmanager.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com', 'https://analytics.google.com', 'https://*.analytics.google.com'],
+  'img-src': ["'self'", 'data:', 'blob:', 'https://gibs.earthdata.nasa.gov', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com'],
+  'connect-src': ["'self'", 'https://apiv2.something-rare.com', 'https://gibs.earthdata.nasa.gov', 'https://tiles.openfreemap.org', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://raw.githubusercontent.com', 'https://www.googletagmanager.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com', 'https://analytics.google.com', 'https://*.analytics.google.com'],
   // MapLibre GL and @loaders.gl both spawn workers from blob: URLs, and the
   // CSV/JSON export links are blob: too.
   'worker-src': ["'self'", 'blob:'],

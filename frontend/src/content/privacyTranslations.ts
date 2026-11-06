@@ -20,7 +20,7 @@ export type PolicyLang = "en" | "pl" | "de" | "fr";
 
 const PL: LegalDoc = {
   title: "Polityka prywatności",
-  updated: "październik 2026",
+  updated: "listopad 2026",
   sections: [
     {
       heading: "Kim jesteśmy",
@@ -95,7 +95,7 @@ const PL: LegalDoc = {
       heading: "Podkład mapy i dostawcy danych",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "Mapa przy każdej wizycie pobiera podkład (zdjęcia) z serwerów Esri (server.arcgisonline.com), a mapa w raportach wpływu — z serwerów Carto (basemaps.cartocdn.com). Niektóre warstwy danych, gdy je włączysz, pobierają dane z serwerów swoich dostawców — na przykład storage.googleapis.com dla warstwy wód powierzchniowych JRC. Jak przy każdej osadzonej mapie, te serwery widzą Twój adres IP. Nie zapisujemy przy tym żadnych ciasteczek i nie jest to śledzenie.",
+        "Mapa przy każdej wizycie pobiera podkład (zdjęcia) z usługi NASA Global Imagery Browse Services (gibs.earthdata.nasa.gov), a linie brzegowe, nazwy miejsc i granice z OpenFreeMap (tiles.openfreemap.org, dane OpenStreetMap). Korzystamy z obrazów udostępnianych przez usługi NASA Global Imagery Browse Services (GIBS), część systemu NASA Earth Science Data and Information System (ESDIS). Niektóre warstwy danych, gdy je włączysz, pobierają dane z serwerów swoich dostawców — na przykład storage.googleapis.com dla warstwy wód powierzchniowych JRC. Jak przy każdej osadzonej mapie, te serwery widzą Twój adres IP. Nie zapisujemy przy tym żadnych ciasteczek i nie jest to śledzenie.",
       ],
     },
     {
@@ -150,7 +150,7 @@ const PL: LegalDoc = {
 
 const DE: LegalDoc = {
   title: "Datenschutzerklärung",
-  updated: "Oktober 2026",
+  updated: "November 2026",
   sections: [
     {
       heading: "Wer wir sind",
@@ -225,7 +225,7 @@ const DE: LegalDoc = {
       heading: "Kartenhintergrund und Datenanbieter",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "Die Karte lädt ihre Hintergrundbilder bei jedem Besuch von Esri (server.arcgisonline.com); die Karte in den Wirkungsberichten nutzt Carto (basemaps.cartocdn.com). Manche Datenebenen laden, sobald Sie sie einschalten, von den Servern ihrer Anbieter — zum Beispiel storage.googleapis.com für die JRC-Oberflächenwasser-Ebene. Wie bei jeder eingebetteten Karte sehen diese Server Ihre IP-Adresse. Wir setzen dafür keine Cookies, und es handelt sich nicht um Tracking.",
+        "Die Karte lädt bei jedem Besuch ihre Hintergrundbilder von den Global Imagery Browse Services der NASA (gibs.earthdata.nasa.gov) sowie Küstenlinien, Ortsnamen und Grenzen von OpenFreeMap (tiles.openfreemap.org, Daten von OpenStreetMap). Wir verwenden Bilder, die von den Diensten der NASA Global Imagery Browse Services (GIBS) bereitgestellt werden, einem Teil des NASA Earth Science Data and Information System (ESDIS). Manche Datenebenen laden, sobald Sie sie einschalten, von den Servern ihrer Anbieter — zum Beispiel storage.googleapis.com für die JRC-Oberflächenwasser-Ebene. Wie bei jeder eingebetteten Karte sehen diese Server Ihre IP-Adresse. Wir setzen dafür keine Cookies, und es handelt sich nicht um Tracking.",
       ],
     },
     {
@@ -280,7 +280,7 @@ const DE: LegalDoc = {
 
 const FR: LegalDoc = {
   title: "Politique de confidentialité",
-  updated: "octobre 2026",
+  updated: "novembre 2026",
   sections: [
     {
       heading: "Qui sommes-nous",
@@ -355,7 +355,7 @@ const FR: LegalDoc = {
       heading: "Fond de carte et fournisseurs de données",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "La carte charge son fond d'imagerie depuis Esri (server.arcgisonline.com) à chaque visite ; la carte des rapports d'impact utilise Carto (basemaps.cartocdn.com). Certaines couches de données, une fois activées, se chargent depuis les serveurs de leurs fournisseurs — par exemple storage.googleapis.com pour la couche des eaux de surface du JRC. Comme pour toute carte intégrée, ces serveurs voient votre adresse IP. Nous ne déposons aucun cookie pour cela, et il ne s'agit pas de suivi.",
+        "La carte charge à chaque visite son fond d'imagerie depuis les Global Imagery Browse Services de la NASA (gibs.earthdata.nasa.gov), et les traits de côte, les noms de lieux et les frontières depuis OpenFreeMap (tiles.openfreemap.org, données OpenStreetMap). Nous utilisons des images fournies par les Global Imagery Browse Services (GIBS) de la NASA, composante de l'Earth Science Data and Information System (ESDIS) de la NASA. Certaines couches de données, une fois activées, se chargent depuis les serveurs de leurs fournisseurs — par exemple storage.googleapis.com pour la couche des eaux de surface du JRC. Comme pour toute carte intégrée, ces serveurs voient votre adresse IP. Nous ne déposons aucun cookie pour cela, et il ne s'agit pas de suivi.",
       ],
     },
     {
