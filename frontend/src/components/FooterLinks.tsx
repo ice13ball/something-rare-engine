@@ -55,9 +55,18 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
 
   return (
     // left-1/2 caps the box at about half the viewport; a one-line w-max bar
-    // covered the status line and the map attribution. Below ~1600 px it needs two rows,
-    // so wrap whole items, never mid-label ("Share / view").
-    <div className="hidden fixed bottom-2 left-1/2 -translate-x-1/2 z-10 sm:flex flex-wrap justify-center items-center gap-x-3 whitespace-nowrap pointer-events-auto bg-surface-dim rounded-full px-4 py-1">
+    // covered the status line. Below ~1600 px it needs two rows, so wrap whole items,
+    // never mid-label ("Share / view").
+    // The map's source credits sit on the line above the links (sm and up): MapLibre's own
+    // attribution box ran under this bar, so index.css hides it from 640 px, where this bar shows.
+    <div className="hidden fixed bottom-2 left-1/2 -translate-x-1/2 z-10 sm:flex flex-col items-center gap-0.5 pointer-events-none">
+    <p className="pointer-events-auto text-center text-[10px] leading-tight text-white/70 [&_a]:text-white/85 [&_a:hover]:text-white px-2 rounded bg-black/50">
+      Map: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener noreferrer">NASA GIBS / ESDIS</a>,
+      Blue Marble: NASA Earth Observatory · <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>{" "}
+      <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">© OpenMapTiles</a>{" "}
+      Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>
+    </p>
+    <div className="flex flex-wrap justify-center items-center gap-x-3 whitespace-nowrap pointer-events-auto bg-surface-dim rounded-full px-4 py-1">
       <Link
         to="/blog"
         className="text-white/80 hover:text-white/90 text-xs transition-colors font-medium"
@@ -142,6 +151,7 @@ export function FooterLinks({ onReopenConsent, onOpenFeedback }: { onReopenConse
           </button>
         </>
       )}
+    </div>
     </div>
   );
 }
