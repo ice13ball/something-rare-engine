@@ -33,6 +33,9 @@ import duckdb
 import db
 from api_access.notify import notify_telegram
 from ingestion import USER_AGENT
+from ingestion.duckdb_scratch import (
+    GLODAP_CSV_RESERVE, GLODAP_DUCKDB_TEMP_MAX, SCRATCH_MARGIN, ScratchLimitExceeded, apply_temp_limit, env_bytes,
+    free_space_shortfall, is_temp_limit_error)
 from ingestion.glodap_bottles_rules import (  # noqa: F401  (SOURCE and the prefixes are re-exported for callers)
     REQUIRED_COLUMNS, SOURCE, SWAPPED_WITH_REJECTS_PREFIX, build_cast, cast_number, clean_or_none, row_problem)
 from schema.glodap_bottles import CAST_COLUMNS, casts_ddl, casts_index_ddl, cruises_ddl
@@ -144,6 +147,16 @@ def check_header(csv_path: pathlib.Path) -> None:
         raise HeaderMismatch(f"source header changed: missing {', '.join(missing)}")
 
 
+def _guarded(fn, *args):
+    """Run a DuckDB call; a full spill directory (max_temp_directory_size) becomes ScratchLimitExceeded."""
+    try:
+        return fn(*args)
+    except Exception as e:
+        if is_temp_limit_error(e):
+            raise ScratchLimitExceeded("duckdb temp limit (GLODAP_DUCKDB_TEMP_MAX) hit while sorting the CSV") from e
+        raise
+
+
 def iter_casts(csv_path: pathlib.Path, scratch: pathlib.Path):
     """Yield the rows of one cast at a time, ordered by (expocode, station, cast). DuckDB under a memory
     cap spilling into `scratch/duckdb`; every column kept as text; only the columns the rules read."""
@@ -153,9 +166,10 @@ def iter_casts(csv_path: pathlib.Path, scratch: pathlib.Path):
         con.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}'")
         con.execute("SET threads=2")
         con.execute(f"SET temp_directory='{spill}'")
+        apply_temp_limit(con, "GLODAP_DUCKDB_TEMP_MAX", GLODAP_DUCKDB_TEMP_MAX)
         con.execute("SET preserve_insertion_order=false")
         cols = ", ".join(f'"{c}"' for c in REQUIRED_COLUMNS)
-        rel = con.execute(f"""SELECT {cols} FROM read_csv(?, header=true, all_varchar=true)
+        rel = _guarded(con.execute, f"""SELECT {cols} FROM read_csv(?, header=true, all_varchar=true)
                               ORDER BY expocode, station,
                                        (TRY_CAST("cast" AS DOUBLE) IS NULL OR isnan(TRY_CAST("cast" AS DOUBLE))
                                         OR isinf(TRY_CAST("cast" AS DOUBLE))
@@ -163,7 +177,7 @@ def iter_casts(csv_path: pathlib.Path, scratch: pathlib.Path):
         names = [d[0] for d in rel.description]
         cur_key, cur = None, []
         while True:
-            chunk = rel.fetchmany(20_000)
+            chunk = _guarded(rel.fetchmany, 20_000)
             if not chunk:
                 break
             for t in chunk:
@@ -413,8 +427,9 @@ async def _load(conn, csv_path: pathlib.Path, run_dir: pathlib.Path, tally: Tall
 
 
 async def sync_glodap_bottles(*, fetch=None, ship_lookup=None, scratch=None) -> dict:
-    """One full import. Never raises. -> {"outcome": "swapped"|"blocked"|"lock_timeout"|"error"|"schema",
-    "casts": int, "reasons": [str], "rejected": {...}}. Every exit is logged via sync_log."""
+    """One full import. Never raises. -> {"outcome": "swapped"|"blocked"|"lock_timeout"|"error"|"schema"|"disk",
+    "casts": int, "reasons": [str], "rejected": {...}}. "disk" = deferred by the free-space gate before anything
+    was downloaded (not a failure). Every exit is logged via sync_log."""
     try:
         return await _sync(fetch or default_fetch, ship_lookup or default_ship_lookup,
                            pathlib.Path(scratch or SCRATCH_DIR) / "run")
@@ -428,6 +443,20 @@ async def sync_glodap_bottles(*, fetch=None, ship_lookup=None, scratch=None) -> 
 
 async def _sync(fetch, ship_lookup, run_dir: pathlib.Path) -> dict:
     shutil.rmtree(run_dir, ignore_errors=True)
+    # Free-space gate, BEFORE the download: the DuckDB spill cap + the zip and CSV + margin must fit on the
+    # run dir's filesystem (/, shared with the production database). A deferral, not a failure: nothing was
+    # downloaded or staged, the worker does not start its 7-day back-off (outcome 'disk' is not in
+    # FAILED_OUTCOMES) and DISK_SPACE_PREFIX is in TRANSIENT_PREFIXES, so the health read calls it deferred.
+    cap, csv_reserve, margin = (env_bytes("GLODAP_DUCKDB_TEMP_MAX", GLODAP_DUCKDB_TEMP_MAX),
+                                env_bytes("GLODAP_CSV_RESERVE", GLODAP_CSV_RESERVE),
+                                env_bytes("SCRATCH_MARGIN", SCRATCH_MARGIN))
+    shortfall = free_space_shortfall(
+        run_dir, cap + csv_reserve + margin,
+        f"temp cap {cap >> 20} MiB + csv {csv_reserve >> 20} MiB + margin {margin >> 20} MiB")
+    if shortfall:
+        log.warning("glodap-bottles: %s", shortfall)
+        await _outcome(shortfall, alert=False)
+        return {"outcome": "disk", "casts": 0, "reasons": [shortfall], "rejected": {}}
     try:
         try:
             (run_dir / "duckdb").mkdir(parents=True, exist_ok=True)
@@ -493,6 +522,10 @@ async def _sync(fetch, ship_lookup, run_dir: pathlib.Path) -> dict:
                 if type(e).__name__ == "LockNotAvailableError":
                     await _outcome("lock_timeout on swap; live tables untouched")
                     return {"outcome": "lock_timeout", "casts": tally.casts, "reasons": [str(e)],
+                            "rejected": dict(tally.rejected)}
+                if isinstance(e, ScratchLimitExceeded):
+                    await _outcome(f"error: duckdb temp limit hit, load aborted; live tables untouched ({e})"[:300])
+                    return {"outcome": "error", "casts": tally.casts, "reasons": [str(e)],
                             "rejected": dict(tally.rejected)}
                 await _outcome(f"error: load failed: {type(e).__name__}: {e}"[:300])
                 return {"outcome": "error", "casts": tally.casts, "reasons": [f"{type(e).__name__}: {e}"],

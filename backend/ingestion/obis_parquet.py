@@ -47,6 +47,10 @@ from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
+from ingestion.duckdb_scratch import (
+    OBIS_BATCH_RESERVE, OBIS_DUCKDB_TEMP_MAX, SCRATCH_MARGIN, ScratchLimitExceeded, apply_temp_limit, env_bytes,
+    free_space_shortfall, is_temp_limit_error)
+
 log = logging.getLogger(__name__)
 
 OBIS_PARQUET_GLOB = "s3://obis-open-data/occurrence/*.parquet"
@@ -127,6 +131,7 @@ def _connect():
     con.execute("SET memory_limit='3GB'")
     con.execute("SET threads=2")
     con.execute(f"SET temp_directory='{_tmp}'")
+    apply_temp_limit(con, "OBIS_DUCKDB_TEMP_MAX", OBIS_DUCKDB_TEMP_MAX)
     con.execute("SET preserve_insertion_order=false")
     return con
 
@@ -155,6 +160,39 @@ def _download_one(url: str, dest: str, timeout: int = 120) -> str | None:
     except Exception as exc:
         log.warning("obis_parquet: download failed %s: %s", url, exc)
         return None
+
+
+def _head_size(url: str, timeout: int = 30) -> int | None:
+    """Content-Length of one parquet file, None when the HEAD fails or carries no length."""
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            n = r.headers.get("Content-Length")
+            return int(n) if n is not None else None
+    except Exception:
+        return None
+
+
+def _batch_bytes(s3_paths: list[str], parallel: int = 12) -> int | None:
+    """Total size of a batch before it is downloaded; None if any file's size is unknown."""
+    with ThreadPoolExecutor(max_workers=parallel) as pool:
+        sizes = list(pool.map(_head_size, [_s3_to_http(p) for p in s3_paths]))
+    known = [s for s in sizes if s is not None]
+    return sum(known) if len(known) == len(sizes) else None
+
+
+def _batch_space_shortfall(s3_paths: list[str]) -> str | None:
+    """Free-space gate for ONE batch: its real size (HEAD) + the DuckDB spill cap + margin on OBIS_SCRATCH_DIR.
+    ⛔ Batches are not uniform: on 2026-11-06 the median batch was 20 MB and one was 19.1 GiB (a single
+    20.4 GB file, 5422689c-…), so the gate before the run cannot know what the worst batch needs."""
+    size = _batch_bytes(s3_paths)
+    batch = size if size is not None else env_bytes("OBIS_BATCH_RESERVE", OBIS_BATCH_RESERVE)
+    cap = env_bytes("OBIS_DUCKDB_TEMP_MAX", OBIS_DUCKDB_TEMP_MAX)
+    margin = env_bytes("SCRATCH_MARGIN", SCRATCH_MARGIN)
+    return free_space_shortfall(
+        OBIS_SCRATCH_DIR, batch + cap + margin,
+        f"batch {batch >> 20} MiB{'' if size is not None else ' (reserve, size unknown)'}"
+        f" + temp cap {cap >> 20} MiB + margin {margin >> 20} MiB")
 
 
 def _download_batch(s3_paths: list[str], target_dir: str, parallel: int = 12) -> list[str]:
@@ -237,73 +275,88 @@ def fetch_deep_occurrences_for_species(
     _sweep_stale_batch_dirs()
 
     con = _connect()
-    con.execute("CREATE TEMP TABLE curated (scientificName VARCHAR)")
-    con.executemany("INSERT INTO curated VALUES (?)", [(s,) for s in species])
+    try:
+        con.execute("CREATE TEMP TABLE curated (scientificName VARCHAR)")
+        con.executemany("INSERT INTO curated VALUES (?)", [(s,) for s in species])
 
-    files = _list_parquet_files(con)
-    log.info("obis_parquet: %d parquet files to process in batches of %d", len(files), files_per_batch)
-    if stats is not None:
-        stats["files_total"] = len(files)
-        stats["files_ok"] = 0
+        files = _list_parquet_files(con)
+        log.info("obis_parquet: %d parquet files to process in batches of %d", len(files), files_per_batch)
+        if stats is not None:
+            stats["files_total"] = len(files)
+            stats["files_ok"] = 0
 
-    batch_query_template = f"""
-        SELECT
-            _id                                          AS obis_id,
-            dataset_id                                   AS dataset_id,
-            interpreted.occurrenceID                     AS occurrence_id,
-            interpreted.scientificName                   AS scientific_name,
-            interpreted.phylum                           AS phylum,
-            interpreted.class                            AS class_name,
-            interpreted.\"order\"                        AS order_name,
-            interpreted.family                           AS family,
-            interpreted.minimumDepthInMeters             AS depth,
-            interpreted.decimalLatitude                  AS lat,
-            interpreted.decimalLongitude                 AS lon
-          FROM read_parquet(?)
-         WHERE {_WHERE_QUALITY}
-           AND (interpreted.scientificName IN (SELECT scientificName FROM curated)
-                OR {_IS_CORAL})
-    """
+        batch_query_template = f"""
+            SELECT
+                _id                                          AS obis_id,
+                dataset_id                                   AS dataset_id,
+                interpreted.occurrenceID                     AS occurrence_id,
+                interpreted.scientificName                   AS scientific_name,
+                interpreted.phylum                           AS phylum,
+                interpreted.class                            AS class_name,
+                interpreted.\"order\"                        AS order_name,
+                interpreted.family                           AS family,
+                interpreted.minimumDepthInMeters             AS depth,
+                interpreted.decimalLatitude                  AS lat,
+                interpreted.decimalLongitude                 AS lon
+              FROM read_parquet(?)
+             WHERE {_WHERE_QUALITY}
+               AND (interpreted.scientificName IN (SELECT scientificName FROM curated)
+                    OR {_IS_CORAL})
+        """
 
-    for i in range(0, len(files), files_per_batch):
-        batch_s3 = files[i:i + files_per_batch]
-        os.makedirs(OBIS_SCRATCH_DIR, exist_ok=True)
-        batch_dir = tempfile.mkdtemp(prefix="obis-batch-", dir=OBIS_SCRATCH_DIR)
-        try:
-            log.info("obis_parquet: batch %d–%d / %d — downloading", i, i + len(batch_s3), len(files))
-            local_paths = _download_batch(batch_s3, batch_dir)
-            if len(local_paths) < len(batch_s3):
-                # A PARTIAL download used to pass silently: the batch was queried
-                # with whatever arrived and nothing recorded the shortfall, so a
-                # caller could not tell a full pass from a holed one.
-                log.warning("obis_parquet: batch %d–%d downloaded %d of %d files — %d missing",
-                            i, i + len(batch_s3), len(local_paths), len(batch_s3),
-                            len(batch_s3) - len(local_paths))
-            if not local_paths:
-                log.warning("obis_parquet: batch %d–%d download yielded 0 files — skipping", i, i + len(batch_s3))
-                continue
-            log.info("obis_parquet: batch %d–%d / %d — querying %d local files",
-                     i, i + len(batch_s3), len(files), len(local_paths))
+        for i in range(0, len(files), files_per_batch):
+            batch_s3 = files[i:i + files_per_batch]
+            os.makedirs(OBIS_SCRATCH_DIR, exist_ok=True)
+            shortfall = _batch_space_shortfall(batch_s3)
+            if shortfall:
+                # Not a skippable batch either: skipping would make the pass incomplete anyway, and the
+                # next batch might fit only because this one was dropped. End the run; no purge follows.
+                raise ScratchLimitExceeded(f"batch {i}–{i + len(batch_s3)} of {len(files)} not downloaded: {shortfall}")
+            batch_dir = tempfile.mkdtemp(prefix="obis-batch-", dir=OBIS_SCRATCH_DIR)
             try:
-                cursor = con.execute(batch_query_template, [local_paths])
-                col_names = [d[0] for d in cursor.description]
-                batch_rows = 0
-                while True:
-                    rows = cursor.fetchmany(chunk_size)
-                    if not rows:
-                        break
-                    batch_rows += len(rows)
-                    yield [dict(zip(col_names, row)) for row in rows]
-                log.info("obis_parquet: batch %d–%d yielded %d rows", i, i + len(batch_s3), batch_rows)
-                # Counted only here: a file is "ok" once it has been downloaded AND
-                # read to the end without error. Anything less leaves files_ok short
-                # of files_total, which is what blocks a purge downstream.
-                if stats is not None:
-                    stats["files_ok"] += len(local_paths)
-            except Exception as exc:
-                log.warning("obis_parquet: batch %d–%d query failed (%s) — skipping", i, i + len(batch_s3), exc)
-        finally:
-            shutil.rmtree(batch_dir, ignore_errors=True)
+                log.info("obis_parquet: batch %d–%d / %d — downloading", i, i + len(batch_s3), len(files))
+                local_paths = _download_batch(batch_s3, batch_dir)
+                if len(local_paths) < len(batch_s3):
+                    # A PARTIAL download used to pass silently: the batch was queried
+                    # with whatever arrived and nothing recorded the shortfall, so a
+                    # caller could not tell a full pass from a holed one.
+                    log.warning("obis_parquet: batch %d–%d downloaded %d of %d files — %d missing",
+                                i, i + len(batch_s3), len(local_paths), len(batch_s3),
+                                len(batch_s3) - len(local_paths))
+                if not local_paths:
+                    log.warning("obis_parquet: batch %d–%d download yielded 0 files — skipping", i, i + len(batch_s3))
+                    continue
+                log.info("obis_parquet: batch %d–%d / %d — querying %d local files",
+                         i, i + len(batch_s3), len(files), len(local_paths))
+                try:
+                    cursor = con.execute(batch_query_template, [local_paths])
+                    col_names = [d[0] for d in cursor.description]
+                    batch_rows = 0
+                    while True:
+                        rows = cursor.fetchmany(chunk_size)
+                        if not rows:
+                            break
+                        batch_rows += len(rows)
+                        yield [dict(zip(col_names, row)) for row in rows]
+                    log.info("obis_parquet: batch %d–%d yielded %d rows", i, i + len(batch_s3), batch_rows)
+                    # Counted only here: a file is "ok" once it has been downloaded AND
+                    # read to the end without error. Anything less leaves files_ok short
+                    # of files_total, which is what blocks a purge downstream.
+                    if stats is not None:
+                        stats["files_ok"] += len(local_paths)
+                except Exception as exc:
+                    if is_temp_limit_error(exc):
+                        # NOT a skippable batch: the cap is a property of the run, not of one file. Ending
+                        # the generator here keeps `drained` honest and blocks the purge downstream.
+                        raise ScratchLimitExceeded(
+                            f"duckdb temp limit (OBIS_DUCKDB_TEMP_MAX) hit in batch {i}–{i + len(batch_s3)}"
+                            f" of {len(files)}") from exc
+                    log.warning("obis_parquet: batch %d–%d query failed (%s) — skipping", i, i + len(batch_s3), exc)
+            finally:
+                shutil.rmtree(batch_dir, ignore_errors=True)
+    finally:
+        # Close the connection so DuckDB removes its spill files; a capped run must leave the temp dir empty.
+        con.close()
 
 
 def list_parquet_file_count() -> int:

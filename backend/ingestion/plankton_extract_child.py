@@ -8,6 +8,8 @@
 stdin  {"source": <url|path>, "dest": <path>, "scratch": <dir>, "title": <str|null>}
 stdout last line: {"rows": n, "peak_rss_mb": m}            exit 0
                   {"error": "<ExceptionType>"}              exit 1   (type only: messages can carry URLs)
+                  {"error": "DuckDBTempLimit", "temp_limit": true}   exit 1   (the spill hit max_temp_directory_size:
+                                                    the parent ends the WHOLE run, not just this dataset)
 
 Why a process per dataset: DuckDB's memory_limit bounds only its buffer manager, not the httpfs /
 parquet-metadata caches, Arrow results or glibc fragmentation; in ONE long-lived process they
@@ -54,7 +56,11 @@ def main() -> int:
         finally:
             con.close()
     except BaseException as e:           # noqa: BLE001 — the parent turns any failure into "dataset failed"
-        print(json.dumps({"error": type(e).__name__}))
+        from ingestion.duckdb_scratch import is_temp_limit_error
+        if is_temp_limit_error(e):
+            print(json.dumps({"error": "DuckDBTempLimit", "temp_limit": True}))
+        else:
+            print(json.dumps({"error": type(e).__name__}))
         return 1
     print(json.dumps({"rows": rows, "peak_rss_mb": _peak_rss_mb()}))
     return 0

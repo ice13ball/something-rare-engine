@@ -19,8 +19,9 @@ STARTED_STALE = timedelta(hours=6)       # = the unit's TimeoutStartSec: an olde
 # LOW_MEMORY_PREFIX). The health read must not classify these as errors.
 LOW_MEMORY_PREFIX = "low memory"
 DISK_PREFIX = "disk above"
+DISK_SPACE_PREFIX = "disk:"              # the loader's free-space gate (ingestion/duckdb_scratch.py): nothing downloaded
 HEAD_FAILED_PREFIX = "head failed"
-TRANSIENT_PREFIXES = (LOW_MEMORY_PREFIX, DISK_PREFIX, HEAD_FAILED_PREFIX)
+TRANSIENT_PREFIXES = (LOW_MEMORY_PREFIX, DISK_PREFIX, HEAD_FAILED_PREFIX, DISK_SPACE_PREFIX)
 FAILED_OUTCOMES = ("blocked", "error", "schema")   # what the loader returns for a persistent failure
 
 FILL = -9999.0

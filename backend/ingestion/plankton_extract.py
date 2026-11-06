@@ -210,6 +210,8 @@ def parse_day(value) -> int | None:
 import pathlib  # noqa: E402
 import shutil  # noqa: E402
 
+from ingestion.duckdb_scratch import PLANKTON_EXTRACT_DUCKDB_TEMP_MAX, apply_temp_limit  # noqa: E402
+
 OBIS_HTTP_BASE = "https://obis-open-data.s3.amazonaws.com/occurrence/"
 DUCKDB_MEMORY_LIMIT = "700MB"          # worker budget is 2 GB; spec F12 caps DuckDB at <= 750 MB
 SLICE_BYTES = 192 * 1024 * 1024        # uncompressed row-group bytes read per slice
@@ -309,6 +311,8 @@ def connect_duckdb(scratch: pathlib.Path):
     con.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}'")
     con.execute("SET threads=2")
     con.execute(f"SET temp_directory={_lit(tmp)}")
+    # Per connection; up to PLANKTON_PARALLEL children share this one directory, so it can hold parallel x cap.
+    apply_temp_limit(con, "PLANKTON_EXTRACT_DUCKDB_TEMP_MAX", PLANKTON_EXTRACT_DUCKDB_TEMP_MAX)
     con.execute("SET preserve_insertion_order=false")
     con.execute("SET http_timeout=180000")
     con.execute("SET http_retries=6")

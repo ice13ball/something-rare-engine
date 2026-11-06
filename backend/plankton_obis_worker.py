@@ -81,7 +81,7 @@ from dotenv import load_dotenv
 
 import db
 import log_redaction
-from ingestion.plankton_obis import (SOURCE, STARTED_PREFIX, STARTED_STALE_HOURS, bake_tiles,
+from ingestion.plankton_obis import (LOW_DISK_PREFIX, SOURCE, STARTED_PREFIX, STARTED_STALE_HOURS, bake_tiles,
                                      rebuild_aggregates_from_live, restore_previous, sync_plankton_obis)
 from schema.plankton import SWAPPED_PARTIAL_PREFIX
 from sync_log import log_sync_skipped
@@ -128,7 +128,7 @@ async def _decide(conn) -> str | None:
         return "running"
     # log_sync clears the skip marker on success, so a marker means the LAST run failed
     # (except a partial swap: it succeeded, its marker only carries the failed-dataset count).
-    if reason and skipped_at and not reason.startswith((LOW_MEMORY_PREFIX, SWAPPED_PARTIAL_PREFIX)) \
+    if reason and skipped_at and not reason.startswith((LOW_MEMORY_PREFIX, LOW_DISK_PREFIX, SWAPPED_PARTIAL_PREFIX)) \
             and now - skipped_at < timedelta(days=BACKOFF_DAYS):
         return "backoff"
     last = row["last_synced_at"]

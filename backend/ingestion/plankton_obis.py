@@ -16,6 +16,9 @@ import shutil
 
 import asyncpg
 
+from ingestion.duckdb_scratch import (
+    PLANKTON_EXTRACT_DUCKDB_TEMP_MAX, PLANKTON_EXTRACT_RESERVE, PLANKTON_LOAD_DUCKDB_TEMP_MAX, SCRATCH_MARGIN,
+    ScratchLimitExceeded, apply_temp_limit, env_bytes, free_space_shortfall, is_temp_limit_error)
 from ingestion.plankton_extract import *  # noqa: F401,F403
 from ingestion.plankton_extract import (  # noqa: F401  (underscore names are not covered by *)
     _I, _SELECT, _lit, _sql_list, _COPEPODA, _guard_missing_ranks, _pass1_hits, _pass2_write)
@@ -165,6 +168,7 @@ def _load_connection(path):
     con.execute(f"SET memory_limit='{LOAD_MEMORY_LIMIT}'")
     con.execute("SET threads=1")
     con.execute(f"SET temp_directory={_lit(tmp)}")
+    apply_temp_limit(con, "PLANKTON_LOAD_DUCKDB_TEMP_MAX", PLANKTON_LOAD_DUCKDB_TEMP_MAX)
     return con
 
 
@@ -183,6 +187,10 @@ async def load_extract(conn, path, licences: dict[str, str]) -> dict[str, int]:
     db = _load_connection(path)
     try:
         return await _load_rows(conn, db, path, licences, known, stats, compilations)
+    except Exception as e:
+        if is_temp_limit_error(e):          # the run's problem, not one dataset's: see _import
+            raise ScratchLimitExceeded("duckdb temp limit (PLANKTON_LOAD_DUCKDB_TEMP_MAX) hit in the load") from e
+        raise
     finally:
         db.close()        # this connection lives in the PARENT: leaving it open would keep ~1,700 of them
 
@@ -535,6 +543,8 @@ LOCK_TIMEOUT_REASON = "swap lock timeout — live and staging intact"
 # STARTED_STALE as a failed run, /v1/plankton/meta as "running" while fresh, "error" once stale.
 STARTED_REASON = STARTED_PREFIX + ": import in progress"
 SCRATCH_REASON = "error: scratch directory unusable"
+# A skip written by the free-space gate (nothing was started): NOT a failed run, like the worker's "low memory".
+LOW_DISK_PREFIX = "disk:"
 # Dataset failures are loud: up to max(FAILED_FLOOR, FAILED_FRACTION of the attempted) the swap still
 # goes ahead (with an alert and a count in sync_log); beyond that nothing is swapped.
 FAILED_FLOOR = 3
@@ -572,9 +582,10 @@ class ChildFailed(Exception):
     """The extract child died, timed out or reported an error. `.reason` is type / exit code only
     (never a message: those can carry the source URL)."""
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str, temp_limit: bool = False):
         super().__init__(reason)
         self.reason = reason
+        self.temp_limit = temp_limit    # the child's DuckDB spill hit max_temp_directory_size
 
 
 _CHILD_PIDS: set[int] = set()        # live extract children (the memory guard's fallback reads their RSS)
@@ -615,7 +626,8 @@ async def extract_in_child(source: str, dest: pathlib.Path, scratch: pathlib.Pat
     if rc != 0:
         how = f"killed by signal {-rc}" if rc < 0 else f"exit code {rc}"
         err = result.get("error") if isinstance(result, dict) else None
-        raise ChildFailed(f"{how}" + (f" ({str(err)[:60]})" if err else ""))
+        temp_limit = isinstance(result, dict) and result.get("temp_limit") is True
+        raise ChildFailed(f"{how}" + (f" ({str(err)[:60]})" if err else ""), temp_limit=temp_limit)
     if not isinstance(result, dict) or "rows" not in result:
         raise ChildFailed("exit code 0 but no result")
     return int(result["rows"]), int(result.get("peak_rss_mb") or 0)
@@ -1072,6 +1084,13 @@ async def _import(fetch_json, fetch_licences, source_for, scratch: pathlib.Path,
                         phase = "load"
                         await record_progress(conn, i, 0)
                 except Exception as e:
+                    # A full DuckDB spill directory is a property of the RUN (the cap, the disk), not of one
+                    # dataset: tolerating it would swap in a table missing the datasets that hit it. End the
+                    # run; sync_plankton_obis discards the staging and records the error.
+                    if isinstance(e, ScratchLimitExceeded) or (isinstance(e, ChildFailed) and e.temp_limit):
+                        raise ScratchLimitExceeded(
+                            f"duckdb temp limit hit on dataset {i} ({'load' if phase == 'load' else 'extract'}); "
+                            "no swap, live table untouched") from None
                     # A lost Postgres connection is not a dataset failure: stop now instead of
                     # downloading and extracting every remaining dataset for nothing.
                     if isinstance(e, _PG_CONNECTION_ERRORS) or conn.is_closed() \
@@ -1133,6 +1152,23 @@ async def sync_plankton_obis(*, fetch_json=None, fetch_licences=None, source_for
     source_for = source_for or (lambda i: f"{OBIS_HTTP_BASE}{i}.parquet")
     run_dir = pathlib.Path(scratch or SCRATCH_DIR) / "run"
     state = {"resumed": False}
+    # Free-space gate, BEFORE the started marker: a deferral leaves no "started" behind that a later run
+    # could read as a killed (= failed) import, and nothing is downloaded or staged. The worker's back-off
+    # ignores LOW_DISK_PREFIX like LOW_MEMORY_PREFIX. Worst case on the scratch filesystem: every parallel
+    # child at its cap, plus the load's cap, the extracted parquet files and the margin.
+    parallel = _parallel()
+    ex, ld, reserve, margin = (env_bytes("PLANKTON_EXTRACT_DUCKDB_TEMP_MAX", PLANKTON_EXTRACT_DUCKDB_TEMP_MAX),
+                               env_bytes("PLANKTON_LOAD_DUCKDB_TEMP_MAX", PLANKTON_LOAD_DUCKDB_TEMP_MAX),
+                               env_bytes("PLANKTON_EXTRACT_RESERVE", PLANKTON_EXTRACT_RESERVE),
+                               env_bytes("SCRATCH_MARGIN", SCRATCH_MARGIN))
+    shortfall = free_space_shortfall(
+        run_dir, parallel * ex + ld + reserve + margin,
+        f"{parallel} x extract cap {ex >> 20} MiB + load cap {ld >> 20} MiB + extracts {reserve >> 20} MiB"
+        f" + margin {margin >> 20} MiB")
+    if shortfall:
+        log.warning("plankton-obis: %s — import deferred", shortfall)
+        await _outcome(shortfall, alert=False)
+        return {"outcome": "disk", "kept": 0, "reasons": [shortfall]}
     await _mark_started()
     try:
         shutil.rmtree(run_dir, ignore_errors=True)

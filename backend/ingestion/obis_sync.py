@@ -22,7 +22,11 @@ from datetime import datetime, timezone
 
 import asyncpg
 
-from ingestion.obis_parquet import fetch_deep_occurrences_for_species
+from ingestion.duckdb_scratch import (
+    OBIS_BATCH_RESERVE, OBIS_DUCKDB_TEMP_MAX, SCRATCH_MARGIN, ScratchLimitExceeded, env_bytes,
+    free_space_shortfall)
+from ingestion.obis_parquet import OBIS_SCRATCH_DIR, fetch_deep_occurrences_for_species
+from sync_log import log_sync_skipped
 
 _hotspot_grid_lock = asyncio.Lock()
 _log = logging.getLogger("obis_sync")
@@ -192,6 +196,21 @@ async def _sync_obis_inner(pool: asyncpg.Pool, lock_conn: asyncpg.Connection) ->
                 )
                 return 0
 
+        # Free-space gate: BEFORE any download. A run needs room for the DuckDB spill cap plus one batch of
+        # downloaded parquet files on OBIS_SCRATCH_DIR's filesystem. A skip stamps no last_synced_at (see
+        # log_sync_skipped), so the 20 h guard above does not turn it into a quiet success; the weekly worker
+        # simply tries again next week (INTERVAL), the admin force-sync on its next click.
+        cap, batch, margin = (env_bytes("OBIS_DUCKDB_TEMP_MAX", OBIS_DUCKDB_TEMP_MAX),
+                              env_bytes("OBIS_BATCH_RESERVE", OBIS_BATCH_RESERVE),
+                              env_bytes("SCRATCH_MARGIN", SCRATCH_MARGIN))
+        shortfall = free_space_shortfall(
+            OBIS_SCRATCH_DIR, cap + batch + margin,
+            f"temp cap {cap >> 20} MiB + batch {batch >> 20} MiB + margin {margin >> 20} MiB")
+        if shortfall:
+            _log.warning("biodiversity_hotspots: skipping sync — %s", shortfall)
+            await log_sync_skipped("biodiversity_hotspots", shortfall)
+            return 0
+
         species: list[str] = [
             r["scientific_name"]
             for r in await conn.fetch(
@@ -217,6 +236,7 @@ async def _sync_obis_inner(pool: asyncpg.Pool, lock_conn: asyncpg.Connection) ->
     # and continues, so reaching the end proves nothing about coverage.
     drained = False
     producer_failed = False
+    scratch_limit: str | None = None
     parquet_stats: dict[str, int] = {}
 
     loop = asyncio.get_running_loop()
@@ -289,8 +309,10 @@ async def _sync_obis_inner(pool: asyncpg.Pool, lock_conn: asyncpg.Connection) ->
                 await asyncio.sleep(0.05)
         try:
             await asyncio.wrap_future(producer)
-        except Exception:
+        except Exception as exc:
             producer_failed = True
+            if isinstance(exc, ScratchLimitExceeded):
+                scratch_limit = str(exc)
             _log.exception("obis producer thread errored during shutdown")
 
     covered = _coverage_complete(parquet_stats)
@@ -320,6 +342,17 @@ async def _sync_obis_inner(pool: asyncpg.Pool, lock_conn: asyncpg.Connection) ->
         pool, total_before, lock_conn,
         complete=drained and not producer_failed and covered and not catalogue_short,
     )
+
+    if scratch_limit:
+        # The DuckDB spill hit its cap, or a batch did not fit on the disk, mid-pass (the exception text says
+        # which). The purge above was refused (producer_failed). Rows already upserted stay: there is no
+        # staging/swap for this table, an incomplete pass has always meant "inserted so far, nothing deleted"
+        # (same as any other aborted pass). Recorded as an ERROR, not a success: no last_synced_at, no
+        # total_records, so the layer keeps ageing in the monitor.
+        reason = f"error: {scratch_limit}; {inserted} rows upserted, nothing purged"
+        _log.error("biodiversity_hotspots: %s", reason)
+        await log_sync_skipped("biodiversity_hotspots", reason)
+        return inserted
 
     async with pool.acquire() as conn:
         total = await conn.fetchval("SELECT COUNT(*) FROM biodiversity_hotspots")
