@@ -16,6 +16,7 @@ partial pass must never be allowed to reach the DELETE.
 import pytest
 
 from backend.ingestion.obis_sync import (
+    _PURGE_BATCH,
     _PURGE_MIN_STAMPED_RATIO,
     _coverage_complete,
     _purge_stale,
@@ -38,12 +39,16 @@ class _FakeConn:
         self._deleted = deleted
         self.executed: list[str] = []
 
-    async def fetchval(self, *_args):
-        return self._seen
+    async def fetchval(self, sql, *_args):
+        # `obis_purge` is the materialised dry run: its count is what the purge will delete.
+        return self._deleted if "obis_purge" in sql else self._seen
 
-    async def execute(self, sql, *_args):
+    async def execute(self, sql, *args):
         self.executed.append(sql)
-        return f"DELETE {self._deleted}"
+        if sql.strip().startswith("DELETE"):          # one batch: rows (lo, hi] of obis_purge
+            lo, hi = args
+            return f"DELETE {max(0, min(hi, self._deleted) - lo)}"
+        return "OK"
 
 
 class _FakePool:
@@ -95,13 +100,14 @@ async def test_implausibly_low_seen_count_refuses_to_delete():
 
 @pytest.mark.asyncio
 async def test_healthy_pass_purges_and_reports_count():
-    """The real case: ~80% of pre-existing rows re-observed, the rest are orphans."""
-    total_before = 40_774_532
-    n, conn = await _run(seen=32_724_724, deleted=8_049_808,
+    """The real case (2026-11-09): ~90% of pre-existing rows re-observed, the rest are orphans,
+    deleted in batches of _PURGE_BATCH, under the 4.2 M / 12 % ceilings."""
+    total_before = 38_191_804
+    n, conn = await _run(seen=34_260_000, deleted=3_931_804,
                          total_before=total_before, complete=True)
-    assert n == 8_049_808
-    assert len(_deletes(conn)) == 1
-    assert "biodiversity_hotspots" in _deletes(conn)[0]
+    assert n == 3_931_804
+    assert len(_deletes(conn)) == -(-3_931_804 // _PURGE_BATCH)
+    assert all("biodiversity_hotspots" in d for d in _deletes(conn))
 
 
 @pytest.mark.asyncio
@@ -109,7 +115,7 @@ async def test_ratio_guard_is_skipped_on_an_empty_table():
     """A first-ever sync has nothing to compare against and must not deadlock itself."""
     n, conn = await _run(seen=1_000, deleted=0, total_before=0, complete=True)
     assert n == 0                    # nothing was stale
-    assert len(_deletes(conn)) == 1  # but the purge did run
+    assert any("obis_purge" in s for s in conn.executed)  # but the purge did run (its dry run found none)
 
 
 @pytest.mark.asyncio

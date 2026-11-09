@@ -150,16 +150,35 @@ def _s3_to_http(s3_path: str) -> str:
     return f"{OBIS_HTTP_BASE}{fname}"
 
 
+# ⛔ Without retries one transient failure (S3 503, connection reset, TLS handshake timeout) among
+# ~7,400 files made every pass incomplete, so the purge never ran: 28.10–07.11.2026 lost 1–4 files a
+# pass and orphans grew 34.6 M → 38.2 M rows. The coverage guard is unchanged: it still needs every file.
+_DOWNLOAD_ATTEMPTS = 3
+_DOWNLOAD_BACKOFF_S = (10, 30)       # sleep before attempt 2 and attempt 3
+
+
 def _download_one(url: str, dest: str, timeout: int = 120) -> str | None:
-    """Download a single parquet file to local disk. Returns dest on success."""
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as r:
-            with open(dest, "wb") as f:
-                shutil.copyfileobj(r, f, length=1024 * 1024)
-        return dest
-    except Exception as exc:
-        log.warning("obis_parquet: download failed %s: %s", url, exc)
-        return None
+    """Download a single parquet file to local disk, up to _DOWNLOAD_ATTEMPTS times. Returns dest on
+    success, None after the last failed attempt (a partial file is removed before each retry)."""
+    for attempt in range(1, _DOWNLOAD_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=timeout) as r:
+                with open(dest, "wb") as f:
+                    shutil.copyfileobj(r, f, length=1024 * 1024)
+            if attempt > 1:
+                log.info("obis_parquet: download of %s succeeded on attempt %d", url, attempt)
+            return dest
+        except Exception as exc:
+            try:
+                os.remove(dest)
+            except OSError:
+                pass
+            if attempt == _DOWNLOAD_ATTEMPTS:
+                log.warning("obis_parquet: download failed %s after %d attempts: %s", url, attempt, exc)
+                return None
+            log.info("obis_parquet: download attempt %d of %s failed (%s) — retrying", attempt, url, exc)
+            time.sleep(_DOWNLOAD_BACKOFF_S[attempt - 1])
+    return None
 
 
 def _head_size(url: str, timeout: int = 30) -> int | None:

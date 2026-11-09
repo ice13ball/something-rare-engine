@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 
 import asyncpg
 
+from api_access.notify import notify_telegram
 from ingestion.duckdb_scratch import (
     OBIS_BATCH_RESERVE, OBIS_DUCKDB_TEMP_MAX, SCRATCH_MARGIN, ScratchLimitExceeded, env_bytes,
     free_space_shortfall)
@@ -64,10 +65,32 @@ _SEEN_DDL = """
 # their obis.org/occurrence/<id> links no longer resolve. Presence in the current
 # snapshot is the only thing that distinguishes a live row from an orphan, and it
 # cannot be derived from our own table.
-_PURGE_SQL = """
-    DELETE FROM biodiversity_hotspots bh
-     WHERE NOT EXISTS (SELECT 1 FROM obis_seen s WHERE s.obis_id = bh.obis_id)
+# (The anti-join itself is _PURGE_SET_DDL below: materialised, counted, then deleted in batches.)
+
+# The purge is materialised first (dry run + ceilings, see _purge_stale), then deleted in batches.
+_PURGE_SET_DDL = """
+    DROP TABLE IF EXISTS obis_purge;
+    CREATE UNLOGGED TABLE obis_purge AS
+        SELECT row_number() OVER () AS n, bh.obis_id
+          FROM biodiversity_hotspots bh
+         WHERE NOT EXISTS (SELECT 1 FROM obis_seen s WHERE s.obis_id = bh.obis_id);
+    CREATE INDEX ON obis_purge (n);
 """
+_PURGE_BATCH_SQL = """
+    DELETE FROM biodiversity_hotspots bh
+     USING obis_purge p
+     WHERE p.n > $1 AND p.n <= $2 AND bh.obis_id = p.obis_id
+"""
+_PURGE_BATCH = 50_000
+# Ceilings on one purge (env OBIS_PURGE_MAX_ROWS / OBIS_PURGE_MAX_FRACTION). Set 2026-11-09 for the
+# first purge after ten days of incomplete passes (~3.8 M orphans expected; Michal: stop above 4.2 M
+# or 12 %). A normal weekly purge is far below both.
+_PURGE_MAX_ROWS = 4_200_000
+_PURGE_MAX_FRACTION = 0.12
+# Free space the database filesystem must have before a purge (WAL + VACUUM). Postgres lives on /.
+_PG_DATA_FS = os.getenv("PG_DATA_FS", "/var/lib/postgresql")
+_PURGE_MIN_FREE = "10GiB"
+_PURGE_ALERT_TITLE = "Abyssal OBIS purge"
 
 # A pass that dies halfway records only part of the snapshot, and purging against
 # that would delete most of the table. Refuse unless the pass observed at least
@@ -417,26 +440,63 @@ async def _purge_stale(
 
     async with pool.acquire() as conn:
         seen = await conn.fetchval("SELECT COUNT(*) FROM obis_seen")
-        if total_before and seen < total_before * _PURGE_MIN_STAMPED_RATIO:
-            _log.error(
-                "biodiversity_hotspots: pass observed only %d rows against %d already "
-                "stored (< %.0f%%) — refusing to purge; investigate before re-running",
-                seen, total_before, _PURGE_MIN_STAMPED_RATIO * 100,
-            )
-            return 0
+    if total_before and seen < total_before * _PURGE_MIN_STAMPED_RATIO:
+        _log.error(
+            "biodiversity_hotspots: pass observed only %d rows against %d already "
+            "stored (< %.0f%%) — refusing to purge; investigate before re-running",
+            seen, total_before, _PURGE_MIN_STAMPED_RATIO * 100,
+        )
+        return 0
 
+    shortfall = free_space_shortfall(
+        _PG_DATA_FS, env_bytes("OBIS_PURGE_MIN_FREE", _PURGE_MIN_FREE),
+        "WAL of a multi-million-row DELETE + VACUUM on the database filesystem")
+    if shortfall:
+        _log.error("biodiversity_hotspots: refusing to purge — %s", shortfall)
+        await notify_telegram(f"OBIS purge refused: {shortfall}", _PURGE_ALERT_TITLE)
+        return 0
+
+    async with pool.acquire() as conn:
         await conn.execute("CREATE INDEX ON obis_seen (obis_id)")
         await conn.execute("ANALYZE obis_seen")
-        status = await conn.execute(_PURGE_SQL)
-        await conn.execute("DROP TABLE IF EXISTS obis_seen")
+        # Dry run first: the exact set the purge would delete, materialised and counted BEFORE anything
+        # is deleted, then held to two ceilings. ⛔ Every pass between 28.10 and 07.11.2026 ended
+        # incomplete (1–4 failed downloads, no retry), so orphans piled up: 38.19 M rows against
+        # 34.26 M observed, ~3.8 M expected in the first purge after the retry fix. More than either
+        # ceiling means something other than republications, and nothing is deleted.
+        await conn.execute(_PURGE_SET_DDL)
+        to_delete = int(await conn.fetchval("SELECT count(*) FROM obis_purge") or 0)
+        max_rows = int(os.getenv("OBIS_PURGE_MAX_ROWS", _PURGE_MAX_ROWS))
+        max_fraction = float(os.getenv("OBIS_PURGE_MAX_FRACTION", _PURGE_MAX_FRACTION))
+        _log.info("biodiversity_hotspots: purge dry run — %d of %d rows absent from the snapshot "
+                  "(ceilings %d rows, %.0f%%)", to_delete, total_before, max_rows, max_fraction * 100)
+        if to_delete > max_rows or (total_before and to_delete > total_before * max_fraction):
+            msg = (f"OBIS purge refused: {to_delete:,} of {total_before:,} rows would be deleted, above the "
+                   f"ceiling ({max_rows:,} rows or {max_fraction:.0%}); nothing deleted")
+            _log.error("biodiversity_hotspots: %s", msg)
+            await notify_telegram(msg, _PURGE_ALERT_TITLE)
+            await conn.execute("DROP TABLE IF EXISTS obis_purge")
+            return 0
 
-    deleted = int(status.split()[-1]) if status.startswith("DELETE") else 0
-    if deleted:
-        _log.info(
-            "biodiversity_hotspots: purged %d rows absent from the current OBIS "
-            "snapshot (retired or republished ids)", deleted,
-        )
-    return deleted
+        # In batches, each its own transaction: one statement over millions of rows would hold its
+        # locks, its WAL and its dead tuples for the whole run.
+        deleted = 0
+        for lo in range(0, to_delete, _PURGE_BATCH):
+            status = await conn.execute(_PURGE_BATCH_SQL, lo, lo + _PURGE_BATCH)
+            deleted += int(status.split()[-1]) if status.startswith("DELETE") else 0
+        await conn.execute("DROP TABLE IF EXISTS obis_purge")
+        await conn.execute("DROP TABLE IF EXISTS obis_seen")
+        if deleted:
+            _log.info(
+                "biodiversity_hotspots: purged %d rows absent from the current OBIS "
+                "snapshot (retired or republished ids)", deleted,
+            )
+            try:
+                await conn.execute("VACUUM (ANALYZE) biodiversity_hotspots")
+                _log.info("biodiversity_hotspots: VACUUM (ANALYZE) after the purge done")
+            except Exception as exc:     # the rows are gone either way; autovacuum will get there
+                _log.error("biodiversity_hotspots: VACUUM after the purge failed: %s", exc)
+        return deleted
 
 
 async def rebuild_hotspot_grid(pool: asyncpg.Pool) -> int:
