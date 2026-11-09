@@ -1122,21 +1122,34 @@ async def seo_sitemap_core():
             "WHERE latest_sensors IS NOT NULL ORDER BY location_code"
         )
         reports = await conn.fetch(REPORT_SITEMAP_SQL)
-        sync = await conn.fetch("SELECT source, last_synced_at FROM sync_log")
+        sync = await conn.fetch("SELECT source, last_synced_at, total_records FROM sync_log")
         contractors = await conn.fetch("SELECT DISTINCT contractor_name FROM mining_contracts WHERE contractor_name IS NOT NULL ORDER BY contractor_name")
         rivers = await conn.fetch("SELECT station_id FROM arctic_river_stations WHERE source='arcticgro' ORDER BY station_id")
-        # Feature counts for layer pages
+        # Feature counts for layer pages ("Currently tracking N features" on /layer/:id in server.js).
         # `tailings`: exclude the 361 Global Tailings Portal-only rows we no
         # longer serve (withdrawn 2026-09-23 — domains/land/common.py
         # TAILINGS_SERVED_WHERE is the single source of truth).
+        # ⛔ The two big tables are NOT counted here: measured 2026-11-09 on production, COUNT(*) over
+        # biodiversity_hotspots (38 M rows) took 6.4 s of the endpoint's 7.0 s and argo_profiles 0.5 s;
+        # under load the request crossed the BFF's 15 s abort and /sitemap-core.xml answered 500 to
+        # Googlebot. They take the exact total their own sync recorded in sync_log (both syncs write
+        # total_records = COUNT(*) after the write); only without a sync_log row, the planner's estimate.
         _LAYER_PAGE_EXTRA_WHERE = {"tailings": TAILINGS_SERVED_WHERE}
+        _COUNT_FROM_SYNC_LOG = {"biodiversity_hotspots": "biodiversity_hotspots", "argo_profiles": "argo_profiles"}
+        synced_totals = {r["source"]: r["total_records"] for r in sync}
         layer_counts = {}
         for tbl, key in _LAYER_PAGE_TABLES:
             try:
+                if tbl in _COUNT_FROM_SYNC_LOG:
+                    cnt = synced_totals.get(_COUNT_FROM_SYNC_LOG[tbl])
+                    if cnt is None:
+                        cnt = await conn.fetchval(
+                            "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class WHERE oid = $1::regclass", tbl)
+                    layer_counts[key] = cnt or 0
+                    continue
                 where = _LAYER_PAGE_EXTRA_WHERE.get(key)
                 sql = f"SELECT COUNT(*) FROM {tbl}" + (f" WHERE {where}" if where else "")  # noqa: S608
-                cnt = await conn.fetchval(sql)
-                layer_counts[key] = cnt
+                layer_counts[key] = await conn.fetchval(sql)
             except Exception:
                 layer_counts[key] = 0
         # Raster/frontend-only layers — no DB table, but they have /layer/ SEO pages

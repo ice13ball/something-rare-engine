@@ -1189,7 +1189,18 @@ ${sitemaps.map(s => `  <sitemap>
 });
 
 // Sub-sitemap: core (everything except seamounts + blog)
+// The rendered document is kept per instance for SITEMAP_CORE_TTL_MS, and the last good copy is served
+// when a rebuild fails. ⛔ A failure with no copy is 503 + Retry-After ("ask again"), never 500: between
+// 06.11 and 09.11 2026 six of twenty requests (two from Googlebot) hit the 15 s abort below and got a 500,
+// because the backend counted 38 M OBIS rows on every request (fixed in domains/seo.py the same day).
+const SITEMAP_CORE_TTL_MS = 60 * 60 * 1000;
+let sitemapCoreCache = { at: 0, xml: null };
+
 app.get('/sitemap-core.xml', async (req, res) => {
+  const send = xml => res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml);
+  if (sitemapCoreCache.xml && Date.now() - sitemapCoreCache.at < SITEMAP_CORE_TTL_MS) {
+    return send(sitemapCoreCache.xml);
+  }
   try {
     const apiRes = await fetch(`${VPS_API_URL}/v1/seo/sitemap/core`, {
       headers: API_HEADERS, signal: AbortSignal.timeout(15000),
@@ -1241,10 +1252,13 @@ app.get('/sitemap-core.xml', async (req, res) => {
       entries.push({ loc: `${SITE}/contractors`, changefreq: 'monthly', priority: '0.7' });
     } catch (err) { console.error('sitemap hub entries skipped:', err.message); }
 
-    res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(renderUrlset(entries));
+    const xml = renderUrlset(entries);
+    sitemapCoreCache = { at: Date.now(), xml };
+    send(xml);
   } catch (err) {
-    console.error('sitemap-core failed:', err);
-    res.status(500).send('Sitemap generation failed');
+    console.error('sitemap-core failed:', err.message);
+    if (sitemapCoreCache.xml) return send(sitemapCoreCache.xml);   // last good copy beats "come back later"
+    res.status(503).type('text/plain').set('Retry-After', '300').send('Sitemap temporarily unavailable');
   }
 });
 
