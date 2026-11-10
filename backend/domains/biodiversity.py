@@ -98,9 +98,36 @@ async def sync_biodiversity_hotspots() -> int:
     The sync runs as its own systemd service (obis-sync.service) on a weekly
     schedule. This wrapper exists so the admin force-sync endpoint
     (/admin/sync/obis) still works from within abyssal-api.
+
+    The worker holds advisory lock 4242001 for its whole pass, and so do the other
+    heavy imports (plankton-obis, glodap, socat, wod-casts, argo-doxy, vme-bake).
+    This path used to skip it, so a force-sync could run alongside any of them.
+    It takes the lock without waiting: an HTTP-triggered run that blocks for hours
+    behind another import is worse than a recorded skip.
     """
-    from ingestion.obis_sync import sync_obis
-    return await sync_obis(db.pool)
+    import os
+
+    import asyncpg
+    from ingestion.obis_sync import plankton_model_units, sync_obis
+    from sync_log import log_sync_skipped
+
+    busy = plankton_model_units()
+    if busy:
+        await log_sync_skipped("biodiversity_hotspots",
+                               f"busy: plankton-model units running: {', '.join(busy)}")
+        return 0
+    lock_conn = await asyncpg.connect(os.environ["DATABASE_URL"])
+    try:
+        if not await lock_conn.fetchval("SELECT pg_try_advisory_lock(4242001)"):
+            await log_sync_skipped("biodiversity_hotspots",
+                                   "busy: another heavy import holds advisory lock 4242001")
+            return 0
+        try:
+            return await sync_obis(db.pool)
+        finally:
+            await lock_conn.execute("SELECT pg_advisory_unlock(4242001)")
+    finally:
+        await lock_conn.close()
 
 
 async def sync_chess() -> int:

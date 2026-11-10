@@ -15,6 +15,7 @@ offshore-claim areas on the continental shelf).
 from __future__ import annotations
 
 import asyncio
+import glob
 import logging
 import os
 import threading
@@ -32,17 +33,31 @@ from sync_log import log_sync_skipped
 _hotspot_grid_lock = asyncio.Lock()
 _log = logging.getLogger("obis_sync")
 
+# Update-then-insert, NOT `INSERT … ON CONFLICT DO UPDATE`. The column default
+# `nextval()` is evaluated before the conflict check, so the old upsert drew one id
+# for every row of every pass, existing or not: ~38M ids a pass on an int4 SERIAL.
+# The sequence hit 2147483647 on 2026-11-09 and the pass died mid-upsert. Here an
+# existing row is only UPDATEd (and only when a field really changed — an UPDATE
+# writes a new row version), and the INSERT runs for an obis_id the table does not
+# hold yet, so only genuinely new rows draw an id. ON CONFLICT DO NOTHING covers a
+# concurrent pass inserting the same obis_id between the check and the insert.
+# A data-modifying CTE runs even though nothing references it.
 _INSERT_SQL = """
+    WITH upd AS (
+        UPDATE biodiversity_hotspots
+           SET dataset_id    = $10::text,
+               occurrence_id = $11::text
+         WHERE obis_id = $1::text
+           AND (dataset_id    IS DISTINCT FROM $10::text
+             OR occurrence_id IS DISTINCT FROM $11::text)
+    )
     INSERT INTO biodiversity_hotspots
            (obis_id, scientific_name, phylum, class_name, order_name,
             family, depth, geom, dataset_id, occurrence_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7,
-            ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
-    ON CONFLICT (obis_id) DO UPDATE
-       SET dataset_id    = EXCLUDED.dataset_id,
-           occurrence_id = EXCLUDED.occurrence_id
-     WHERE biodiversity_hotspots.dataset_id    IS DISTINCT FROM EXCLUDED.dataset_id
-        OR biodiversity_hotspots.occurrence_id IS DISTINCT FROM EXCLUDED.occurrence_id
+    SELECT $1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::numeric,
+           ST_SetSRID(ST_MakePoint($8::float8, $9::float8), 4326), $10::text, $11::text
+     WHERE NOT EXISTS (SELECT 1 FROM biodiversity_hotspots WHERE obis_id = $1::text)
+    ON CONFLICT (obis_id) DO NOTHING
 """
 
 # Which rows the snapshot still carries is recorded in a side table rather than a
@@ -161,6 +176,24 @@ async def is_obis_paused(pool: asyncpg.Pool) -> bool:
         return bool(await conn.fetchval(
             "SELECT EXISTS(SELECT 1 FROM paused_syncs WHERE action = 'obis')"
         ))
+
+
+# The plankton-model runs (`pm-*`, started with `sudo systemd-run` by the
+# plankton-model session) are not workers of this backend and never take advisory
+# lock 4242001, so the lock cannot keep them apart from an OBIS pass. Both are
+# heavy on memory and disk, and the VPS has been brought down by two heavy jobs at
+# once, so an OBIS pass does not start while one of them runs. Read from the cgroup
+# tree rather than `systemctl`: it needs no D-Bus inside the sandboxed unit, and a
+# unit's cgroup exists exactly while the unit has processes.
+_PM_UNIT_GLOBS = (
+    "/sys/fs/cgroup/system.slice/pm-*",
+    "/sys/fs/cgroup/user.slice/user-*.slice/user@*.service/app.slice/pm-*",
+)
+
+
+def plankton_model_units() -> list[str]:
+    """Names of the plankton-model units (`pm-*`) running right now."""
+    return sorted({os.path.basename(p) for g in _PM_UNIT_GLOBS for p in glob.glob(g)})
 
 
 # Mutual exclusion between OBIS passes. Deliberately NOT 4242001: that one
