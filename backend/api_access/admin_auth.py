@@ -50,11 +50,19 @@ def lockout_state(failed: int, locked_until: datetime | None, now: datetime,
     """Decide whether an account is locked. Returns (is_locked, new_locked_until).
 
     - An unexpired existing lock keeps the account locked (returns that window).
-    - Reaching max_failed sets a fresh lock window.
+    - An EXPIRED lock unlocks, whatever `failed` still says: the window is over, the
+      next attempt reaches the password check, and a failure there starts a fresh
+      count (`register_login_result`). Until 2026-11-10 `failed >= max_failed` was
+      checked first-come regardless of the window, and only a successful login reset
+      the counter, so five wrong passwords locked an account for good: anyone who
+      knew a username could shut its owner out permanently.
+    - Reaching max_failed with no window yet sets a fresh one.
     - Otherwise unlocked.
     """
-    if locked_until is not None and locked_until > now:
-        return True, locked_until
+    if locked_until is not None:
+        if locked_until > now:
+            return True, locked_until
+        return False, None
     if failed >= max_failed:
         return True, now + timedelta(minutes=lock_minutes)
     return False, None
@@ -184,18 +192,24 @@ async def register_login_result(pool, user_id, success: bool, now) -> None:
                 user_id, now,
             )
             return
-        # Atomic increment + conditional lock — no read-modify-write race under
-        # concurrent failed logins. Thresholds match lockout_state defaults (5 / 15 min).
-        lock_at = now + timedelta(minutes=15)
-        await conn.execute(
-            """
-            UPDATE api_access.admin_users
-            SET failed_logins = failed_logins + 1,
-                locked_until = CASE WHEN failed_logins + 1 >= 5 THEN $2 ELSE locked_until END
-            WHERE id = $1
-            """,
-            user_id, lock_at,
-        )
+        await conn.execute(_FAILED_LOGIN_SQL, user_id, now + timedelta(minutes=15), now)
+
+
+# Atomic increment + conditional lock — no read-modify-write race under concurrent
+# failed logins. Thresholds match lockout_state defaults (5 / 15 min). A failure
+# after an EXPIRED window starts a new count at 1 instead of adding to the old one
+# (every right-hand side reads the row's values from before this UPDATE).
+# $1 user id · $2 the new window's end · $3 now.
+_FAILED_LOGIN_SQL = """
+    UPDATE api_access.admin_users
+       SET failed_logins = CASE WHEN locked_until IS NOT NULL AND locked_until <= $3
+                                THEN 1 ELSE failed_logins + 1 END,
+           locked_until  = CASE WHEN locked_until IS NOT NULL AND locked_until <= $3 THEN NULL
+                                WHEN locked_until IS NOT NULL THEN locked_until  -- never extend a live lock
+                                WHEN failed_logins + 1 >= 5 THEN $2
+                                ELSE NULL END
+     WHERE id = $1
+"""
 
 
 async def create_session(pool, user_id, ip, ttl_hours: int = 12) -> str:

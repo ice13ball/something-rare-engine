@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 
 import asyncpg
@@ -14,6 +15,7 @@ from api_access import admin_auth, admin_crud
 from api_access.geoip import geoip_status
 
 router = APIRouter(prefix="/admin/api")
+log = logging.getLogger("admin_api")
 
 COOKIE = "abyssal_admin"
 SESSION_TTL_HOURS = 12
@@ -43,14 +45,25 @@ class LoginBody(BaseModel):
 async def login(body: LoginBody, request: Request, response: Response):
     now = datetime.now(timezone.utc)
     rec = await admin_auth.get_admin_by_username(_db.pool, body.username)
-    # generic failure for missing user / bad password / disabled (no enumeration)
-    if rec is None or rec["status"] != "active":
-        raise HTTPException(401, "invalid credentials")
-    locked, _ = admin_auth.lockout_state(rec["failed_logins"] or 0, rec["locked_until"], now)
-    if locked:
-        raise HTTPException(429, "account temporarily locked")
-    if not admin_auth.verify_password(body.password, rec["password_hash"]):
-        await admin_auth.register_login_result(_db.pool, rec["id"], False, now)
+    eligible = rec is not None and rec["status"] == "active"
+    locked = False
+    if eligible:
+        locked, until = admin_auth.lockout_state(rec["failed_logins"] or 0, rec["locked_until"], now)
+    # Exactly one bcrypt verification on every path, so a missing, disabled or locked
+    # account costs the same as a wrong password, and ONE answer for all four: a 429
+    # for "locked" told anyone that the username exists. The lock still holds here,
+    # server-side; only the operator's log says why.
+    if eligible and not locked:
+        password_ok = admin_auth.verify_password(body.password, rec["password_hash"])
+    else:
+        admin_auth.dummy_verify(body.password)
+        password_ok = False
+    if not password_ok:
+        if eligible and not locked:
+            # Only a real, active, unlocked account accrues a failure; a lock is never extended.
+            await admin_auth.register_login_result(_db.pool, rec["id"], False, now)
+        elif locked:
+            log.warning("admin login refused: account id %s locked until %s", rec["id"], until)
         raise HTTPException(401, "invalid credentials")
     await admin_auth.register_login_result(_db.pool, rec["id"], True, now)
     raw = await admin_auth.create_session(_db.pool, rec["id"], _client_ip(request), SESSION_TTL_HOURS)
