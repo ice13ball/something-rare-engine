@@ -432,6 +432,44 @@ def _coverage_complete(stats: dict[str, int]) -> bool:
     return bool(total) and stats.get("files_ok", 0) == total
 
 
+# Which datasets the rows a purge would delete come from, split two ways: datasets
+# the snapshot still carries under fresh ids (a republication, the expected case)
+# and datasets with no row in the snapshot at all (withdrawn by OBIS, filtered out
+# by our predicate, or a download that silently came back short). Logged at every
+# dry run so a ceiling hit can be judged from the journal, and so the ceilings can
+# later tell the two apart. One LEFT JOIN over the table, ~1 min; diagnostics only,
+# so a failure here is logged and never blocks or changes the purge decision.
+_ORPHAN_SPLIT_SQL = """
+    SELECT bh.dataset_id,
+           count(*) FILTER (WHERE s.obis_id IS NULL)     AS orphan,
+           count(*) FILTER (WHERE s.obis_id IS NOT NULL) AS live
+      FROM biodiversity_hotspots bh
+      LEFT JOIN obis_seen s ON s.obis_id = bh.obis_id
+     GROUP BY bh.dataset_id
+    HAVING count(*) FILTER (WHERE s.obis_id IS NULL) > 0
+     ORDER BY orphan DESC
+"""
+
+
+async def _log_orphan_split(conn) -> None:
+    try:
+        rows = await conn.fetch(_ORPHAN_SPLIT_SQL)
+    except Exception as exc:
+        _log.warning("biodiversity_hotspots: orphan split by dataset failed: %s", exc)
+        return
+    rep = [r for r in rows if r["live"]]
+    gone = [r for r in rows if not r["live"]]
+    _log.info(
+        "biodiversity_hotspots: orphans by dataset — republished (still in the snapshot): %d datasets, "
+        "%d rows; absent from the snapshot: %d datasets, %d rows",
+        len(rep), sum(r["orphan"] for r in rep), len(gone), sum(r["orphan"] for r in gone),
+    )
+    for label, group in (("republished", rep), ("absent", gone)):
+        for r in group[:10]:
+            _log.info("biodiversity_hotspots:   %s %s — %d orphan, %d live",
+                      label, r["dataset_id"], r["orphan"], r["live"])
+
+
 async def _purge_stale(
     pool: asyncpg.Pool,
     total_before: int,
@@ -503,6 +541,8 @@ async def _purge_stale(
         max_fraction = float(os.getenv("OBIS_PURGE_MAX_FRACTION", _PURGE_MAX_FRACTION))
         _log.info("biodiversity_hotspots: purge dry run — %d of %d rows absent from the snapshot "
                   "(ceilings %d rows, %.0f%%)", to_delete, total_before, max_rows, max_fraction * 100)
+        if to_delete:
+            await _log_orphan_split(conn)
         if to_delete > max_rows or (total_before and to_delete > total_before * max_fraction):
             msg = (f"OBIS purge refused: {to_delete:,} of {total_before:,} rows would be deleted, above the "
                    f"ceiling ({max_rows:,} rows or {max_fraction:.0%}); nothing deleted")
