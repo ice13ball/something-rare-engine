@@ -54,6 +54,23 @@ function check(label, ok, detail) {
   );
   check('resolved entry is not the dev path', parsed.entry !== '/src/main.tsx', parsed.entry);
 
+  // Every stylesheet dist/index.html links must reach the server-rendered pages.
+  // Vite splits the CSS into several files; resolving only the first one dropped
+  // Tailwind (index-*.css) from /about, /terms and /privacy (2026-11-10).
+  const distSheets = [...dist.matchAll(/<link\b[^>]*\brel="stylesheet"[^>]*>/g)]
+    .map((m) => (m[0].match(/\bhref="([^"]+\.css)"/) || [])[1]).filter(Boolean);
+  check(
+    'every stylesheet in dist/index.html is resolved, in order',
+    JSON.stringify(parsed.styles) === JSON.stringify(distSheets),
+    `${parsed.styles.join(', ')} vs ${distSheets.join(', ')}`,
+  );
+  const two = parseBuiltAssets('<script type="module" src="/assets/i-1.js"></script>'
+    + '<link rel="stylesheet" crossorigin href="/assets/vendor-maplibre-1.css">'
+    + '<link rel="stylesheet" crossorigin href="/assets/index-1.css">');
+  check('a split build yields both sheets (failure path proven)',
+    JSON.stringify(two.styles) === '["/assets/vendor-maplibre-1.css","/assets/index-1.css"]',
+    two.styles.join(', '));
+
   // Prove it can go red. A resolver that silently fell back to /src/main.tsx
   // would restore the original bug and hide it again, so the throw IS the fix.
   let threw = false;

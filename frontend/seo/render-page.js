@@ -419,10 +419,18 @@ function renderOnc(data) {
 export function parseBuiltAssets(html) {
   const script = html.match(/<script[^>]+src="(\/assets\/[^"]+\.js)"/);
   if (!script) throw new Error('render-page: cannot resolve the built JS entry from dist/index.html');
-  const style = html.match(/<link[^>]+rel="stylesheet"[^>]+href="(\/assets\/[^"]+\.css)"/)
-    || html.match(/<link[^>]+href="(\/assets\/[^"]+\.css)"[^>]+rel="stylesheet"/);
-  // The stylesheet is optional (a build may inline all CSS); the entry is not.
-  return { entry: script[1], style: style ? style[1] : null };
+  // EVERY stylesheet, in document order. Vite splits the CSS (vendor-maplibre-*.css
+  // and index-*.css, which carries Tailwind); taking only the first match shipped the
+  // maplibre sheet alone, and /about, /terms and /privacy rendered dark text on the
+  // dark body with no utility classes, before and after hydration (2026-11-10).
+  const styles = [];
+  for (const tag of html.match(/<link\b[^>]*>/g) || []) {
+    if (!/\brel="stylesheet"/.test(tag)) continue;
+    const href = tag.match(/\bhref="(\/assets\/[^"]+\.css)"/);
+    if (href) styles.push(href[1]);
+  }
+  // Stylesheets are optional (a build may inline all CSS); the entry is not.
+  return { entry: script[1], styles };
 }
 
 export const BUILT_ASSETS = (() => {
@@ -499,7 +507,7 @@ function wrapHtml(headContent, bodyContent, opts) {
       + '       React here would replace the server-rendered page with nothing. -->';
   } else {
     const tags = [];
-    if (BUILT_ASSETS.style) tags.push(`  <link rel="stylesheet" crossorigin href="${BUILT_ASSETS.style}" />`);
+    for (const href of BUILT_ASSETS.styles) tags.push(`  <link rel="stylesheet" crossorigin href="${href}" />`);
     tags.push(`  <script type="module" crossorigin src="${BUILT_ASSETS.entry}"></script>`);
     clientAssets = tags.join('\n');
   }
