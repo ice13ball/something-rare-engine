@@ -398,6 +398,11 @@ async def _sync_obis_inner(pool: asyncpg.Pool, lock_conn: asyncpg.Connection) ->
         pool, total_before, lock_conn,
         complete=drained and not producer_failed and covered and not catalogue_short,
     )
+    # `obis_seen` (~4 GB for 34M ids) used to survive every pass whose purge did not run (incomplete,
+    # refused by a ceiling, short of disk): only the successful purge dropped it, so it sat on the
+    # database disk until the next pass. Nothing reads it afterwards — the dry run logs the orphan split
+    # itself — so it goes now, but only while our advisory lock still proves it is this pass's table.
+    await _drop_seen_if_ours(pool, lock_conn)
 
     if scratch_limit:
         # The DuckDB spill hit its cap, or a batch did not fit on the disk, mid-pass (the exception text says
@@ -468,6 +473,21 @@ async def _log_orphan_split(conn) -> None:
         for r in group[:10]:
             _log.info("biodiversity_hotspots:   %s %s — %d orphan, %d live",
                       label, r["dataset_id"], r["orphan"], r["live"])
+
+
+async def _drop_seen_if_ours(pool: asyncpg.Pool, lock_conn: asyncpg.Connection) -> None:
+    try:
+        ours = await lock_conn.fetchval(
+            "SELECT count(*) FROM pg_locks "
+            " WHERE locktype = 'advisory' AND pid = pg_backend_pid() AND granted"
+        )
+        if not ours:
+            _log.warning("biodiversity_hotspots: advisory lock lost — leaving obis_seen in place")
+            return
+        async with pool.acquire() as conn:
+            await conn.execute("DROP TABLE IF EXISTS obis_seen")
+    except Exception as exc:     # housekeeping only; the next pass drops and recreates it anyway
+        _log.warning("biodiversity_hotspots: could not drop obis_seen: %s", exc)
 
 
 async def _purge_stale(
