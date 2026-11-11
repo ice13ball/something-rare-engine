@@ -150,6 +150,81 @@ async def test_boundary_exactly_at_the_ratio_purges():
     assert len(_deletes(conn)) == 1
 
 
+# ── ceilings: absent datasets strictly, republications only by the 35 % total ceiling ──────────
+
+class _SplitConn(_FakeConn):
+    """Answers the per-dataset orphan split. `split` is [(dataset_id, orphan, live), ...];
+    None makes the split query fail."""
+
+    def __init__(self, seen, deleted, split):
+        super().__init__(seen, deleted)
+        self._split = split
+
+    async def fetch(self, sql, *_args):
+        if self._split is None:
+            raise RuntimeError("split query failed")
+        return [{"dataset_id": d, "orphan": o, "live": l} for d, o, l in self._split]
+
+
+async def _run_split(monkeypatch, *, seen, deleted, total_before, split):
+    import backend.ingestion.obis_sync as obis_sync
+    alerts = []
+
+    async def _alert(msg, *_a, **_k):
+        alerts.append(msg)
+
+    monkeypatch.setattr(obis_sync, "notify_telegram", _alert)
+    conn = _SplitConn(seen, deleted, split)
+    n = await _purge_stale(_FakePool(conn), total_before, _FakeLockConn(1), complete=True)
+    return n, conn, alerts
+
+
+@pytest.mark.asyncio
+async def test_republications_above_the_old_ceiling_are_purged(monkeypatch):
+    """11.11.2026: 12.34 M orphans of 44.53 M (27.7 %), all from 99 datasets still in the
+    snapshot. The strict ceiling no longer applies to them; 27.7 % is under 35 %."""
+    split = [("8b0d5fdd", 4_139_293, 1_380_121), ("efa02fe9", 2_752_046, 2_754_913),
+             ("other-97", 5_452_064, 3_000_000)]
+    n, conn, alerts = await _run_split(monkeypatch, seen=34_253_209, deleted=12_343_403,
+                                       total_before=44_530_449, split=split)
+    assert n == 12_343_403
+    assert len(_deletes(conn)) == -(-12_343_403 // _PURGE_BATCH)
+    assert alerts == []
+
+
+@pytest.mark.asyncio
+async def test_orphans_of_absent_datasets_keep_the_strict_ceiling(monkeypatch):
+    """A dataset withdrawn by OBIS (or read short) is not a republication: 5 M of its rows
+    exceed the 4.2 M ceiling even though the total is small."""
+    split = [("gone-1", 5_000_000, 0), ("rep-1", 1_000_000, 1_000_000)]
+    n, conn, alerts = await _run_split(monkeypatch, seen=38_000_000, deleted=6_000_000,
+                                       total_before=44_000_000, split=split)
+    assert n == 0 and _deletes(conn) == []
+    assert len(alerts) == 1 and "absent from the snapshot" in alerts[0]
+
+
+@pytest.mark.asyncio
+async def test_an_obis_id_bug_that_makes_everything_look_republished_is_refused(monkeypatch):
+    """If we misread `_id`, every stored row becomes an orphan while every dataset still has
+    (newly inserted) live rows, so the whole table looks like one big republication. Only the
+    35 % total ceiling stands between that and deleting it."""
+    total_before = 44_530_449
+    split = [("8b0d5fdd", 20_000_000, 20_000_000), ("efa02fe9", 24_530_449, 24_530_449)]
+    n, conn, alerts = await _run_split(monkeypatch, seen=44_530_449, deleted=total_before,
+                                       total_before=total_before, split=split)
+    assert n == 0 and _deletes(conn) == []
+    assert len(alerts) == 1 and "safety ceiling" in alerts[0]
+
+
+@pytest.mark.asyncio
+async def test_without_the_split_every_orphan_is_held_to_the_strict_ceiling(monkeypatch):
+    """No proof of republication, no exemption: a failed split query falls back to 4.2 M / 12 %."""
+    n, conn, alerts = await _run_split(monkeypatch, seen=34_253_209, deleted=12_343_403,
+                                       total_before=44_530_449, split=None)
+    assert n == 0 and _deletes(conn) == []
+    assert len(alerts) == 1 and "split unavailable" in alerts[0]
+
+
 # ── catalogue-truncation guard (a short S3 listing looks "complete") ──────────
 
 import asyncio

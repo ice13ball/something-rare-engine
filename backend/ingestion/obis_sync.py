@@ -102,6 +102,12 @@ _PURGE_BATCH = 50_000
 # or 12 %). A normal weekly purge is far below both.
 _PURGE_MAX_ROWS = 4_200_000
 _PURGE_MAX_FRACTION = 0.12
+# The 4.2 M / 12 % ceilings apply to orphans from datasets ABSENT from the snapshot (withdrawn by OBIS,
+# or a download that came back short). Orphans of a republication — the dataset is still there under
+# fresh `_id`s — are routine and arrive in millions (10–12 M in Nov 2026), so they are held only by this
+# total ceiling. It is what stops a bug in how we read `_id`: every dataset would then look
+# "republished" and the whole table would become orphans. (Michał, 2026-11-11, variant A.)
+_PURGE_MAX_TOTAL_FRACTION = 0.35
 # Free space the database filesystem must have before a purge (WAL + VACUUM). Postgres lives on /.
 _PG_DATA_FS = os.getenv("PG_DATA_FS", "/var/lib/postgresql")
 _PURGE_MIN_FREE = "10GiB"
@@ -456,14 +462,17 @@ _ORPHAN_SPLIT_SQL = """
 """
 
 
-async def _log_orphan_split(conn) -> None:
+async def _orphan_split(conn) -> int | None:
+    """Log where the would-be-deleted rows come from; return how many are republication orphans
+    (their dataset still has rows in the snapshot), or None if the split could not be computed.
+    Rows with no dataset_id cannot be attributed and count as absent."""
     try:
         rows = await conn.fetch(_ORPHAN_SPLIT_SQL)
     except Exception as exc:
         _log.warning("biodiversity_hotspots: orphan split by dataset failed: %s", exc)
-        return
-    rep = [r for r in rows if r["live"]]
-    gone = [r for r in rows if not r["live"]]
+        return None
+    rep = [r for r in rows if r["live"] and r["dataset_id"] is not None]
+    gone = [r for r in rows if not (r["live"] and r["dataset_id"] is not None)]
     _log.info(
         "biodiversity_hotspots: orphans by dataset — republished (still in the snapshot): %d datasets, "
         "%d rows; absent from the snapshot: %d datasets, %d rows",
@@ -473,6 +482,7 @@ async def _log_orphan_split(conn) -> None:
         for r in group[:10]:
             _log.info("biodiversity_hotspots:   %s %s — %d orphan, %d live",
                       label, r["dataset_id"], r["orphan"], r["live"])
+    return sum(r["orphan"] for r in rep)
 
 
 async def _drop_seen_if_ours(pool: asyncpg.Pool, lock_conn: asyncpg.Connection) -> None:
@@ -551,21 +561,31 @@ async def _purge_stale(
         await conn.execute("CREATE INDEX ON obis_seen (obis_id)")
         await conn.execute("ANALYZE obis_seen")
         # Dry run first: the exact set the purge would delete, materialised and counted BEFORE anything
-        # is deleted, then held to two ceilings. ⛔ Every pass between 28.10 and 07.11.2026 ended
-        # incomplete (1–4 failed downloads, no retry), so orphans piled up: 38.19 M rows against
-        # 34.26 M observed, ~3.8 M expected in the first purge after the retry fix. More than either
-        # ceiling means something other than republications, and nothing is deleted.
+        # is deleted, then held to the ceilings: 4.2 M / 12 % for orphans of datasets absent from the
+        # snapshot, 35 % of the table for all orphans together (see _PURGE_MAX_TOTAL_FRACTION). On
+        # 10–11.11.2026 a single 4.2 M ceiling over everything refused 10.3 M and then 12.3 M orphans,
+        # all of them republications, and the table kept growing by 2–3 M rows a pass.
         await conn.execute(_PURGE_SET_DDL)
         to_delete = int(await conn.fetchval("SELECT count(*) FROM obis_purge") or 0)
         max_rows = int(os.getenv("OBIS_PURGE_MAX_ROWS", _PURGE_MAX_ROWS))
         max_fraction = float(os.getenv("OBIS_PURGE_MAX_FRACTION", _PURGE_MAX_FRACTION))
         _log.info("biodiversity_hotspots: purge dry run — %d of %d rows absent from the snapshot "
                   "(ceilings %d rows, %.0f%%)", to_delete, total_before, max_rows, max_fraction * 100)
-        if to_delete:
-            await _log_orphan_split(conn)
-        if to_delete > max_rows or (total_before and to_delete > total_before * max_fraction):
-            msg = (f"OBIS purge refused: {to_delete:,} of {total_before:,} rows would be deleted, above the "
-                   f"ceiling ({max_rows:,} rows or {max_fraction:.0%}); nothing deleted")
+        max_total = float(os.getenv("OBIS_PURGE_MAX_TOTAL_FRACTION", _PURGE_MAX_TOTAL_FRACTION))
+        republished = (await _orphan_split(conn)) if to_delete else 0
+        # Anything not proven to be a republication is held to the strict ceilings, including
+        # everything when the split itself failed.
+        absent = to_delete - min(republished or 0, to_delete)
+        reasons = []
+        if absent > max_rows or (total_before and absent > total_before * max_fraction):
+            reasons.append(f"{absent:,} rows from datasets absent from the snapshot"
+                           f"{'' if republished is not None else ' (split unavailable, all counted)'}, "
+                           f"above {max_rows:,} rows or {max_fraction:.0%}")
+        if total_before and to_delete > total_before * max_total:
+            reasons.append(f"{to_delete:,} rows in total, above the {max_total:.0%} safety ceiling")
+        if reasons:
+            msg = (f"OBIS purge refused: {to_delete:,} of {total_before:,} rows would be deleted — "
+                   f"{'; '.join(reasons)}; nothing deleted")
             _log.error("biodiversity_hotspots: %s", msg)
             await notify_telegram(msg, _PURGE_ALERT_TITLE)
             await conn.execute("DROP TABLE IF EXISTS obis_purge")
