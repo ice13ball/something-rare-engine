@@ -140,7 +140,7 @@ export const PRIVACY_POLICY: LegalDoc = {
       heading: "Map Imagery and Data Providers",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "The map loads its base imagery from NASA's Global Imagery Browse Services (gibs.earthdata.nasa.gov), and coastlines, place names and borders from OpenFreeMap (tiles.openfreemap.org, OpenStreetMap data), on every visit. We acknowledge the use of imagery provided by services from NASA's Global Imagery Browse Services (GIBS), part of NASA's Earth Science Data and Information System (ESDIS). Some data layers, once you turn them on, load from their providers' servers — for example storage.googleapis.com for the JRC surface-water layer. As with any embedded map, those servers see your IP address. We set no cookies for this, and it is not tracking.",
+        "The base map (land cover from satellite data, sea-floor depth, coastlines, place names and borders) loads on every visit from our own server, basemap.something-rare.com; no third party receives those requests. It is built from ESA WorldCover, the GEBCO_2026 Grid, OpenStreetMap / Overture Maps and Natural Earth data. Some data layers, once you turn them on, load from their providers' servers — for example storage.googleapis.com for the JRC surface-water layer. As with any embedded map, those servers see your IP address. We set no cookies for this, and it is not tracking.",
       ],
     },
     {
@@ -197,7 +197,7 @@ export const SOURCE_REPO_URL = "https://github.com/ice13ball/something-rare-engi
 
 export const TERMS_OF_USE: LegalDoc = {
   title: "Terms of Use",
-  updated: "March 2026",
+  updated: "November 2026",
   sections: [
     {
       heading: "About the Site",
@@ -258,6 +258,7 @@ export const TERMS_OF_USE: LegalDoc = {
       heading: "Data Sources and Accuracy",
       paragraphs: [
         "Data is sourced from the ISA, OBIS, ArgoVis, NASA, WRI, UNEP-WCMC, BirdLife, OpenAQ, MarineRegions.org, and other open public databases. While we endeavour to keep data accurate, we make no warranties regarding completeness or fitness for any particular purpose. Do not rely on this site for regulatory, legal, or commercial decisions — always consult primary sources.",
+        "The sea-floor depth in the base map comes from the GEBCO_2026 Grid and is not to be used for navigation.",
       ],
     },
     {
@@ -301,7 +302,7 @@ export const TERMS_OF_USE: LegalDoc = {
 
 export const ABOUT: LegalDoc = {
   title: "About Abyssal Claims",
-  updated: "April 2026",
+  updated: "November 2026",
   sections: [
     {
       heading: "What It Is",
@@ -368,6 +369,13 @@ export const ABOUT: LegalDoc = {
       paragraphs: [
         "All data is sourced from open public APIs, scientific databases, and international organisations. Key sources include: ISA, OBIS Occurrence Data (DOI: 10.25607/obis.occurrence.b89117cd), ChEssBase (Ramirez-Llodra 2025) via GBIF, ArgoVis, OceanSITES, Ocean Networks Canada (ONC), USGS, NASA LANCE / FIRMS, OpenAQ, NASA COOLR, WRI Global Forest Watch, WRI Aqueduct, JRC Global Surface Water, Global Dam Watch, Hudson-Edwards et al. 2023 (WAPHA tailings, via Dryad, CC0), ISRIC SoilGrids, Maus et al. 2022/2023 (Global Mining Footprints via PANGAEA), and Marine Regions (VLIZ). Global Tailings Portal (GRID-Arendal) fields are withdrawn pending written permission and are not served.",
         "Spatial overlap indicators in Ocean Mode are derived by intersecting ISA contract geometries with biodiversity occurrences and Argo float proximity (within 200 km). They are mechanical geometric overlaps, not assessments of impact, risk, or compliance.",
+      ],
+    },
+    {
+      heading: "Base Map",
+      paragraphs: [
+        "The base map is our own, served from basemap.something-rare.com. Land cover: © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium. Sea-floor depth: the GEBCO_2026 Grid. Place names and borders: © OpenStreetMap contributors and the Overture Maps Foundation. Coastline and boundaries partly from Natural Earth. The same credits sit behind the (i) in the map's bottom-right corner.",
+        "GEBCO bathymetry is not to be used for navigation. Citation: GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
       ],
     },
     {

@@ -85,7 +85,15 @@ export function WelcomeOverlay() {
     // one unknown token. The old inline filter validated against LAYER_CONFIGS —
     // 38 of 44 sea layers — and silently dropped the rest, so a link naming a
     // real layer and a link with a typo produced the same quietly-smaller set.
-    const ids = parseLayersParam(searchParams.get("layers"));
+    //
+    // `?layers=none` (exact token) = the bare basemap: empty set, no overlay. It is
+    // handled here, not in `parseLayersParam`, so `none` never becomes a layer id
+    // there or in share state; `none,eez` is still one unknown token → rejected.
+    // It also wins over the visitor's saved layers: Map3D (rendered before this
+    // component in App) restores them in its mount effect, and this effect runs
+    // after it and replaces the set.
+    const raw = searchParams.get("layers");
+    const ids = raw === "none" ? [] : parseLayersParam(raw);
     if (!ids) return;
     // Activate layers and skip the overlay
     setActiveLayers(new Set(ids));

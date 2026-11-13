@@ -197,9 +197,3 @@ body,
 .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
 
 
-/* From 640 px the map's source credits are a line in FooterLinks, above the links: MapLibre's
-   attribution box opened leftwards from the bottom-right corner and ran under that bar.
-   Below 640 px (no footer bar) MapLibre's compact "i" control stays. */
-@media (min-width: 640px) {
-  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib { display: none; }
-}

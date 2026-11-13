@@ -12,6 +12,7 @@ import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { PickingInfo, MapViewState } from "@deck.gl/core";
 import { FlyToInterpolator } from "@deck.gl/core";
 import { Map as ReactMap } from "react-map-gl/maplibre";
+import { MapAttribution } from "./map3d/MapAttribution";
 import type { FeatureCollection } from "geojson";
 import { effectiveBgcMonth, effectiveBgcVariable, wrapLongitude, type BgcModelMeta } from "../types/bgcModel";
 import { effectiveOceanColourMonth, effectiveOceanColourVariable, type OceanColourMeta } from "../types/oceanColour";
@@ -104,7 +105,7 @@ import {
   loadDepthCacheFromLS, scheduleDepthCacheFlush, depthFailedUntil,
   markDepthLookupFailed, depthLineFromCache,
 } from "./map3d/depthCache";
-import { BASEMAP, MAP_VIEW, tooltipStyle } from "./map3d/viewState";
+import { BASEMAP, MAP_VIEW, USE_ABYSSAL_BASEMAP, abyssalBasemapStyle, tooltipStyle } from "./map3d/viewState";
 import { useLayerFetcher } from "./map3d/useLayerFetcher";
 import { glodapPoints, glodapColor, carbonDrawing, glodapYearBounds, type GlodapCastsDoc, type GlodapPoint } from "../utils/glodapPoints";
 import {
@@ -378,7 +379,7 @@ const NO_FLY_TO = [
 ] as const satisfies readonly LayerId[];
 
 export function Map3D() {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const {
     activeLayers, setActiveLayers, setEnabledLayerIds,
     setVentConflicts, ventConflicts,
@@ -706,6 +707,8 @@ export function Map3D() {
   }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
 
   const mapRef = useRef<any>(null);
+  const [attribFolded, setAttribFolded] = useState(false);
+  const getBaseMap = useCallback(() => mapRef.current?.getMap?.(), []);
 
   const argoTrailsFetchedRef     = useRef(false);
   const hotspotsFetchStartedRef  = useRef(false);
@@ -3206,7 +3209,14 @@ export function Map3D() {
   useEffect(() => { if (ventsData) storeSetVentsData(ventsData); }, [ventsData, storeSetVentsData]);
 
 
-  const onViewStateChange = useCallback(({ viewState: vs }: { viewState: Record<string, unknown> }) => {
+  const onViewStateChange = useCallback(({ viewState: vs, interactionState }: {
+    viewState: Record<string, unknown>;
+    interactionState?: { isDragging?: boolean; isPanning?: boolean; isZooming?: boolean; isRotating?: boolean };
+  }) => {
+    // The map attribution (MapAttribution) folds to its "(i)" on the reader's first pan or zoom
+    // (OSMF attribution guideline). Only the reader's own gestures count, not a fly-to on load.
+    const s = interactionState;
+    if (s && (s.isDragging || s.isPanning || s.isZooming || s.isRotating)) setAttribFolded(true);
     viewStateRef.current = vs;
     setViewState(vs);
     setIsInteracting(true);
@@ -6216,8 +6226,11 @@ export function Map3D() {
           useDevicePixels={Math.min(window.devicePixelRatio ?? 1, 1.5)}
           style={{ touchAction: "none" }}
         >
-          <ReactMap ref={mapRef} mapStyle={BASEMAP} renderWorldCopies={true} antialias={false} />
+          <ReactMap ref={mapRef} mapStyle={USE_ABYSSAL_BASEMAP ? abyssalBasemapStyle(i18n.language) : BASEMAP} renderWorldCopies={true} antialias={false} attributionControl={false} />
         </DeckGL>
+
+        {/* The basemap's source credits, in the corner and collapsible (Michał 13.11). */}
+        <MapAttribution getMap={getBaseMap} folded={attribFolded} />
 
         {/* Animated ocean-current particles (2D canvas overlay, CPU-advected). */}
         <CurrentsParticleCanvas

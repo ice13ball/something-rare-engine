@@ -95,7 +95,7 @@ const PL: LegalDoc = {
       heading: "Podkład mapy i dostawcy danych",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "Mapa przy każdej wizycie pobiera podkład (zdjęcia) z usługi NASA Global Imagery Browse Services (gibs.earthdata.nasa.gov), a linie brzegowe, nazwy miejsc i granice z OpenFreeMap (tiles.openfreemap.org, dane OpenStreetMap). Korzystamy z obrazów udostępnianych przez usługi NASA Global Imagery Browse Services (GIBS), część systemu NASA Earth Science Data and Information System (ESDIS). Niektóre warstwy danych, gdy je włączysz, pobierają dane z serwerów swoich dostawców — na przykład storage.googleapis.com dla warstwy wód powierzchniowych JRC. Jak przy każdej osadzonej mapie, te serwery widzą Twój adres IP. Nie zapisujemy przy tym żadnych ciasteczek i nie jest to śledzenie.",
+        "Podkład mapy (pokrycie terenu ze zdjęć satelitarnych, głębokość dna, linie brzegowe, nazwy miejsc i granice) przy każdej wizycie ładuje się z naszego własnego serwera basemap.something-rare.com; żadna strona trzecia nie dostaje tych zapytań. Podkład jest zbudowany z danych ESA WorldCover, GEBCO_2026 Grid, OpenStreetMap / Overture Maps i Natural Earth. Niektóre warstwy danych, gdy je włączysz, pobierają dane z serwerów swoich dostawców — na przykład storage.googleapis.com dla warstwy wód powierzchniowych JRC. Jak przy każdej osadzonej mapie, te serwery widzą Twój adres IP. Nie zapisujemy przy tym żadnych ciasteczek i nie jest to śledzenie.",
       ],
     },
     {
@@ -225,7 +225,7 @@ const DE: LegalDoc = {
       heading: "Kartenhintergrund und Datenanbieter",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "Die Karte lädt bei jedem Besuch ihre Hintergrundbilder von den Global Imagery Browse Services der NASA (gibs.earthdata.nasa.gov) sowie Küstenlinien, Ortsnamen und Grenzen von OpenFreeMap (tiles.openfreemap.org, Daten von OpenStreetMap). Wir verwenden Bilder, die von den Diensten der NASA Global Imagery Browse Services (GIBS) bereitgestellt werden, einem Teil des NASA Earth Science Data and Information System (ESDIS). Manche Datenebenen laden, sobald Sie sie einschalten, von den Servern ihrer Anbieter — zum Beispiel storage.googleapis.com für die JRC-Oberflächenwasser-Ebene. Wie bei jeder eingebetteten Karte sehen diese Server Ihre IP-Adresse. Wir setzen dafür keine Cookies, und es handelt sich nicht um Tracking.",
+        "Die Hintergrundkarte (Landbedeckung aus Satellitendaten, Meerestiefe, Küstenlinien, Ortsnamen und Grenzen) wird bei jedem Besuch von unserem eigenen Server basemap.something-rare.com geladen; kein Dritter erhält diese Anfragen. Sie beruht auf Daten von ESA WorldCover, dem GEBCO_2026 Grid, OpenStreetMap / Overture Maps und Natural Earth. Manche Datenebenen laden, sobald Sie sie einschalten, von den Servern ihrer Anbieter — zum Beispiel storage.googleapis.com für die JRC-Oberflächenwasser-Ebene. Wie bei jeder eingebetteten Karte sehen diese Server Ihre IP-Adresse. Wir setzen dafür keine Cookies, und es handelt sich nicht um Tracking.",
       ],
     },
     {
@@ -355,7 +355,7 @@ const FR: LegalDoc = {
       heading: "Fond de carte et fournisseurs de données",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "La carte charge à chaque visite son fond d'imagerie depuis les Global Imagery Browse Services de la NASA (gibs.earthdata.nasa.gov), et les traits de côte, les noms de lieux et les frontières depuis OpenFreeMap (tiles.openfreemap.org, données OpenStreetMap). Nous utilisons des images fournies par les Global Imagery Browse Services (GIBS) de la NASA, composante de l'Earth Science Data and Information System (ESDIS) de la NASA. Certaines couches de données, une fois activées, se chargent depuis les serveurs de leurs fournisseurs — par exemple storage.googleapis.com pour la couche des eaux de surface du JRC. Comme pour toute carte intégrée, ces serveurs voient votre adresse IP. Nous ne déposons aucun cookie pour cela, et il ne s'agit pas de suivi.",
+        "Le fond de carte (occupation du sol issue d'images satellite, profondeur des fonds marins, traits de côte, noms de lieux et frontières) se charge à chaque visite depuis notre propre serveur, basemap.something-rare.com ; aucun tiers ne reçoit ces requêtes. Il est construit à partir des données ESA WorldCover, de la grille GEBCO_2026, d'OpenStreetMap / Overture Maps et de Natural Earth. Certaines couches de données, une fois activées, se chargent depuis les serveurs de leurs fournisseurs — par exemple storage.googleapis.com pour la couche des eaux de surface du JRC. Comme pour toute carte intégrée, ces serveurs voient votre adresse IP. Nous ne déposons aucun cookie pour cela, et il ne s'agit pas de suivi.",
       ],
     },
     {

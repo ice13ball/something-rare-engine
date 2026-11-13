@@ -161,8 +161,8 @@ const CSP_DIRECTIVES = {
   'script-src': ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com'],
   'style-src': ["'self'", "'unsafe-inline'"],
   'font-src': ["'self'", 'data:'],
-  'img-src': ["'self'", 'data:', 'blob:', 'https://gibs.earthdata.nasa.gov', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com'],
-  'connect-src': ["'self'", 'https://apiv2.something-rare.com', 'https://gibs.earthdata.nasa.gov', 'https://tiles.openfreemap.org', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://raw.githubusercontent.com', 'https://www.googletagmanager.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com', 'https://analytics.google.com', 'https://*.analytics.google.com'],
+  'img-src': ["'self'", 'data:', 'blob:', 'https://basemap.something-rare.com', 'https://gibs.earthdata.nasa.gov', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com'],
+  'connect-src': ["'self'", 'https://apiv2.something-rare.com', 'https://basemap.something-rare.com', 'https://gibs.earthdata.nasa.gov', 'https://tiles.openfreemap.org', 'https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com', 'https://raw.githubusercontent.com', 'https://www.googletagmanager.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com', 'https://analytics.google.com', 'https://*.analytics.google.com'],
   // MapLibre GL and @loaders.gl both spawn workers from blob: URLs, and the
   // CSV/JSON export links are blob: too.
   'worker-src': ["'self'", 'blob:'],
@@ -1056,6 +1056,15 @@ app.get(['/privacy', '/terms', '/about', '/api-docs'], (req, res, next) => {
          ocean chemistry, mine footprints, tailings, deforestation, fires, and more — onto a
          single interactive 3D globe. It surfaces data and links every layer back to its
          source; it does not advocate a policy position.</p>
+      <h2>Base map</h2>
+      <p>The base map is our own, served from basemap.something-rare.com: land cover
+         © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021)
+         processed by ESA WorldCover consortium; sea-floor depth from the GEBCO_2026 Grid;
+         place names and borders © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>
+         and the Overture Maps Foundation; coastline and boundaries partly from Natural Earth.
+         GEBCO bathymetry is not to be used for navigation. Citation: GEBCO Bathymetric
+         Compilation Group 2026 (2026). The GEBCO_2026 Grid.
+         <a href="https://doi.org/10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa">doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa</a></p>
       <h2 id="citation">How to cite</h2>
       <p>Built and maintained by ${escapeHtml(siteCitation.author)}
          (ORCID <a href="${escapeHtml(siteCitation.orcidUrl)}">${escapeHtml(orcid)}</a>).</p>

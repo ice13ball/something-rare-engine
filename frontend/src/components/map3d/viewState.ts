@@ -70,6 +70,32 @@ export const BASEMAP: StyleSpecification = {
   ],
 };
 
+// ── abyssal-basemap (our own tiles: GEBCO bathymetry + ESA WorldCover land + OSM/Overture labels) ──
+// The default on every host since 2026-11-13 (dev preview from 11.11). BASEMAP above is only the
+// `?basemap=legacy` fallback now.
+// ⛔ The base URL lives ONLY here: moving the tiles (e.g. to IO PAN) is this constant or a DNS record.
+// The published styles carry the sources, layer order, glyphs and per-source attribution; the labels go
+// under the deck.gl layers, like the OpenFreeMap labels before. Brief: abyssal-basemap/docs/INTEGRATION.md.
+export const TILES_BASE = "https://basemap.something-rare.com";
+const ABM_LANGS = ["pl", "en", "de", "fr"] as const;
+
+/** URL of the published basemap style for the app's language (falls back to English). */
+export function abyssalBasemapStyle(language: string | undefined): string {
+  const base = (language ?? "en").slice(0, 2).toLowerCase();
+  const lang = (ABM_LANGS as readonly string[]).includes(base) ? base : "en";
+  return `${TILES_BASE}/styles/labels-${lang}.json`;
+}
+
+function abyssalBasemapEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  // On everywhere since 2026-11-13 (Michał: "czas ją wrzucić na produkcję"). `?basemap=legacy` is the
+  // fallback to NASA GIBS + OpenFreeMap if basemap.something-rare.com is down, which is why the
+  // CSP in server.js still admits those two hosts.
+  return new URLSearchParams(window.location.search).get("basemap") !== "legacy";
+}
+
+export const USE_ABYSSAL_BASEMAP = abyssalBasemapEnabled();
+
 // repeat:true makes deck.gl draw layers in every visible world copy, matching
 // the basemap's renderWorldCopies. Without it, data renders only in the canonical
 // [-180,180] copy and abruptly disappears at a vertical seam when panning across
