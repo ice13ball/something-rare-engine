@@ -117,6 +117,27 @@ def parse_depth(depth, dmin, dmax) -> float | None:
     return d if 0 <= d <= 11000 else None
 
 
+def depth_below_surface(depth, dmin, dmax) -> float | None:
+    """`parse_depth` for publishers that give depth as a negative elevation.
+
+    Some ISA contractor datasets in OBIS (72264c95, 3751ddad, 267e9dab) publish a cast 0 -> -4163 m as
+    `minimumDepthInMeters 0, maximumDepthInMeters -4163, depth -2081.5`. When EVERY value present is
+    <= 0 and at least one is < 0 the whole record uses that convention, so all values are negated and
+    then read by the very same `parse_depth` (depth, else midpoint of min/max, else the single bound).
+    A record mixing signs is not guessed at: it goes to `parse_depth` untouched, which rejects a
+    negative result."""
+    vals = []
+    for v in (depth, dmin, dmax):
+        try:
+            vals.append(None if v is None or v == "" else float(v))
+        except (TypeError, ValueError):
+            vals.append(None)
+    present = [v for v in vals if v is not None]
+    if present and all(v <= 0 for v in present) and any(v < 0 for v in present):
+        vals = [None if v is None else -v for v in vals]
+    return parse_depth(*vals)
+
+
 def parse_month(value) -> int | None:
     try:
         m = int(str(value).strip())

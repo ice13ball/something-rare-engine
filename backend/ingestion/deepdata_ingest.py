@@ -27,6 +27,7 @@ from typing import Any, AsyncIterator
 
 import httpx
 
+from ingestion.plankton_extract import depth_below_surface
 from parse_util import check_obis_walk
 
 log = logging.getLogger(__name__)
@@ -150,7 +151,8 @@ async def fetch_deepdata_records() -> AsyncIterator[list[dict[str, Any]]]:
                     "genus":           occ.get("genus") or None,
                     "species":         occ.get("species") or None,
                     "basis_of_record": occ.get("basisOfRecord") or None,
-                    "depth_m":         _safe_float(occ.get("minimumDepthInMeters")),
+                    "depth_m":         depth_below_surface(occ.get("depth"), occ.get("minimumDepthInMeters"),
+                                                       occ.get("maximumDepthInMeters")),
                     "lat":             float(lat),
                     "lon":             float(lon),
                     "event_date":      _parse_event_date(occ.get("eventDate")),

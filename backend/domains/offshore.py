@@ -336,7 +336,9 @@ async def sync_boem_offshore() -> int:
                 "country": "United States",
                 "status": status.lower() or "active",
                 "awarded_date": _coerce_date(props.get("LEASE_EFF_DATE")),
-                "expires_date": _coerce_date(props.get("LEASE_EXPIR_DATE")),
+                # LEASE_EXPIR_DATE is null in every feature (live probe 2026-11-15, 0 of
+                # 1,804+); the populated field is LEASE_EXPT_EXPIR (epoch ms).
+                "expires_date": _coerce_date(props.get("LEASE_EXPT_EXPIR") or props.get("LEASE_EXPIR_DATE")),
                 "portal_url": f"https://www.data.bsee.gov/Leasing/Leases/Default.aspx?LeaseNumber={lease}",
                 "attributes": props,
                 "geom": geom,
@@ -828,7 +830,10 @@ async def sync_nsta_petroleum() -> int:
         if not geom:
             continue
         start_ms = props.get("LICSTARTDT")
-        end_ms = props.get("LICENDDT")
+        # LICEXPDT = "Licence expiry date" (populated for licences with a fixed
+        # final term end). LICENDDT ("Licence end date") is null in every feature;
+        # kept as a fallback only. Term ends (TM_*_END) are NOT expiry: never read.
+        end_ms = props.get("LICEXPDT") or props.get("LICENDDT")
         # LICSTATUS: 'Extant' → active, else lower()
         raw_status = (props.get("LICSTATUS") or "").lower()
         status = "active" if raw_status == "extant" else (raw_status or "unknown")
@@ -845,7 +850,7 @@ async def sync_nsta_petroleum() -> int:
             "country": "GBR",
             "status": status,
             "awarded_date": datetime.fromtimestamp(start_ms / 1000) if start_ms else None,
-            "expires_date": datetime.fromtimestamp(end_ms / 1000) if end_ms else None,
+            "expires_date": _coerce_date(end_ms),
             "portal_url": "https://www.nstauthority.co.uk/data-centre/nsta-open-data/",
             "attributes": {k: v for k, v in props.items()},
             "geom": geom,

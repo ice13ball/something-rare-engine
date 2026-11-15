@@ -28,6 +28,7 @@ import asyncio
 import json
 import logging
 import math
+import re
 
 import db
 import httpx
@@ -271,7 +272,42 @@ async def _prune_ids_obis_dropped(conn, table: str, seen: set[str], before: int,
     log.warning("%s: removed rows whose OBIS id is gone: %s", label, result)
 
 
-async def sync_deepdata() -> int:
+async def _deepdata_depth_dry_run(conn, pages) -> int:
+    """Count what a real `sync_deepdata` would do to `depth_m`; writes nothing."""
+    stats = {"rows_walked": 0, "not_in_table": 0, "unchanged": 0, "zero_to_value": 0,
+             "negative_to_positive": 0, "null_to_value": 0, "value_to_null": 0, "other_change": 0}
+    examples: list[tuple] = []
+    async for page in pages:
+        old = {str(r["obis_id"]).lower(): r["depth_m"] for r in await conn.fetch(
+            "SELECT obis_id::text AS obis_id, depth_m FROM deepdata_occurrences WHERE obis_id::text = ANY($1::text[])",
+            [str(r["obis_id"]) for r in page])}
+        for r in page:
+            stats["rows_walked"] += 1
+            key = str(r["obis_id"]).lower()
+            if key not in old:
+                stats["not_in_table"] += 1
+                continue
+            o, n = old[key], r["depth_m"]
+            if o == n:
+                stats["unchanged"] += 1
+                continue
+            if o is None:
+                stats["null_to_value"] += 1
+            elif n is None:
+                stats["value_to_null"] += 1
+            elif o == 0:
+                stats["zero_to_value"] += 1
+            elif o < 0 and n > 0:
+                stats["negative_to_positive"] += 1
+            else:
+                stats["other_change"] += 1
+            if len(examples) < 3:
+                examples.append((key, o, n))
+    log.warning("deepdata DRY RUN (nothing written): %s examples(obis_id, old, new)=%s", stats, examples)
+    return stats["rows_walked"]
+
+
+async def sync_deepdata(dry_run: bool = False) -> int:
     """Pull ISA DeepData occurrences via OBIS REST (nodeid filter) and upsert
     into deepdata_occurrences.
 
@@ -300,6 +336,11 @@ async def sync_deepdata() -> int:
     visible in the table instead of none — which is strictly better for a
     201k-row source that used to lose ALL page-1..N-1 progress on a single
     late-page timeout.
+
+    `depth_m` is the one column a re-run DOES refresh (`DO UPDATE ... WHERE IS DISTINCT FROM`):
+    a plain DO NOTHING would leave every row stored by the old minimum-only parser as it was.
+    `dry_run=True` walks OBIS, writes nothing and returns without `_log_sync`; it logs how many stored
+    depths would change (0 -> value, negative -> positive, other) with 3 examples.
     """
     from ingestion.deepdata_ingest import fetch_deepdata_records
 
@@ -313,12 +354,15 @@ async def sync_deepdata() -> int:
     sql = (
         f"INSERT INTO deepdata_occurrences ({', '.join(cols)}) "
         f"VALUES ({placeholders}) "
-        f"ON CONFLICT (obis_id) DO NOTHING"
+        f"ON CONFLICT (obis_id) DO UPDATE SET depth_m = EXCLUDED.depth_m "
+        f"WHERE deepdata_occurrences.depth_m IS DISTINCT FROM EXCLUDED.depth_m"
     )
 
     seen: set[str] = set()
     async with db.pool.acquire() as conn:
         before = await conn.fetchval("SELECT COUNT(*) FROM deepdata_occurrences")
+        if dry_run:
+            return await _deepdata_depth_dry_run(conn, fetch_deepdata_records())
         async for page in fetch_deepdata_records():
             seen.update(str(r["obis_id"]).lower() for r in page)
             await conn.executemany(sql, [tuple(r[c] for c in cols) for r in page])
@@ -909,17 +953,109 @@ async def reset_inat_images_for_reverification() -> int:
         return n
 
 
-async def backfill_iucn_categories(batch_size: int = 500) -> int:
-    """Backfill IUCN categories for species that already have images but no IUCN data."""
+# ── IUCN category lookup (GBIF) ──────────────────────────────────────────────
+# `biodiversity_hotspots.iucn_category` defaults to 'NE' (column default), so 'NE' alone cannot
+# say "checked, GBIF says not evaluated" from "never checked". `iucn_species_check` (created on
+# first use, like claim_species_cache, so the schema snapshot is untouched) records every
+# species a lookup has answered for; the backfill skips those, which is what the old
+# "store DD so we don't re-check" hack was standing in for.
+_IUCN_CODES = ("CR", "EN", "VU", "NT", "LC", "DD", "NE")
+_BINOMIAL_RE = re.compile(r"^[A-Z][A-Za-z-]+ [a-z]")
+_BINOMIAL_SQL = "^[A-Z][A-Za-z-]+ [a-z]"       # same pattern, for Postgres `~`
+_IUCN_RETRY_AFTER_DAYS = 7                    # a failed lookup (category NULL) is retried after this
+
+
+def _is_binomial(name: str) -> bool:
+    """Genus and family names ('Aegina', 'Acanthogorgiidae') are not species: GBIF answers them
+    with the category of a higher rank (Aegina -> kingdom Animalia -> NE), so never look them up."""
+    return bool(_BINOMIAL_RE.match(name or ""))
+
+
+async def _ensure_iucn_check_table(conn) -> None:
+    await conn.execute(
+        """CREATE TABLE IF NOT EXISTS iucn_species_check (
+               scientific_name TEXT PRIMARY KEY,
+               checked_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+               category        TEXT)"""
+    )
+    try:
+        await conn.execute("ALTER TABLE iucn_species_check OWNER TO abyssal_user")
+    except Exception:
+        pass
+
+
+async def _gbif_iucn_code(client: httpx.AsyncClient, name: str) -> str | None:
+    """IUCN code for a binomial, or None when the lookup FAILED (retry later; never DD).
+
+    GBIF's NOT_EVALUATED is code 'NE' and is a real answer, as is a 204/404 (no assessment) or a
+    name GBIF cannot match to this exact species. A timeout, 429/5xx or an unreadable body is not
+    an answer."""
+    try:
+        match = await client.get(GBIF_MATCH_URL, params={"name": name, "strict": "false"})
+        if match.status_code != 200:
+            return None
+        md = match.json()
+        matched = (md.get("species") or md.get("canonicalName") or "").strip().lower()
+        key = md.get("usageKey")
+        # Same strict check as enrich_species_images: a fuzzy or higher-rank match is another taxon.
+        if not key or matched != name.strip().lower() or md.get("rank") not in ("SPECIES", "SUBSPECIES", "VARIETY", "FORM"):
+            return "NE"
+        resp = await client.get(GBIF_IUCN_URL.format(key=key))
+        if resp.status_code in (204, 404):
+            return "NE"
+        if resp.status_code != 200:
+            return None
+        code = (resp.json() or {}).get("code")
+    except (httpx.HTTPError, ValueError) as e:        # ValueError: empty or non-JSON body
+        log.debug("GBIF IUCN lookup failed for %s: %s", name, e)
+        return None
+    if code in _IUCN_CODES:
+        return code
+    log.info("iucn: %s has GBIF code %r, not stored (retried later)", name, code)
+    return None
+
+
+async def _store_iucn(name: str, code: str | None) -> None:
+    """Write one species' answer. A failed lookup (None) writes no category, only a retry marker."""
     async with db.pool.acquire() as conn:
+        if code is not None:
+            await conn.execute(
+                """UPDATE biodiversity_hotspots
+                   SET iucn_category = $1::text,
+                       is_endangered = $1::text IN ('CR', 'EN', 'VU')
+                   WHERE scientific_name = $2
+                     AND (iucn_category IS NULL OR iucn_category IN ('NE', 'DD'))
+                     AND iucn_category IS DISTINCT FROM $1::text""",
+                code, name,
+            )
+        await conn.execute(
+            """INSERT INTO iucn_species_check (scientific_name, checked_at, category)
+               VALUES ($1, NOW(), $2)
+               ON CONFLICT (scientific_name) DO UPDATE SET checked_at = NOW(), category = $2""",
+            name, code,
+        )
+
+
+async def backfill_iucn_categories(batch_size: int = 500) -> int:
+    """Backfill IUCN categories for species that already have images but no IUCN data.
+
+    GBIF 'NOT_EVALUATED' is stored as 'NE'; a failed lookup stores nothing (retried after
+    `_IUCN_RETRY_AFTER_DAYS`); genus/family names are never looked up."""
+    async with db.pool.acquire() as conn:
+        await _ensure_iucn_check_table(conn)
         rows = await conn.fetch(
-            """SELECT DISTINCT scientific_name
-               FROM biodiversity_hotspots
-               WHERE scientific_name IS NOT NULL
-                 AND image_url IS NOT NULL
-                 AND (iucn_category IS NULL OR iucn_category = 'NE' OR iucn_category = 'DD')
+            """SELECT DISTINCT h.scientific_name
+               FROM biodiversity_hotspots h
+               WHERE h.scientific_name ~ $2
+                 AND h.image_url IS NOT NULL
+                 AND (h.iucn_category IS NULL OR h.iucn_category IN ('NE', 'DD'))
+                 AND NOT EXISTS (
+                       SELECT 1 FROM iucn_species_check c
+                       WHERE c.scientific_name = h.scientific_name
+                         AND (c.category IS NOT NULL
+                              OR c.checked_at > NOW() - make_interval(days => $3)))
                LIMIT $1""",
-            batch_size,
+            batch_size, _BINOMIAL_SQL, _IUCN_RETRY_AFTER_DAYS,
         )
     names = [r["scientific_name"] for r in rows]
     if not names:
@@ -928,42 +1064,73 @@ async def backfill_iucn_categories(batch_size: int = 500) -> int:
 
     log.info("iucn backfill: processing %d species", len(names))
     updated = 0
+    failed = 0
 
     async with httpx.AsyncClient(timeout=15) as client:
         for name in names:
-            iucn_cat: str | None = None
-            try:
-                match = await client.get(GBIF_MATCH_URL, params={"name": name, "strict": "false"})
-                if match.status_code == 200:
-                    key = match.json().get("usageKey")
-                    if key:
-                        iucn_resp = await client.get(GBIF_IUCN_URL.format(key=key))
-                        if iucn_resp.status_code == 200:
-                            iucn_raw = iucn_resp.json().get("code")
-                            if iucn_raw in ("CR", "EN", "VU", "NT", "LC", "DD"):
-                                iucn_cat = iucn_raw
-            except httpx.HTTPError as e:
-                log.debug("GBIF lookup failed for %s: %s", name, e)
-
-            if not iucn_cat:
-                # Mark as DD (Data Deficient) so we don't re-check this species
-                iucn_cat = "DD"
-
-            async with db.pool.acquire() as conn:
-                await conn.execute(
-                    """UPDATE biodiversity_hotspots
-                       SET iucn_category = $1,
-                           is_endangered = $1 IN ('CR', 'EN', 'VU')
-                       WHERE scientific_name = $2
-                         AND (iucn_category IS NULL OR iucn_category = 'NE' OR iucn_category = 'DD')""",
-                    iucn_cat,
-                    name,
-                )
-            updated += 1
+            code = await _gbif_iucn_code(client, name)
+            await _store_iucn(name, code)
+            if code is None:
+                failed += 1
+            else:
+                updated += 1
             await asyncio.sleep(0.2)
 
-    log.info("iucn backfill: updated %d / %d species", updated, len(names))
+    log.info("iucn backfill: answered %d / %d species (%d lookups failed, retried later)", updated, len(names), failed)
     return updated
+
+
+async def recheck_dd_iucn_categories(batch_size: int = 200, dry_run: bool = True) -> dict:
+    """Repair the species the old backfill stored as 'DD' for lack of an answer.
+
+    Old code wrote DD for NOT_EVALUATED, for an HTTP failure and for genus/family names (29 of 30
+    sampled DD species were NE in GBIF). This re-asks GBIF for the binomials still stored as DD
+    that `iucn_species_check` has not answered, in a bounded batch with a sleep between calls.
+    dry_run=True writes nothing (not even the check table) and returns counts plus examples.
+    Non-binomial DD rows become 'NE' (not NULL: the hotspot pass `iucn_category NOT IN ('CR','EN')`
+    drops NULL rows from the map). Genuine DD answers stay DD and are marked checked.
+    """
+    out: dict = {"dry_run": dry_run, "batch_size": batch_size}
+    async with db.pool.acquire() as conn:
+        out["dd_distinct_names"] = await conn.fetchval(
+            "SELECT count(DISTINCT scientific_name) FROM biodiversity_hotspots WHERE iucn_category = 'DD'")
+        out["dd_non_binomial_names"] = await conn.fetchval(
+            "SELECT count(DISTINCT scientific_name) FROM biodiversity_hotspots "
+            "WHERE iucn_category = 'DD' AND (scientific_name IS NULL OR scientific_name !~ $1)", _BINOMIAL_SQL)
+        have_table = await conn.fetchval("SELECT to_regclass('iucn_species_check') IS NOT NULL")
+        if not dry_run:
+            await _ensure_iucn_check_table(conn)
+            have_table = True
+        skip = ("AND NOT EXISTS (SELECT 1 FROM iucn_species_check c WHERE c.scientific_name = h.scientific_name "
+                "AND c.category IS NOT NULL) ") if have_table else ""
+        rows = await conn.fetch(
+            "SELECT DISTINCT h.scientific_name FROM biodiversity_hotspots h "
+            f"WHERE h.iucn_category = 'DD' AND h.scientific_name ~ $2 {skip}LIMIT $1",
+            batch_size, _BINOMIAL_SQL)
+    names = [r["scientific_name"] for r in rows]
+    out["looked_up"] = len(names)
+    outcomes: dict[str, int] = {}
+    examples: list[str] = []
+    async with httpx.AsyncClient(timeout=15) as client:
+        for name in names:
+            code = await _gbif_iucn_code(client, name)
+            key = code or "lookup-failed"
+            outcomes[key] = outcomes.get(key, 0) + 1
+            if code and code != "DD" and len(examples) < 3:
+                examples.append(f"{name}: DD -> {code}")
+            if not dry_run:
+                await _store_iucn(name, code)
+            await asyncio.sleep(0.3)       # GBIF courtesy: ~2 requests per species
+    out["outcomes"] = outcomes
+    out["would_change" if dry_run else "changed"] = sum(n for k, n in outcomes.items() if k not in ("DD", "lookup-failed"))
+    out["examples"] = examples
+    if not dry_run:
+        async with db.pool.acquire() as conn:
+            res = await conn.execute(
+                "UPDATE biodiversity_hotspots SET iucn_category = 'NE', is_endangered = FALSE "
+                "WHERE iucn_category = 'DD' AND (scientific_name IS NULL OR scientific_name !~ $1)", _BINOMIAL_SQL)
+        out["non_binomial_rows_set_to_NE"] = res
+    return out
 
 
 async def rebuild_hotspot_grid() -> int:
