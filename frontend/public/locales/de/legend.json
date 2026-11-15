@@ -869,6 +869,31 @@
         }
       ]
     },
+    "imos-zooplankton": {
+      "label": "Zooplankton-Abundanz (IMOS)",
+      "description": "Zooplankton-Abundanz pro m³ in Proben rund um Australien: der Australian Continuous Plankton Recorder (AusCPR, 8.517 hinter Gelegenheitsschiffen geschleppte Proben, 2007–2026) und die National Reference Stations (1.211 Proben an festen Stationen, 2002–2026). Jeder Marker ist eine Probe; seine Farbe ist die Summe der Ruderfußkrebse pro m³. Data was sourced from Australia’s Integrated Marine Observing System (IMOS) – IMOS is enabled by the National Collaborative Research Infrastructure strategy (NCRIS). Für AusCPR-Daten ist außerdem CSIRO und dem Australian Continuous Plankton Recorder Survey zu danken. Lizenz: CC BY 4.0.",
+      "reading": "Abundanz pro m³, Abwesenheit als hohle Marker; kein Modell · gefüllter Marker = Summe der Ruderfußkrebse pro m³ (logarithmische Klassen) · hohler Marker = Ruderfußkrebse gezählt, keiner gefunden · blassgrau = kein Ruderfußkrebs-Taxon gezählt · Probe anklicken für die darin gefundenen Taxa",
+      "limitations": "Gemessene Zählungen, kein Modell. Die beiden Programme proben unterschiedlich (ein hinter Gelegenheitsschiffen geschleppter Recorder, Beprobung an festen Stationen); ihre Abundanzen sind daher nicht direkt vergleichbar. Eine Abwesenheit gilt nur dort, wo die Quelle das Taxon gezählt hat: In der Nicht-Ruderfußkrebs-Gruppe der Referenzstationen listet die Quelle nur vorhandene Taxa, ein nicht gelistetes Taxon ist dort unbekannt, nicht null. Ein Taxon, das die Quelle leer ließ, wurde in dieser Probe nicht gezählt und hat keinen Wert. Abdeckung: nur australische Gewässer. Statischer Stand vom 15. November 2026; auf 2026 datierte Proben sind Messungen, keine Prognosen.",
+      "source": "IMOS — Integrated Marine Observing System: AusCPR- und National-Reference-Stations-Zooplanktonabundanz über den AODN-Katalog (CC BY 4.0)",
+      "updateFreq": "Statischer Stand vom 15. November 2026, von Hand geladen; keine automatische Aktualisierung",
+      "colorRamp": [
+        {
+          "label": "< 1 pro m³"
+        },
+        {
+          "label": "1–10 pro m³"
+        },
+        {
+          "label": "10–100 pro m³"
+        },
+        {
+          "label": "100–1.000 pro m³"
+        },
+        {
+          "label": "≥ 1.000 pro m³"
+        }
+      ]
+    },
     "wod-casts": {
       "label": "WOD23-Messungen (Stationen)",
       "source": "Mishonov, A. V., Boyer, T. P., Baranova, O. K., Bouchard, C. N., Cross, S., Garcia, H. E., Locarnini, R. A., Paver, C. R., Reagan, J. R., Wang, Z., Seidov, D., Grodsky, A. I., Beauchamp, J. G. (2024) World Ocean Database 2023. C. Bouchard, Technical Ed., NOAA Atlas NESDIS 97, 206 pp., doi:10.25923/z885-h264. NOAA NCEI, öffentliche Nutzung ohne Einschränkung.",
@@ -1139,7 +1164,8 @@
     "fresh_apiResponses": "serverseitig zwischengespeichert; Ihr Browser kann eine zusätzliche Caching-Schicht hinzufügen",
     "fresh_nutrients_model": "Vom Produzenten monatlich aktualisiert; die Plattform prüft täglich und hält 12 Monate vor",
     "fresh_ocean_colour": "Vom Produzenten monatlich aktualisiert; diese Plattform prüft täglich und behält 12 Monate",
-    "fresh_plankton": "Monatlicher vollständiger Neuimport aus OBIS (Datum des letzten Imports)"
+    "fresh_plankton": "Monatlicher vollständiger Neuimport aus OBIS (Datum des letzten Imports)",
+    "fresh_imos_zooplankton": "statischer Stand des AODN-Exports vom 15. November 2026 (Proben 2002–2026); keine automatische Aktualisierung"
   },
   "verify": {
     "primaryTitle": "Primärquellen",
@@ -1264,7 +1290,8 @@
       "arcticSedimentCarbon": "Arktischer Sedimentkohlenstoff: Stationswerte im Bolin-Centre-CASCADE-Repositorium (doi.org/10.17043/cascade-2) anhand des Stationsnamens überprüfen.",
       "coastdom": "CoastDOM: die Quelltabelle unter doi.org/10.1594/PANGAEA.964012 herunterladen und eine Probe über Ort, Datum und Tiefe aus dem Klickpanel finden; Werte werden unverändert mit den Einheiten der Quelle ausgeliefert.",
       "greenlandPrimaryProduction": "Primärproduktion der Grönlandsee: eine Station über ihre Event-Bezeichnung unter doi.org/10.1594/PANGAEA.965985 vergleichen.",
-      "plankton": "Plankton (OBIS) — jeder Datensatz eines Ortes verlinkt auf seine OBIS-Seite"
+      "plankton": "Plankton (OBIS) — jeder Datensatz eines Ortes verlinkt auf seine OBIS-Seite",
+      "imosZooplankton": "IMOS-Zooplankton — die AODN-Katalogeinträge der Datensätze AusCPR und National Reference Stations"
     },
     "nutrients_model_title": "Nährstoffe & Produktivität (Modell)",
     "nutrients_model": "Vergleichen Sie eine Zelle mit dem Viewer oder Download-Dienst des Produkts unter",

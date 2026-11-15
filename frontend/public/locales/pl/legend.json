@@ -869,6 +869,31 @@
         }
       ]
     },
+    "imos-zooplankton": {
+      "label": "Liczebność zooplanktonu (IMOS)",
+      "description": "Liczebność zooplanktonu na m³ w próbach wokół Australii: Australian Continuous Plankton Recorder (AusCPR, 8 517 prób holowanych za statkami okazjonalnymi, 2007–2026) oraz National Reference Stations (1 211 prób na stałych stacjach, 2002–2026). Każdy znacznik to jedna próba; jego kolor to suma widłonogów na m³. Data was sourced from Australia’s Integrated Marine Observing System (IMOS) – IMOS is enabled by the National Collaborative Research Infrastructure strategy (NCRIS). Dane AusCPR wymagają także podziękowania dla CSIRO i programu Australian Continuous Plankton Recorder. Licencja: CC BY 4.0.",
+      "reading": "liczebność na m³, brak organizmów pokazany jako pusty znacznik; to nie model · pełny znacznik = suma widłonogów na m³ (klasy logarytmiczne) · pusty znacznik = widłonogi liczono i nie znaleziono żadnego · blady szary = nie liczono żadnego taksonu widłonogów · kliknij próbę, aby zobaczyć znalezione taksony",
+      "limitations": "To zmierzone liczby, nie model. Oba programy próbkują inaczej (rejestrator holowany za statkami okazjonalnymi, próbkowanie na stałych stacjach), więc ich liczebności nie są wprost porównywalne. Brak taksonu jest prawdziwy tylko tam, gdzie źródło go liczyło: w grupie niewidłonogów ze stacji referencyjnych źródło podaje wyłącznie taksony obecne, więc takson niewymieniony jest tam nieznany, a nie równy zeru. Takson, który źródło zostawiło pusty, nie był liczony w tej próbie i nie ma wartości. Zasięg to wyłącznie wody Australii. Statyczna migawka z 15 listopada 2026; próby datowane na 2026 to pomiary, nie prognozy.",
+      "source": "IMOS — Integrated Marine Observing System: liczebność zooplanktonu AusCPR i stacji referencyjnych (NRS), przez katalog AODN (CC BY 4.0)",
+      "updateFreq": "Statyczna migawka z 15 listopada 2026, wczytana ręcznie; nie jest aktualizowana automatycznie",
+      "colorRamp": [
+        {
+          "label": "< 1 na m³"
+        },
+        {
+          "label": "1–10 na m³"
+        },
+        {
+          "label": "10–100 na m³"
+        },
+        {
+          "label": "100–1 000 na m³"
+        },
+        {
+          "label": "≥ 1 000 na m³"
+        }
+      ]
+    },
     "wod-casts": {
       "label": "Pomiary WOD23 (stacje)",
       "source": "Mishonov, A. V., Boyer, T. P., Baranova, O. K., Bouchard, C. N., Cross, S., Garcia, H. E., Locarnini, R. A., Paver, C. R., Reagan, J. R., Wang, Z., Seidov, D., Grodsky, A. I., Beauchamp, J. G. (2024) World Ocean Database 2023. C. Bouchard, Technical Ed., NOAA Atlas NESDIS 97, 206 pp., doi:10.25923/z885-h264. NOAA NCEI, publiczne użycie bez ograniczeń.",
@@ -1139,7 +1164,8 @@
     "fresh_apiResponses": "buforowane po stronie serwera; przeglądarka może dodać dodatkową warstwę buforowania",
     "fresh_nutrients_model": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy",
     "fresh_ocean_colour": "Aktualizowane przez producenta co miesiąc; platforma sprawdza codziennie i przechowuje 12 miesięcy",
-    "fresh_plankton": "Comiesięczny pełny import z OBIS (data ostatniego importu)"
+    "fresh_plankton": "Comiesięczny pełny import z OBIS (data ostatniego importu)",
+    "fresh_imos_zooplankton": "statyczna migawka eksportu AODN z 15 listopada 2026 (próby 2002–2026); nie jest aktualizowana automatycznie"
   },
   "verify": {
     "primaryTitle": "Źródła pierwotne",
@@ -1264,7 +1290,8 @@
       "arcticSedimentCarbon": "Węgiel w osadach arktycznych: zweryfikuj wartości stacji w repozytorium Bolin Centre CASCADE (doi.org/10.17043/cascade-2), posługując się nazwą stacji.",
       "coastdom": "CoastDOM: pobierz tabelę źródłową z doi.org/10.1594/PANGAEA.964012 i znajdź próbkę po miejscu, dacie i głębokości pokazanych w panelu; wartości są serwowane dosłownie, z jednostkami źródła.",
       "greenlandPrimaryProduction": "Produkcja pierwotna Morza Grenlandzkiego: porównaj stację po etykiecie zdarzenia na doi.org/10.1594/PANGAEA.965985.",
-      "plankton": "Plankton (OBIS) — każdy zbiór danych miejsca prowadzi do swojej strony w OBIS"
+      "plankton": "Plankton (OBIS) — każdy zbiór danych miejsca prowadzi do swojej strony w OBIS",
+      "imosZooplankton": "Zooplankton IMOS — rekordy katalogu AODN zbiorów AusCPR i National Reference Stations"
     },
     "nutrients_model_title": "Biogeny i produktywność (model)",
     "nutrients_model": "Porównaj komórkę z przeglądarką lub usługą pobierania samego produktu:",

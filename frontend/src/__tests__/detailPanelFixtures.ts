@@ -526,6 +526,7 @@ export const LAYER_FIXTURES: LayerFixture[] = [
   // A cold-link click: no cell address (k absent), so the panel fetches only /cast.
   { layer: "wod-casts", id: "9000001", properties: { cast_id: 9000001 } },
   { layer: "plankton-occurrences", id: "10.200000,50.200000", properties: { site_key: "10.200000,50.200000", n: 6, top_group: "copepoda" } },
+  { layer: "imos-zooplankton", id: "cpr:534-1", properties: { sample_key: "cpr:534-1", programme: "auscpr", copepod_total_m3: 12.5 } },
   { layer: "memento", id: "TEST-MEMENTO-1", properties: {} },
   {
     layer: "memento-hexes",
@@ -653,4 +654,5 @@ export const LAYER_FIXTURES: LayerFixture[] = [
 // 81 -> 82: `plankton-occurrences` place panel added.
 // 82 -> 83: `socat-points` observation panel added.
 // 83 -> 84: `wod-casts` cast panel added.
-export const EXPECTED_LAYER_COUNT = 84;
+// 84 -> 85: `imos-zooplankton` sample panel added.
+export const EXPECTED_LAYER_COUNT = 85;

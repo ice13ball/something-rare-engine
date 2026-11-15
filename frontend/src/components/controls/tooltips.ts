@@ -161,6 +161,11 @@ export const LAYER_TOOLTIPS_META = {
     sourceUrl: "https://obis.org/",
     pairsWith: ["biodiversity-hotspots", "ocean-colour-satellite", "woa-climatology"],
   },
+  "imos-zooplankton": {
+    source: "Australia’s Integrated Marine Observing System (IMOS): AusCPR and National Reference Stations zooplankton abundance, via the AODN catalogue (CC BY 4.0). Data was sourced from Australia’s Integrated Marine Observing System (IMOS) – IMOS is enabled by the National Collaborative Research Infrastructure strategy (NCRIS)",
+    sourceUrl: "https://catalogue-imos.aodn.org.au/geonetwork/srv/eng/catalog.search#/metadata/bf287dfe-9ce4-4969-9c59-51c39ea4d011",
+    pairsWith: ["plankton-occurrences", "ocean-colour-satellite", "woa-climatology"],
+  },
   "noise-risk": {
     source: "Derived layer — modelled from contract boundaries (no external citation)",
     pairsWith: ["contracts", "biodiversity-hotspots", "argo"],

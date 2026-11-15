@@ -55,6 +55,7 @@ from domains import geo_context
 from domains import geochem
 from domains import argo_oxygen_points
 from domains import glodap_points
+from domains import imos_zooplankton
 from domains import socat_points
 from domains import wod_casts
 from domains import oceansites_history
@@ -407,6 +408,7 @@ app.include_router(arctic.router)
 app.include_router(biodiversity.router)
 app.include_router(geochem.router)
 app.include_router(glodap_points.router)
+app.include_router(imos_zooplankton.router)
 app.include_router(socat_points.router)
 app.include_router(wod_casts.router)
 app.include_router(argo_oxygen_points.router)

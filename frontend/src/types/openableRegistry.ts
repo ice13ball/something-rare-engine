@@ -112,6 +112,9 @@ export const ID_CHAIN = [
   // AOC2025 POC keys on the source's Station label
   // ("AOC2025-2"), unique per station. Last, same first-match-wins reason.
   "station",
+  // IMOS zooplankton keys on sample_key (cpr:<Sample_ID> / nrs:<TripCode>), unique per sample. Last, same
+  // first-match-wins reason. Keep in the same order as SearchBar.featureId().
+  "sample_key",
 ] as const;
 
 export const OPENABLE = {
@@ -449,6 +452,16 @@ export const OPENABLE = {
     zoom: 8, idStability: "stable",
     byIdPath: "/api/v1/plankton/site/",
     geometryFromLatLon: true,
+  },
+  "imos-zooplankton": {
+    source: "client", idProps: ID_CHAIN,
+    routingKeys: ["imos-zooplankton"], routingKey: () => "imos-zooplankton",
+    // Samples are single stations or tow points; a sample is not findable at a wide zoom.
+    zoom: 8,
+    // The AODN export is a frozen snapshot (2026-11-15). Sample_ID / TripCode are the source's own labels; a
+    // later export could in principle relabel them, which is not established either way.
+    idStability: "nieustalone",
+    dataKey: "imosZooplankton",
   },
 } as const satisfies Record<string, OpenableLayer>;
 

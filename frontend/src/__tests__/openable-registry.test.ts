@@ -61,7 +61,7 @@ describe("every key the registry promises is a branch the dispatcher has", () =>
     expect(covered.size).toBeGreaterThan(0);
     expect(opted.size).toBeGreaterThan(0);
     expect([...covered].filter((l) => opted.has(l))).toEqual([]);
-    expect(covered.size + opted.size).toBe(69);
+    expect(covered.size + opted.size).toBe(70);
   });
 
   it("an identifier known to rot is marked, not quietly treated as stable", () => {

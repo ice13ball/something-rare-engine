@@ -869,6 +869,31 @@
         }
       ]
     },
+    "imos-zooplankton": {
+      "label": "Abondance du zooplancton (IMOS)",
+      "description": "Abondance du zooplancton par m³ dans des échantillons autour de l’Australie : l’Australian Continuous Plankton Recorder (AusCPR, 8 517 échantillons remorqués derrière des navires d’opportunité, 2007–2026) et les National Reference Stations (1 211 échantillons à des stations fixes, 2002–2026). Chaque marqueur est un échantillon ; sa couleur est le total des copépodes par m³. Data was sourced from Australia’s Integrated Marine Observing System (IMOS) – IMOS is enabled by the National Collaborative Research Infrastructure strategy (NCRIS). Les données AusCPR remercient aussi le CSIRO et le programme Australian Continuous Plankton Recorder. Licence : CC BY 4.0.",
+      "reading": "abondance par m³, absences en marqueurs creux ; pas un modèle · marqueur plein = total des copépodes par m³ (classes logarithmiques) · marqueur creux = copépodes comptés, aucun trouvé · gris pâle = aucun taxon de copépodes compté · cliquez un échantillon pour voir les taxons trouvés",
+      "limitations": "Comptages mesurés, pas un modèle. Les deux programmes n’échantillonnent pas de la même façon (un enregistreur remorqué derrière des navires d’opportunité, un échantillonnage à des stations fixes) : leurs abondances ne sont donc pas directement comparables. Une absence n’est réelle que là où la source a compté le taxon : pour le groupe hors copépodes des stations de référence, la source ne liste que les taxons présents, si bien qu’un taxon non listé y est inconnu, pas nul. Un taxon laissé vide par la source n’a pas été compté dans cet échantillon et n’a pas de valeur. Couverture : eaux australiennes uniquement. Instantané statique du 15 novembre 2026 ; les échantillons datés de 2026 sont des mesures, pas des prévisions.",
+      "source": "IMOS — Integrated Marine Observing System : abondance du zooplancton AusCPR et des National Reference Stations, via le catalogue AODN (CC BY 4.0)",
+      "updateFreq": "Instantané statique du 15 novembre 2026, chargé à la main ; pas de mise à jour automatique",
+      "colorRamp": [
+        {
+          "label": "< 1 par m³"
+        },
+        {
+          "label": "1–10 par m³"
+        },
+        {
+          "label": "10–100 par m³"
+        },
+        {
+          "label": "100–1 000 par m³"
+        },
+        {
+          "label": "≥ 1 000 par m³"
+        }
+      ]
+    },
     "wod-casts": {
       "label": "Mesures WOD23 (stations)",
       "source": "Mishonov, A. V., Boyer, T. P., Baranova, O. K., Bouchard, C. N., Cross, S., Garcia, H. E., Locarnini, R. A., Paver, C. R., Reagan, J. R., Wang, Z., Seidov, D., Grodsky, A. I., Beauchamp, J. G. (2024) World Ocean Database 2023. C. Bouchard, Technical Ed., NOAA Atlas NESDIS 97, 206 pp., doi:10.25923/z885-h264. NOAA NCEI, usage public sans restriction.",
@@ -1139,7 +1164,8 @@
     "fresh_apiResponses": "mis en cache côté serveur ; votre navigateur peut ajouter une couche supplémentaire de mise en cache",
     "fresh_nutrients_model": "Mis à jour chaque mois par le producteur ; la plateforme vérifie chaque jour et conserve 12 mois",
     "fresh_ocean_colour": "Mis à jour chaque mois par le producteur ; cette plateforme vérifie chaque jour et conserve 12 mois",
-    "fresh_plankton": "Réimportation complète mensuelle depuis OBIS (date de la dernière importation)"
+    "fresh_plankton": "Réimportation complète mensuelle depuis OBIS (date de la dernière importation)",
+    "fresh_imos_zooplankton": "instantané statique de l’export AODN du 15 novembre 2026 (échantillons 2002–2026) ; pas de mise à jour automatique"
   },
   "verify": {
     "primaryTitle": "Sources primaires",
@@ -1264,7 +1290,8 @@
       "arcticSedimentCarbon": "Carbone des sédiments arctiques : vérifiez les valeurs des stations dans le dépôt Bolin Centre CASCADE (doi.org/10.17043/cascade-2) à l'aide du nom de la station.",
       "coastdom": "CoastDOM : télécharger la table source sur doi.org/10.1594/PANGAEA.964012 et retrouver un échantillon par le lieu, la date et la profondeur affichés dans le panneau ; les valeurs sont servies telles quelles, avec les unités de la source.",
       "greenlandPrimaryProduction": "Production primaire de la mer du Groenland : comparer une station par son étiquette d'événement sur doi.org/10.1594/PANGAEA.965985.",
-      "plankton": "Plancton (OBIS) — chaque jeu de données d'un lieu renvoie à sa page OBIS"
+      "plankton": "Plancton (OBIS) — chaque jeu de données d'un lieu renvoie à sa page OBIS",
+      "imosZooplankton": "Zooplancton IMOS — les notices du catalogue AODN des jeux AusCPR et National Reference Stations"
     },
     "nutrients_model_title": "Nutriments et productivité (modèle)",
     "nutrients_model": "Comparez une maille avec le visualiseur ou le service de téléchargement du produit sur",

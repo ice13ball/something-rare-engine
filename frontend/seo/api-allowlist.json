@@ -246,6 +246,21 @@
  },
  {
   "method": "GET",
+  "template": "/v1/imos-zooplankton/sample/{sample_key}",
+  "regex": "^/v1/imos-zooplankton/sample/[^/]+$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/imos-zooplankton/samples",
+  "regex": "^/v1/imos-zooplankton/samples$"
+ },
+ {
+  "method": "GET",
+  "template": "/v1/imos-zooplankton/taxa",
+  "regex": "^/v1/imos-zooplankton/taxa$"
+ },
+ {
+  "method": "GET",
   "template": "/v1/layers/temporal-coverage",
   "regex": "^/v1/layers/temporal-coverage$"
  },

@@ -17,7 +17,7 @@ export const LAYER_TO_SUBGROUP: Record<string, string> = {
   // sea_life
   "biodiversity-hotspots": "sea_life", "hydrothermal-vents": "sea_life",
   "chess": "sea_life", "seamounts": "sea_life", "tectonic-plates": "sea_life",
-  "bathymetry": "sea_life", "plankton-occurrences": "sea_life",
+  "bathymetry": "sea_life", "plankton-occurrences": "sea_life", "imos-zooplankton": "sea_life",
   // sea_analysis
   "monitoring-density": "sea_analysis", "deepdata-stations": "sea_analysis",
   "marine-carbon": "sea_analysis", "vme-suitability": "sea_analysis",

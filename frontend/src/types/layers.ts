@@ -28,6 +28,7 @@ export const SEA_LAYER_IDS = [
   "greenland-sea-poc-aoc2025",
   "svalbard-fjords-primary-production",
   "plankton-occurrences",
+  "imos-zooplankton",
 ] as const;
 
 export type SeaLayerId = (typeof SEA_LAYER_IDS)[number];
@@ -114,6 +115,14 @@ export const LAYER_CONFIGS = [
     fillRgba: [249, 115, 22, 200],
     lineRgba: [255, 255, 255, 90],
     description: "Where plankton was observed (OBIS): copepods, krill, diatoms, coccolithophores, dinoflagellates",
+  },
+  {
+    id: "imos-zooplankton",
+    label: "Zooplankton Abundance (IMOS)",
+    color: "#2dd4bf",
+    fillRgba: [45, 212, 191, 210],
+    lineRgba: [255, 255, 255, 170],
+    description: "Zooplankton abundance per m³ at Australian Continuous Plankton Recorder and National Reference Station samples, 2002–2026 (IMOS, CC BY 4.0). Absences are shown as hollow markers; this is measured data, not a model.",
   },
   {
     id: "relinquished-areas",

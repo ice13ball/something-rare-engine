@@ -34,6 +34,8 @@ export const LAYER_DEFAULTS: LayerConfig[] = [
   // OBIS plankton (stage 2): under the OBIS species dots (1000), above the seamounts (900).
   // Pinned by deck-layer-z-order.test.ts.
   { id: "plankton-occurrences",   order_idx: 950,  default_on: false, modes: ["ocean","continue"] },
+  // IMOS zooplankton (AusCPR + NRS): next to the OBIS plankton layer, above it. KEEP IN SYNC with startup_seeds.py.
+  { id: "imos-zooplankton",      order_idx: 960,  default_on: false, modes: ["ocean","continue"] },
   { id: "monitoring-density",     order_idx: 1100, default_on: false, modes: ["ocean","continue"] },
   { id: "noise-risk",             order_idx: 1200, default_on: false, modes: ["ocean","continue"] },
   { id: "hydrophone-stations",    order_idx: 1250, default_on: false, modes: ["ocean","continue"] },

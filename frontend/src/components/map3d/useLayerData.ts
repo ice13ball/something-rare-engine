@@ -44,6 +44,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const [deepdataStationsData, setDeepdataStationsData] = useState<FeatureCollection | null>(null);
   const [hydrophoneData, setHydrophoneData] = useState<FeatureCollection | null>(null);
   const [marhysData, setMarhysData] = useState<FeatureCollection | null>(null);
+  const [imosZooplanktonData, setImosZooplanktonData] = useState<FeatureCollection | null>(null);
   const [coastdomData, setCoastdomData] = useState<FeatureCollection | null>(null);
   const [greenlandPpData, setGreenlandPpData] = useState<FeatureCollection | null>(null);
   const [aocPocData, setAocPocData] = useState<FeatureCollection | null>(null);
@@ -83,6 +84,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   const deepdataStationsFetchedRef = useRef(false);
   const hydrophoneFetchedRef = useRef(false);
   const marhysFetchedRef = useRef(false);
+  const imosZooplanktonFetchedRef = useRef(false);
   const coastdomFetchedRef = useRef(false);
   const greenlandPpFetchedRef = useRef(false);
   const aocPocFetchedRef = useRef(false);
@@ -141,6 +143,8 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
       fetchGuarded(hydrophoneFetchedRef, "/api/v1/map/hydrophones", setHydrophoneData, "Hydrophone Stations");
     if (activeLayers.has("marhys"))
       fetchGuarded(marhysFetchedRef, "/api/v1/map/marhys", setMarhysData, "Vent Fluid Chemistry");
+    if (activeLayers.has("imos-zooplankton"))
+      fetchGuarded(imosZooplanktonFetchedRef, "/api/v1/imos-zooplankton/samples", setImosZooplanktonData, "Zooplankton Abundance (IMOS)");
     if (activeLayers.has("coastdom"))
       fetchGuarded(coastdomFetchedRef, "/api/v1/map/coastdom/locations", setCoastdomData, "Coastal Dissolved Organic Matter");
     if (activeLayers.has("greenland-primary-production"))
@@ -192,7 +196,7 @@ export function useLayerData(activeLayers: Set<LayerId>, fetchGuarded: Guarded) 
   return {
     eezData, protectedSitesData, seamountsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
-    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
+    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, imosZooplanktonData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
     damsData, vesselEventsData, aisLiveData, arcticRiversData, siosData,
     methaneSeepsData, permafrostThawData, cascadeStationsData, monitoringDensityData,

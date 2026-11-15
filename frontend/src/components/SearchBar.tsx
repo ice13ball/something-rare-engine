@@ -76,6 +76,9 @@ const NO_SEARCH = [
   "water-risk",
   "wod-oxygen",
   "plankton-occurrences",
+  // The client holds the whole sample set, but a sample is identified by a code (cpr:<Sample_ID> / nrs:<TripCode>)
+  // and the minimal samples document carries no station or region name for a query to match.
+  "imos-zooplankton",
   "offshore-activities",
   "mosaic-sediment",
   "arctic-catchments",
@@ -498,7 +501,7 @@ function getCoords(feature: Feature): [number, number] | null {
  * wrong until someone follows the link. Keep the two lists in the same order.
  */
 export function featureId(p: Record<string, unknown>): string | number {
-  return (p.mmsi ?? p.vessel_id ?? p.event_id ?? p.isa_id ?? p.id ?? p.platform_id ?? p.peak_id ?? p.mrgid ?? p.site_id ?? p.device_id ?? p.device_code ?? p.city ?? p.dam_name ?? p.site_name ?? p.station_id ?? p.cast_id ?? p.ext_id ?? p.metadata_id ?? p.unique_id ?? p.source_row ?? p.event ?? p.position_id ?? p.station ?? "") as string | number;
+  return (p.mmsi ?? p.vessel_id ?? p.event_id ?? p.isa_id ?? p.id ?? p.platform_id ?? p.peak_id ?? p.mrgid ?? p.site_id ?? p.device_id ?? p.device_code ?? p.city ?? p.dam_name ?? p.site_name ?? p.station_id ?? p.cast_id ?? p.ext_id ?? p.metadata_id ?? p.unique_id ?? p.source_row ?? p.event ?? p.position_id ?? p.station ?? p.sample_key ?? "") as string | number;
 }
 
 /**

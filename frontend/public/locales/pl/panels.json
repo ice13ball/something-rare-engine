@@ -398,6 +398,9 @@
     },
     "planktonOccurrences": {
       "toggle": "Plankton (OBIS)"
+    },
+    "imosZooplankton": {
+      "toggle": "Zooplankton (IMOS)"
     }
   },
   "filters": {
@@ -613,6 +616,7 @@
       "ocean-nutrients-model": "Wynik modelu, nie pomiary: powierzchniowe azotany, chlorofil-a, produkcja pierwotna netto (tempo objętościowe przy powierzchni, a nie całka po słupie wody) oraz N* (azotany − 16 × fosforany) z globalnego modelu biogeochemicznego Copernicus Marine (PISCES, 0,25°). Średnie miesięczne dla najnowszego dostępnego miesiąca i 11 poprzednich. Kliknij mapę, aby zobaczyć dokładną wartość z najbliższej komórki.",
       "ocean-colour-satellite": "Obserwacje satelitarne: chlorofil-a i produkcja pierwotna (całka po słupie wody) z barwy oceanu Copernicus-GlobColour, średnie miesięczne uśrednione do 0,25°. Chmury, lód morski i noc polarna zostawiają luki. Kliknij mapę, by poznać dokładną wartość najbliższej komórki.",
       "plankton-occurrences": "Miejsca, w których obserwowano plankton (OBIS): widłonogi, kryl, okrzemki, kokolitofory i bruzdnice. Kolor = dominująca grupa, wielkość = liczba obserwacji, sam obrys = wykryte DNA (eDNA). Filtry: grupa, dekada, głębokość i eDNA; kliknij miejsce, aby zobaczyć gatunki, lata, głębokości, licencje i zbiory danych.",
+      "imos-zooplankton": "Liczebność zooplanktonu na m³ w próbach AusCPR i stacji referencyjnych Australii, 2002–2026 (IMOS, CC BY 4.0). Kolor = suma widłonogów na m³ (skala logarytmiczna), pusty znacznik = liczono i nie znaleziono, blady szary = nie liczono. Dane pomiarowe, nie model; kliknij próbę, by zobaczyć taksony.",
       "wod-casts": "Pojedyncze stacje World Ocean Database 2023 (OSD, CTD, pławy profilujące) — rzeczywiste pomiary stojące za polem Klimatologia oceanu. Każda kropka to średnia stacji w jednej małej komórce, pokolorowana w skali pola dla wybranej zmiennej na wybranej głębokości; szara tam, gdzie w oknie tej głębokości nie ma dobrej wartości. Pomiary tak, jak zapisano: pole jest obiektywnie analizowaną średnią roczną, czyli innym produktem."
     },
     "densityScaleLabel": "Rekordy na komórkę",
@@ -1818,6 +1822,29 @@
     "licences": "Licencje",
     "ncNote": "Część tych rekordów ma licencję CC-BY-NC: wyłącznie użytek niekomercyjny. Licencja każdego zbioru jest podana niżej.",
     "datasets": "Zbiory danych ({{n}})"
+  },
+  "imosZooplankton": {
+    "loading": "Wczytuję próbę…",
+    "missing": "Tej próby nie ma w bieżącej migawce zooplanktonu IMOS.",
+    "error": "Nie udało się teraz wczytać próby. Usługa jest niedostępna lub zajęta.",
+    "retry": "Spróbuj ponownie",
+    "titleCpr": "Próba zooplanktonu — Continuous Plankton Recorder (AusCPR)",
+    "titleNrs": "Próba zooplanktonu — National Reference Station",
+    "noDate": "brak daty",
+    "time": "Pobrano",
+    "depth": "Głębokość próby",
+    "volume": "Przefiltrowana woda",
+    "biomassIndex": "Wskaźnik biomasy",
+    "biomass": "Biomasa",
+    "copepodTotal": "Widłonogi, razem",
+    "notCounted": "nie liczono",
+    "copepods": "Obecne widłonogi ({{n}})",
+    "nonCopepods": "Obecny pozostały zooplankton ({{n}})",
+    "noneFound": "W tej próbie nie znaleziono widłonogów.",
+    "noneListed": "Dla tej próby nie podano innego zooplanktonu.",
+    "absentCounted": "{{n}} kolejnych taksonów liczono i nie było ich (liczebność 0).",
+    "absencesNotRecorded": "Źródło podaje wyłącznie taksony obecne: braków nie zapisuje, więc takson niewymieniony jest nieznany, a nie równy zeru.",
+    "unitNote": "Liczebność w osobnikach na m³, jak zmierzono; to nie model."
   },
   "wodCast": {
     "loading": "Wczytywanie stacji…",

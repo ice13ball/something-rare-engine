@@ -398,6 +398,9 @@
     },
     "planktonOccurrences": {
       "toggle": "Plankton (OBIS)"
+    },
+    "imosZooplankton": {
+      "toggle": "Zooplankton (IMOS)"
     }
   },
   "filters": {
@@ -613,6 +616,7 @@
       "ocean-nutrients-model": "Model output, not measurements: surface nitrate, chlorophyll-a, net primary production (a volumetric rate at the surface, not a column integral) and N* (nitrate − 16 × phosphate) from the Copernicus Marine global biogeochemical model (PISCES, 0.25°). Monthly means for the newest available month and the 11 before it. Click the map for the exact value of the nearest cell.",
       "ocean-colour-satellite": "Satellite observations: chlorophyll-a and primary production (a water-column integral) from Copernicus-GlobColour ocean colour, monthly means averaged to 0.25°. Cloud, sea ice and polar night leave gaps. Click the map for the exact value of the nearest cell.",
       "plankton-occurrences": "Where plankton has been observed (OBIS): copepods, krill, diatoms, coccolithophores and dinoflagellates. Colour = dominant group, size = number of observations, outline only = DNA found (eDNA). Filter by group, decade, depth and eDNA; click a place for species, years, depths, licences and datasets.",
+      "imos-zooplankton": "Zooplankton abundance per m³ at Australian Continuous Plankton Recorder and National Reference Station samples, 2002–2026 (IMOS, CC BY 4.0). Colour = total copepods per m³ (log scale), hollow marker = counted and none found, faint grey = not counted. Measured data, not a model; click a sample for its taxa.",
       "wod-casts": "Individual World Ocean Database 2023 casts (OSD, CTD, profiling floats) — the real measurements behind the Ocean Climatology field. Each dot is the mean of the casts in one small cell, coloured in the field's scale for the selected variable at the selected depth; grey where no good value lies within that depth's window. Casts as measured: the field is an objectively analysed annual mean, a different product."
     },
     "densityScaleLabel": "Records per cell",
@@ -1868,6 +1872,29 @@
     "licences": "Licences",
     "ncNote": "Part of these records is CC-BY-NC: non-commercial use only. The licence of each dataset is listed below.",
     "datasets": "Datasets ({{n}})"
+  },
+  "imosZooplankton": {
+    "loading": "Loading the sample…",
+    "missing": "This sample is not in the current IMOS zooplankton snapshot.",
+    "error": "The sample could not be loaded right now. The service is unavailable or busy.",
+    "retry": "Try again",
+    "titleCpr": "Zooplankton sample — Continuous Plankton Recorder (AusCPR)",
+    "titleNrs": "Zooplankton sample — National Reference Station",
+    "noDate": "no date",
+    "time": "Sampled",
+    "depth": "Sample depth",
+    "volume": "Water filtered",
+    "biomassIndex": "Biomass index",
+    "biomass": "Biomass",
+    "copepodTotal": "Copepods, total",
+    "notCounted": "not counted",
+    "copepods": "Copepods present ({{n}})",
+    "nonCopepods": "Other zooplankton present ({{n}})",
+    "noneFound": "No copepod found in this sample.",
+    "noneListed": "No other zooplankton listed for this sample.",
+    "absentCounted": "{{n}} further taxa were counted and absent (abundance 0).",
+    "absencesNotRecorded": "The source lists only the taxa that were present: absences are not recorded, so an unlisted taxon is unknown, not zero.",
+    "unitNote": "Abundance in individuals per m³, as measured; not a model."
   },
   "wodCast": {
     "loading": "Loading cast…",

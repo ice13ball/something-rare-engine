@@ -56,6 +56,7 @@ const SECTION_FILES = [
   "oceanClimatology/SvalbardFjordsPpRow.tsx",
   "MarhysRow.tsx",
   "PlanktonRow.tsx",
+  "ImosZooplanktonRow.tsx",
   "InfrastructureSection.tsx",
   "UnderwaterNoiseSection.tsx",
   "LandCoreSection.tsx",
@@ -113,7 +114,8 @@ const ALL_LAYER_IDS = [...LITERAL_IDS, ...MAPPED_IDS];
 //   62 → 63 on 2026-10-01: `ocean-nutrients-model` added.
 //   63 → 64 on 2026-10-01: `ocean-colour-satellite` added.
 // 64 -> 65: plankton-occurrences (stage-2 map layer), under biodiversity-hotspots.
-const EXPECTED_LAYER_ROW_COUNT = 65;
+// 65 -> 66: imos-zooplankton, under plankton-occurrences.
+const EXPECTED_LAYER_ROW_COUNT = 66;
 
 const SUBGROUP_STORAGE_KEYS = [
   "sea_claims", "sea_life", "sea_analysis", "sea_sensors", "sea_woa",
@@ -275,8 +277,8 @@ const currentsMetaFull = {
 };
 
 describe("Map3DControls source structure", () => {
-  it("finds exactly 65 layer rows (60 literal + 5 array-driven)", () => {
-    expect(LITERAL_IDS).toHaveLength(60);
+  it("finds exactly 66 layer rows (61 literal + 5 array-driven)", () => {
+    expect(LITERAL_IDS).toHaveLength(61);
     expect(MAPPED_IDS).toEqual(["reserved-areas", "relinquished-areas", "apeis", "protected-marine-sites", "eez"]);
     expect(ALL_LAYER_IDS).toHaveLength(EXPECTED_LAYER_ROW_COUNT);
     // No id appears twice — a duplicate id would mean two rows silently

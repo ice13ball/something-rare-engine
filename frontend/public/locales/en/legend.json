@@ -869,6 +869,31 @@
         }
       ]
     },
+    "imos-zooplankton": {
+      "label": "Zooplankton Abundance (IMOS)",
+      "description": "Zooplankton abundance per m³ at samples around Australia: the Australian Continuous Plankton Recorder survey (AusCPR, 8,517 samples towed behind ships of opportunity, 2007–2026) and the National Reference Stations (1,211 samples at fixed stations, 2002–2026). Each marker is one sample; its colour is the total of copepods per m³. Data was sourced from Australia’s Integrated Marine Observing System (IMOS) – IMOS is enabled by the National Collaborative Research Infrastructure strategy (NCRIS). AusCPR data also acknowledge CSIRO and the Australian Continuous Plankton Recorder survey. Licence: CC BY 4.0.",
+      "reading": "abundance per m³, absences shown as hollow markers; not a model · filled marker = total copepods per m³ (log classes) · hollow marker = copepods counted, none found · faint grey = no copepod taxon counted · click a sample for the taxa found in it",
+      "limitations": "Measured counts, not a model. The two programmes sample differently (a recorder towed behind ships of opportunity, sampling at fixed stations), so their abundances are not directly comparable. An absence is real only where the source counted the taxon: for the non-copepod group of the reference stations the source lists present taxa only, so an unlisted taxon there is unknown, not zero. A taxon the source left empty was not counted in that sample and has no value. Coverage is Australian waters only. A static snapshot of 15 November 2026; samples dated 2026 are measurements, not forecasts.",
+      "source": "IMOS — Integrated Marine Observing System: AusCPR zooplankton abundance and National Reference Stations zooplankton abundance, via the AODN catalogue (CC BY 4.0)",
+      "updateFreq": "Static snapshot of 15 November 2026, loaded by hand; not updated automatically",
+      "colorRamp": [
+        {
+          "label": "< 1 per m³"
+        },
+        {
+          "label": "1–10 per m³"
+        },
+        {
+          "label": "10–100 per m³"
+        },
+        {
+          "label": "100–1,000 per m³"
+        },
+        {
+          "label": "≥ 1,000 per m³"
+        }
+      ]
+    },
     "wod-casts": {
       "label": "WOD23 measurements (casts)",
       "source": "Mishonov, A. V., Boyer, T. P., Baranova, O. K., Bouchard, C. N., Cross, S., Garcia, H. E., Locarnini, R. A., Paver, C. R., Reagan, J. R., Wang, Z., Seidov, D., Grodsky, A. I., Beauchamp, J. G. (2024) World Ocean Database 2023. C. Bouchard, Technical Ed., NOAA Atlas NESDIS 97, 206 pp., doi:10.25923/z885-h264. NOAA NCEI, public use without restriction.",
@@ -1139,7 +1164,8 @@
     "fresh_apiResponses": "cached server-side; your browser may add an additional layer of caching",
     "fresh_nutrients_model": "Updated by the producer monthly; this platform checks daily and keeps 12 months",
     "fresh_ocean_colour": "Updated by the producer monthly; this platform checks daily and keeps 12 months",
-    "fresh_plankton": "Monthly full re-import from OBIS (date of the last import)"
+    "fresh_plankton": "Monthly full re-import from OBIS (date of the last import)",
+    "fresh_imos_zooplankton": "static snapshot of the AODN export of 15 November 2026 (samples 2002–2026); not updated automatically"
   },
   "verify": {
     "primaryTitle": "Primary sources",
@@ -1264,7 +1290,8 @@
       "arcticSedimentCarbon": "Arctic Sediment Carbon: cross-check station values at the Bolin Centre CASCADE repository (doi.org/10.17043/cascade-2) using the station name.",
       "coastdom": "CoastDOM: download the source table at doi.org/10.1594/PANGAEA.964012 and find a sample by the location, date and depth shown in the click panel; values are served verbatim with the source's units.",
       "greenlandPrimaryProduction": "Greenland Sea primary production: compare a station by its event label at doi.org/10.1594/PANGAEA.965985.",
-      "plankton": "Plankton (OBIS) — each dataset of a place links to its OBIS page"
+      "plankton": "Plankton (OBIS) — each dataset of a place links to its OBIS page",
+      "imosZooplankton": "IMOS zooplankton — the AODN catalogue records of the AusCPR and National Reference Stations datasets"
     },
     "nutrients_model_title": "Nutrients & productivity (model)",
     "nutrients_model": "Compare a cell with the product's own viewer or download service at",

@@ -16,6 +16,7 @@ import { NoiseRiskPanel } from "./panels/density/NoiseRiskPanel";
 import { MonitoringDensityPanel } from "./panels/density/MonitoringDensityPanel";
 import { WodOxygenPanel } from "./panels/fields/WodOxygenPanel";
 import { PlanktonPanel } from "./panels/ocean/PlanktonPanel";
+import { ImosZooplanktonPanel } from "./panels/ocean/ImosZooplanktonPanel";
 import { WoaPointPanel } from "./panels/fields/WoaPointPanel";
 import { GlodapCastPanel } from "./panels/fields/GlodapCastPanel";
 import { ArgoOxygenProfilePanel } from "./panels/fields/ArgoOxygenProfilePanel";
@@ -170,6 +171,7 @@ function PanelContent({ feature }: { feature: SelectedFeature }) {
   if (layer === "arctic-rivers")              return <ArcticRiverPanel properties={properties} />;
   if (layer === "wod-oxygen")                 return <WodOxygenPanel id={id} />;
   if (layer === "plankton-occurrences")       return <PlanktonPanel siteKey={String(properties.site_key ?? id)} />;
+  if (layer === "imos-zooplankton")           return <ImosZooplanktonPanel sampleKey={String(properties.sample_key ?? id)} />;
   if (layer === "glodap-points")              return <GlodapCastPanel id={String(properties.cast_key ?? id)} />;
   if (layer === "argo-oxygen-points")         return <ArgoOxygenProfilePanel id={String(properties.profile_key ?? id)} />;
   if (layer === "socat-points")               return <SocatObsPanel obsKey={String(properties.obs_key ?? id)} cell={properties.cell as string | undefined}
@@ -250,6 +252,7 @@ const LAYER_TITLE: Record<string, string> = {
   "surface-water": "Surface Water",
   "wod-oxygen":    "WOD O₂ Profile",
   "plankton-occurrences": "Plankton (OBIS)",
+  "imos-zooplankton": "Zooplankton Sample (IMOS)",
   "sios-svalbard":  "SIOS Dataset",
   "arctic-rivers": "Arctic River Station",
   "methane-seeps": "Methane Seep",

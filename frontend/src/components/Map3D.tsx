@@ -42,6 +42,7 @@ import { applyShareableFilters } from "../types/filterRegistry";
 import {
   coastdomYearBounds, effectiveCoastdomRange, coastdomInRangeCount, coastdomPassesYearRange,
 } from "../utils/coastdomYearFilter";
+import { imosZoopFill, imosZoopLine, imosZoopLineWidth } from "../utils/imosZooplankton";
 import { applyShareableDisplay } from "../types/displayRegistry";
 import { resolveInitialCamera, resolveInitialLayers, shouldStripShareParam, linkCarriesView } from "./map3d/shareBootstrap";
 import { nextActiveForLink, NO_CLIENT_COPY } from "./map3d/linkLayerActivation";
@@ -657,7 +658,7 @@ export function Map3D() {
   const {
     eezData, protectedSitesData, seamountsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData,
     cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData,
-    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
+    oncInstrumentsData, deepdataStationsData, hydrophoneData, marhysData, imosZooplanktonData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, portsData,
     miningFootprintsData, tailingsData, firesData, airQualityData, landslidesData,
     damsData, vesselEventsData, aisLiveData, arcticRiversData, siosData,
     methaneSeepsData, permafrostThawData, cascadeStationsData, monitoringDensityData,
@@ -685,6 +686,7 @@ export function Map3D() {
       deepdataStations: deepdataStationsData,
       hydrophones: hydrophoneData,
       marhys: marhysData,
+      imosZooplankton: imosZooplanktonData,
       coastdom: coastdomData,
       greenlandPp: greenlandPpData,
       aocPoc: aocPocData,
@@ -704,7 +706,7 @@ export function Map3D() {
       permafrostThaw: permafrostThawData,
     };
     setSearchDataVersion(v => v + 1);
-  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
+  }, [claimsData, reservedData, relinquishedData, seamountsData, argoData, ventsData, eezData, protectedSitesData, hotspotsData, oceansitesData, glodapCruisesData, argoOxygenFloatsData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, deepdataStationsData, hydrophoneData, marhysData, imosZooplanktonData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, vesselEventsData, aisLiveData, arcticRiversData, miningFootprintsData, methaneSeepsData, siosData, cascadeStationsData, permafrostThawData]);
 
   const mapRef = useRef<any>(null);
   const [attribFolded, setAttribFolded] = useState(false);
@@ -2735,6 +2737,7 @@ export function Map3D() {
         ? (f: any) => marhysTypeFilters.has(String((f.properties ?? {}).sample_type))
         : undefined,
     },
+    "imos-zooplankton": { deckLayerId: "imos-zooplankton", idProp: "sample_key" },
     coastdom: { deckLayerId: "coastdom", idProp: "site_id",
                 filter: (f: any) => coastdomPassesYearRange(f.properties, coastdomRange) },
     "greenland-primary-production": { deckLayerId: "greenland-primary-production", idProp: "event" },
@@ -2897,6 +2900,7 @@ export function Map3D() {
       "deepdata-stations":  deepdataStationsData,
       "hydrophone-stations": hydrophoneData,
       "marhys": marhysData,
+      "imos-zooplankton": imosZooplanktonData,
       "coastdom": coastdomData,
       "greenland-primary-production": greenlandPpData,
       "greenland-sea-poc-aoc2025": aocPocData,
@@ -3067,7 +3071,7 @@ export function Map3D() {
       setTimeout(() => setSelectedFeature({ id: featureId, layer: deckId, properties: props }), 1300);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claimsData, reservedData, apeisData, hotspotsData, seamountsData, relinquishedData, argoData, ventsData, eezData, protectedSitesData, noiseRiskData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, hydrophoneData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, arcticRiversData, siosData, miningFootprintsData, methaneSeepsData, cascadeStationsData, permafrostThawData, cableSourceFilters, offshoreActivityFilters, offshoreActivityCountryFilters, flyConfigs, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData]);
+  }, [claimsData, reservedData, apeisData, hotspotsData, seamountsData, relinquishedData, argoData, ventsData, eezData, protectedSitesData, noiseRiskData, oceansitesData, oncData, chessData, cablesData, oncCablesData, ooiCablesData, noaaCablesData, nzCablesData, auCablesData, oncInstrumentsData, portsData, hydrophoneData, tectonicData, tailingsData, firesData, airQualityData, landslidesData, damsData, arcticRiversData, siosData, miningFootprintsData, methaneSeepsData, cascadeStationsData, permafrostThawData, cableSourceFilters, offshoreActivityFilters, offshoreActivityCountryFilters, flyConfigs, imosZooplanktonData, coastdomData, greenlandPpData, aocPocData, svalbardFjordsPpData]);
   useEffect(() => { setFlyToLayer(flyToLayer); }, [flyToLayer, setFlyToLayer]);
 
   // ── Search-by-ID callback ────────────────────────────────────────────────
@@ -5617,6 +5621,28 @@ export function Map3D() {
         getFillColor: [thawTypeFilters, thawCategoryFilters, permafrostSourceFilters],
         getLineColor: [thawTypeFilters, thawCategoryFilters, permafrostSourceFilters],
       },
+      onClick: handleClick,
+    }),
+
+    // IMOS zooplankton — one marker per sample (AusCPR tow segment or NRS station visit), coloured by the total of
+    // copepods per m³ on a log scale. ⛔ A total of exactly 0 is a HOLLOW marker (counted, nothing found), a null total
+    // is faint grey (not counted): see utils/imosZooplankton.ts. Raw (not log) values never reach the colour.
+    activeLayers.has("imos-zooplankton") && imosZooplanktonData && new ScatterplotLayer({
+      id: "imos-zooplankton",
+      data: imosZooplanktonData.features,
+      pickable: true,
+      stroked: true,
+      filled: true,
+      radiusUnits: "pixels",
+      billboard: true,
+      getPosition: (f: any) => f.geometry.coordinates,
+      getRadius: 5,
+      lineWidthUnits: "pixels",
+      getLineWidth: (f: any) => imosZoopLineWidth(f.properties?.copepod_total_m3),
+      getFillColor: (f: any) => imosZoopFill(f.properties?.copepod_total_m3),
+      getLineColor: (f: any) => imosZoopLine(f.properties?.copepod_total_m3),
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 80],
       onClick: handleClick,
     }),
 

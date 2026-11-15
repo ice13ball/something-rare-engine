@@ -81,6 +81,9 @@ const LAYER_STRUCT = [
   { id: "plankton-occurrences", layerId: "plankton-occurrences", color: "#f97316", symbol: "dot", syncKey: "plankton-obis",
     // Positional with layers["plankton-occurrences"].colorRamp[i].label; order = PLANKTON_GROUPS.
     colorRampHex: ["#f97316", "#f43f5e", "#facc15", "#38bdf8", "#c084fc"] },
+  { id: "imos-zooplankton", layerId: "imos-zooplankton", color: "#c026d3", symbol: "dot", syncKey: "imos-zooplankton",
+    // Positional with layers["imos-zooplankton"].colorRamp[i].label; the same hexes as IMOS_ZOOP_BIN_HEX.
+    colorRampHex: ["#4c1d95", "#7c3aed", "#c026d3", "#fb7185", "#fde047"] },
   { id: "seamounts",           layerId: "seamounts",            color: "#7eb8f7", symbol: "column",  syncKey: "seamounts" },
   { id: "argoFloats",          layerId: "argo",                 color: "#00e5ff", symbol: "column",  syncKey: "argo_profiles" },
   { id: "hydrothermalVents",   layerId: "hydrothermal-vents",   color: "#ff2323", symbol: "triangle",syncKey: "hydrothermal_vents" },
@@ -842,6 +845,9 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                   {layerShown("plankton-occurrences") && (
                   <li><span className="text-white/90">{t("layers.plankton-occurrences.label")}</span> — {t("dates.fresh_plankton")}{syncDates["plankton-obis"] && <span className="text-white/75 font-mono ml-1">({syncDates["plankton-obis"]})</span>}</li>
                   )}
+                  {layerShown("imos-zooplankton") && (
+                  <li><span className="text-white/90">{t("layers.imos-zooplankton.label")}</span> — {t("dates.fresh_imos_zooplankton")}{syncDates["imos-zooplankton"] && <span className="text-white/75 font-mono ml-1">({syncDates["imos-zooplankton"]})</span>}</li>
+                  )}
                   <li><span className="text-white/90">Chemosynthetic Sites</span> — {t("dates.fresh_chess")}{syncDates["chess"] && <span className="text-white/75 font-mono ml-1">({syncDates["chess"]})</span>}</li>
                   <li><span className="text-white/90">OceanSITES</span> — {t("dates.fresh_oceansites")}{syncDates["oceansites-obs"] && <span className="text-white/75 font-mono ml-1">({syncDates["oceansites-obs"]})</span>}</li>
                   <li><span className="text-white/90">Ocean Currents</span> — {t("dates.fresh_currents")}{syncDates["currents-surface"] && <span className="text-white/75 font-mono ml-1">({syncDates["currents-surface"]})</span>}</li>
@@ -998,6 +1004,7 @@ export function LegendPanel({ onClose }: { onClose: () => void }) {
                       <li>{t("verify.sources.oceansitesMoorings")} → <span className="text-cyan-400">ocean-ops.org</span></li>
                       <li>{t("verify.sources.oncInstruments")} → <span className="text-cyan-400">data.oceannetworks.ca</span></li>
                       <li>{t("verify.sources.obisSpecies")} → <span className="text-cyan-400">obis.org</span></li>
+                      <li>{t("verify.sources.imosZooplankton")} → <span className="text-cyan-400">catalogue-imos.aodn.org.au</span></li>
                       <li>{t("verify.sources.plankton")} → <span className="text-cyan-400">obis.org/dataset/&lt;dataset id&gt;</span></li>
                       <li>{t("verify.sources.wod")} → <span className="text-cyan-400">ncei.noaa.gov/products/world-ocean-database</span></li>
                       <li>{t("verify.sources.pangaea")} → <span className="text-cyan-400">pangaea.de</span></li>

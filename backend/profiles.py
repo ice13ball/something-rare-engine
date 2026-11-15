@@ -38,7 +38,7 @@ KNOWN_LAYER_IDS: frozenset[str] = frozenset({
     "contracts", "reserved-areas", "relinquished-areas", "apeis",
     "protected-marine-sites", "eez", "offshore-activities",
     # sea_life
-    "biodiversity-hotspots", "plankton-occurrences", "hydrothermal-vents", "chess", "seamounts",
+    "biodiversity-hotspots", "plankton-occurrences", "imos-zooplankton", "hydrothermal-vents", "chess", "seamounts",
     "tectonic-plates", "bathymetry",
     # sea_analysis
     "monitoring-density", "deepdata-stations", "marine-carbon",

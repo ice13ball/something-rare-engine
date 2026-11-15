@@ -46,6 +46,7 @@ LAYER_DEFAULTS_PY = [
     {"id": "seamounts",              "order_idx": 900,  "default_on": False, "modes": ["ocean","continue"]},
     {"id": "biodiversity-hotspots",  "order_idx": 1000, "default_on": True,  "modes": ["ocean","continue"]},
     {"id": "plankton-occurrences",   "order_idx": 950,  "default_on": False, "modes": ["ocean","continue"]},
+    {"id": "imos-zooplankton",      "order_idx": 960,  "default_on": False, "modes": ["ocean","continue"]},
     {"id": "monitoring-density",     "order_idx": 1100, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "noise-risk",             "order_idx": 1200, "default_on": False, "modes": ["ocean","continue"]},
     {"id": "hydrophone-stations",    "order_idx": 1250, "default_on": False, "modes": ["ocean","continue"]},

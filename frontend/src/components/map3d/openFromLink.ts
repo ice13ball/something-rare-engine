@@ -264,6 +264,10 @@ export function clickIdFor(
                 ? ((props.station_id as string | number | undefined) ?? String(index))
                 : layerId === "arctic-catchments"
                   ? ((props.gid as string | number | undefined) ?? String(index))
+                  : layerId === "imos-zooplankton"
+                    // ⛔ The pick index changes with the data order; sample_key (cpr:<id> / nrs:<trip>) is the
+                    // only unique name, and it is in ID_CHAIN, so the link resolves against the client copy.
+                    ? ((props.sample_key as string | undefined) ?? String(index))
                   : layerId === "coastdom"
                     ? ((props.site_id as string | number | undefined) ?? String(index))
                     : layerId === "greenland-primary-production"

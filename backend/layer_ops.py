@@ -96,6 +96,11 @@ LAYER_OPS: dict[str, LayerOps] = {
                              "count_sql": "SELECT n_drawn FROM wod_casts_source WHERE id = 1"},
     "plankton-occurrences": {"sync_source": None, "log_source": "plankton-obis",
                              "tables": None, "count_sql": None},
+    # IMOS zooplankton: a static snapshot loaded by hand (`python -m ingestion.imos_zooplankton <dir>`), never by the
+    # API and never periodic, so no Force Sync. ⛔ tables=None, no admin purge: a TRUNCATE would not come back without
+    # the export directory on the VPS. Health = the import's sync_log row.
+    "imos-zooplankton":    {"sync_source": None, "log_source": "imos-zooplankton",
+                             "tables": None, "count_sql": None},
 
     # --- derived rollup: refreshed matview, no own sync_log row ---
     "monitoring-density":  {"sync_source": "monitoring-density-grid", "log_source": None,

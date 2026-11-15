@@ -398,6 +398,9 @@
     },
     "planktonOccurrences": {
       "toggle": "Plankton (OBIS)"
+    },
+    "imosZooplankton": {
+      "toggle": "Zooplankton (IMOS)"
     }
   },
   "filters": {
@@ -613,6 +616,7 @@
       "ocean-nutrients-model": "Modellausgabe, keine Messwerte: Oberflächennitrat, Chlorophyll-a, Nettoprimärproduktion (eine volumetrische Rate an der Oberfläche, kein Säulenintegral) und N* (Nitrat − 16 × Phosphat) aus dem globalen biogeochemischen Modell von Copernicus Marine (PISCES, 0,25°). Monatsmittel für den neuesten verfügbaren Monat und die 11 davor. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle.",
       "ocean-colour-satellite": "Satellitenbeobachtungen: Chlorophyll-a und Primärproduktion (Integral über die Wassersäule) aus der Ozeanfarbe von Copernicus-GlobColour, Monatsmittel auf 0,25° gemittelt. Wolken, Meereis und Polarnacht hinterlassen Lücken. Klicken Sie auf die Karte für den genauen Wert der nächsten Zelle.",
       "plankton-occurrences": "Wo Plankton beobachtet wurde (OBIS): Ruderfußkrebse, Krill, Kieselalgen, Coccolithophoriden und Dinoflagellaten. Farbe = vorherrschende Gruppe, Größe = Zahl der Beobachtungen, nur Umriss = DNA nachgewiesen (eDNA). Filter nach Gruppe, Jahrzehnt, Tiefe und eDNA; ein Klick auf einen Ort zeigt Arten, Jahre, Tiefen, Lizenzen und Datensätze.",
+      "imos-zooplankton": "Zooplankton-Abundanz pro m³ in Proben des Australian Continuous Plankton Recorder und der National Reference Stations, 2002–2026 (IMOS, CC BY 4.0). Farbe = Summe der Ruderfußkrebse pro m³ (logarithmisch), hohler Marker = gezählt, keiner gefunden, blassgrau = nicht gezählt. Messdaten, kein Modell; Probe anklicken für ihre Taxa.",
       "wod-casts": "Einzelne Stationen der World Ocean Database 2023 (OSD, CTD, Profiling-Floats) — die realen Messungen hinter dem Feld Ozeanklimatologie. Jeder Punkt ist der Mittelwert der Stationen in einer kleinen Zelle, in der Skala des Feldes für die gewählte Variable in der gewählten Tiefe eingefärbt; grau, wo kein guter Wert im Fenster dieser Tiefe liegt. Gemessene Werte wie aufgezeichnet: Das Feld ist ein objektiv analysiertes Jahresmittel, ein anderes Produkt."
     },
     "densityScaleLabel": "Datensätze pro Zelle",
@@ -1808,6 +1812,29 @@
     "licences": "Lizenzen",
     "ncNote": "Ein Teil dieser Nachweise steht unter CC-BY-NC: nur nicht kommerzielle Nutzung. Die Lizenz jedes Datensatzes steht unten.",
     "datasets": "Datensätze ({{n}})"
+  },
+  "imosZooplankton": {
+    "loading": "Probe wird geladen…",
+    "missing": "Diese Probe ist nicht im aktuellen IMOS-Zooplankton-Stand enthalten.",
+    "error": "Die Probe konnte gerade nicht geladen werden. Der Dienst ist nicht erreichbar oder ausgelastet.",
+    "retry": "Erneut versuchen",
+    "titleCpr": "Zooplankton-Probe — Continuous Plankton Recorder (AusCPR)",
+    "titleNrs": "Zooplankton-Probe — National Reference Station",
+    "noDate": "kein Datum",
+    "time": "Beprobt",
+    "depth": "Probentiefe",
+    "volume": "Filtriertes Wasser",
+    "biomassIndex": "Biomasse-Index",
+    "biomass": "Biomasse",
+    "copepodTotal": "Ruderfußkrebse, gesamt",
+    "notCounted": "nicht gezählt",
+    "copepods": "Vorhandene Ruderfußkrebse ({{n}})",
+    "nonCopepods": "Anderes Zooplankton vorhanden ({{n}})",
+    "noneFound": "In dieser Probe wurde kein Ruderfußkrebs gefunden.",
+    "noneListed": "Für diese Probe ist kein anderes Zooplankton gelistet.",
+    "absentCounted": "{{n}} weitere Taxa wurden gezählt und fehlten (Abundanz 0).",
+    "absencesNotRecorded": "Die Quelle listet nur vorhandene Taxa: Abwesenheiten werden nicht erfasst, ein nicht gelistetes Taxon ist daher unbekannt, nicht null.",
+    "unitNote": "Abundanz in Individuen pro m³, wie gemessen; kein Modell."
   },
   "wodCast": {
     "loading": "Station wird geladen…",

@@ -9,6 +9,7 @@ import { IUCN_FILTER_DEFS, CHESS_PHYLUM_DEFS, VENT_STATUS_FILTER_DEFS } from "..
 import { GraphicsSwitch } from "./GraphicsSwitch";
 import { MarhysRow } from "./MarhysRow";
 import { PlanktonRow } from "./PlanktonRow";
+import { ImosZooplanktonRow } from "./ImosZooplanktonRow";
 import {
   LayerRow, SubGroup, CheckboxFilter, FilterResetLink,
 } from "../rows";
@@ -51,6 +52,7 @@ export function LifeGeologySection({ expandedFilter, toggleExpand, toggle, flyTo
         }
       />
       <PlanktonRow expandedFilter={expandedFilter} toggleExpand={toggleExpand} toggle={toggle} flyToLayer={flyToLayer} />
+      <ImosZooplanktonRow toggle={toggle} flyToLayer={flyToLayer} />
       <LayerRow
         id="hydrothermal-vents" label={t("layers.hydrothermalVents.toggle")} color="#ff2323"
         active={activeLayers.has("hydrothermal-vents")}

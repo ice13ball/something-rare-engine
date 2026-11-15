@@ -33,6 +33,7 @@ from schema.cables import ensure_cables
 from schema.core import ensure_core, ensure_argo_long_form, ensure_core_tables, ensure_ownership_grants, ensure_pageviews, ensure_feedback, ensure_sync_queue
 from schema.fields import ensure_vme
 from schema.glodap_bottles import ensure_glodap_bottles
+from schema.imos_zooplankton import ensure_imos_zooplankton
 from schema.socat_points import ensure_socat_points
 from schema.wod_casts import ensure_wod_casts
 from schema.geochem import ensure_memento, ensure_geotraces, ensure_seaflea, ensure_marhys
@@ -106,5 +107,6 @@ async def ensure_schema() -> None:
         await ensure_socat_points(conn)  # socat_segments, socat_lod, socat_cruises, socat_points_source (filled by socat_points_worker)
         await ensure_argo_doxy(conn)  # argo_doxy_profiles, argo_doxy_empty, argo_doxy_source (filled by argo_doxy_worker)
         await ensure_wod_casts(conn)  # wod_casts, wod_cast_points, wod_cells, wod_files, wod_casts_source (filled by the WOD casts loader)
+        await ensure_imos_zooplankton(conn)  # imos_zoop_samples, imos_zoop_abundance (filled by the one-shot ingestion.imos_zooplankton)
 
     log.info("Schema ready")
