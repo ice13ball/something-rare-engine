@@ -237,21 +237,45 @@ async def sync_memento(force: bool = False) -> int:
     # above returned early every single time. Supplying a credential armed it.
     #
     # `asyncio.to_thread` is what the seaflea sync in this same file already does.
-    def _scrape() -> tuple[list, list, list]:
-        session = memento_ingest.login_session(email, pw)
-        legs = memento_ingest.fetch_leg_index(session)
+    #
+    # PROBE FIRST. Login, the leg index and the FIRST leg's CSV are the probe: if any
+    # of them fails the portal is down (or the account refused), and the other 312
+    # legs are not requested at all. The skip is recorded with its reason and the
+    # slow-source loop (`scheduling._slow_sources_sync_task`) waits
+    # `SLOW_SOURCE_FAILURE_BACKOFF` before trying again, instead of re-running a
+    # 313-request scrape every day against a portal that is not answering.
+    def _scrape() -> tuple[list, list, list, str | None]:
+        try:
+            session = memento_ingest.login_session(email, pw)
+            legs = memento_ingest.fetch_leg_index(session)
+            if not legs:
+                raise RuntimeError("leg index is empty")
+            first_csv = memento_ingest.download_leg_csv(session, legs[0]["id"])
+        except Exception as e:
+            return [], [], [], f"{type(e).__name__}: {' '.join(str(e).split())[:160]}"
         samples: list = []
         failed: list = []
-        for leg in legs:
+        try:
+            samples.extend(memento_ingest.build_samples(first_csv, legs[0]["name"]))
+        except Exception as e:  # the portal answered; a leg that will not parse is one bad leg
+            failed.append(legs[0]["name"])
+            log.warning("memento: leg %s (%s) failed: %s", legs[0]["id"], legs[0]["name"], e)
+        for leg in legs[1:]:
             try:
                 csv_text = memento_ingest.download_leg_csv(session, leg["id"])
                 samples.extend(memento_ingest.build_samples(csv_text, leg["name"]))
             except Exception as e:  # one bad leg must not abort the whole scrape
                 failed.append(leg["name"])
                 log.warning("memento: leg %s (%s) failed: %s", leg["id"], leg["name"], e)
-        return legs, samples, failed
+        return legs, samples, failed, None
 
-    legs, all_samples, failed_legs = await asyncio.to_thread(_scrape)
+    legs, all_samples, failed_legs, probe_error = await asyncio.to_thread(_scrape)
+    if probe_error:
+        log.error("memento: portal probe failed (%s) — no leg scraped, keeping existing data",
+                  probe_error)
+        await _log_sync_skipped(
+            "memento", f"memento: portal probe failed ({probe_error}) — no leg scraped, kept existing data")
+        return 0
     if not all_samples:
         log.error("memento: scrape produced 0 samples — keeping existing data")
         await _log_sync_skipped("memento", "memento: scrape produced 0 samples — kept existing data")

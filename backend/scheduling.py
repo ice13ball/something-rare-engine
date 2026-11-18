@@ -713,6 +713,11 @@ async def _sio_bic_sync_task():
         await asyncio.sleep(SIO_BIC_SYNC_INTERVAL_SECONDS)
 
 
+# After a failed attempt (a `skipped_at` newer than `last_synced_at`), wait this long
+# before the next one. memento: a down portal must not cost a 313-request scrape daily.
+SLOW_SOURCE_FAILURE_BACKOFF: dict[str, timedelta] = {"memento": timedelta(days=7)}
+
+
 async def _slow_sources_sync_task():
     """Daily tick for sources that had no periodic caller at all.
 
@@ -734,9 +739,20 @@ async def _slow_sources_sync_task():
                            ("ncei_icoads_files", _sync_ncei_icoads)):
             try:
                 async with db.pool.acquire() as conn:
-                    last = await conn.fetchval(
-                        "SELECT last_synced_at FROM sync_log WHERE source = $1", source)
-                run, why = should_sync(source, last, datetime.now(timezone.utc))
+                    row = await conn.fetchrow(
+                        "SELECT last_synced_at, skipped_at FROM sync_log WHERE source = $1", source)
+                last = row["last_synced_at"] if row else None
+                skipped = row["skipped_at"] if row else None
+                now = datetime.now(timezone.utc)
+                backoff = SLOW_SOURCE_FAILURE_BACKOFF.get(source)
+                # A failed attempt records a skip and no stamp, so the cadence window alone
+                # would retry it every day. A skip newer than the last success waits the backoff.
+                if (backoff and skipped is not None
+                        and (last is None or skipped > last) and now - skipped < backoff):
+                    log.info("%s: last attempt skipped %s — backing off until %s",
+                             source, skipped.isoformat(), (skipped + backoff).isoformat())
+                    continue
+                run, why = should_sync(source, last, now)
                 log.info("%s", why)
                 if run:
                     await _run_with_log(fn, source)
