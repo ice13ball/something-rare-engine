@@ -630,7 +630,9 @@ async def rebuild_hotspot_grid(pool: asyncpg.Pool) -> int:
             async with conn.transaction():
                 await conn.execute("SET LOCAL statement_timeout = '20min'")
                 await conn.execute("SET LOCAL max_parallel_workers_per_gather = 0")
-                await conn.execute("TRUNCATE hotspot_grid")
+                # DELETE, not TRUNCATE: TRUNCATE takes ACCESS EXCLUSIVE, so every read of the grid
+                # blocked for the whole rebuild. DELETE is MVCC: readers keep the old rows until COMMIT.
+                await conn.execute("DELETE FROM hotspot_grid")
                 for res, step in [("coarse", 2.0), ("fine", 0.5)]:
                     await conn.execute(f"""
                     WITH cell_species AS (

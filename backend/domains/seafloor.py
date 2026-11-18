@@ -109,6 +109,7 @@ from indexnow import notify_indexnow as _notify_indexnow, SITE_HOST
 from response_cache import CACHE_TTL, store as _cache
 from services import bathymetry_stats
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -357,7 +358,7 @@ async def sync_bathymetry_stats(force: bool = False) -> int:
         if last is not None and (datetime.now(timezone.utc) - last) < timedelta(days=30):
             log.info("bathymetry-stats: recent — skipping"); return 0
     if not await asyncio.to_thread(bathymetry_stats.ensure_holdings, force):
-        await _log_sync("bathymetry-stats", 0, 0); return 0
+        await _log_sync_skipped("bathymetry-stats", "GEBCO holdings download failed — kept previous"); return 0
     total = 0
     try:
         for ftype, table, pk in _BATHY_SETS:

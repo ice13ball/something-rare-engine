@@ -38,6 +38,7 @@ async def test_the_scrape_runs_off_the_event_loop(monkeypatch):
     async def fake_log_sync(*a, **k):
         return None
     monkeypatch.setattr(geochem, "_log_sync", fake_log_sync)
+    monkeypatch.setattr(geochem, "_log_sync_skipped", fake_log_sync)
 
     ticks = 0
 
@@ -102,6 +103,7 @@ async def test_a_partial_scrape_never_replaces_a_larger_stored_set(monkeypatch):
     async def fake_log_sync(*a, **k):
         return None
     monkeypatch.setattr(geochem, "_log_sync", fake_log_sync)
+    monkeypatch.setattr(geochem, "_log_sync_skipped", fake_log_sync)
 
     class _Conn:
         async def fetchval(self, *a, **k):

@@ -152,7 +152,7 @@ async def sync_glodap_carbon(force: bool = False) -> int:
         n = await asyncio.to_thread(glodap_carbon.bake_all)
     except Exception as exc:
         log.warning("glodap-carbon bake failed — keeping previous: %s", exc)
-        await _log_sync("glodap-carbon", 0, 0)
+        await _log_sync_skipped("glodap-carbon", f"bake failed: {type(exc).__name__} — kept previous")
         return 0
     _carbon_meta_cache = None
     await _log_sync("glodap-carbon", n, n)
@@ -171,7 +171,7 @@ async def sync_acidification(force: bool = False) -> int:
         n = await asyncio.to_thread(acidification.bake_all)
     except Exception as exc:
         log.warning("acidification bake failed — keeping previous: %s", exc)
-        await _log_sync("acidification", 0, 0); return 0
+        await _log_sync_skipped("acidification", f"bake failed: {type(exc).__name__} — kept previous"); return 0
     _acid_meta_cache = None
     await _log_sync("acidification", n, n)
     return n
@@ -236,7 +236,7 @@ async def sync_socat_co2(force: bool = False) -> int:
         n = await asyncio.to_thread(socat_co2.bake_all)
     except Exception as exc:
         log.warning("socat-co2 bake failed — keeping previous: %s", exc)
-        await _log_sync("socat-co2", 0, 0)
+        await _log_sync_skipped("socat-co2", f"bake failed: {type(exc).__name__} — kept previous")
         return 0
     _co2_meta_cache = None
     await _log_sync("socat-co2", n, n)

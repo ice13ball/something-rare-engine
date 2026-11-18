@@ -204,33 +204,46 @@ async def _sync_active_fires(force: bool = False) -> int:
     rows = list(seen.values())
     log.info("active_fires: %d unique fires after dedup", len(rows))
 
+    # Convert every row BEFORE touching the table, so the transaction below holds only
+    # database work. A row that cannot be converted is skipped, as before.
+    records: list[tuple] = []
+    for r in rows:
+        try:
+            f = _firms_row_to_fields(r)
+            records.append((
+                f["lat"], f["lon"], f["brightness"], f["confidence"], f["frp"],
+                # ⛔ NASA's own two fields, not our fused "VIIRS_SNPP" label.
+                # `_sensor` is the request we made; instrument and satellite
+                # are what FIRMS answered with.
+                f["instrument"], f["satellite"],
+                f["acq_date"], f["acq_time"], f["observed_at"],
+                f["scan"], f["track"], f["version"], f["bright_ti5"], f["daynight"],
+                f["lon"], f["lat"],
+            ))
+        except Exception as e:
+            log.warning("active_fires: row failed: %s", e)
+
+    if not records:
+        log.warning("active_fires: no row could be converted — keeping existing rows")
+        await sync_log.log_sync_skipped("active_fires", "active_fires: no FIRMS row could be converted — kept existing data")
+        return 0
+
+    # One transaction: DELETE + inserts commit together. Readers keep the previous rows until
+    # COMMIT (TRUNCATE in autocommit left /fires empty or partial for the whole load, and a
+    # crash mid-load left a partial table). Any database error rolls everything back.
     async with db.pool.acquire() as conn:
-        await conn.execute("TRUNCATE active_fires")
-        inserted = 0
-        for r in rows:
-            try:
-                f = _firms_row_to_fields(r)
-                await conn.execute("""
-                    INSERT INTO active_fires
-                        (latitude, longitude, brightness, confidence, frp,
-                         instrument, satellite, acq_date, acq_time, observed_at,
-                         scan, track, version, bright_ti5, daynight, geom)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                            $11, $12, $13, $14, $15,
-                            ST_SetSRID(ST_MakePoint($16, $17), 4326))
-                """,
-                    f["lat"], f["lon"], f["brightness"], f["confidence"], f["frp"],
-                    # ⛔ NASA's own two fields, not our fused "VIIRS_SNPP" label.
-                    # `_sensor` is the request we made; instrument and satellite
-                    # are what FIRMS answered with.
-                    f["instrument"], f["satellite"],
-                    f["acq_date"], f["acq_time"], f["observed_at"],
-                    f["scan"], f["track"], f["version"], f["bright_ti5"], f["daynight"],
-                    f["lon"], f["lat"],
-                )
-                inserted += 1
-            except Exception as e:
-                log.warning("active_fires: row failed: %s", e)
+        async with conn.transaction():
+            await conn.execute("DELETE FROM active_fires")
+            await conn.executemany("""
+                INSERT INTO active_fires
+                    (latitude, longitude, brightness, confidence, frp,
+                     instrument, satellite, acq_date, acq_time, observed_at,
+                     scan, track, version, bright_ti5, daynight, geom)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                        $11, $12, $13, $14, $15,
+                        ST_SetSRID(ST_MakePoint($16, $17), 4326))
+            """, records)
+        inserted = len(records)
         total = await conn.fetchval("SELECT COUNT(*) FROM active_fires")
 
     global _fires_cache

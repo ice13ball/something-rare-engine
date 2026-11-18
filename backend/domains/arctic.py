@@ -172,6 +172,7 @@ from indexnow import notify_indexnow as _notify_indexnow
 from indexnow import SITE_HOST
 from land_layers import _sync_arctic_rivers, _sync_permafrost_thaw
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -204,15 +205,16 @@ _CASCADE_RASTER_DIR = os.getenv("CASCADE_RASTER_DIR", "/var/cache/abyssal-cascad
 
 # ── Arctic Rivers / Permafrost Thaw — sync_log/IndexNow wrappers around land_layers.py ──
 
+# The sync_log trace (success vs. skipped-with-reason) is written INSIDE the land functions,
+# because only they know whether a sub-source failed; a blanket `_log_sync(n, n)` here would
+# stamp last_synced_at (and total_records=0) on a failed or skip-if-populated run.
 async def sync_arctic_rivers_logged() -> int:
     n = await _sync_arctic_rivers()
-    await _log_sync("arctic-rivers", n, n)
     asyncio.create_task(_notify_indexnow([f"https://{SITE_HOST}/sitemap.xml"]))
     return n
 
 async def sync_permafrost_thaw_logged(force: bool = False) -> int:
     n = await _sync_permafrost_thaw(force=force)
-    await _log_sync("permafrost-thaw", n, n)
     return n
 
 
@@ -249,6 +251,9 @@ async def sync_arcade(force: bool = False) -> int:
             log.error("arcade: dataverse.nl returned HTTP %s for the dataset metadata "
                       "— keeping the catchments already loaded",
                       meta_resp.status_code)
+            await _log_sync_skipped(
+                "arcade", f"arcade: dataverse.nl returned HTTP {meta_resp.status_code} "
+                "for the dataset metadata — kept existing data")
             return 0
         try:
             meta = meta_resp.json()
@@ -256,6 +261,8 @@ async def sync_arcade(force: bool = False) -> int:
             log.error("arcade: dataverse.nl answered 200 but not JSON (%s bytes, "
                       "content-type %s) — an interstitial, not data; keeping existing rows",
                       len(meta_resp.content), meta_resp.headers.get("content-type"))
+            await _log_sync_skipped(
+                "arcade", "arcade: dataverse.nl answered 200 but not JSON — kept existing data")
             return 0
     name_to_id = {f["dataFile"]["filename"]: f["dataFile"]["id"]
                   for f in meta["data"]["latestVersion"]["files"]}
@@ -289,6 +296,7 @@ async def sync_arcade(force: bool = False) -> int:
 
     if not all_rows:
         log.warning("arcade: 0 rows parsed — preserving existing data, no TRUNCATE")
+        await _log_sync_skipped("arcade", "arcade: 0 rows parsed from dataverse.nl — kept existing data")
         return 0
 
     inserted = 0
@@ -352,6 +360,7 @@ async def sync_cascade(force: bool = False) -> int:
     rows = cascade_ingest.build_station_rows(text)
     if not rows:
         log.warning("cascade: 0 station rows parsed — preserving existing data")
+        await _log_sync_skipped("cascade", "cascade: 0 station rows parsed — kept existing data")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -455,6 +464,9 @@ async def sync_sios(force: bool = False) -> int:
 
     if not kept:
         log.warning("sios: 0 mappable datasets — preserving existing data")
+        await _log_sync_skipped(
+            "sios", f"sios: 0 mappable datasets from the SIOS catalogue ({failures} request failures)"
+            " — kept existing data")
         return 0
 
     # Enrich with downsampled OPeNDAP time series (per-dataset, throttled, tolerant)

@@ -80,6 +80,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, Response
 from services import oxygen_deox, woa_climatology
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 from ._common import _HEX_CELLS_SQL
 
@@ -123,7 +124,7 @@ async def sync_woa(force: bool = False) -> int:
         n = await asyncio.to_thread(woa_climatology.bake_all)
     except Exception as exc:
         log.warning("woa bake failed — keeping previous: %s", exc)
-        await _log_sync("woa-climatology", 0, 0)
+        await _log_sync_skipped("woa-climatology", f"bake failed: {type(exc).__name__} — kept previous")
         return 0
     _woa_meta_cache = None
     await _log_sync("woa-climatology", n, n)
@@ -138,7 +139,7 @@ async def sync_oxygen_deox(force: bool = False) -> int:
         async with db.pool.acquire() as conn:
             last = await conn.fetchval("SELECT last_synced_at FROM sync_log WHERE source = 'oxygen-deox'")
         if last is not None:
-            await _log_sync("oxygen-deox", 0, 0)
+            await _log_sync_skipped("oxygen-deox", "oxygen-deox: already baked (pass force to re-bake)")
             return 0
     n = await asyncio.to_thread(oxygen_deox.bake_all)
     _oxygen_meta_cache = None

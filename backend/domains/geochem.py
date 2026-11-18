@@ -98,6 +98,7 @@ from ingestion import marhys_ingest
 from ingestion import seaflea_ingest
 from ingestion import wod_oxygen_ingest
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -133,7 +134,7 @@ async def sync_wod_oxygen(force: bool = False, min_lat: float = -90.0) -> int:
         async with db.pool.acquire() as conn:
             last = await conn.fetchval("SELECT last_synced_at FROM sync_log WHERE source = 'wod-oxygen'")
         if last is not None:
-            await _log_sync("wod-oxygen", 0, 0)
+            await _log_sync_skipped("wod-oxygen", "wod-oxygen: already seeded (pass force to re-ingest)")
             return 0
     parsed, inserted = await wod_oxygen_ingest.sync_wod_oxygen(db.pool, force=force, min_lat=min_lat)
     # The sync rewrites the whole table, so every cached tile is stale. Without this
@@ -221,7 +222,7 @@ async def sync_memento(force: bool = False) -> int:
     email = os.getenv("MEMENTO_EMAIL"); pw = os.getenv("MEMENTO_PASSWORD")
     if not email or not pw:
         log.error("memento: MEMENTO_EMAIL/MEMENTO_PASSWORD not set — skipping")
-        await _log_sync("memento", 0, 0)
+        await _log_sync_skipped("memento", "memento: MEMENTO_EMAIL/MEMENTO_PASSWORD not set — nothing scraped")
         return 0
     # ⛔ EVERY LINE OF THE SCRAPE RUNS IN A THREAD. `memento_ingest` uses `requests`,
     # which is synchronous: 313 legs at one blocking HTTP call each. Called directly
@@ -253,7 +254,7 @@ async def sync_memento(force: bool = False) -> int:
     legs, all_samples, failed_legs = await asyncio.to_thread(_scrape)
     if not all_samples:
         log.error("memento: scrape produced 0 samples — keeping existing data")
-        await _log_sync("memento", 0, 0)
+        await _log_sync_skipped("memento", "memento: scrape produced 0 samples — kept existing data")
         return 0
 
     # ⛔ load_memento TRUNCATEs before inserting, and its docstring claimed the empty
@@ -275,7 +276,9 @@ async def sync_memento(force: bool = False) -> int:
                 "re-run when the portal is healthy.",
                 len(failed_legs), len(legs), ", ".join(failed_legs[:5]),
                 len(all_samples), existing)
-            await _log_sync("memento", 0, 0)
+            await _log_sync_skipped(
+                "memento", f"memento: {len(failed_legs)} of {len(legs)} legs failed and the scrape "
+                f"carries {len(all_samples)} samples against {existing} stored — refused to truncate")
             return 0
         log.warning("memento: %d legs failed but the scrape still carries %d samples "
                     "against %d stored — publishing",
@@ -525,11 +528,14 @@ async def sync_seaflea(force: bool = False) -> int:
         gj = await asyncio.to_thread(seaflea_ingest.fetch_seaflea_geojson)
     except Exception as e:  # network / upstream failure — keep existing data
         log.error("seaflea: fetch failed (%s) — keeping existing %d rows", e, existing or 0)
+        await _log_sync_skipped(
+            "seaflea", f"seaflea: fetch failed ({' '.join(str(e).split())[:160]}) — kept existing data")
         return 0
 
     rows = seaflea_ingest.build_seep_rows(gj)
     if not rows:
         log.warning("seaflea: parser returned 0 rows — preserving existing data")
+        await _log_sync_skipped("seaflea", "seaflea: 0 rows parsed from NCEI — kept existing data")
         return 0
 
     async with db.pool.acquire() as conn:
@@ -615,14 +621,14 @@ async def sync_marhys(force: bool = False) -> int:
                 "SELECT last_synced_at FROM sync_log WHERE source = 'marhys'"
             )
         if seeded is not None:
-            await _log_sync("marhys", 0, 0)
+            await _log_sync_skipped("marhys", "marhys: already seeded (frozen archive; pass force to re-ingest)")
             return 0
 
     blob = await marhys_ingest.fetch_marhys_workbook()
     parsed = marhys_ingest.parse_marhys(blob)
     records = parsed["records"]
     if not records:
-        await _log_sync("marhys", 0, 0)
+        await _log_sync_skipped("marhys", "marhys: workbook parsed to zero records — nothing written")
         log.warning("marhys: workbook parsed to zero records — nothing written")
         return 0
 

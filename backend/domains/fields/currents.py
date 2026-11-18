@@ -72,6 +72,7 @@ from auth import get_api_key
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, Response
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -100,7 +101,7 @@ async def sync_currents(depth_slug: str, target_date=None) -> int:
     except Exception as exc:
         log.warning("currents bake %s (%s) failed — keeping previous: %s",
                     depth_slug, target_date or "latest", exc)
-        await _log_sync(f"currents-{depth_slug}", 0, 0)
+        await _log_sync_skipped(f"currents-{depth_slug}", f"bake failed: {type(exc).__name__} — kept previous")
         return 0
     _currents_meta_cache = None  # invalidate meta so next request re-reads disk
     await _log_sync(f"currents-{depth_slug}", 1, 1)

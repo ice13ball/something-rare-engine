@@ -93,6 +93,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from services import chi_impact, oxygen_deox, seabed_lithology, vme_sdm
 from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 from ._common import _HEX_CELLS_SQL
 
@@ -141,7 +142,7 @@ async def sync_seabed(force: bool = False) -> int:
     ok = await asyncio.to_thread(seabed_lithology.ensure_holdings, force)
     if not ok:
         log.warning("seabed: holdings download failed — keeping previous")
-        await _log_sync("seabed", 0, 0); return 0
+        await _log_sync_skipped("seabed", "holdings download failed — kept previous"); return 0
     if "clear_seabed_raster_cache" in globals():
         globals()["clear_seabed_raster_cache"]()  # defined in this module (raster cache)
     seabed_lithology._GRID = None   # force reload on next request
@@ -162,7 +163,7 @@ async def sync_chi_impact(force: bool = False) -> int:
         n = await asyncio.to_thread(chi_impact.bake_all)
     except Exception as exc:
         log.warning("chi bake failed — keeping previous: %s", exc)
-        await _log_sync("chi", 0, 0); return 0
+        await _log_sync_skipped("chi", f"bake failed: {type(exc).__name__} — kept previous"); return 0
     clear_chi_raster_cache()   # grid changed → drop stale rendered tiles
     _chi_meta_cache = None
     await _log_sync("chi", n, n)

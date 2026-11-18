@@ -17,6 +17,8 @@ from fastapi.responses import Response
 
 import db
 from auth import get_api_key
+from sync_log import log_sync as _log_sync
+from sync_log import log_sync_skipped as _log_sync_skipped
 
 log = logging.getLogger("land_layers")
 router = APIRouter(tags=["land-layers"], dependencies=[Depends(get_api_key)])
@@ -36,27 +38,41 @@ def clear_caches() -> None:
 
 # ── Arctic River Stations ──────────────────────────────────────────────────
 
-async def _sync_arctic_rivers(force: bool = False) -> int:
-    """Fetch ArcticGRO + PANGAEA river station data and upsert into arctic_river_stations.
+def _short(exc: object) -> str:
+    return " ".join(str(exc).split())[:160]
 
-    Per-source try/except isolation: one source failing must not abort the
-    others.  If zero stations are built across all sources, existing DB data is
-    preserved and 0 is returned.  DB writes only happen when at least one source
-    succeeds.
+
+async def _sync_arctic_rivers(force: bool = False) -> int:
+    """Fetch ArcticGRO + PANGAEA river station data and replace them in arctic_river_stations.
+
+    Per-source try/except isolation: one source failing must not abort the others, and must
+    not lose its own rows either. Only the sub-sources that were fetched AND produced stations
+    are replaced (`DELETE ... WHERE source = ANY(ok)`, in the same transaction as the inserts);
+    the rows of a failed or empty sub-source stay until the next run. If none succeeded
+    nothing is written. Writes its own sync_log trace: `_log_sync` only when every sub-source
+    succeeded, otherwise `log_sync_skipped` with the reason (no `last_synced_at` stamp).
+    Fetching happens outside the transaction.
     """
     from ingestion import arctic_rivers as ar
     global _arctic_rivers_cache
 
     builders: list[dict] = []
+    ok: list[str] = []        # sub-sources (= the `source` column) that delivered stations
+    failed: list[str] = []    # human-readable failure reasons
 
     # ArcticGRO — one Google Sheet tab per river (6 tabs).
     try:
         sheets = await asyncio.to_thread(ar.fetch_arcticgro)
         rows = ar.build_arcticgro_stations(sheets)
-        builders += rows
         log.info("arctic-rivers: arcticgro built %d stations", len(rows))
+        if rows:
+            builders += rows
+            ok.append("arcticgro")
+        else:
+            failed.append("arcticgro: 0 stations built")
     except Exception as exc:
         log.warning("arctic-rivers: arcticgro source failed: %s", exc)
+        failed.append(f"arcticgro: {_short(exc)}")
 
     # PANGAEA Canadian Arctic Archipelago Rivers (945702). NOTE: PANGAEA.913197
     # (Lena/Samoylov) is a collection with no machine-readable textfile — it
@@ -64,18 +80,27 @@ async def _sync_arctic_rivers(force: bool = False) -> int:
     try:
         caa_rows = await asyncio.to_thread(ar.fetch_pangaea, "945702")
         rows = ar.build_pangaea_caa_stations(caa_rows)
-        builders += rows
         log.info("arctic-rivers: pangaea_caa built %d stations", len(rows))
+        if rows:
+            builders += rows
+            ok.append("pangaea_caa")
+        else:
+            failed.append("pangaea_caa: 0 stations built")
     except Exception as exc:
         log.warning("arctic-rivers: pangaea_caa source failed: %s", exc)
+        failed.append(f"pangaea_caa: {_short(exc)}")
 
-    if not builders:
+    if not ok:
         log.warning("arctic-rivers: 0 stations across all sources; preserving existing data")
+        await _log_sync_skipped(
+            "arctic-rivers", "arctic-rivers: no sub-source delivered stations ("
+            + "; ".join(failed) + ") — kept existing data")
         return 0
 
     async with db.pool.acquire() as conn:
         async with conn.transaction():
-            await conn.execute("TRUNCATE arctic_river_stations")
+            await conn.execute(
+                "DELETE FROM arctic_river_stations WHERE source = ANY($1::text[])", ok)
             for s in builders:
                 await conn.execute(
                     """
@@ -100,7 +125,13 @@ async def _sync_arctic_rivers(force: bool = False) -> int:
                 )
 
     _arctic_rivers_cache = None
-    log.info("arctic-rivers: inserted %d stations", len(builders))
+    log.info("arctic-rivers: replaced %s, inserted %d stations", ",".join(ok), len(builders))
+    if failed:
+        await _log_sync_skipped(
+            "arctic-rivers", "arctic-rivers: refreshed " + ",".join(ok)
+            + " only; kept existing rows of " + "; ".join(failed))
+    else:
+        await _log_sync("arctic-rivers", len(builders), len(builders))
     return len(builders)
 
 
@@ -145,7 +176,8 @@ async def get_arctic_rivers():
 
 # ── Permafrost Thaw Features ────────────────────────────────────────────────
 
-async def _sync_pf_source(source: str, fetch, build, force: bool) -> int:
+async def _sync_pf_source(source: str, fetch, build, force: bool,
+                          failures: list[str] | None = None) -> int:
     """Sync one permafrost-thaw sub-source. Per-source skip-if-populated;
     preserves that source's rows on any fetch/parse failure; DELETE-by-source (never TRUNCATE)."""
     async with db.pool.acquire() as conn:
@@ -170,10 +202,14 @@ async def _sync_pf_source(source: str, fetch, build, force: bool) -> int:
         gj = await asyncio.to_thread(fetch)
     except Exception as exc:
         log.error("permafrost-thaw[%s]: fetch failed (%s) — keeping %d rows", source, exc, existing or 0)
+        if failures is not None:
+            failures.append(f"{source}: fetch failed ({_short(exc)})")
         return 0
     rows = build(gj)
     if not rows:
         log.warning("permafrost-thaw[%s]: 0 rows parsed — preserving existing", source)
+        if failures is not None:
+            failures.append(f"{source}: 0 rows parsed")
         return 0
     async with db.pool.acquire() as conn:
         async with conn.transaction():
@@ -197,14 +233,29 @@ async def _sync_pf_source(source: str, fetch, build, force: bool) -> int:
 
 
 async def _sync_permafrost_thaw(force: bool = False) -> int:
-    """Sync all permafrost-thaw sub-sources (Alaska Webb + ARTS pan-Arctic)."""
+    """Sync all permafrost-thaw sub-sources (Alaska Webb + ARTS pan-Arctic).
+
+    Writes its own sync_log trace: `_log_sync` only when rows were actually loaded and no
+    sub-source failed; otherwise `log_sync_skipped` (failure reasons, or "rows present").
+    No `last_synced_at` stamp and no total_records=0 on a skip."""
     from ingestion import permafrost_thaw as pt
     from ingestion import arts_ingest as arts
     global _permafrost_thaw_cache
     n = 0
-    n += await _sync_pf_source("alaska_webb", pt.fetch_alaska_thaw_geojson, pt.build_thaw_rows, force)
-    n += await _sync_pf_source("arts_panarctic", arts.fetch_arts_geojson, arts.build_arts_rows, force)
+    failures: list[str] = []
+    n += await _sync_pf_source("alaska_webb", pt.fetch_alaska_thaw_geojson, pt.build_thaw_rows, force, failures)
+    n += await _sync_pf_source("arts_panarctic", arts.fetch_arts_geojson, arts.build_arts_rows, force, failures)
     _permafrost_thaw_cache = None
+    if failures:
+        await _log_sync_skipped(
+            "permafrost-thaw", "permafrost-thaw: kept existing rows (" + "; ".join(failures) + ")")
+    elif n == 0:
+        await _log_sync_skipped(
+            "permafrost-thaw", "permafrost-thaw: every sub-source already populated — nothing re-ingested")
+    else:
+        async with db.pool.acquire() as conn:
+            total = await conn.fetchval("SELECT COUNT(*) FROM permafrost_thaw_features")
+        await _log_sync("permafrost-thaw", n, int(total or 0))
     return n
 
 
