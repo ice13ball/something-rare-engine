@@ -76,7 +76,7 @@ CADENCE: dict[str, Static | Days | Blocked] = {
                                  "the Cloudflare Turnstile "
                                  "on sioapps.ucsd.edu is intentional. The layer is a static "
                                  "snapshot of the owner's manual browser downloads (latest "
-                                 "2026-10-28), refreshed by hand a few times a year. Never "
+                                 "2026-11-17), refreshed by hand a few times a year. Never "
                                  "automate the fetch and never work around Turnstile."),
     "ncei_icoads_files": Days(7,   "NCEI publishes daily; weekly is enough and the fetch "
                                    "is heavy"),
