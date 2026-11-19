@@ -243,14 +243,34 @@ async def sync_sio_bic() -> int:
         f"VALUES ({placeholders}) "
         f"ON CONFLICT (catalog_id) DO UPDATE SET {update_set}, fetched_at = NOW()"
     )
+    # The table mirrors the LATEST snapshot (Michal, 2026-11-19): a record SIO no longer
+    # exports is deleted, in the same transaction as the upsert. The snapshot is one
+    # complete file, so this is a checked complete walk — but a truncated or wrong file
+    # must not wipe the layer, hence the share guard before the DELETE.
+    ids = [r["catalog_id"] for r in records]
     async with db.pool.acquire() as conn:
-        for i in range(0, len(records), 500):
-            chunk = records[i:i + 500]
-            await conn.executemany(sql, [tuple(r[c] for c in cols) for r in chunk])
+        async with conn.transaction():
+            for i in range(0, len(records), 500):
+                chunk = records[i:i + 500]
+                await conn.executemany(sql, [tuple(r[c] for c in cols) for r in chunk])
+            stored = await conn.fetchval("SELECT COUNT(*) FROM sio_bic_records")
+            if len(ids) < _SIO_BIC_MIN_SHARE_TO_PRUNE * stored:
+                pruned = 0
+                log.warning("sio_bic: snapshot has %d records against %d stored — not pruning",
+                            len(ids), stored)
+            else:
+                pruned = int((await conn.execute(
+                    "DELETE FROM sio_bic_records WHERE NOT (catalog_id = ANY($1::bigint[]))", ids
+                )).split()[-1])
         total = await conn.fetchval("SELECT COUNT(*) FROM sio_bic_records")
     await _log_sync("sio-bic", len(records), total)
-    log.info("sio_bic: %d upserted, %d total", len(records), total)
+    log.info("sio_bic: %d upserted, %d no longer exported deleted, %d total",
+             len(records), pruned, total)
     return total
+
+
+# Below this share of the stored rows a snapshot is treated as broken, not as the new state.
+_SIO_BIC_MIN_SHARE_TO_PRUNE = 0.9
 
 
 # Below this share of the table a complete walk is not treated as the dataset's new state.

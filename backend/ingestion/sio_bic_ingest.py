@@ -82,6 +82,37 @@ def _safe_date(s: str | None) -> date | None:
     return None
 
 
+# Every column the parser reads. A tuple lists accepted spellings, newest first:
+# the 2026-11-10 export renamed "Verbatum Authority" and "Genback #". The import
+# of 2026-11-19 read the old names, got None, and the upsert blanked the authority
+# on 85,883 rows. A renamed column must stop the import, never become NULL.
+_REQUIRED_COLUMNS: tuple[tuple[str, ...], ...] = (
+    ("Catalog ID",), ("Begin Latitude",), ("Beg Lat Dir",), ("Begin Longitude",), ("Lon Dir",),
+    ("Taxonomic Authority", "Verbatum Authority"), ("Genbank #", "Genback #"),
+    ("Higher Taxa Code",), ("Catalog #",), ("Phylum",), ("Class",), ("Order",), ("Family",),
+    ("Genus",), ("Species",), ("Identifier",), ("Type Status",), ("Count",),
+    ("Collection Type ID",), ("Reference ID",), ("Loan ID",), ("Gift ID",), ("Catalog Notes",),
+    ("Acc #",), ("Accession ID",), ("Accession Date",), ("Station #",), ("Locality",),
+    ("Country",), ("Ocean",), ("End Latitude",), ("End Lat Dir",), ("End Longitude",),
+    ("End Lon Dir",), ("Begin Depth",), ("End Depth",), ("Depth Unit",), ("Collection Date",),
+    ("Collection Time",), ("Gear",), ("Ship",), ("Collector",), ("Remarks",),
+)
+
+
+def _check_header(fieldnames: list[str]) -> None:
+    have = set(fieldnames)
+    missing = [" / ".join(alts) for alts in _REQUIRED_COLUMNS if not have.intersection(alts)]
+    if missing:
+        raise RuntimeError(f"sio-bic snapshot header changed, missing: {', '.join(missing)}")
+
+
+def _col(row: dict, *names: str) -> str | None:
+    for n in names:
+        if n in row:
+            return row.get(n) or None
+    return None
+
+
 async def fetch_sio_bic_records() -> list[dict]:
     """Return list of canonical-shape dicts ready for upsert.
 
@@ -90,6 +121,7 @@ async def fetch_sio_bic_records() -> list[dict]:
     csv_bytes = await _fetch_or_cache()
     out: list[dict] = []
     reader = csv.DictReader(io.StringIO(csv_bytes.decode("utf-8", errors="replace")))
+    _check_header(reader.fieldnames or [])
     for row in reader:
         lat = _signed(row.get("Begin Latitude"), row.get("Beg Lat Dir"))
         lon = _signed(row.get("Begin Longitude"), row.get("Lon Dir"))
@@ -110,7 +142,7 @@ async def fetch_sio_bic_records() -> list[dict]:
             "family":             row.get("Family") or None,
             "genus":              row.get("Genus") or None,
             "species":            row.get("Species") or None,
-            "authority":          row.get("Verbatum Authority") or None,
+            "authority":          _col(row, "Taxonomic Authority", "Verbatum Authority"),
             "identifier":         row.get("Identifier") or None,
             "type_status":        row.get("Type Status") or None,
             "count":              _safe_int(row.get("Count")),
@@ -123,7 +155,7 @@ async def fetch_sio_bic_records() -> list[dict]:
             "loan_id":            row.get("Loan ID") or None,
             "gift_id":            row.get("Gift ID") or None,
             "catalog_notes":      row.get("Catalog Notes") or None,
-            "genbank":            row.get("Genback #") or None,
+            "genbank":            _col(row, "Genbank #", "Genback #"),
             "accession_no":       row.get("Acc #") or None,
             "accession_id":       row.get("Accession ID") or None,
             "accession_date":     _safe_date(row.get("Accession Date")),
