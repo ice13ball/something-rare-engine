@@ -1057,9 +1057,9 @@ app.get(['/privacy', '/terms', '/about', '/api-docs'], (req, res, next) => {
          single interactive 3D globe. It surfaces data and links every layer back to its
          source; it does not advocate a policy position.</p>
       <h2>Base map</h2>
-      <p>The base map is our own, served from basemap.something-rare.com: land cover
-         © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021)
-         processed by ESA WorldCover consortium; sea-floor depth from the GEBCO_2026 Grid;
+      <p>The base map is our own, served from basemap.something-rare.com: land imagery
+         <a href="https://dataspace.copernicus.eu/">Contains modified Copernicus Sentinel data 2025</a>
+         (Sentinel-2 L3 quarterly mosaics); sea-floor depth from the GEBCO_2026 Grid;
          place names and borders © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>
          and the Overture Maps Foundation; coastline and boundaries partly from Natural Earth.
          GEBCO bathymetry is not to be used for navigation. Citation: GEBCO Bathymetric

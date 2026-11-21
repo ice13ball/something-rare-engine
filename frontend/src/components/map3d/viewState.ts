@@ -70,7 +70,7 @@ export const BASEMAP: StyleSpecification = {
   ],
 };
 
-// ── abyssal-basemap (our own tiles: GEBCO bathymetry + ESA WorldCover land + OSM/Overture labels) ──
+// ── abyssal-basemap (our own tiles: GEBCO bathymetry + Copernicus Sentinel-2 L3 2025 land imagery + OSM/Overture labels) ──
 // The default on every host since 2026-11-13 (dev preview from 11.11). BASEMAP above is only the
 // `?basemap=legacy` fallback now.
 // ⛔ The base URL lives ONLY here: moving the tiles (e.g. to IO PAN) is this constant or a DNS record.
