@@ -11,7 +11,7 @@ import { overviewWeight } from "./modelOverview";
 
 const style = {
   name: "atlasModel",
-  fs: `uniform atlasModelUniforms { float hot; float overview; } atlasModel;`,
+  fs: `uniform atlasModelUniforms {\n  float hot;\n  float overview;\n} atlasModel;`,
   uniformTypes: { hot: "f32", overview: "f32" },
 } as const satisfies ShaderModule<{ hot: number; overview: number }>;
 
