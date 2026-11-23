@@ -9,6 +9,9 @@ export default defineConfig({
     viteCompression({ algorithm: "gzip", ext: ".gz" }),
     viteCompression({ algorithm: "brotliCompress", ext: ".br" }),
   ],
+  // maplibre-gl 6 starts its worker from import.meta.url; pre-bundling moves the
+  // module into .vite/deps and the worker URL breaks, so serve it unbundled in dev.
+  optimizeDeps: { exclude: ["maplibre-gl"] },
   server: {
     // Mirrors server.js's production proxy (createProxyMiddleware with
     // pathRewrite: { '^/api': '' }) — the backend has no /api routes, only
@@ -24,7 +27,7 @@ export default defineConfig({
     },
   },
   build: {
-    // maplibre-gl v4 and deck.gl v9 require Safari 15+ (WebGL2 + ES module workers)
+    // maplibre-gl v6 and deck.gl v9 require Safari 15+ (WebGL2 + ES module workers)
     target: ["es2020", "safari15"],
     chunkSizeWarningLimit: 950,
     rollupOptions: {

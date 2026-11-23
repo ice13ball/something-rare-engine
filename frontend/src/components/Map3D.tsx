@@ -12,6 +12,7 @@ import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { PickingInfo, MapViewState } from "@deck.gl/core";
 import { FlyToInterpolator } from "@deck.gl/core";
 import { Map as ReactMap } from "react-map-gl/maplibre";
+import "./map3d/maplibreWorker";
 import { MapAttribution } from "./map3d/MapAttribution";
 import type { FeatureCollection } from "geojson";
 import { effectiveBgcMonth, effectiveBgcVariable, wrapLongitude, type BgcModelMeta } from "../types/bgcModel";
@@ -6252,7 +6253,7 @@ export function Map3D() {
           useDevicePixels={Math.min(window.devicePixelRatio ?? 1, 1.5)}
           style={{ touchAction: "none" }}
         >
-          <ReactMap ref={mapRef} mapStyle={USE_ABYSSAL_BASEMAP ? abyssalBasemapStyle(i18n.language) : BASEMAP} renderWorldCopies={true} antialias={false} attributionControl={false} />
+          <ReactMap ref={mapRef} mapStyle={USE_ABYSSAL_BASEMAP ? abyssalBasemapStyle(i18n.language) : BASEMAP} renderWorldCopies={true} canvasContextAttributes={{ antialias: false }} attributionControl={false} />
         </DeckGL>
 
         {/* The basemap's source credits, in the corner and collapsible (Michał 13.11). */}
