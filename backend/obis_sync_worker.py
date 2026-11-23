@@ -65,8 +65,11 @@ async def main() -> None:
                             log.info("obis: put off %ds, plankton-model units running: %s",
                                      wait, ", ".join(busy))
                         else:
-                            await sync_obis(db.pool)
-                            await rebuild_hotspot_grid(db.pool)
+                            # sync_obis returns 0 when it skips (20 h guard, disk gate, another
+                            # pass running). Rebuilding the grid after a skip re-ran a ~20 min
+                            # aggregate on every restart while holding 4242001 (2026-11-23).
+                            if await sync_obis(db.pool):
+                                await rebuild_hotspot_grid(db.pool)
                     finally:
                         await lock_conn.execute("SELECT pg_advisory_unlock($1)", 4242001)
         except Exception:
