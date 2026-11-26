@@ -95,7 +95,7 @@ const PL: LegalDoc = {
       heading: "Podkład mapy i dostawcy danych",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "Podkład mapy (zdjęcia satelitarne lądu, głębokość dna, linie brzegowe, nazwy miejsc i granice) przy każdej wizycie ładuje się z naszego własnego serwera basemap.something-rare.com; żadna strona trzecia nie dostaje tych zapytań. Podkład jest zbudowany ze zdjęć Copernicus Sentinel-2 (2025), GEBCO_2026 Grid, OpenStreetMap / Overture Maps i Natural Earth. Niektóre warstwy danych, gdy je włączysz, pobierają dane z serwerów swoich dostawców — na przykład storage.googleapis.com dla warstwy wód powierzchniowych JRC. Jak przy każdej osadzonej mapie, te serwery widzą Twój adres IP. Nie zapisujemy przy tym żadnych ciasteczek i nie jest to śledzenie.",
+        "Podkład mapy (zdjęcia satelitarne lądu, głębokość dna, linie brzegowe, nazwy miejsc i granice) przy każdej wizycie ładuje się z naszego własnego serwera basemap.something-rare.com; żadna strona trzecia nie dostaje tych zapytań. Źródła i licencje podkładu wymieniono pod adresem https://something-rare.com/map-sources. Niektóre warstwy danych, gdy je włączysz, pobierają dane z serwerów swoich dostawców — na przykład storage.googleapis.com dla warstwy wód powierzchniowych JRC. Jak przy każdej osadzonej mapie, te serwery widzą Twój adres IP. Nie zapisujemy przy tym żadnych ciasteczek i nie jest to śledzenie.",
       ],
     },
     {
@@ -225,7 +225,7 @@ const DE: LegalDoc = {
       heading: "Kartenhintergrund und Datenanbieter",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "Die Hintergrundkarte (Satellitenbilder der Landflächen, Meerestiefe, Küstenlinien, Ortsnamen und Grenzen) wird bei jedem Besuch von unserem eigenen Server basemap.something-rare.com geladen; kein Dritter erhält diese Anfragen. Sie beruht auf Copernicus-Sentinel-2-Bildern (2025), dem GEBCO_2026 Grid, OpenStreetMap / Overture Maps und Natural Earth. Manche Datenebenen laden, sobald Sie sie einschalten, von den Servern ihrer Anbieter — zum Beispiel storage.googleapis.com für die JRC-Oberflächenwasser-Ebene. Wie bei jeder eingebetteten Karte sehen diese Server Ihre IP-Adresse. Wir setzen dafür keine Cookies, und es handelt sich nicht um Tracking.",
+        "Die Hintergrundkarte (Satellitenbilder der Landflächen, Meerestiefe, Küstenlinien, Ortsnamen und Grenzen) wird bei jedem Besuch von unserem eigenen Server basemap.something-rare.com geladen; kein Dritter erhält diese Anfragen. Quellen und Lizenzen der Karte sind unter https://something-rare.com/map-sources aufgeführt. Manche Datenebenen laden, sobald Sie sie einschalten, von den Servern ihrer Anbieter — zum Beispiel storage.googleapis.com für die JRC-Oberflächenwasser-Ebene. Wie bei jeder eingebetteten Karte sehen diese Server Ihre IP-Adresse. Wir setzen dafür keine Cookies, und es handelt sich nicht um Tracking.",
       ],
     },
     {
@@ -355,7 +355,7 @@ const FR: LegalDoc = {
       heading: "Fond de carte et fournisseurs de données",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "Le fond de carte (images satellite des terres, profondeur des fonds marins, traits de côte, noms de lieux et frontières) se charge à chaque visite depuis notre propre serveur, basemap.something-rare.com ; aucun tiers ne reçoit ces requêtes. Il est construit à partir des images Copernicus Sentinel-2 (2025), de la grille GEBCO_2026, d'OpenStreetMap / Overture Maps et de Natural Earth. Certaines couches de données, une fois activées, se chargent depuis les serveurs de leurs fournisseurs — par exemple storage.googleapis.com pour la couche des eaux de surface du JRC. Comme pour toute carte intégrée, ces serveurs voient votre adresse IP. Nous ne déposons aucun cookie pour cela, et il ne s'agit pas de suivi.",
+        "Le fond de carte (images satellite des terres, profondeur des fonds marins, traits de côte, noms de lieux et frontières) se charge à chaque visite depuis notre propre serveur, basemap.something-rare.com ; aucun tiers ne reçoit ces requêtes. Les sources et licences du fond de carte sont indiquées sur https://something-rare.com/map-sources. Certaines couches de données, une fois activées, se chargent depuis les serveurs de leurs fournisseurs — par exemple storage.googleapis.com pour la couche des eaux de surface du JRC. Comme pour toute carte intégrée, ces serveurs voient votre adresse IP. Nous ne déposons aucun cookie pour cela, et il ne s'agit pas de suivi.",
       ],
     },
     {

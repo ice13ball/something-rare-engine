@@ -53,6 +53,8 @@ WORKDIR /app
 COPY package.json ./
 COPY server.js ./
 COPY seo/ ./seo/
+# /map-sources SSR reads this JSON at ../src/content/ relative to seo/ (the image ships no src/)
+COPY src/content/basemapSources.json ./src/content/basemapSources.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 

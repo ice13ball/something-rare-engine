@@ -140,7 +140,7 @@ export const PRIVACY_POLICY: LegalDoc = {
       heading: "Map Imagery and Data Providers",
       id: "map-imagery-and-data-providers",
       paragraphs: [
-        "The base map (satellite imagery of land, sea-floor depth, coastlines, place names and borders) loads on every visit from our own server, basemap.something-rare.com; no third party receives those requests. It is built from Copernicus Sentinel-2 imagery (2025), the GEBCO_2026 Grid, OpenStreetMap / Overture Maps and Natural Earth data. Some data layers, once you turn them on, load from their providers' servers — for example storage.googleapis.com for the JRC surface-water layer. As with any embedded map, those servers see your IP address. We set no cookies for this, and it is not tracking.",
+        "The base map (satellite imagery of land, sea-floor depth, coastlines, place names and borders) loads on every visit from our own server, basemap.something-rare.com; no third party receives those requests. Its sources and licences are listed at https://something-rare.com/map-sources. Some data layers, once you turn them on, load from their providers' servers — for example storage.googleapis.com for the JRC surface-water layer. As with any embedded map, those servers see your IP address. We set no cookies for this, and it is not tracking.",
       ],
     },
     {
@@ -374,7 +374,7 @@ export const ABOUT: LegalDoc = {
     {
       heading: "Base Map",
       paragraphs: [
-        "The base map is our own, served from basemap.something-rare.com. Land imagery: Contains modified Copernicus Sentinel data 2025 (https://dataspace.copernicus.eu/). Sea-floor depth: the GEBCO_2026 Grid. Place names and borders: © OpenStreetMap contributors and the Overture Maps Foundation. Coastline and boundaries partly from Natural Earth. The same credits sit behind the (i) in the map's bottom-right corner.",
+        "The base map is our own, served from basemap.something-rare.com. Its sources, credits and licences are listed, per release, at https://something-rare.com/map-sources.",
         "GEBCO bathymetry is not to be used for navigation. Citation: GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
       ],
     },

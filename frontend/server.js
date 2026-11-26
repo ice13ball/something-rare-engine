@@ -14,6 +14,7 @@ import { canonicalUrl, encodeSegment, normaliseJsonLd, normaliseUrl } from './se
 import { forceHttpsMiddleware, wwwRedirectMiddleware } from './seo/canonical-hosts.js';
 import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, renderContractor, renderResource, renderVentReport, renderRiverPage, renderCruisePage, wrapHtml, siteCitation, renderHubPage, hubNavHtml, BackendUnavailable, EntityGone } from './seo/render-page.js';
 import { fetchUpstream } from './seo/upstream-fetch.js';
+import { mapSourcesBody, mapSourcesMeta, pickMapSourcesLang } from './seo/render-map-sources.js';
 import { createApiProxy } from './seo/api-proxy.js';
 import { createApiGate } from './seo/api-gate.js';
 import { createOpenApiHandler, renderEndpointList } from './seo/openapi-mirror.js';
@@ -1060,14 +1061,8 @@ app.get(['/privacy', '/terms', '/about', '/api-docs'], async (req, res, next) =>
          single interactive 3D globe. It surfaces data and links every layer back to its
          source; it does not advocate a policy position.</p>
       <h2>Base map</h2>
-      <p>The base map is our own, served from basemap.something-rare.com: land imagery
-         <a href="https://dataspace.copernicus.eu/">Contains modified Copernicus Sentinel data 2025</a>
-         (Sentinel-2 L3 quarterly mosaics); sea-floor depth from the GEBCO_2026 Grid;
-         place names and borders © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>
-         and the Overture Maps Foundation; coastline and boundaries partly from Natural Earth.
-         GEBCO bathymetry is not to be used for navigation. Citation: GEBCO Bathymetric
-         Compilation Group 2026 (2026). The GEBCO_2026 Grid.
-         <a href="https://doi.org/10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa">doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa</a></p>
+      <p>The base map is our own, served from basemap.something-rare.com. Its sources, credits and
+         licences are listed, per release, on <a href="/map-sources">Map sources &amp; licences</a>.</p>
       <h2 id="citation">How to cite</h2>
       <p>Built and maintained by ${escapeHtml(siteCitation.author)}
          (ORCID <a href="${escapeHtml(siteCitation.orcidUrl)}">${escapeHtml(orcid)}</a>).</p>
@@ -1140,6 +1135,40 @@ app.get(['/privacy', '/terms', '/about', '/api-docs'], async (req, res, next) =>
       <p><a href="/">← Abyssal Claims interactive map</a></p>
     </main>`;
   res.type('html').send(wrapHtml(head, body, { hydrate: hydrates(req.path) }));
+});
+
+// /map-sources/*.md — published method files (ODbL 4.6 offer), copied from public/map-sources/.
+// Only .md files, served as text/markdown. Mounted before the catch-all so the 404/410 rules
+// never see them; the /map-sources page itself is the exact route below.
+app.use('/map-sources', express.static(join(__dirname, 'dist', 'map-sources'), {
+  index: false,
+  redirect: false,
+  extensions: false,
+  maxAge: '1h',
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.md')) res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+  },
+}));
+
+// /map-sources — every source of the basemap, per release (src/content/basemapSources.json).
+// Static content: no upstream, so no 503 path. ?lang= picks the language (default en).
+app.get('/map-sources', (req, res) => {
+  const lang = pickMapSourcesLang(req.query.lang);
+  const { title, description } = mapSourcesMeta(lang);
+  const url = `${SITE}/map-sources`;
+  const head = `
+      <title>${escapeHtml(title)}</title>
+      <meta name="description" content="${escapeHtml(description)}" />
+      <link rel="canonical" href="${url}" />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="${url}" />
+      <meta property="og:title" content="${escapeHtml(title)}" />
+      <meta property="og:description" content="${escapeHtml(description)}" />
+      <meta property="og:image" content="${SITE}/og.jpg" />
+      <meta name="twitter:card" content="summary" />
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />`;
+  const body = `<main style="max-width:760px;margin:0 auto;padding:2rem;font-family:system-ui,sans-serif;color:#c9d1d9;line-height:1.55">${mapSourcesBody(lang)}</main>`;
+  res.type('html').send(wrapHtml(head, body, { hydrate: hydrates(req.path) }).replace('<html lang="en">', `<html lang="${lang}">`));
 });
 
 // /cite is a URL researchers guess — make it a real 301 to the citation section
@@ -1221,6 +1250,8 @@ app.get('/sitemap-core.xml', async (req, res) => {
     });
     if (!apiRes.ok) throw new Error(`API ${apiRes.status}`);
     const { entries } = await apiRes.json();
+
+    entries.push({ loc: `${SITE}/map-sources`, changefreq: 'monthly', priority: '0.5' });
 
     // Append blog articles
     try {

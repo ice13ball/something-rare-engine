@@ -83,7 +83,7 @@ const ABM_LANGS = ["pl", "en", "de", "fr"] as const;
 export function abyssalBasemapStyle(language: string | undefined): string {
   const base = (language ?? "en").slice(0, 2).toLowerCase();
   const lang = (ABM_LANGS as readonly string[]).includes(base) ? base : "en";
-  return `${TILES_BASE}/styles/labels-${lang}.json`;
+  return `${TILES_BASE}/styles/labels-v2-${lang}.json`;
 }
 
 function abyssalBasemapEnabled(): boolean {

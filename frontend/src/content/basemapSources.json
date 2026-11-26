@@ -1,0 +1,736 @@
+{
+  "_comment": "Single source for /map-sources (React page src/components/MapSourcesPage.tsx + SSR seo/render-map-sources.js). releases[].ids are the PMTiles `version` values (= release dates); identical releases are grouped, each id gets its own anchor. releases[0] is the CURRENT release. Credit sentences, licence names and source names are English and verbatim - never translate them. scripts/check-basemap-sources.mjs compares releases[0] with ATTRIBUTION.txt.",
+  "attributionUrl": "https://basemap.something-rare.com/ATTRIBUTION.txt",
+  "releases": [
+    {
+      "ids": [
+        "2026-11-25"
+      ],
+      "current": true,
+      "notes": {
+        "en": "Released 2026-11-25. Place names no longer come from OpenStreetMap; imagery, bathymetry and the land mask are those of release 2026-11-24. Arctic depth layer (north of 64°N, archive version 2026-11-25) added on 2026-11-26. Norway depth layer (57.3–64.5°N, EMODnet DTM 2024 + Kartverket) added on 2026-11-26.",
+        "pl": "Wydanie z 2026-11-25. Nazwy miejsc nie pochodzą już z OpenStreetMap; zdjęcia, batymetria i maska lądu są takie jak w wydaniu 2026-11-24. Warstwa głębokości Arktyki (na północ od 64°N, wersja archiwum 2026-11-25) dodana 2026-11-26. Warstwa głębokości Norwegii (57,3–64,5°N, EMODnet DTM 2024 + Kartverket) dodana 2026-11-26.",
+        "de": "Veröffentlicht am 2026-11-25. Ortsnamen stammen nicht mehr aus OpenStreetMap; Bilder, Bathymetrie und Landmaske entsprechen der Version 2026-11-24. Arktische Tiefenebene (nördlich von 64°N, Archivversion 2026-11-25) am 2026-11-26 hinzugefügt. Norwegische Tiefenebene (57,3–64,5°N, EMODnet DTM 2024 + Kartverket) am 2026-11-26 hinzugefügt.",
+        "fr": "Publiée le 2026-11-25. Les noms de lieux ne proviennent plus d'OpenStreetMap ; l'imagerie, la bathymétrie et le masque terrestre sont ceux de la version 2026-11-24. Couche de profondeur arctique (au nord de 64°N, version d'archive 2026-11-25) ajoutée le 2026-11-26. Couche de profondeur norvégienne (57,3–64,5°N, EMODnet DTM 2024 + Kartverket) ajoutée le 2026-11-26."
+      },
+      "sources": [
+        "copernicus-sentinel-2-2021-2026",
+        "nasa-gibs",
+        "gebco-2026",
+        "osm-landmask",
+        "geonames",
+        "natural-earth-names",
+        "wikidata",
+        "kartverket-depth",
+        "ibcao-5-2",
+        "emodnet-dtm-2024"
+      ],
+      "landMaskMethodUrls": [
+        {
+          "id": "2026-11-24",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-24.md"
+        }
+      ]
+    },
+    {
+      "ids": [
+        "2026-11-24"
+      ],
+      "includesNextRerender": true,
+      "sources": [
+        "copernicus-sentinel-2-2021-2026",
+        "nasa-gibs",
+        "gebco-2026",
+        "osm-overture",
+        "natural-earth"
+      ],
+      "landMaskMethodUrls": [
+        {
+          "id": "2026-11-24",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-24.md"
+        }
+      ]
+    },
+    {
+      "ids": [
+        "2026-11-20",
+        "2026-11-22"
+      ],
+      "sources": [
+        "copernicus-sentinel-2",
+        "gebco-2026",
+        "osm-overture",
+        "natural-earth"
+      ],
+      "landMaskMethodUrls": [
+        {
+          "id": "2026-11-20",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-20.md"
+        },
+        {
+          "id": "2026-11-22",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-22.md"
+        }
+      ]
+    },
+    {
+      "ids": [
+        "2026-11-11",
+        "2026-11-13"
+      ],
+      "notes": {
+        "en": "Release 2026-11-13 added the zoom 14 coastal strip (up to 58° N).",
+        "pl": "Wydanie 2026-11-13 dodało pas przybrzeżny na poziomie powiększenia 14 (do 58° N).",
+        "de": "Die Version 2026-11-13 ergänzte den Küstenstreifen auf Zoomstufe 14 (bis 58° N).",
+        "fr": "La version 2026-11-13 a ajouté la bande côtière au niveau de zoom 14 (jusqu'à 58° N)."
+      },
+      "sources": [
+        "esa-worldcover-2021",
+        "gebco-2026",
+        "osm-overture",
+        "natural-earth"
+      ],
+      "landMaskMethodUrls": [
+        {
+          "id": "2026-11-11",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-11.md"
+        },
+        {
+          "id": "2026-11-13",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-13.md"
+        }
+      ]
+    }
+  ],
+  "sources": {
+    "copernicus-sentinel-2": {
+      "name": "Copernicus Sentinel-2 Level 3 quarterly mosaics 2025 (Copernicus Data Space Ecosystem)",
+      "providerUrl": "https://dataspace.copernicus.eu/",
+      "version": "Quarterly mosaics 2025",
+      "year": "2025",
+      "licence": {
+        "name": "Legal notice on the use of Copernicus Sentinel Data and Service Information",
+        "url": "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice"
+      },
+      "credit": "Contains modified Copernicus Sentinel data 2025",
+      "creditLink": null,
+      "role": {
+        "en": "Land imagery at zoom levels 0–11 and in the 10 km coastal belt at zoom levels 12–14 (zoom 14 up to 58° latitude).",
+        "pl": "Zdjęcia lądu na poziomach powiększenia 0–11 oraz w 10-kilometrowym pasie przybrzeżnym na poziomach 12–14 (poziom 14 do szerokości 58°).",
+        "de": "Landbilder auf den Zoomstufen 0–11 sowie im 10-km-Küstenstreifen auf den Zoomstufen 12–14 (Zoomstufe 14 bis 58° Breite).",
+        "fr": "Imagerie des terres aux niveaux de zoom 0–11 et dans la bande côtière de 10 km aux niveaux 12–14 (niveau 14 jusqu'à 58° de latitude)."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Mosaicked, resampled, colour-adjusted and masked to land.",
+          "pl": "Złożone w mozaikę, przepróbkowane, skorygowane kolorystycznie i przycięte maską lądu.",
+          "de": "Mosaikiert, neu abgetastet, farblich angepasst und auf Land maskiert.",
+          "fr": "Mosaïquées, rééchantillonnées, ajustées en couleur et masquées sur les terres."
+        }
+      }
+    },
+    "nasa-gibs": {
+      "name": "NASA Global Imagery Browse Services (GIBS) — MODIS Terra & Aqua true-colour imagery",
+      "providerUrl": "https://earthdata.nasa.gov/gibs",
+      "version": "MODIS Terra & Aqua true colour",
+      "year": "",
+      "licence": {
+        "name": "NASA ESDIS data use guidance (no restrictions; CC0 unless marked otherwise)",
+        "url": "https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-use-guidance"
+      },
+      "credit": "We acknowledge the use of imagery provided by services from NASA's Global Imagery Browse Services (GIBS), part of NASA's Earth Science Data and Information System (ESDIS).",
+      "creditLink": null,
+      "role": {
+        "en": "Land imagery north of the Sentinel-2 coverage (about 82.8° N): northern Greenland, Ellesmere Island and Peary Land.",
+        "pl": "Zdjęcia lądu na północ od zasięgu Sentinel-2 (ok. 82,8° N): północna Grenlandia, Ziemia Ellesmere'a i Ziemia Peary'ego.",
+        "de": "Landbilder nördlich der Sentinel-2-Abdeckung (ca. 82,8° N): Nordgrönland, Ellesmere-Insel und Peary Land.",
+        "fr": "Imagerie des terres au nord de la couverture Sentinel-2 (environ 82,8° N) : nord du Groenland, île d'Ellesmere et Terre de Peary."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Resampled and blended with the Sentinel-2 imagery at the seam.",
+          "pl": "Przepróbkowane i płynnie połączone ze zdjęciami Sentinel-2 na styku.",
+          "de": "Neu abgetastet und an der Nahtstelle mit den Sentinel-2-Bildern überblendet.",
+          "fr": "Rééchantillonnées et fondues avec l'imagerie Sentinel-2 à la jonction."
+        }
+      }
+    },
+    "esa-worldcover-2021": {
+      "name": "ESA WorldCover Sentinel-2 RGBNIR annual composite 2021 (v200)",
+      "providerUrl": "https://esa-worldcover.org/",
+      "version": "Annual composite 2021, v200",
+      "year": "2021",
+      "licence": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "credit": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
+      "creditLink": null,
+      "role": {
+        "en": "Land imagery.",
+        "pl": "Zdjęcia lądu.",
+        "de": "Landbilder.",
+        "fr": "Imagerie des terres."
+      },
+      "modified": null
+    },
+    "gebco-2026": {
+      "name": "GEBCO_2026 Grid (ice surface elevation)",
+      "providerUrl": "https://www.gebco.net/",
+      "version": "GEBCO_2026",
+      "year": "2026",
+      "licence": {
+        "name": "Public domain — GEBCO Terms of Use",
+        "url": "https://www.gebco.net/data-products/gridded-bathymetry/terms-of-use"
+      },
+      "credit": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+      "creditLink": {
+        "text": "doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+        "url": "https://doi.org/10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa"
+      },
+      "role": {
+        "en": "Sea-floor depth shading (bathymetry).",
+        "pl": "Cieniowanie głębokości dna morskiego (batymetria).",
+        "de": "Schummerung der Meerestiefe (Bathymetrie).",
+        "fr": "Estompage de la profondeur des fonds marins (bathymétrie)."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Rendered as shaded relief.",
+          "pl": "Przedstawione jako cieniowana rzeźba terenu.",
+          "de": "Als Reliefschummerung dargestellt.",
+          "fr": "Rendue sous forme de relief ombré."
+        }
+      },
+      "warning": {
+        "en": "NOT FOR NAVIGATION — the GEBCO Grid must not be used for navigation or for any purpose involving safety at sea.",
+        "pl": "NIE DO NAWIGACJI — siatki GEBCO nie wolno używać do nawigacji ani do żadnego celu związanego z bezpieczeństwem na morzu.",
+        "de": "NICHT FÜR DIE NAVIGATION — das GEBCO-Gitter darf weder zur Navigation noch für Zwecke verwendet werden, die die Sicherheit auf See betreffen.",
+        "fr": "NE PAS UTILISER POUR LA NAVIGATION — la grille GEBCO ne doit pas être utilisée pour la navigation ni à aucune fin touchant à la sécurité en mer."
+      }
+    },
+    "osm-overture": {
+      "name": "OpenStreetMap data via Overture Maps Foundation",
+      "providerUrl": "https://overturemaps.org/",
+      "version": "Overture Maps release 2026-10-21.0",
+      "year": "2026",
+      "licence": {
+        "name": "Open Database License (ODbL) 1.0",
+        "url": "https://www.openstreetmap.org/copyright"
+      },
+      "credit": "© OpenStreetMap contributors, Overture Maps Foundation",
+      "creditLink": {
+        "text": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/copyright"
+      },
+      "role": {
+        "en": "Land/sea mask (land polygons) and place names (cities and towns) in the labels.",
+        "pl": "Maska ląd/morze (poligony lądu) oraz nazwy miejsc (miasta i miejscowości) w etykietach.",
+        "de": "Land-Meer-Maske (Landpolygone) und Ortsnamen (Städte und Gemeinden) in den Beschriftungen.",
+        "fr": "Masque terre/mer (polygones de terres) et noms de lieux (villes et villages) dans les étiquettes."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Filtered; only OpenStreetMap values are kept.",
+          "pl": "Przefiltrowane; zachowane są tylko wartości z OpenStreetMap.",
+          "de": "Gefiltert; nur OpenStreetMap-Werte bleiben erhalten.",
+          "fr": "Filtrées ; seules les valeurs d'OpenStreetMap sont conservées."
+        }
+      },
+      "note": {
+        "en": "The place-name layer is a Derivative Database under ODbL 1.0.",
+        "pl": "Warstwa nazw miejsc jest Derivative Database w rozumieniu ODbL 1.0.",
+        "de": "Die Ortsnamen-Ebene ist eine Derivative Database im Sinne der ODbL 1.0.",
+        "fr": "La couche des noms de lieux est une Derivative Database au sens de l'ODbL 1.0."
+      }
+    },
+    "natural-earth": {
+      "name": "Natural Earth",
+      "providerUrl": "https://www.naturalearthdata.com/",
+      "version": "",
+      "year": "",
+      "licence": {
+        "name": "Public domain (crediting is optional)",
+        "url": "https://www.naturalearthdata.com/about/terms-of-use/"
+      },
+      "credit": "Made with Natural Earth.",
+      "creditLink": null,
+      "role": {
+        "en": "Coastlines and boundaries (in part).",
+        "pl": "Linie brzegowe i granice (częściowo).",
+        "de": "Küstenlinien und Grenzen (teilweise).",
+        "fr": "Traits de côte et frontières (en partie)."
+      },
+      "modified": null
+    },
+    "copernicus-sentinel-2-2021-2026": {
+      "name": "Copernicus Sentinel-2 Level 3 quarterly mosaics 2025 and Arctic summer mosaics 2021–2026 (Copernicus Data Space Ecosystem)",
+      "providerUrl": "https://dataspace.copernicus.eu/",
+      "version": "Quarterly mosaics 2025; 139 Arctic tiles from summers 2021–2026",
+      "year": "2021-2026",
+      "licence": {
+        "name": "Legal notice on the use of Copernicus Sentinel Data and Service Information",
+        "url": "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice"
+      },
+      "credit": "Contains modified Copernicus Sentinel data 2021-2026",
+      "creditLink": null,
+      "role": {
+        "en": "Land imagery at zoom levels 0–11 and in the 10 km coastal belt at zoom levels 12–14 (zoom 14 up to 58° latitude). 139 Arctic tiles come from Sentinel-2 Level 3 summer mosaics of 2021–2026, the rest from the 2025 quarterly mosaics.",
+        "pl": "Zdjęcia lądu na poziomach powiększenia 0–11 oraz w 10-kilometrowym pasie przybrzeżnym na poziomach 12–14 (poziom 14 do szerokości 58°). 139 kafli arktycznych pochodzi z letnich mozaik Sentinel-2 Level 3 z lat 2021–2026, reszta z mozaik kwartalnych 2025.",
+        "de": "Landbilder auf den Zoomstufen 0–11 sowie im 10-km-Küstenstreifen auf den Zoomstufen 12–14 (Zoomstufe 14 bis 58° Breite). 139 arktische Kacheln stammen aus Sentinel-2-Level-3-Sommermosaiken 2021–2026, der Rest aus den Quartalsmosaiken 2025.",
+        "fr": "Imagerie des terres aux niveaux de zoom 0–11 et dans la bande côtière de 10 km aux niveaux 12–14 (niveau 14 jusqu'à 58° de latitude). 139 tuiles arctiques proviennent des mosaïques estivales Sentinel-2 Level 3 de 2021–2026, le reste des mosaïques trimestrielles 2025."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Mosaicked, resampled, colour-adjusted and masked to land.",
+          "pl": "Złożone w mozaikę, przepróbkowane, skorygowane kolorystycznie i przycięte maską lądu.",
+          "de": "Mosaikiert, neu abgetastet, farblich angepasst und auf Land maskiert.",
+          "fr": "Mosaïquées, rééchantillonnées, ajustées en couleur et masquées sur les terres."
+        }
+      }
+    },
+    "osm-landmask": {
+      "name": "OpenStreetMap data via Overture Maps Foundation",
+      "providerUrl": "https://overturemaps.org/",
+      "version": "Overture Maps release 2026-10-21.0",
+      "year": "2026",
+      "licence": {
+        "name": "Open Database License (ODbL) 1.0",
+        "url": "https://www.openstreetmap.org/copyright"
+      },
+      "credit": "© OpenStreetMap contributors, Overture Maps Foundation",
+      "creditLink": {
+        "text": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/copyright"
+      },
+      "role": {
+        "en": "Land/sea mask (land polygons).",
+        "pl": "Maska ląd/morze (poligony lądu).",
+        "de": "Land-Meer-Maske (Landpolygone).",
+        "fr": "Masque terre/mer (polygones de terres)."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Filtered; only OpenStreetMap values are kept.",
+          "pl": "Przefiltrowane; zachowane są tylko wartości z OpenStreetMap.",
+          "de": "Gefiltert; nur OpenStreetMap-Werte bleiben erhalten.",
+          "fr": "Filtrées ; seules les valeurs d'OpenStreetMap sont conservées."
+        }
+      }
+    },
+    "geonames": {
+      "name": "GeoNames",
+      "providerUrl": "https://www.geonames.org/",
+      "version": "",
+      "year": "",
+      "licence": {
+        "name": "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "credit": "Place names: GeoNames (CC BY 4.0, geonames.org)",
+      "creditLink": {
+        "text": "GeoNames",
+        "url": "https://www.geonames.org/"
+      },
+      "role": {
+        "en": "Place names (cities and towns) and their Polish, German and French names.",
+        "pl": "Nazwy miejsc (miasta i miejscowości) oraz ich nazwy polskie, niemieckie i francuskie.",
+        "de": "Ortsnamen (Städte und Gemeinden) sowie ihre polnischen, deutschen und französischen Namen.",
+        "fr": "Noms de lieux (villes et villages) et leurs noms polonais, allemands et français."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Filtered (populated places only, by population and administrative rank).",
+          "pl": "Przefiltrowane (tylko miejscowości, według liczby ludności i rangi administracyjnej).",
+          "de": "Gefiltert (nur besiedelte Orte, nach Einwohnerzahl und Verwaltungsrang).",
+          "fr": "Filtrées (lieux habités uniquement, selon la population et le rang administratif)."
+        }
+      }
+    },
+    "natural-earth-names": {
+      "name": "Natural Earth",
+      "providerUrl": "https://www.naturalearthdata.com/",
+      "version": "",
+      "year": "",
+      "licence": {
+        "name": "Public domain (crediting is optional)",
+        "url": "https://www.naturalearthdata.com/about/terms-of-use/"
+      },
+      "credit": "Made with Natural Earth.",
+      "creditLink": null,
+      "role": {
+        "en": "Names of countries, islands, seas and oceans.",
+        "pl": "Nazwy krajów, wysp, mórz i oceanów.",
+        "de": "Namen von Ländern, Inseln, Meeren und Ozeanen.",
+        "fr": "Noms des pays, des îles, des mers et des océans."
+      },
+      "modified": null
+    },
+    "wikidata": {
+      "name": "Wikidata",
+      "providerUrl": "https://www.wikidata.org/",
+      "version": "",
+      "year": "",
+      "licence": {
+        "name": "Creative Commons Zero (CC0 1.0)",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "credit": "No credit required.",
+      "creditLink": null,
+      "role": {
+        "en": "Translated name labels only, matched by Wikidata identifier (QID).",
+        "pl": "Wyłącznie przetłumaczone etykiety nazw, dopasowane po identyfikatorze Wikidata (QID).",
+        "de": "Nur übersetzte Namensbezeichnungen, zugeordnet über die Wikidata-Kennung (QID).",
+        "fr": "Uniquement des libellés de noms traduits, associés par identifiant Wikidata (QID)."
+      },
+      "modified": null
+    },
+    "kartverket-depth": {
+      "name": "Kartverket depth terrain models (50 m / 25 m / 5 m grids)",
+      "providerUrl": "https://www.kartverket.no/",
+      "version": "Sjø terrengmodeller",
+      "year": "2026",
+      "licence": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "credit": "© Kartverket (CC BY 4.0)",
+      "creditLink": {
+        "text": "kartverket.no",
+        "url": "https://www.kartverket.no/"
+      },
+      "role": {
+        "en": "Sea-floor depth shading north of 64°N (Arctic depth layer) and off southern Norway (57.3–64.5°N, Norway depth layer).",
+        "pl": "Cieniowanie głębokości dna na północ od 64°N (warstwa głębokości Arktyki) i u wybrzeży południowej Norwegii (57,3–64,5°N, warstwa głębokości Norwegii).",
+        "de": "Schummerung der Meerestiefe nördlich von 64°N (arktische Tiefenebene) und vor Südnorwegen (57,3–64,5°N, norwegische Tiefenebene).",
+        "fr": "Estompage de la profondeur des fonds au nord de 64°N (couche arctique) et au large du sud de la Norvège (57,3–64,5°N, couche norvégienne)."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Merged with IBCAO 5.2; coastal depths shifted from chart datum (LAT) to mean sea level; rendered as shaded relief.",
+          "pl": "Połączone z IBCAO 5.2; głębokości przybrzeżne przeliczone z zera mapy (LAT) na średni poziom morza; przedstawione jako cieniowana rzeźba.",
+          "de": "Mit IBCAO 5.2 zusammengeführt; Küstentiefen vom Seekartennull (LAT) auf mittleren Meeresspiegel umgerechnet; als Reliefschummerung dargestellt.",
+          "fr": "Fusionnées avec IBCAO 5.2 ; profondeurs côtières converties du zéro hydrographique (LAT) au niveau moyen de la mer ; rendues en relief ombré."
+        }
+      },
+      "warning": {
+        "en": "NOT FOR NAVIGATION — the data are not approved for navigation.",
+        "pl": "NIE DO NAWIGACJI — dane nie są zatwierdzone do nawigacji.",
+        "de": "NICHT FÜR DIE NAVIGATION — die Daten sind nicht für die Navigation zugelassen.",
+        "fr": "NE PAS UTILISER POUR LA NAVIGATION — les données ne sont pas approuvées pour la navigation."
+      }
+    },
+    "ibcao-5-2": {
+      "name": "International Bathymetric Chart of the Arctic Ocean (IBCAO) 5.2",
+      "providerUrl": "https://bolin.su.se/data/ibcao-5.2",
+      "version": "IBCAO 5.2",
+      "year": "2026",
+      "licence": {
+        "name": "ODC-By 1.0",
+        "url": "https://opendatacommons.org/licenses/by/1-0/"
+      },
+      "credit": "IBCAO 5.2: Jakobsson et al. 2026, doi:10.17043/ibcao-5.2 (ODC-By 1.0). Contains information from IBCAO 5.2, which is made available under the ODC Attribution License.",
+      "creditLink": {
+        "text": "doi:10.17043/ibcao-5.2",
+        "url": "https://doi.org/10.17043/ibcao-5.2"
+      },
+      "role": {
+        "en": "Sea-floor depth shading north of 64°N (Arctic depth layer).",
+        "pl": "Cieniowanie głębokości dna na północ od 64°N (warstwa głębokości Arktyki).",
+        "de": "Schummerung der Meerestiefe nördlich von 64°N (arktische Tiefenebene).",
+        "fr": "Estompage de la profondeur des fonds au nord de 64°N (couche de profondeur arctique)."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Merged with Kartverket grids; rendered as shaded relief.",
+          "pl": "Połączone z siatkami Kartverket; przedstawione jako cieniowana rzeźba.",
+          "de": "Mit Kartverket-Gittern zusammengeführt; als Reliefschummerung dargestellt.",
+          "fr": "Fusionnée avec les grilles Kartverket ; rendue en relief ombré."
+        }
+      },
+      "warning": {
+        "en": "NOT FOR NAVIGATION — the IBCAO 5.2 Grid should not be used for navigation.",
+        "pl": "NIE DO NAWIGACJI — siatki IBCAO 5.2 nie należy używać do nawigacji.",
+        "de": "NICHT FÜR DIE NAVIGATION — das IBCAO-5.2-Gitter sollte nicht zur Navigation verwendet werden.",
+        "fr": "NE PAS UTILISER POUR LA NAVIGATION — la grille IBCAO 5.2 ne doit pas être utilisée pour la navigation."
+      }
+    },
+    "emodnet-dtm-2024": {
+      "name": "EMODnet Digital Bathymetry (DTM 2024)",
+      "providerUrl": "https://emodnet.ec.europa.eu/en/bathymetry",
+      "version": "DTM 2024",
+      "year": "2024",
+      "licence": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "credit": "EMODnet Digital Bathymetry (DTM 2024). EMODnet Bathymetry Consortium https://doi.org/10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1. This data product was created by EMODnet (https://emodnet.ec.europa.eu/en/), and is owned by the EU and licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.",
+      "creditLink": {
+        "text": "doi:10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1",
+        "url": "https://doi.org/10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1"
+      },
+      "role": {
+        "en": "Sea-floor depth shading off southern Norway (57.3–64.5°N, Norway depth layer).",
+        "pl": "Cieniowanie głębokości dna u wybrzeży południowej Norwegii (57,3–64,5°N, warstwa głębokości Norwegii).",
+        "de": "Schummerung der Meerestiefe vor Südnorwegen (57,3–64,5°N, norwegische Tiefenebene).",
+        "fr": "Estompage de la profondeur des fonds au large du sud de la Norvège (57,3–64,5°N, couche de profondeur norvégienne)."
+      },
+      "modified": {
+        "value": true,
+        "how": {
+          "en": "Merged with Kartverket grids; rendered as shaded relief.",
+          "pl": "Połączone z siatkami Kartverket; przedstawione jako cieniowana rzeźba.",
+          "de": "Mit Kartverket-Gittern zusammengeführt; als Reliefschummerung dargestellt.",
+          "fr": "Fusionnée avec les grilles Kartverket ; rendue en relief ombré."
+        }
+      },
+      "warning": {
+        "en": "NOT FOR NAVIGATION — DO NOT USE FOR NAVIGATION (EMODnet DTM 2024 catalogue record).",
+        "pl": "NIE DO NAWIGACJI — produktu EMODnet DTM 2024 nie wolno używać do nawigacji.",
+        "de": "NICHT FÜR DIE NAVIGATION — EMODnet DTM 2024 darf nicht zur Navigation verwendet werden.",
+        "fr": "NE PAS UTILISER POUR LA NAVIGATION — le produit EMODnet DTM 2024 ne doit pas être utilisé pour la navigation."
+      }
+    }
+  },
+  "ui": {
+    "en": {
+      "title": "Map sources and licences — Abyssal Claims",
+      "description": "Every data source, licence and credit behind the Abyssal Claims basemap, listed per basemap release.",
+      "h1": "Map sources and licences",
+      "intro": "The basemap is our own and is served from basemap.something-rare.com. This page lists every source it is built from, with licence and credit, for each basemap release. A self-hosted or cached copy of the basemap may be older than the current release: find the release id in the PMTiles metadata and read the matching section.",
+      "release": "Basemap release",
+      "current": "current",
+      "released": "Released",
+      "earlier": "Earlier releases",
+      "role": "Used for",
+      "version": "Version",
+      "licence": "Licence",
+      "credit": "Credit",
+      "creditNote": "Credit sentences and licence names are quoted verbatim and are not translated.",
+      "modified": "Modified",
+      "yes": "Yes",
+      "provider": "Provider",
+      "endorsementHeading": "No endorsement",
+      "endorsement": "The use of these data does not imply endorsement by ESA, the European Commission/Copernicus, GEBCO, IHO, IOC, NASA, the OpenStreetMap Foundation or the Overture Maps Foundation.",
+      "fullList": "The full machine-readable list of the current release:",
+      "back": "Abyssal Claims interactive map",
+      "also": "and the next re-render",
+      "archiveNote": "Archives published before the late-November 2026 re-render have no version field; they are identified by their description and attribution (WorldCover or Copernicus Data Space Ecosystem).",
+      "releases": "Releases",
+      "landMaskMethod": "Land/sea mask method (ODbL 1.0)"
+    },
+    "pl": {
+      "title": "Źródła mapy i licencje — Abyssal Claims",
+      "description": "Wszystkie źródła danych, licencje i informacje o autorstwie podkładu mapy Abyssal Claims, osobno dla każdego wydania podkładu.",
+      "h1": "Źródła mapy i licencje",
+      "intro": "Podkład mapy jest nasz własny i jest serwowany z basemap.something-rare.com. Ta strona wymienia wszystkie źródła, z których jest zbudowany, wraz z licencją i informacją o autorstwie, dla każdego wydania podkładu. Własna lub zapisana w pamięci podręcznej kopia podkładu może być starsza od bieżącego wydania: identyfikator wydania znajdziesz w metadanych PMTiles, a następnie przeczytaj odpowiednią sekcję.",
+      "release": "Wydanie podkładu",
+      "current": "bieżące",
+      "released": "Data wydania",
+      "earlier": "Wcześniejsze wydania",
+      "role": "Do czego służy",
+      "version": "Wersja",
+      "licence": "Licencja",
+      "credit": "Informacja o autorstwie",
+      "creditNote": "Zdania z informacją o autorstwie i nazwy licencji są cytowane dosłownie i nie są tłumaczone.",
+      "modified": "Zmodyfikowane",
+      "yes": "Tak",
+      "provider": "Dostawca",
+      "endorsementHeading": "Brak poparcia",
+      "endorsement": "Wykorzystanie tych danych nie oznacza poparcia ze strony ESA, Komisji Europejskiej/Copernicus, GEBCO, IHO, IOC, NASA, Fundacji OpenStreetMap ani Overture Maps Foundation.",
+      "fullList": "Pełna lista w formacie do odczytu maszynowego dla bieżącego wydania:",
+      "back": "Interaktywna mapa Abyssal Claims",
+      "also": "oraz następny re-render",
+      "archiveNote": "Archiwa opublikowane przed re-renderem z końca listopada 2026 nie mają pola version; rozpoznaje się je po opisie i informacji o autorstwie (WorldCover lub Copernicus Data Space Ecosystem).",
+      "releases": "Wydania",
+      "landMaskMethod": "Land/sea mask method (ODbL 1.0)"
+    },
+    "de": {
+      "title": "Kartenquellen und Lizenzen — Abyssal Claims",
+      "description": "Alle Datenquellen, Lizenzen und Quellenangaben der Abyssal-Claims-Basiskarte, getrennt nach Version der Basiskarte.",
+      "h1": "Kartenquellen und Lizenzen",
+      "intro": "Die Basiskarte ist unsere eigene und wird von basemap.something-rare.com ausgeliefert. Diese Seite nennt für jede Version der Basiskarte alle Quellen, aus denen sie aufgebaut ist, mit Lizenz und Quellenangabe. Eine selbst gehostete oder zwischengespeicherte Kopie der Basiskarte kann älter sein als die aktuelle Version: Die Versionskennung steht in den PMTiles-Metadaten; lesen Sie dann den passenden Abschnitt.",
+      "release": "Version der Basiskarte",
+      "current": "aktuell",
+      "released": "Veröffentlicht",
+      "earlier": "Frühere Versionen",
+      "role": "Verwendung",
+      "version": "Version",
+      "licence": "Lizenz",
+      "credit": "Quellenangabe",
+      "creditNote": "Quellenangaben und Lizenznamen werden wörtlich zitiert und nicht übersetzt.",
+      "modified": "Verändert",
+      "yes": "Ja",
+      "provider": "Anbieter",
+      "endorsementHeading": "Keine Billigung",
+      "endorsement": "Die Verwendung dieser Daten bedeutet keine Billigung durch ESA, die Europäische Kommission/Copernicus, GEBCO, IHO, IOC, NASA, die OpenStreetMap Foundation oder die Overture Maps Foundation.",
+      "fullList": "Die vollständige maschinenlesbare Liste der aktuellen Version:",
+      "back": "Interaktive Karte von Abyssal Claims",
+      "also": "und das nächste Re-Render",
+      "archiveNote": "Archive vor dem Re-Render Ende November 2026 haben kein Feld version; sie werden an Beschreibung und Quellenangabe erkannt (WorldCover oder Copernicus Data Space Ecosystem).",
+      "releases": "Versionen",
+      "landMaskMethod": "Land/sea mask method (ODbL 1.0)"
+    },
+    "fr": {
+      "title": "Sources de la carte et licences — Abyssal Claims",
+      "description": "Toutes les sources de données, licences et mentions de crédit du fond de carte d'Abyssal Claims, par version du fond de carte.",
+      "h1": "Sources de la carte et licences",
+      "intro": "Le fond de carte est le nôtre et est servi depuis basemap.something-rare.com. Cette page énumère toutes les sources dont il est issu, avec licence et mention de crédit, pour chaque version du fond de carte. Une copie auto-hébergée ou mise en cache peut être plus ancienne que la version actuelle : l'identifiant de version figure dans les métadonnées PMTiles ; lisez alors la section correspondante.",
+      "release": "Version du fond de carte",
+      "current": "actuelle",
+      "released": "Publiée le",
+      "earlier": "Versions précédentes",
+      "role": "Utilisation",
+      "version": "Version",
+      "licence": "Licence",
+      "credit": "Crédit",
+      "creditNote": "Les mentions de crédit et les noms de licence sont cités textuellement et ne sont pas traduits.",
+      "modified": "Modifié",
+      "yes": "Oui",
+      "provider": "Fournisseur",
+      "endorsementHeading": "Aucune approbation",
+      "endorsement": "L'utilisation de ces données n'implique aucune approbation de la part de l'ESA, de la Commission européenne/Copernicus, de GEBCO, de l'IHO, de l'IOC, de la NASA, de la Fondation OpenStreetMap ou de l'Overture Maps Foundation.",
+      "fullList": "La liste complète, lisible par machine, de la version actuelle :",
+      "back": "Carte interactive d'Abyssal Claims",
+      "also": "et le prochain nouveau rendu",
+      "archiveNote": "Les archives publiées avant le nouveau rendu de fin novembre 2026 n'ont pas de champ version ; elles se reconnaissent à leur description et à leur attribution (WorldCover ou Copernicus Data Space Ecosystem).",
+      "releases": "Versions",
+      "landMaskMethod": "Land/sea mask method (ODbL 1.0)"
+    }
+  },
+  "creator": {
+    "name": {
+      "en": "Michal Mazurowski",
+      "pl": "Michał Mazurowski",
+      "de": "Michal Mazurowski",
+      "fr": "Michal Mazurowski"
+    },
+    "nameUrl": "https://orcid.org/0009-0007-3786-0310",
+    "org": "AI-Wall",
+    "orgUrl": {
+      "en": "https://ai-wall.com/en",
+      "pl": "https://ai-wall.com",
+      "de": "https://ai-wall.com/en",
+      "fr": "https://ai-wall.com/en"
+    },
+    "line": {
+      "en": "This basemap was built by {org}, {name}, from the following sources.",
+      "pl": "Ten podkład mapy został zbudowany przez {org}, {name}, z następujących źródeł.",
+      "de": "Diese Basiskarte wurde von {org}, {name}, aus den folgenden Quellen erstellt.",
+      "fr": "Ce fond de carte a été réalisé par {org}, {name}, à partir des sources suivantes."
+    }
+  },
+  "landMask": {
+    "h": {
+      "en": "Method of the land mask (ODbL 4.6)",
+      "pl": "Metoda budowy maski lądu (ODbL 4.6)",
+      "de": "Methode der Landmaske (ODbL 4.6)",
+      "fr": "Méthode du masque terrestre (ODbL 4.6)"
+    },
+    "intro": {
+      "en": "The satellite imagery of the basemap (layers `land`, `coast`, `coast14`) is cut to land with a land/water mask. The mask is derived from OpenStreetMap data and is therefore a Derivative Database under the [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/). As required by section 4.6, this is the method by which anyone can rebuild it from the same inputs. The method is offered under ODbL 1.0.",
+      "pl": "Zdjęcia satelitarne mapy podkładowej (warstwy `land`, `coast`, `coast14`) są przycinane do lądu maską ląd/woda. Maska jest wyprowadzona z danych OpenStreetMap, więc jest bazą pochodną (Derivative Database) w rozumieniu [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Zgodnie z sekcją 4.6 poniżej opisano metodę, którą każdy może odtworzyć maskę z tych samych danych wejściowych. Metoda jest udostępniona na licencji ODbL 1.0.",
+      "de": "Die Satellitenbilder der Basiskarte (Ebenen `land`, `coast`, `coast14`) werden mit einer Land-/Wasser-Maske auf das Land zugeschnitten. Die Maske ist aus OpenStreetMap-Daten abgeleitet und damit eine abgeleitete Datenbank (Derivative Database) nach der [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Wie in Abschnitt 4.6 gefordert, beschreibt dies die Methode, mit der jeder sie aus denselben Eingangsdaten nachbauen kann. Die Methode wird unter ODbL 1.0 angeboten.",
+      "fr": "L'imagerie satellite du fond de carte (couches `land`, `coast`, `coast14`) est découpée sur la terre à l'aide d'un masque terre/eau. Le masque est dérivé des données OpenStreetMap et constitue donc une base de données dérivée (Derivative Database) au sens de l'[Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Comme l'exige la section 4.6, voici la méthode permettant à chacun de le reconstruire à partir des mêmes données d'entrée. La méthode est proposée sous ODbL 1.0."
+    },
+    "note": {
+      "en": "",
+      "pl": "(opis techniczny po angielsku)",
+      "de": "(technische Beschreibung auf Englisch)",
+      "fr": "(description technique en anglais)"
+    },
+    "inlineSyntax": "[text](url), `code`, **bold**",
+    "method": [
+      {
+        "type": "p",
+        "text": "**Inputs**"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "OpenStreetMap land polygons (derived from the OSM coastline), taken from the [Overture Maps](https://docs.overturemaps.org/attribution/) base theme, release `2026-10-21.0`, `type=land`, `subtype=land`, `class=land` (all selected rows have `sources.dataset = OpenStreetMap`). © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright).",
+          "Copernicus Sentinel-2 imagery, green (B03) and near-infrared (B08) bands: Sentinel-2 Level 3 quarterly mosaics 2025 from the [Copernicus Data Space Ecosystem](https://dataspace.copernicus.eu/) (for 139 Arctic tiles the summer of another year, 2021–2026)."
+        ]
+      },
+      {
+        "type": "p",
+        "text": "**Steps (per map tile, in Web Mercator, EPSG:3857)**"
+      },
+      {
+        "type": "ol",
+        "items": [
+          "Rasterise the OSM land polygons to the tile grid (anti-aliased, 2× supersampling): OSM land = 1, sea = 0.",
+          "Compute NDWI = (green − NIR) / (green + NIR) from the imagery. Map it to a soft \"not water\" value: 1 at NDWI ≤ −0.05, 0 at NDWI ≥ 0.10, linear in between.",
+          "Keep that image-derived \"not water\" only within 1,000 m seaward of OSM land (distance measured to the nearest OSM land pixel in the tile). Further out to sea it is ignored.",
+          "Final mask = maximum of step 1 and step 3. So the mask is OSM land plus what the image shows as not water close to the OSM coastline: piers, breakwaters, harbour moles, sandbanks and coastline changes newer than OSM.",
+          "Light smoothing of the image-derived part (Gaussian, σ = 0.8 px) so the edge is not jagged.",
+          "Low zooms only (z8–11, layer `land`): the mask is eroded by one pixel, so the coarse coastline stays inside the sharper coastline of the z12–14 layers."
+        ]
+      },
+      {
+        "type": "p",
+        "text": "**Not part of the mask:** the imagery itself, GEBCO bathymetry and the place-name labels. The labels layer is distributed separately under ODbL 1.0."
+      },
+      {
+        "type": "p",
+        "text": "The mask is not a product of its own and is not published as a file; this description is the offer under ODbL 4.6. Questions: through the contact on [something-rare.com](https://something-rare.com/)."
+      }
+    ]
+  },
+  "licencePending": {
+    "ccUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "creditText": "AI-Wall, Michal Mazurowski",
+    "creditUrl": "https://something-rare.com/map-sources",
+    "odblUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+    "contactUrl": {
+      "en": "https://ai-wall.com/en",
+      "pl": "https://ai-wall.com",
+      "de": "https://ai-wall.com/en",
+      "fr": "https://ai-wall.com/en"
+    },
+    "text": {
+      "en": {
+        "h": "Licence of this basemap",
+        "raster": "The raster imagery and seabed tiles of this basemap are licensed under {cc}. Credit: {credit}.",
+        "commercial": "Commercial use is possible by agreement; get in touch via {contact}.",
+        "labels": "The vector labels layer (derived from OpenStreetMap) remains under {odbl}; the non-commercial condition does not apply to it.",
+        "note": "This is separate from the licences of the individual sources listed below, which continue to apply to their data.",
+        "contact": "AI-Wall"
+      },
+      "pl": {
+        "h": "Licencja tego podkładu mapy",
+        "raster": "Obrazy rastrowe i kafle dna morskiego tego podkładu są udostępniane na licencji {cc}. Informacja o autorstwie: {credit}.",
+        "commercial": "Użycie komercyjne jest możliwe za porozumieniem; skontaktuj się przez {contact}.",
+        "labels": "Wektorowa warstwa etykiet (pochodna OpenStreetMap) pozostaje na licencji {odbl}; warunek niekomercyjności jej nie dotyczy.",
+        "note": "Jest to odrębne od licencji poszczególnych źródeł wymienionych niżej, które nadal obowiązują dla ich danych.",
+        "contact": "AI-Wall"
+      },
+      "de": {
+        "h": "Lizenz dieser Basiskarte",
+        "raster": "Die Rasterbilder und Meeresbodenkacheln dieser Basiskarte stehen unter {cc}. Quellenangabe: {credit}.",
+        "commercial": "Eine kommerzielle Nutzung ist nach Vereinbarung möglich; Kontakt über {contact}.",
+        "labels": "Die Vektorebene der Beschriftungen (abgeleitet von OpenStreetMap) bleibt unter {odbl}; die Bedingung „nicht kommerziell“ gilt für sie nicht.",
+        "note": "Dies ist getrennt von den Lizenzen der unten aufgeführten einzelnen Quellen, die für ihre Daten weiterhin gelten.",
+        "contact": "AI-Wall"
+      },
+      "fr": {
+        "h": "Licence de ce fond de carte",
+        "raster": "Les images raster et les tuiles des fonds marins de ce fond de carte sont sous licence {cc}. Crédit : {credit}.",
+        "commercial": "Un usage commercial est possible par accord ; contactez-nous via {contact}.",
+        "labels": "La couche vectorielle d'étiquettes (dérivée d'OpenStreetMap) reste sous {odbl} ; la condition non commerciale ne s'y applique pas.",
+        "note": "Ceci est distinct des licences des différentes sources énumérées ci-dessous, qui continuent de s'appliquer à leurs données.",
+        "contact": "AI-Wall"
+      }
+    }
+  },
+  "_licencePending": "ON HOLD (owner may write own terms). Not rendered by any renderer; kept so the section can return."
+}

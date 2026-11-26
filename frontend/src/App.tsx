@@ -19,6 +19,7 @@ import { LayerLoadingProgress } from "./components/LayerLoadingProgress";
 import { ExportPanel } from "./components/ExportPanel";
 
 const LegalPage = lazy(() => import("./components/LegalPage").then(m => ({ default: m.LegalPage })));
+const MapSourcesPage = lazy(() => import("./components/MapSourcesPage").then(m => ({ default: m.MapSourcesPage })));
 const SeoPage = lazy(() => import("./components/SeoPage").then(m => ({ default: m.SeoPage })));
 const ImpactReportV2 = lazy(() => import("./components/ImpactReportV2").then(m => ({ default: m.ImpactReportV2 })));
 const ImpactReportV2Concession = lazy(() => import("./components/ImpactReportV2Concession").then(m => ({ default: m.ImpactReportV2Concession })));
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><LegalPage /></Suspense>} />
           <Route path="/terms" element={<Suspense fallback={<PageLoader />}><LegalPage /></Suspense>} />
           <Route path="/about" element={<Suspense fallback={<PageLoader />}><LegalPage /></Suspense>} />
+          <Route path="/map-sources" element={<Suspense fallback={<PageLoader />}><MapSourcesPage /></Suspense>} />
           <Route path="/concession/:id" element={<Suspense fallback={<PageLoader />}><SeoPage type="concession" /></Suspense>} />
           <Route path="/vent/:id" element={<Suspense fallback={<PageLoader />}><SeoPage type="vent" /></Suspense>} />
           <Route path="/seamount/:id" element={<Suspense fallback={<PageLoader />}><SeoPage type="seamount" /></Suspense>} />

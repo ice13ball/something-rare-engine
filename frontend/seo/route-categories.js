@@ -30,7 +30,7 @@
 
 export const REACT_ROUTES = [
   /^\/$/,
-  /^\/(about|privacy|terms|blog|api-docs)$/,
+  /^\/(about|privacy|terms|blog|api-docs|map-sources)$/,
   /^\/blog\/[^/]+$/,
   /^\/(concession|vent|seamount)\/[^/]+$/,
   /^\/report\/[^/]+$/,
