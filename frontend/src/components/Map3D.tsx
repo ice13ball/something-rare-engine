@@ -108,6 +108,7 @@ import {
   markDepthLookupFailed, depthLineFromCache,
 } from "./map3d/depthCache";
 import { BASEMAP, MAP_VIEW, USE_ABYSSAL_BASEMAP, abyssalBasemapStyle, tooltipStyle } from "./map3d/viewState";
+import { FieldBitmapLayer } from "./map3d/fieldBitmapLayer";
 import { useLayerFetcher } from "./map3d/useLayerFetcher";
 import { glodapPoints, glodapColor, carbonDrawing, glodapYearBounds, type GlodapCastsDoc, type GlodapPoint } from "../utils/glodapPoints";
 import {
@@ -3885,7 +3886,7 @@ export function Map3D() {
     // WOA Climatology / Oxygen — ambient field tiles rendered FIRST (bottom)
     // so all point/vector layers draw on top. Only shown in "field" display mode;
     // "hexes" mode uses the PolygonLayer hex grid instead.
-    woaActive && woaDisplayMode === "field" && woaTiles ? woaTiles.map((tile, i) => new BitmapLayer({
+    woaActive && woaDisplayMode === "field" && woaTiles ? woaTiles.map((tile, i) => new FieldBitmapLayer({
       id: `woa-climatology-bitmap-${woaVariable}-${woaDepth}-${i}`,
       image: tile.image,
       bounds: tile.bounds,
@@ -3896,7 +3897,7 @@ export function Map3D() {
     // which toggleIdForDeckLayer maps back to the toggle, so the field sorts by its
     // order_idx (under the point layers) instead of falling to 9999. pickable:false —
     // a BitmapLayer would pick its whole quad; clicks resolve in the empty-click branch.
-    bgcActive && bgcTiles && bgcMonthEff && bgcVarEff ? bgcTiles.map((tile, i) => new BitmapLayer({
+    bgcActive && bgcTiles && bgcMonthEff && bgcVarEff ? bgcTiles.map((tile, i) => new FieldBitmapLayer({
       id: `ocean-nutrients-model-bitmap-${bgcVarEff}-${bgcMonthEff}-${i}`,
       image: tile.image,
       bounds: tile.bounds,
@@ -3906,7 +3907,7 @@ export function Map3D() {
 
     // Ocean colour (satellite): same sort-order and picking rules as the model layer above;
     // ids start with "ocean-colour-satellite-bitmap-", mapped back by toggleIdForDeckLayer.
-    ocActive && ocTiles && ocMonthEff && ocVarEff ? ocTiles.map((tile, i) => new BitmapLayer({
+    ocActive && ocTiles && ocMonthEff && ocVarEff ? ocTiles.map((tile, i) => new FieldBitmapLayer({
       id: `ocean-colour-satellite-bitmap-${ocVarEff}-${ocMonthEff}-${i}`,
       image: tile.image,
       bounds: tile.bounds,
@@ -3914,28 +3915,28 @@ export function Map3D() {
       pickable: false,
     })) : null,
 
-    oxygenDraw.field && oxygenTiles ? oxygenTiles.map((tile, i) => new BitmapLayer({
+    oxygenDraw.field && oxygenTiles ? oxygenTiles.map((tile, i) => new FieldBitmapLayer({
       id: `oxygen-deox-bitmap-${oxygenView}-${oxygenDepth}-${i}`,
       bounds: tile.bounds,
       image: tile.image,
       opacity: 0.72,
     })) : [],
 
-    carbonDraw.field && carbonTiles ? carbonTiles.map((tile, i) => new BitmapLayer({
+    carbonDraw.field && carbonTiles ? carbonTiles.map((tile, i) => new FieldBitmapLayer({
       id: `ocean-carbon-bitmap-${carbonVariable}-${carbonDepth}-${i}`,
       image: tile.image,
       bounds: tile.bounds,
       opacity: 0.72,
     })) : null,
 
-    acidActive && acidificationDisplayMode === "field" && acidTiles ? acidTiles.map((tile, i) => new BitmapLayer({
+    acidActive && acidificationDisplayMode === "field" && acidTiles ? acidTiles.map((tile, i) => new FieldBitmapLayer({
       id: `ocean-acidification-bitmap-${acidificationVariable}-${acidificationDepth}-${i}`,
       image: tile.image,
       bounds: tile.bounds,
       opacity: 0.72,
     })) : null,
 
-    co2Active && co2DisplayMode === "field" && co2Tiles ? co2Tiles.map((tile, i) => new BitmapLayer({
+    co2Active && co2DisplayMode === "field" && co2Tiles ? co2Tiles.map((tile, i) => new FieldBitmapLayer({
       id: `ocean-co2-surface-bitmap-${co2Variable}-${co2Decade}-${i}`,
       image: tile.image,
       bounds: tile.bounds,
