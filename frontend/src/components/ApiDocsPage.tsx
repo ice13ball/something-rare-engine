@@ -8,7 +8,11 @@ import "@scalar/api-reference-react/style.css";
 // Try-it calls hit the real API origin directly (NOT the /api BFF proxy, which
 // force-sets the internal key). The user pastes their own X-API-Key, so their
 // real key + quota are exercised. The site origin is whitelisted in backend CORS.
-const OPENAPI_URL = "https://apiv2.something-rare.com/openapi.json";
+// The document is loaded from this origin (server.js mirrors apiv2's copy):
+// apiv2's robots.txt disallows everything, so Google's renderer could not load
+// it and filed /api-docs as "Soft 404" (2026-11-26). Its `servers` entry still
+// names apiv2, so Try-it is unchanged.
+const OPENAPI_URL = "/api-docs/openapi.json";
 
 export function ApiDocsPage() {
   return (

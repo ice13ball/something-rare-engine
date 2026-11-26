@@ -16,6 +16,7 @@ import { renderSeoPage, fetchSeoData, renderBlogIndex, renderBlogArticle, render
 import { fetchUpstream } from './seo/upstream-fetch.js';
 import { createApiProxy } from './seo/api-proxy.js';
 import { createApiGate } from './seo/api-gate.js';
+import { createOpenApiHandler, renderEndpointList } from './seo/openapi-mirror.js';
 
 config();
 
@@ -338,6 +339,8 @@ app.use((req, res, next) => {
 // ⛔ Not `/api-docs` — that one is deliberately indexable and has its own
 // title, description and canonical (added 2026-08-17 for exactly that reason).
 app.get('/health', (req, res) => res.set('X-Robots-Tag', 'noindex').json({ status: 'ok' }));
+// Same-origin OpenAPI document for /api-docs (apiv2 robots.txt blocks Google's renderer): seo/openapi-mirror.js
+app.get('/api-docs/openapi.json', createOpenApiHandler(`${VPS_API_URL}/openapi.json`));
 
 // The widget is a standalone document embedded on third-party pages. It must
 // never be indexed in its own right: it duplicates /concession/:id with none of
@@ -1027,7 +1030,7 @@ const STATIC_SSR_PAGES = {
   },
 };
 
-app.get(['/privacy', '/terms', '/about', '/api-docs'], (req, res, next) => {
+app.get(['/privacy', '/terms', '/about', '/api-docs'], async (req, res, next) => {
   const tab = req.path.slice(1);
   const page = STATIC_SSR_PAGES[tab];
   if (!page) return next();
@@ -1126,12 +1129,14 @@ app.get(['/privacy', '/terms', '/about', '/api-docs'], (req, res, next) => {
          <a href="https://apiv2.something-rare.com/openapi.json">openapi.json</a>.</p>
       <p>Every dataset carries its upstream source, licence and citation. Attribution
          requirements travel with the data — see <a href="/about#citation">how to cite</a>.</p>` : '';
+  const apiDocsEndpoints = tab === 'api-docs' ? await renderEndpointList(`${VPS_API_URL}/openapi.json`) : '';
   const body = `
     <main style="max-width:720px;margin:0 auto;padding:2rem;font-family:system-ui,sans-serif;color:#c9d1d9">
       <h1>${escapeHtml(page.heading)}</h1>
       <p>${escapeHtml(page.intro)}</p>
       ${aboutExtra}
       ${apiDocsExtra}
+      ${apiDocsEndpoints}
       <p><a href="/">← Abyssal Claims interactive map</a></p>
     </main>`;
   res.type('html').send(wrapHtml(head, body, { hydrate: hydrates(req.path) }));
