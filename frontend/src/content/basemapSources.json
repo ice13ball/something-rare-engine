@@ -4,9 +4,42 @@
   "releases": [
     {
       "ids": [
-        "2026-11-25"
+        "2026-11-27"
       ],
       "current": true,
+      "notes": {
+        "en": "Released 2026-11-27. The layers land and coast (Arctic) were rebuilt with the 2026-11-27 land mask: dark sea read as land is cleared, and thin OSM land beside it is kept. coast14 is still that of release 2026-11-22. Sources, place names and depth layers are those of release 2026-11-25.",
+        "pl": "Wydanie z 2026-11-27. Warstwy land i coast (Arktyka) przebudowano z maską lądu z 2026-11-27: ciemne morze odczytane jako ląd jest usuwane, a cienki ląd z OSM obok niego zostaje. coast14 pozostaje z wydania 2026-11-22. Źródła, nazwy miejsc i warstwy głębokości są takie jak w wydaniu 2026-11-25.",
+        "de": "Veröffentlicht am 2026-11-27. Die Ebenen land und coast (Arktis) wurden mit der Landmaske vom 2026-11-27 neu erstellt: als Land gelesenes dunkles Meer wird entfernt, schmales OSM-Land daneben bleibt erhalten. coast14 entspricht weiterhin der Version 2026-11-22. Quellen, Ortsnamen und Tiefenebenen entsprechen der Version 2026-11-25.",
+        "fr": "Publiée le 2026-11-27. Les couches land et coast (Arctique) ont été reconstruites avec le masque terrestre du 2026-11-27 : la mer sombre lue comme de la terre est supprimée et la terre OSM étroite qui la borde est conservée. coast14 reste celle de la version 2026-11-22. Les sources, les noms de lieux et les couches de profondeur sont ceux de la version 2026-11-25."
+      },
+      "sources": [
+        "copernicus-sentinel-2-2021-2026",
+        "nasa-gibs",
+        "gebco-2026",
+        "osm-landmask",
+        "geonames",
+        "natural-earth-names",
+        "wikidata",
+        "kartverket-depth",
+        "ibcao-5-2",
+        "emodnet-dtm-2024"
+      ],
+      "landMaskMethodUrls": [
+        {
+          "id": "2026-11-27",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-27.md"
+        },
+        {
+          "id": "2026-11-22",
+          "url": "https://something-rare.com/map-sources/land-mask-method-2026-11-22.md"
+        }
+      ]
+    },
+    {
+      "ids": [
+        "2026-11-25"
+      ],
       "notes": {
         "en": "Released 2026-11-25. Place names no longer come from OpenStreetMap; imagery, bathymetry and the land mask are those of release 2026-11-24. Arctic depth layer (north of 64°N, archive version 2026-11-25) added on 2026-11-26. Norway depth layer (57.3–64.5°N, EMODnet DTM 2024 + Kartverket) added on 2026-11-26.",
         "pl": "Wydanie z 2026-11-25. Nazwy miejsc nie pochodzą już z OpenStreetMap; zdjęcia, batymetria i maska lądu są takie jak w wydaniu 2026-11-24. Warstwa głębokości Arktyki (na północ od 64°N, wersja archiwum 2026-11-25) dodana 2026-11-26. Warstwa głębokości Norwegii (57,3–64,5°N, EMODnet DTM 2024 + Kartverket) dodana 2026-11-26.",
@@ -670,15 +703,16 @@
         "items": [
           "Rasterise the OSM land polygons to the tile grid (anti-aliased, 2× supersampling): OSM land = 1, sea = 0.",
           "Compute NDWI = (green − NIR) / (green + NIR) from the imagery. Map it to a soft \"not water\" value: 1 at NDWI ≤ −0.05, 0 at NDWI ≥ 0.10, linear in between.",
-          "Keep that image-derived \"not water\" only within 1,000 m seaward of OSM land (distance measured to the nearest OSM land pixel in the tile). Further out to sea it is ignored.",
+          "Keep that image-derived \"not water\" only within 1,000 m seaward of OSM land (distance measured to the nearest OSM land pixel, including OSM land in neighbouring tiles). Further out to sea it is ignored.",
           "Final mask = maximum of step 1 and step 3. So the mask is OSM land plus what the image shows as not water close to the OSM coastline: piers, breakwaters, harbour moles, sandbanks and coastline changes newer than OSM.",
           "Light smoothing of the image-derived part (Gaussian, σ = 0.8 px) so the edge is not jagged.",
-          "Low zooms only (z8–11, layer `land`): the mask is eroded by one pixel, so the coarse coastline stays inside the sharper coastline of the z12–14 layers."
+          "Low zooms only (z8–11, layer `land`): the mask is eroded by one pixel, so the coarse coastline stays inside the sharper coastline of the z12–14 layers. Pixels set back to water by step 7 count as land for this erosion only (they stay water), so thin OSM land beside them is not eroded away.",
+          "Dark sea read as land is removed from step 3: a connected patch inside the 1 km zone and outside OSM land is set back to water when its mean NIR reflectance is below 0.03, at most 10% of its pixels exceed 0.12, its mean red reflectance is at most 0.026, and no bright (cloud-like) pixel, blue > 0.20, lies within 300 m. The patch is widened by one pixel before it is cleared, so no faint rim of the soft edge remains."
         ]
       },
       {
         "type": "p",
-        "text": "**Not part of the mask:** the imagery itself, GEBCO bathymetry and the place-name labels. The labels layer is distributed separately under ODbL 1.0."
+        "text": "**Not part of the mask:** the imagery itself, GEBCO bathymetry and the place-name labels."
       },
       {
         "type": "p",

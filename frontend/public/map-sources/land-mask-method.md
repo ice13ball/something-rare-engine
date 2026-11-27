@@ -1,6 +1,6 @@
-# Method of the land mask, basemap release 2026-11-24 (ODbL 4.6)
+# Method of the land mask, basemap release 2026-11-27 (ODbL 4.6)
 
-Release: `2026-11-24` (layers land, coast (Arctic)). Licence of this method description: [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
+Release: `2026-11-27` (layers land, coast, coast14). Licence of this method description: [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
 
 The satellite imagery of the basemap (layers `land`, `coast`, `coast14`) is cut to land with a land/water mask.
 The mask is derived from OpenStreetMap data and is therefore a Derivative Database under the
@@ -22,15 +22,19 @@ tiles does not apply to it.
 2. Compute NDWI = (green − NIR) / (green + NIR) from the imagery. Map it to a soft "not water" value: 1 at
    NDWI ≤ −0.05, 0 at NDWI ≥ 0.10, linear in between.
 3. Keep that image-derived "not water" only within 1,000 m seaward of OSM land (distance measured to the nearest
-   OSM land pixel in the tile). Further out to sea it is ignored.
+   OSM land pixel, including OSM land in neighbouring tiles). Further out to sea it is ignored.
 4. Final mask = maximum of step 1 and step 3. So the mask is OSM land plus what the image shows as not water close
    to the OSM coastline: piers, breakwaters, harbour moles, sandbanks and coastline changes newer than OSM.
 5. Light smoothing of the image-derived part (Gaussian, σ = 0.8 px) so the edge is not jagged.
 6. Low zooms only (z8–11, layer `land`): the mask is eroded by one pixel, so the coarse coastline stays inside the
-   sharper coastline of the z12–14 layers.
+   sharper coastline of the z12–14 layers. Pixels set back to water by step 7 count as land for this erosion only
+   (they stay water), so thin OSM land beside them is not eroded away.
+7. Dark sea read as land is removed from step 3: a connected patch inside the 1 km zone and outside OSM land is set
+   back to water when its mean NIR reflectance is below 0.03, at most 10% of its pixels exceed 0.12, its mean red
+   reflectance is at most 0.026, and no bright (cloud-like) pixel, blue > 0.20, lies within 300 m. The patch is
+   widened by one pixel before it is cleared, so no faint rim of the soft edge remains.
 
-**Not part of the mask:** the imagery itself, GEBCO bathymetry and the place-name labels. The labels layer is
-distributed separately under ODbL 1.0.
+**Not part of the mask:** the imagery itself, GEBCO bathymetry and the place-name labels.
 
 The mask is not a product of its own and is not published as a file; this description is the offer under
 ODbL 4.6. Questions: through the contact on [something-rare.com](https://something-rare.com/).
