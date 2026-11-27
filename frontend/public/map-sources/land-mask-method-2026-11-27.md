@@ -1,6 +1,6 @@
 # Method of the land mask, basemap release 2026-11-27 (ODbL 4.6)
 
-Release: `2026-11-27` (layers land, coast, coast14). Licence of this method description: [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
+Release: `2026-11-27` (layers land, coast; coast14 is unchanged, see the method of 2026-11-22). Licence of this method description: [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
 
 The satellite imagery of the basemap (layers `land`, `coast`, `coast14`) is cut to land with a land/water mask.
 The mask is derived from OpenStreetMap data and is therefore a Derivative Database under the
