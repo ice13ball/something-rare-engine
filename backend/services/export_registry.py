@@ -1153,7 +1153,7 @@ _OBSERVATIONS: dict[str, ObservationExport] = {
                   "picks = the accepted value at the level nearest each display depth (0, 50, 100, 200, 500, 1000, "
                   "1500, 2000 m) inside that depth's window, per variable: temperature °C, salinity (no unit in "
                   "WOD), oxygen/phosphate/silicate/nitrate µmol/kg, nstar = nitrate - 16 × phosphate at one level. "
-                  "Positions beyond ±85.05° are matched on the clamped map position. Full profile: "
+                  "Casts beyond ±85.05° are matched on their true position (drawn on the map edge). Full profile: "
                   "/v1/wod/cast/{cast_id}."),
         ),
     ),

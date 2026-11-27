@@ -8,8 +8,13 @@ bbox lies inside the AOI contributes every observation, any other is tested poin
 in count() and rows(), so the preview count equals the file. ⛔ The cap counts observations (LIMIT cap + 1 on the
 unnested rows), never segments.
 wod-casts: one row per DRAWABLE cast (wod_cast_points). wod_casts has no spatial index; the AOI is turned into
-Morton key ranges (wod_casts_rules.tile_key_range, the tile index) and tested on x/y in EPSG:3857 (latitude clamped
-to ±85.0511 there, as on the map).
+Morton key ranges (wod_casts_rules.tile_key_range, the tile index) and tested on x/y in EPSG:3857.
+
+⛔ North and south of ±85.0511 the EPSG:3857 positions are CLAMPED (a cast at 89.99°N sits on the 85.0511 line), so
+the 3857 test alone is wrong there: an area wholly beyond the limit (Central Arctic 86–90°N) found nothing, and an area
+ending between 85.05 and 90° let in polar points that are not in it (fixed 2026-11-27). Candidates are therefore found
+with `merc_aoi_sql` (the AOI's part inside the limit plus the 85.0–85.0511 strip under any part beyond it), and every
+candidate in that strip is decided on its TRUE latitude/longitude in 4326.
 """
 from __future__ import annotations
 
@@ -24,6 +29,23 @@ from services.export_registry import ObservationExport
 
 STMT_TIMEOUT_MS = 12_000
 _WORLD_3857 = "ST_MakeEnvelope(-180, -85.0511, 180, 85.0511, 4326)"
+_EDGE_LAT = 85.0  # from here to the limit, a stored 3857 position may be a clamped one: decide on the true position
+_EDGE_Y = 6378137.0 * math.log(math.tan(math.pi / 4 + math.radians(_EDGE_LAT) / 2))
+
+
+def merc_aoi_sql(g: str) -> str:
+    """EPSG:3857 search area for the 4326 AOI `g`: its part inside ±85.0511, plus, under each part beyond the limit,
+    the strip from 85.0 to just past 85.0511 of the same longitudes, where the clamped positions of those points lie
+    (wod_cast_points.x/y are float4, so a clamped y may round a metre or two past the limit). NULL when nothing is
+    left (an empty union)."""
+    m = WR.MERC_LAT
+    over = m + 0.01
+    strip = ("SELECT ST_MakeEnvelope(ST_XMin(p), {lo}, ST_XMax(p), {hi}, 4326) FROM "
+             "(SELECT ST_Intersection({g}, ST_MakeEnvelope(-180, {a}, 180, {b}, 4326)) AS p) x WHERE NOT ST_IsEmpty(p)")
+    return f"""(SELECT ST_Transform(ST_Union(u.part), 3857) FROM (
+    SELECT ST_Intersection({g}, {_WORLD_3857}) AS part
+    UNION ALL {strip.format(g=g, a=m, b=90, lo=_EDGE_LAT, hi=over)}
+    UNION ALL {strip.format(g=g, a=-90, b=-m, lo=-over, hi=-_EDGE_LAT)}) u WHERE NOT ST_IsEmpty(u.part))"""
 
 
 def aoi_geom_sql(aoi: Aoi) -> tuple[str, list]:
@@ -38,10 +60,10 @@ def aoi_geom_sql(aoi: Aoi) -> tuple[str, list]:
 def _socat_ctes(aoi_sql: str) -> str:
     return f"""
 WITH aoi AS MATERIALIZED (SELECT {aoi_sql} AS g),
+m AS MATERIALIZED (SELECT {merc_aoi_sql("aoi.g")} AS g FROM aoi),
 seg AS (
   SELECT s.*, ST_Transform(s.bbox, 4326) AS bb
-  FROM aoi JOIN socat_segments s
-    ON s.bbox && ST_Transform(ST_Intersection(aoi.g, {_WORLD_3857}), 3857)
+  FROM aoi CROSS JOIN m JOIN socat_segments s ON s.bbox && m.g
   WHERE aoi.g IS NOT NULL),
 seg2 AS (
   SELECT seg.*, (ST_YMax(seg.bb) < 85.05 AND ST_YMin(seg.bb) > -85.05 AND ST_Contains(aoi.g, seg.bb)) AS inside
@@ -115,9 +137,12 @@ def _wod_ctes(aoi_sql: str, where: str, limit: int | None = None) -> str:
     """⛔ The LIMIT sits INSIDE pts, before the join to the 7.65 M-row wod_casts (PK lookups only for kept rows)."""
     lim = f" LIMIT {int(limit)}" if limit is not None else ""
     return f"""
-WITH aoi AS MATERIALIZED (SELECT ST_Transform(ST_Intersection({aoi_sql}, {_WORLD_3857}), 3857) AS g),
-pts AS MATERIALIZED (SELECT p.cast_id, p.picks FROM wod_cast_points p CROSS JOIN aoi
-        WHERE ({where}) AND ST_Intersects(aoi.g, ST_SetSRID(ST_MakePoint(p.x, p.y), 3857)){lim})"""
+WITH aoi AS MATERIALIZED (SELECT {aoi_sql} AS g),
+m AS MATERIALIZED (SELECT {merc_aoi_sql("aoi.g")} AS g FROM aoi),
+pts AS MATERIALIZED (SELECT p.cast_id, p.picks FROM wod_cast_points p CROSS JOIN m CROSS JOIN aoi
+        WHERE ({where}) AND ST_Intersects(m.g, ST_SetSRID(ST_MakePoint(p.x, p.y), 3857))
+          AND (abs(p.y) < {_EDGE_Y!r} OR EXISTS (SELECT 1 FROM wod_casts c WHERE c.cast_id = p.cast_id
+               AND ST_Intersects(aoi.g, ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)))){lim})"""
 
 
 def decode_wod_picks(picks) -> dict[str, dict[str, float]]:
